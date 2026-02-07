@@ -6,8 +6,8 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import type { DateClickArg } from '@fullcalendar/interaction';
 import type {
-  DateClickArg,
   DatesSetArg,
   EventClickArg,
   EventContentArg,
@@ -248,7 +248,7 @@ export default function OpdCalendarPage() {
   const markSlotBooked = React.useCallback((provider: string, date: string, time: string) => {
     setAvailability((prev) => {
       let foundEntry = false;
-      const next = prev.map((entry) => {
+      const next: ProviderAvailability[] = prev.map((entry) => {
         if (entry.provider !== provider || entry.date !== date) return entry;
         foundEntry = true;
         const slotExists = entry.slots.some((slot) => slot.time === time);
@@ -261,7 +261,7 @@ export default function OpdCalendarPage() {
         return {
           ...entry,
           slots: entry.slots.map((slot) =>
-            slot.time === time ? { ...slot, status: 'Booked' } : slot
+            slot.time === time ? { ...slot, status: 'Booked' as const } : slot
           ),
         };
       });
@@ -529,8 +529,8 @@ export default function OpdCalendarPage() {
   const handlePrev = () => calendarRef.current?.getApi().prev();
   const handleNext = () => calendarRef.current?.getApi().next();
   const handleToday = () => calendarRef.current?.getApi().today();
-  const handleViewSelect = (event: SelectChangeEvent) => {
-    const value = event.target.value as CalendarView;
+  const handleViewSelect = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent) => {
+    const value = (event.target as HTMLInputElement).value as CalendarView;
     if (!value) return;
     setCalendarView(value);
     calendarRef.current?.getApi().changeView(value);
@@ -692,7 +692,7 @@ export default function OpdCalendarPage() {
                       select
                       label="View"
                       value={calendarView}
-                      onChange={handleViewSelect}
+                      onChange={(e) => handleViewSelect(e as SelectChangeEvent)}
                       sx={{ minWidth: 140 }}
                     >
                       <MenuItem value="dayGridMonth">Month</MenuItem>
