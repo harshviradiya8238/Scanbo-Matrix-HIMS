@@ -75,6 +75,7 @@ export default function SidebarItem({
   const isHighlighted = isActive || hasActiveDescendant;
   const isFavorite = favorites.includes(item.id);
   const isHovered = hoveredItemId === item.id;
+  const isCollapsed = !isExpanded;
 
   // Auto-expand if active route is in children
   React.useEffect(() => {
@@ -195,46 +196,68 @@ export default function SidebarItem({
         pr: isExpanded ? 1.25 : 0,
         justifyContent: isExpanded ? 'flex-start' : 'center',
         alignItems: 'center',
-        minHeight: 42,
-        borderRadius: 2.2,
+        minHeight: isExpanded ? 42 : 48,
+        width: isExpanded ? '100%' : 48,
+        height: isExpanded ? 'auto' : 48,
+        mx: isExpanded ? 0.75 : 'auto',
+        my: isExpanded ? 0.25 : 0.9,
+        p: isExpanded ? '6px 10px' : 0,
+        borderRadius: isExpanded ? 2.2 : 2.6,
         border: '1px solid',
-        borderColor: 'transparent',
-        mb: 0.25,
+        borderColor: isExpanded ? 'transparent' : alpha(theme.palette.primary.main, 0.18),
+        backgroundColor: isExpanded ? 'transparent' : theme.palette.background.paper,
+        boxShadow: isExpanded
+          ? 'none'
+          : `0 6px 14px ${alpha(theme.palette.primary.main, 0.08)}`,
         position: 'relative',
         overflow: 'visible',
         zIndex: 1,
-        '&.Mui-selected': {
-          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.16)} 0%, ${alpha(
-            theme.palette.info.main,
-            0.14
-          )} 100%)`,
-          borderColor: alpha(theme.palette.primary.main, 0.24),
-          color: theme.palette.primary.main ,
-          fontWeight: 600,
-          '&:hover': {
-            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.22)} 0%, ${alpha(
-              theme.palette.info.main,
-              0.18
-            )} 100%)`,
-          },
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            left: isExpanded ? 0 : -6,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: isExpanded ? 4 : 3,
-            height: '60%',
-            backgroundColor: theme.palette.primary.main,
-            borderRadius: '0 2px 2px 0',
-          },
-          '& .MuiListItemIcon-root': {
-            color: theme.palette.primary.main,
-          },
-        },
+        '&.Mui-selected': isExpanded
+          ? {
+              background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.16)} 0%, ${alpha(
+                theme.palette.info.main,
+                0.14
+              )} 100%)`,
+              borderColor: alpha(theme.palette.primary.main, 0.24),
+              color: theme.palette.primary.main,
+              fontWeight: 600,
+              '&:hover': {
+                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.22)} 0%, ${alpha(
+                  theme.palette.info.main,
+                  0.18
+                )} 100%)`,
+              },
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                left: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 4,
+                height: '60%',
+                backgroundColor: theme.palette.primary.main,
+                borderRadius: '0 2px 2px 0',
+              },
+              '& .MuiListItemIcon-root': {
+                color: theme.palette.primary.main,
+              },
+            }
+          : {
+              backgroundColor: alpha(theme.palette.primary.main, 0.12),
+              borderColor: alpha(theme.palette.primary.main, 0.38),
+              boxShadow: `0 10px 20px ${alpha(theme.palette.primary.main, 0.16)}`,
+              '& .MuiListItemIcon-root': {
+                color: theme.palette.primary.main,
+              },
+            },
         '&:hover': {
-          backgroundColor: alpha(theme.palette.primary.main, isExpanded ? 0.07 : 0.1),
-          borderColor: alpha(theme.palette.primary.main, 0.24),
+          backgroundColor: isExpanded
+            ? alpha(theme.palette.primary.main, 0.07)
+            : alpha(theme.palette.primary.main, 0.08),
+          borderColor: alpha(theme.palette.primary.main, 0.28),
+          boxShadow: isExpanded
+            ? 'none'
+            : `0 8px 18px ${alpha(theme.palette.primary.main, 0.14)}`,
         },
         '&:focus-visible': {
           outline: `2px solid ${theme.palette.primary.main}`,
@@ -251,16 +274,16 @@ export default function SidebarItem({
       {IconComponent && (
         <ListItemIcon
           sx={{
-            minWidth: isExpanded ? 40 : 36,
+            minWidth: isExpanded ? 40 : 0,
             color: theme.palette.primary.main,
             justifyContent: 'center',
             alignItems: 'center',
             alignSelf: 'center',
             display: 'flex',
-            borderRadius: 1.4,
+            borderRadius: isExpanded ? 1.4 : 2,
             bgcolor: 'transparent',
-            width: isExpanded ? 'auto' : 36,
-            height: isExpanded ? 'auto' : 36,
+            width: isExpanded ? 40 : '100%',
+            height: isExpanded ? 40 : '100%',
             mr: 0,
             '& svg': {
               fontSize: isExpanded ? 23 : 22,

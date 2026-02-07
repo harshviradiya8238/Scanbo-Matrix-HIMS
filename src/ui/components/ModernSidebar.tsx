@@ -215,14 +215,14 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
       <Box
         sx={{
           px: isExpanded ? 1.5 : 1,
-          py: 0,
+          py: isExpanded ? 0 : 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          borderBottom: `1px solid ${theme.palette.divider}`,
-          minHeight: { xs: 80, md: 89 },
-          height: { xs: 80, md: 88 },
+          borderBottom: isExpanded ? `1px solid ${theme.palette.divider}` : 'none',
+          minHeight: { xs: 80, md: isExpanded ? 88 : 96 },
+          height: { xs: 80, md: isExpanded ? 88 : 96 },
           backgroundColor: theme.palette.background.paper,
         }}
       >
@@ -231,7 +231,7 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
           src={'/scanbo.svg' }
           alt="Scanbo logo"
           sx={{
-            height:  60 ,
+            height: isExpanded ? 60 : 54,
             width: 'auto',
             objectFit: 'contain',
             objectPosition: 'center',
@@ -325,7 +325,17 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
       })()}
 
       {/* Main Navigation Groups */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto', px: isExpanded ? 0.1 : 0.5, py: 1 }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          overflow: 'auto',
+          px: isExpanded ? 0.1 : 0.5,
+          py: isExpanded ? 1 : 2,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: isExpanded ? 'stretch' : 'center',
+        }}
+      >
         {NAV_GROUPS.map((group) => {
           const filteredItems = filterItems(group.items);
           if (filteredItems.length === 0) return null;
@@ -349,7 +359,17 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
                   {group.label}
                 </Typography>
               )}
-              <List dense disablePadding>
+              <List
+                dense
+                disablePadding
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: isExpanded ? 'stretch' : 'center',
+                  gap: isExpanded ? 0 : 1.1,
+                  width: '100%',
+                }}
+              >
                 {filteredItems.map((item) => (
                   <SidebarItem
                     key={item.id}
@@ -368,6 +388,26 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
           );
         })}
       </Box>
+
+      {!isExpanded && (
+        <Box sx={{ pt: 1, pb: 2, display: 'flex', justifyContent: 'center' }}>
+          <Box
+            sx={{
+              px: 1.4,
+              py: 0.6,
+              borderRadius: 999,
+              backgroundColor: alpha(theme.palette.warning.main, 0.2),
+              color: theme.palette.warning.dark,
+              fontWeight: 700,
+              fontSize: '0.75rem',
+              letterSpacing: '0.4px',
+              boxShadow: '0 6px 12px rgba(246, 177, 0, 0.2)',
+            }}
+          >
+            Pro
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 
