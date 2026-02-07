@@ -12,6 +12,12 @@ interface BreadcrumbsProps {
   currentPageTitle?: string;
 }
 
+type BreadcrumbItem = {
+  id: string;
+  label: string;
+  route?: string;
+};
+
 export default function Breadcrumbs({ currentPageTitle }: BreadcrumbsProps) {
   const pathname = usePathname() ?? '';
   const breadcrumbPath = React.useMemo(() => getBreadcrumbPath(pathname), [pathname]);
@@ -20,7 +26,7 @@ export default function Breadcrumbs({ currentPageTitle }: BreadcrumbsProps) {
     return null;
   }
 
-  const items = breadcrumbPath.length
+  const items: BreadcrumbItem[] = breadcrumbPath.length
     ? breadcrumbPath
     : currentPageTitle
     ? [{ id: 'current', label: currentPageTitle }]
