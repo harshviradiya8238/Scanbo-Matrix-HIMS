@@ -32,7 +32,6 @@ import {
   Apps as AppsIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
-import Breadcrumbs from './Breadcrumbs';
 import { getMenuItemByRoute } from '@/src/core/navigation/nav-config';
 import MobileMenuButton from './MobileMenuButton';
 import { useSidebarState } from '@/src/core/navigation/useSidebarState';
@@ -184,9 +183,6 @@ export default function Header({ userName = 'John Doe', userRole = 'DOCTOR', use
               </IconButton>
             </Tooltip>
           </Box>
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, minWidth: 0 }}>
-            <Breadcrumbs currentPageTitle={pageTitle} />
-          </Box>
           <Text
             variant="h6"
             component="div"
@@ -209,14 +205,14 @@ export default function Header({ userName = 'John Doe', userRole = 'DOCTOR', use
             display: 'flex',
             alignItems: 'center',
             minWidth: 0,
-            justifyContent: 'center',
+            justifyContent: 'end',
             justifySelf: { xs: 'stretch', md: 'stretch' },
           }}
         >
           <Box
             sx={{
               display: { xs: 'none', md: 'flex' },
-              width: '100%',
+              width: '50%',
               minWidth: 0,
             }}
           >

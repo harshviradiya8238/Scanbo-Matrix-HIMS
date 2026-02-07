@@ -24,7 +24,14 @@ export default function PageTemplate({
   currentPageTitle,
 }: PageTemplateProps) {
   return (
-    <PageLayout title={title} subtitle={subtitle} overline={overline} actions={actions} header={header}>
+    <PageLayout
+      title={title}
+      subtitle={subtitle}
+      overline={overline}
+      actions={actions}
+      header={header}
+      currentPageTitle={currentPageTitle ?? title}
+    >
       {children || (
         <Section>
           <Text variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>

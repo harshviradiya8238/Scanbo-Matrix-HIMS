@@ -50,48 +50,60 @@ export default function OpdFlowHeader({
     <Card
       elevation={0}
       sx={{
-        p: { xs: 2, sm: 2 },
+        p: { xs: 1.75, sm: 2 },
         borderRadius: 2.5,
         border: '1px solid',
         borderColor: 'divider',
         backgroundColor: softSurface,
       }}
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.5}>
         <Stack
           direction={{ xs: 'column', md: 'row' }}
           spacing={1.5}
           justifyContent="space-between"
           alignItems={{ xs: 'flex-start', md: 'center' }}
         >
-          <Box>
-            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
-              <Chip size="small" color="primary" label="Scanbo Matrix HIMS" />
-              <Chip size="small" color="primary" variant="outlined" label="Outpatient Flow" />
-              <Chip
-                size="small"
-                variant="outlined"
-                label={`State: ${flowState.name}`}
-                sx={{
-                  borderColor: alpha(theme.palette.primary.main, 0.4),
-                  color: theme.palette.primary.main,
-                }}
-              />
-              {patientLabel ? (
+          <Box sx={{ minWidth: 0 }}>
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              spacing={1}
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+              sx={{ mb: 0.5 }}
+            >
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                {title}
+              </Typography>
+              <Stack
+                direction="row"
+                spacing={1}
+                flexWrap="wrap"
+                sx={{ mt: { xs: 0.5, md: 0 } }}
+              >
+                <Chip size="small" color="primary" label="Scanbo Matrix HIMS" />
+                <Chip size="small" color="primary" variant="outlined" label="Outpatient Flow" />
                 <Chip
                   size="small"
                   variant="outlined"
-                  label={`Patient: ${patientLabel}`}
+                  label={`State: ${flowState.name}`}
                   sx={{
-                    borderColor: alpha(theme.palette.info.main, 0.4),
-                    color: theme.palette.info.main,
+                    borderColor: alpha(theme.palette.primary.main, 0.4),
+                    color: theme.palette.primary.main,
                   }}
                 />
-              ) : null}
+                {patientLabel ? (
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={`Patient: ${patientLabel}`}
+                    sx={{
+                      borderColor: alpha(theme.palette.info.main, 0.4),
+                      color: theme.palette.info.main,
+                    }}
+                  />
+                ) : null}
+              </Stack>
             </Stack>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>
-              {title}
-            </Typography>
             <Typography variant="body2" color="text.secondary">
               {description}
             </Typography>

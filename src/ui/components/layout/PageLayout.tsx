@@ -9,6 +9,7 @@ interface PageLayoutProps {
   actions?: React.ReactNode;
   header?: React.ReactNode;
   children?: React.ReactNode;
+  currentPageTitle?: string;
 }
 
 export default function PageLayout({
@@ -18,13 +19,22 @@ export default function PageLayout({
   actions,
   header,
   children,
+  currentPageTitle,
 }: PageLayoutProps) {
   return (
     <Box sx={{ width: '100%', margin: 0, padding: 0 }}>
       {header
         ? header
         : title
-        ? <PageHeader title={title} subtitle={subtitle} overline={overline} actions={actions} />
+        ? (
+          <PageHeader
+            title={title}
+            subtitle={subtitle}
+            overline={overline}
+            actions={actions}
+            currentPageTitle={currentPageTitle}
+          />
+        )
         : null}
       <Box sx={{ px: { xs: 2, sm: 3 }, pb: 2 }}>{children}</Box>
     </Box>
