@@ -17,10 +17,15 @@ import {
   StickyNote2 as StickyNote2Icon,
 } from '@mui/icons-material';
 import OpdFlowHeader from './components/OpdFlowHeader';
-import { OPD_ENCOUNTERS, OpdEncounterCase } from './opd-mock-data';
+import { OpdEncounterCase } from './opd-mock-data';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
+import { useAppDispatch } from '@/src/store/hooks';
+import { updateEncounter } from '@/src/store/slices/opdSlice';
+import { useOpdData } from '@/src/store/opdHooks';
+
+const OPD_HOME_ROUTE = '/reports/doctor-volume';
 
 interface SoapNote {
   subjective: string;
@@ -80,12 +85,13 @@ function SoapTabPanel({
 export default function OpdVisitPage() {
   const router = useRouter();
   const mrnParam = useMrnParam();
+  const dispatch = useAppDispatch();
+  const { encounters, notes, status: opdStatus, error: opdError } = useOpdData();
   const [search, setSearch] = React.useState('');
-  const [selectedCaseId, setSelectedCaseId] = React.useState(OPD_ENCOUNTERS[0]?.id ?? '');
+  const [selectedCaseId, setSelectedCaseId] = React.useState(encounters[0]?.id ?? '');
   const [soapTab, setSoapTab] = React.useState(0);
   const [soapNotes, setSoapNotes] = React.useState<Record<string, SoapNote>>(DEFAULT_SOAP);
   const [saveStamp, setSaveStamp] = React.useState('');
-  const [completedVisits, setCompletedVisits] = React.useState<string[]>([]);
   const [mrnApplied, setMrnApplied] = React.useState(false);
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
@@ -99,7 +105,7 @@ export default function OpdVisitPage() {
 
   const filteredCases = React.useMemo(() => {
     const query = search.trim().toLowerCase();
-    return OPD_ENCOUNTERS.filter((encounter) => {
+    return encounters.filter((encounter) => {
       const isVisible = encounter.status !== 'Completed';
       if (!isVisible) return false;
 
@@ -115,7 +121,7 @@ export default function OpdVisitPage() {
         .toLowerCase()
         .includes(query);
     });
-  }, [search]);
+  }, [encounters, search]);
 
   React.useEffect(() => {
     if (filteredCases.length === 0) return;
@@ -128,17 +134,17 @@ export default function OpdVisitPage() {
 
   React.useEffect(() => {
     if (!mrnParam || mrnApplied) return;
-    const match = OPD_ENCOUNTERS.find((encounter) => encounter.mrn === mrnParam);
+    const match = encounters.find((encounter) => encounter.mrn === mrnParam);
     if (match) {
       setSelectedCaseId(match.id);
       setSearch(mrnParam);
     }
     setMrnApplied(true);
-  }, [mrnParam, mrnApplied]);
+  }, [mrnParam, mrnApplied, encounters]);
 
   const selectedCase = React.useMemo<OpdEncounterCase | undefined>(
-    () => OPD_ENCOUNTERS.find((encounter) => encounter.id === selectedCaseId),
-    [selectedCaseId]
+    () => encounters.find((encounter) => encounter.id === selectedCaseId),
+    [encounters, selectedCaseId]
   );
 
   const flowMrn = selectedCase?.mrn ?? mrnParam;
@@ -158,11 +164,15 @@ export default function OpdVisitPage() {
       plan: '',
     };
 
-  const inConsultCount = OPD_ENCOUNTERS.filter((encounter) => encounter.status === 'In Consultation').length;
-  const waitingCount = OPD_ENCOUNTERS.filter(
+  const inConsultCount = encounters.filter((encounter) => encounter.status === 'In Consultation').length;
+  const waitingCount = encounters.filter(
     (encounter) => encounter.status === 'Checked-In' || encounter.status === 'In Triage'
   ).length;
-  const activeDoctors = new Set(OPD_ENCOUNTERS.map((encounter) => encounter.doctor)).size;
+  const activeDoctors = new Set(encounters.map((encounter) => encounter.doctor)).size;
+  const patientNotes = React.useMemo(
+    () => (notes ?? []).filter((note) => note.patientId === selectedCaseId),
+    [notes, selectedCaseId]
+  );
 
   const updateSoapField = (field: keyof SoapNote, value: string) => {
     if (!selectedCase) return;
@@ -203,17 +213,32 @@ export default function OpdVisitPage() {
       return;
     }
 
-    setCompletedVisits((prev) => [...prev, selectedCase.id]);
+    dispatch(
+      updateEncounter({
+        id: selectedCase.id,
+        changes: { status: 'Completed' },
+      })
+    );
     setSnackbar({
       open: true,
       message: `Visit completed for ${selectedCase.patientName}.`,
       severity: 'success',
     });
+    router.push(withMrn(OPD_HOME_ROUTE));
   };
 
   return (
     <PageTemplate title="Visit / Encounter" subtitle={pageSubtitle} currentPageTitle="Visit">
       <Stack spacing={2}>
+        {opdStatus === 'loading' ? (
+          <Alert severity="info">Loading OPD data from the local JSON server.</Alert>
+        ) : null}
+        {opdStatus === 'error' ? (
+          <Alert severity="warning">
+            OPD JSON server not reachable. Showing fallback data.
+            {opdError ? ` (${opdError})` : ''}
+          </Alert>
+        ) : null}
         <OpdFlowHeader
           activeStep="visit"
           title="OPD Encounter Workspace"
@@ -289,7 +314,7 @@ export default function OpdVisitPage() {
                         border: '1px solid',
                         borderColor: encounter.id === selectedCaseId ? 'primary.main' : 'divider',
                         alignItems: 'flex-start',
-                        opacity: completedVisits.includes(encounter.id) ? 0.65 : 1,
+                        opacity: encounter.status === 'Completed' ? 0.65 : 1,
                       }}
                     >
                       <Stack direction="row" spacing={1.1} sx={{ width: '100%' }}>
@@ -475,6 +500,32 @@ export default function OpdVisitPage() {
                   </Button>
                   <Button variant="text" onClick={() => router.push(withMrn('/clinical/notes'))}>
                     Open Notes Page
+                  </Button>
+                </Stack>
+              </Card>
+
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                <Stack spacing={1}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    Notes for this Patient
+                  </Typography>
+                  {patientNotes.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">No notes yet. Capture one in the Notes screen.</Typography>
+                  ) : (
+                    patientNotes.slice(0, 4).map((note) => (
+                      <Card key={note.id} variant="outlined" sx={{ p: 1, borderRadius: 1.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{note.title}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {note.savedAt} · {note.author}
+                        </Typography>
+                        <Typography variant="caption" sx={{ whiteSpace: 'pre-line' }}>
+                          {note.content.slice(0, 120)}...
+                        </Typography>
+                      </Card>
+                    ))
+                  )}
+                  <Button variant="outlined" size="small" onClick={() => router.push(withMrn('/clinical/notes'))}>
+                    View All Notes
                   </Button>
                 </Stack>
               </Card>

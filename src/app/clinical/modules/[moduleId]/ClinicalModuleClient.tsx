@@ -6,6 +6,9 @@ import InpatientClinDocPage from '@/src/screens/clinical/InpatientClinDocPage';
 import WelcomeKioskPage from '@/src/screens/clinical/WelcomeKioskPage';
 import CareCompanionPage from '@/src/screens/clinical/CareCompanionPage';
 import InfectionControlPage from '@/src/screens/clinical/InfectionControlPage';
+import RegistrationAdtPage from '@/src/screens/clinical/RegistrationAdtPage';
+import OpdCalendarPage from '@/src/screens/opd/OpdCalendarPage';
+import RadiantImagingPage from '@/src/screens/clinical/RadiantImagingPage';
 import { ClinicalModuleDefinition } from '@/src/screens/clinical/module-registry';
 
 interface ClinicalModuleClientProps {
@@ -31,6 +34,18 @@ export default function ClinicalModuleClient({ moduleDefinition }: ClinicalModul
 
   if (moduleDefinition.slug === 'bugsy-infection-control') {
     return <InfectionControlPage />;
+  }
+
+  if (moduleDefinition.slug === 'prelude-grand-central') {
+    return <RegistrationAdtPage />;
+  }
+
+  if (moduleDefinition.slug === 'open-scheduling') {
+    return <OpdCalendarPage />;
+  }
+
+  if (moduleDefinition.slug === 'radiant') {
+    return <RadiantImagingPage />;
   }
 
   return <ClinicalModulePlaceholderPage moduleDefinition={moduleDefinition} />;

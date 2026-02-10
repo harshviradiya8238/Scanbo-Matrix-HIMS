@@ -52,6 +52,7 @@ import {
   Undo,
   ShoppingBag,
   Inventory,
+  Timeline as TimelineIcon,
 } from '@mui/icons-material';
 import { NAV_GROUPS } from '@/src/core/navigation/nav-config';
 import { MenuItem } from '@/src/core/navigation/types';
@@ -100,6 +101,7 @@ const iconMap: Record<string, React.ComponentType> = {
   Security,
   MoneyOff,
   Category,
+  Timeline: TimelineIcon,
   Business,
   AdminPanelSettings,
   Schedule,
@@ -124,6 +126,7 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
   const { isExpanded, toggle } = useSidebarState();
   const { favorites, toggleFavorite, recentItems } = useNavigationState();
   const [hoveredItemId, setHoveredItemId] = React.useState<string | null>(null);
+  const mainNavRef = React.useRef<HTMLDivElement | null>(null);
 
   // Filter menu items by permissions
   const filterItems = (items: MenuItem[]): MenuItem[] => {
@@ -326,6 +329,7 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
 
       {/* Main Navigation Groups */}
       <Box
+        ref={mainNavRef}
         sx={{
           flexGrow: 1,
           overflow: 'auto',
@@ -410,6 +414,12 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
       )}
     </Box>
   );
+
+  React.useEffect(() => {
+    if (!mainNavRef.current) return;
+    // Reset scroll when role/permissions change to avoid large empty gaps.
+    mainNavRef.current.scrollTop = 0;
+  }, [userPermissions, isExpanded]);
 
   if (isMobile) {
     return (

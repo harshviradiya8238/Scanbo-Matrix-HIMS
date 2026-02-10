@@ -20,6 +20,7 @@ import {
 import {
   CLINICAL_MODULES,
   ClinicalModuleDefinition,
+  ModuleStatus,
 } from './module-registry';
 
 export default function ClinicalEpicModulesPage() {
@@ -27,6 +28,8 @@ export default function ClinicalEpicModulesPage() {
   const subtleSurface = getSubtleSurface(theme);
   const [query, setQuery] = React.useState('');
   const [audienceFilter, setAudienceFilter] = React.useState<'All' | string>('All');
+  const [categoryFilter, setCategoryFilter] = React.useState<'All' | string>('All');
+  const [statusFilter, setStatusFilter] = React.useState<'All' | ModuleStatus>('All');
 
   const audienceOptions = React.useMemo(() => {
     const set = new Set<string>();
@@ -36,6 +39,14 @@ export default function ClinicalEpicModulesPage() {
     return ['All', ...Array.from(set).sort((a, b) => a.localeCompare(b))];
   }, []);
 
+  const categoryOptions = React.useMemo(() => {
+    const set = new Set<string>();
+    CLINICAL_MODULES.forEach((moduleDefinition) => set.add(moduleDefinition.category));
+    return ['All', ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, []);
+
+  const statusOptions: Array<'All' | ModuleStatus> = ['All', 'Implemented', 'In Progress', 'Planned'];
+
   const rows = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     return CLINICAL_MODULES.filter((moduleDefinition) => {
@@ -43,6 +54,7 @@ export default function ClinicalEpicModulesPage() {
         q.length === 0 ||
         [
           moduleDefinition.name,
+          moduleDefinition.category,
           moduleDefinition.area,
           moduleDefinition.description,
           moduleDefinition.audience.join(' '),
@@ -51,17 +63,41 @@ export default function ClinicalEpicModulesPage() {
       const matchesAudience =
         audienceFilter === 'All' ||
         moduleDefinition.audience.includes(audienceFilter);
-      return matchesQuery && matchesAudience;
+      const matchesCategory =
+        categoryFilter === 'All' || moduleDefinition.category === categoryFilter;
+      const matchesStatus =
+        statusFilter === 'All' || moduleDefinition.status === statusFilter;
+      return matchesQuery && matchesAudience && matchesCategory && matchesStatus;
     });
-  }, [query, audienceFilter]);
+  }, [query, audienceFilter, categoryFilter, statusFilter]);
 
   const columns = React.useMemo<GridColDef<ClinicalModuleDefinition>[]>(
     () => [
       {
         field: 'name',
         headerName: 'Module',
-        minWidth: 250,
-        flex: 1.1,
+        minWidth: 260,
+        flex: 1.2,
+        renderCell: (params: GridRenderCellParams<ClinicalModuleDefinition, string>) => (
+          <Stack spacing={0.35} sx={{ py: 0.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+              {params.value}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {params.row.area}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        field: 'category',
+        headerName: 'Category',
+        width: 160,
+        renderCell: (
+          params: GridRenderCellParams<ClinicalModuleDefinition, ClinicalModuleDefinition['category']>
+        ) => (
+          <Chip size="small" label={params.value} variant="outlined" />
+        ),
       },
       {
         field: 'status',
@@ -88,20 +124,15 @@ export default function ClinicalEpicModulesPage() {
         ),
       },
       {
-        field: 'area',
-        headerName: 'Area',
-        width: 200,
-      },
-      {
         field: 'description',
-        headerName: 'What it does',
-        flex: 1.8,
-        minWidth: 380,
+        headerName: 'Short Description',
+        flex: 2,
+        minWidth: 420,
       },
       {
         field: 'audience',
-        headerName: 'Users',
-        minWidth: 230,
+        headerName: 'Who Accesses',
+        minWidth: 240,
         flex: 1,
         sortable: false,
         filterable: false,
@@ -122,7 +153,7 @@ export default function ClinicalEpicModulesPage() {
       },
       {
         field: 'appRoute',
-        headerName: 'Open',
+        headerName: 'Flow',
         width: 150,
         sortable: false,
         filterable: false,
@@ -144,7 +175,7 @@ export default function ClinicalEpicModulesPage() {
       },
       {
         field: 'videoUrl',
-        headerName: 'Video',
+        headerName: 'YouTube',
         width: 120,
         sortable: false,
         filterable: false,
@@ -171,8 +202,8 @@ export default function ClinicalEpicModulesPage() {
       },
       {
         field: 'referenceUrl',
-        headerName: 'Reference',
-        width: 130,
+        headerName: 'Public Link',
+        width: 140,
         sortable: false,
         filterable: false,
         align: 'center',
@@ -202,7 +233,7 @@ export default function ClinicalEpicModulesPage() {
 
   return (
     <PageTemplate
-      title="Clinical: Module Reference"
+      title="Epic Module Reference"
       currentPageTitle="Module Reference"
     >
       <Stack spacing={2}>
@@ -240,21 +271,53 @@ export default function ClinicalEpicModulesPage() {
                     ),
                   }}
                 />
-                <TextField
-                  select
-                  size="small"
-                  label="User"
-                  value={audienceFilter}
-                  onChange={(event) => setAudienceFilter(event.target.value)}
-                  sx={{ minWidth: { xs: '100%', sm: 220 } }}
-                  SelectProps={{ native: true }}
-                >
-                  {audienceOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </TextField>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ flex: 1 }}>
+                  <TextField
+                    select
+                    size="small"
+                    label="Category"
+                    value={categoryFilter}
+                    onChange={(event) => setCategoryFilter(event.target.value)}
+                    sx={{ minWidth: { xs: '100%', sm: 200 } }}
+                    SelectProps={{ native: true }}
+                  >
+                    {categoryOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </TextField>
+                  <TextField
+                    select
+                    size="small"
+                    label="Status"
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value as 'All' | ModuleStatus)}
+                    sx={{ minWidth: { xs: '100%', sm: 180 } }}
+                    SelectProps={{ native: true }}
+                  >
+                    {statusOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </TextField>
+                  <TextField
+                    select
+                    size="small"
+                    label="User"
+                    value={audienceFilter}
+                    onChange={(event) => setAudienceFilter(event.target.value)}
+                    sx={{ minWidth: { xs: '100%', sm: 220 } }}
+                    SelectProps={{ native: true }}
+                  >
+                    {audienceOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </TextField>
+                </Stack>
               </Stack>
               <Box>
                 <Chip

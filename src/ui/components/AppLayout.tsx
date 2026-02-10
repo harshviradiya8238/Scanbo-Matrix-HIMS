@@ -11,6 +11,9 @@ import { useUser } from '@/src/core/auth/UserContext';
 import { useNavigationState } from '@/src/core/navigation/hooks';
 import { getMenuItemByRoute } from '@/src/core/navigation/nav-config';
 import { useSidebarState } from '@/src/core/navigation/useSidebarState';
+import { getRouteAccessInfo } from '@/src/core/navigation/route-access';
+import { hasPermission } from '@/src/core/navigation/permissions';
+import AccessDenied from '@/src/ui/components/AccessDenied';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -54,6 +57,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
       setPrefersReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     }
   }, []);
+
+  const accessInfo = React.useMemo(() => getRouteAccessInfo(pathname), [pathname]);
+  const hasAccess = React.useMemo(() => {
+    if (!accessInfo || accessInfo.requiredPermissions.length === 0) return true;
+    return accessInfo.requiredPermissions.some((perm) => hasPermission(permissions, perm));
+  }, [accessInfo, permissions]);
 
   return (
     <Box
@@ -120,7 +129,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             flexShrink: 0,
           }}
         >
-          <AppHeader userName="RMD Hospital" userRole={role} />
+          <AppHeader userName="RMD Hospital" />
         </Box>
 
         {/* Main Content */}
@@ -138,7 +147,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
             flexDirection: 'column',
           }}
         >
-          <Box sx={{ flex: 1, minHeight: 0 }}>{children}</Box>
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            {hasAccess ? (
+              children
+            ) : (
+              <AccessDenied
+                requiredPermissions={accessInfo?.requiredPermissions ?? []}
+                currentRole={role}
+              />
+            )}
+          </Box>
           <Footer />
         </Box>
       </Box>

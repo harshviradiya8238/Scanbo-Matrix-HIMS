@@ -1,10 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit';
 import counterSlice from './slices/counterSlice';
+import opdSlice from './slices/opdSlice';
+import radiologySlice from './slices/radiologySlice';
 
 export const makeStore = () => {
   return configureStore({
     reducer: {
       counter: counterSlice,
+      opd: opdSlice,
+      radiology: radiologySlice,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
@@ -20,4 +24,3 @@ export const makeStore = () => {
 export type AppStore = ReturnType<typeof makeStore>;
 export type RootState = ReturnType<AppStore['getState']>;
 export type AppDispatch = AppStore['dispatch'];
-

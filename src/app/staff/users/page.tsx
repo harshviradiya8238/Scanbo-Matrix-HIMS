@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import StaffUsersPage from '@/src/screens/staff/StaffUsersPage';
 
 export default function UsersPage() {
-  return <PageTemplate title="Staff Users" currentPageTitle="Users" />;
+  return <StaffUsersPage />;
 }

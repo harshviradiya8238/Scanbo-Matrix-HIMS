@@ -13,10 +13,12 @@ import {
   Save as SaveIcon,
 } from '@mui/icons-material';
 import OpdFlowHeader from './components/OpdFlowHeader';
-import { OPD_ENCOUNTERS, OPD_NOTE_TEMPLATES } from './opd-mock-data';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
+import { useOpdData } from '@/src/store/opdHooks';
+import { useAppDispatch } from '@/src/store/hooks';
+import { addNote } from '@/src/store/slices/opdSlice';
 
 interface NotesDraft {
   chiefComplaint: string;
@@ -24,15 +26,6 @@ interface NotesDraft {
   examination: string;
   assessment: string;
   plan: string;
-}
-
-interface SavedNote {
-  id: string;
-  patientId: string;
-  title: string;
-  content: string;
-  savedAt: string;
-  author: string;
 }
 
 function buildDefaultDraft(): NotesDraft {
@@ -48,10 +41,12 @@ function buildDefaultDraft(): NotesDraft {
 export default function OpdNotesPage() {
   const router = useRouter();
   const mrnParam = useMrnParam();
-  const [selectedPatientId, setSelectedPatientId] = React.useState(OPD_ENCOUNTERS[0]?.id ?? '');
-  const [selectedTemplateId, setSelectedTemplateId] = React.useState(OPD_NOTE_TEMPLATES[0]?.id ?? '');
+  const dispatch = useAppDispatch();
+  const { encounters, noteTemplates, notes, status: opdStatus, error: opdError } = useOpdData();
+  const [selectedPatientId, setSelectedPatientId] = React.useState(encounters[0]?.id ?? '');
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState(noteTemplates[0]?.id ?? '');
   const [draft, setDraft] = React.useState<NotesDraft>(() => {
-    const firstPatient = OPD_ENCOUNTERS[0];
+    const firstPatient = encounters[0];
     if (!firstPatient) return buildDefaultDraft();
     return {
       chiefComplaint: firstPatient.chiefComplaint,
@@ -61,7 +56,6 @@ export default function OpdNotesPage() {
       plan: '',
     };
   });
-  const [savedNotes, setSavedNotes] = React.useState<SavedNote[]>([]);
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
@@ -73,9 +67,21 @@ export default function OpdNotesPage() {
   });
   const [mrnApplied, setMrnApplied] = React.useState(false);
 
+  React.useEffect(() => {
+    if (!selectedPatientId && encounters.length > 0) {
+      setSelectedPatientId(encounters[0].id);
+    }
+  }, [encounters, selectedPatientId]);
+
+  React.useEffect(() => {
+    if (!selectedTemplateId && noteTemplates.length > 0) {
+      setSelectedTemplateId(noteTemplates[0].id);
+    }
+  }, [noteTemplates, selectedTemplateId]);
+
   const selectedPatient = React.useMemo(
-    () => OPD_ENCOUNTERS.find((item) => item.id === selectedPatientId),
-    [selectedPatientId]
+    () => encounters.find((item) => item.id === selectedPatientId),
+    [encounters, selectedPatientId]
   );
 
   const flowMrn = selectedPatient?.mrn ?? mrnParam;
@@ -88,8 +94,8 @@ export default function OpdNotesPage() {
   );
 
   const patientHistory = React.useMemo(
-    () => savedNotes.filter((note) => note.patientId === selectedPatientId),
-    [savedNotes, selectedPatientId]
+    () => notes.filter((note) => note.patientId === selectedPatientId),
+    [notes, selectedPatientId]
   );
 
   React.useEffect(() => {
@@ -107,19 +113,19 @@ export default function OpdNotesPage() {
 
   React.useEffect(() => {
     if (!mrnParam || mrnApplied) return;
-    const match = OPD_ENCOUNTERS.find((item) => item.mrn === mrnParam);
+    const match = encounters.find((item) => item.mrn === mrnParam);
     if (match) {
       setSelectedPatientId(match.id);
     }
     setMrnApplied(true);
-  }, [mrnParam, mrnApplied]);
+  }, [mrnParam, mrnApplied, encounters]);
 
   const updateField = <K extends keyof NotesDraft>(field: K, value: NotesDraft[K]) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleApplyTemplate = () => {
-    const template = OPD_NOTE_TEMPLATES.find((item) => item.id === selectedTemplateId);
+    const template = noteTemplates.find((item) => item.id === selectedTemplateId);
     if (!template) return;
 
     const sections = template.content.split('\n');
@@ -157,28 +163,38 @@ export default function OpdNotesPage() {
       `Plan: ${draft.plan}`,
     ].join('\n');
 
-    const entry: SavedNote = {
-      id: `note-${Date.now()}`,
-      patientId: selectedPatient.id,
-      title: `${selectedPatient.patientName} - OPD Progress Note`,
-      content,
-      savedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      author: 'Dr. Duty Doctor',
-    };
-
-    setSavedNotes((prev) => [entry, ...prev]);
+    dispatch(
+      addNote({
+        id: `note-${Date.now()}`,
+        patientId: selectedPatient.id,
+        title: `${selectedPatient.patientName} - OPD Progress Note`,
+        content,
+        savedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        author: 'Dr. Duty Doctor',
+      })
+    );
     setSnackbar({
       open: true,
       message: `Clinical note saved for ${selectedPatient.patientName}.`,
       severity: 'success',
     });
+    router.push(withMrn(OPD_HOME_ROUTE));
   };
 
   return (
     <PageTemplate title="Clinical Notes" subtitle={pageSubtitle} currentPageTitle="Notes">
       <Stack spacing={2}>
+        {opdStatus === 'loading' ? (
+          <Alert severity="info">Loading OPD data from the local JSON server.</Alert>
+        ) : null}
+        {opdStatus === 'error' ? (
+          <Alert severity="warning">
+            OPD JSON server not reachable. Showing fallback data.
+            {opdError ? ` (${opdError})` : ''}
+          </Alert>
+        ) : null}
         <OpdFlowHeader
-          activeStep="visit"
+          activeStep="notes"
           title="Clinical Notes Composer"
           description="Write structured OPD notes using templates and maintain patient-wise documentation history."
           patientMrn={flowMrn}
@@ -206,7 +222,7 @@ export default function OpdNotesPage() {
                       onChange={(event) => setSelectedPatientId(event.target.value)}
                       sx={{ minWidth: 220 }}
                     >
-                      {OPD_ENCOUNTERS.map((patient) => (
+                      {encounters.map((patient) => (
                         <MenuItem key={patient.id} value={patient.id}>
                           {patient.patientName} ({patient.mrn})
                         </MenuItem>
@@ -220,7 +236,7 @@ export default function OpdNotesPage() {
                       onChange={(event) => setSelectedTemplateId(event.target.value)}
                       sx={{ minWidth: 220 }}
                     >
-                      {OPD_NOTE_TEMPLATES.map((template) => (
+                      {noteTemplates.map((template) => (
                         <MenuItem key={template.id} value={template.id}>
                           {template.name}
                         </MenuItem>
@@ -330,6 +346,32 @@ export default function OpdNotesPage() {
 
               <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                 <Stack spacing={1}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <DescriptionIcon fontSize="small" />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>All Notes</Typography>
+                  </Stack>
+                  {patientHistory.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">No notes captured yet.</Typography>
+                  ) : (
+                    patientHistory.map((note) => (
+                      <Card key={note.id} variant="outlined" sx={{ p: 1.1, borderRadius: 1.5 }}>
+                        <Stack spacing={0.5}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{note.title}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {note.savedAt} · {note.author}
+                          </Typography>
+                          <Typography variant="caption" sx={{ whiteSpace: 'pre-line' }}>
+                            {note.content}
+                          </Typography>
+                        </Stack>
+                      </Card>
+                    ))
+                  )}
+                </Stack>
+              </Card>
+
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                <Stack spacing={1}>
                   <Button
                     variant="outlined"
                     startIcon={<DescriptionIcon />}
@@ -364,3 +406,4 @@ export default function OpdNotesPage() {
     </PageTemplate>
   );
 }
+const OPD_HOME_ROUTE = '/reports/doctor-volume';

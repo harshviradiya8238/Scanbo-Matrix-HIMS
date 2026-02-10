@@ -26,7 +26,7 @@ import {
   DISCHARGE_CANDIDATES,
   INITIAL_BED_BOARD,
 } from '@/src/screens/ipd/ipd-mock-data';
-import { OPD_APPOINTMENTS, OPD_ENCOUNTERS } from '@/src/screens/opd/opd-mock-data';
+import { useOpdData } from '@/src/store/opdHooks';
 import { CLINICAL_MODULES } from '@/src/screens/clinical/module-registry';
 
 interface WardSummary {
@@ -42,22 +42,23 @@ export default function DashboardPage() {
   const softSurface = getSoftSurface(theme);
   const subtleSurface = getSubtleSurface(theme);
   const router = useRouter();
+  const { appointments, encounters } = useOpdData();
   const dashboardDate = '2026-02-04';
 
   const todaysAppointments = React.useMemo(
-    () => OPD_APPOINTMENTS.filter((appointment) => appointment.date === dashboardDate),
-    [dashboardDate]
+    () => appointments.filter((appointment) => appointment.date === dashboardDate),
+    [appointments, dashboardDate]
   );
 
   const liveQueueCount = React.useMemo(
     () =>
-      OPD_ENCOUNTERS.filter(
+      encounters.filter(
         (encounter) =>
           encounter.status === 'Checked-In' ||
           encounter.status === 'In Triage' ||
           encounter.status === 'In Consultation'
       ).length,
-    []
+    [encounters]
   );
 
   const occupiedBeds = React.useMemo(
@@ -432,7 +433,7 @@ export default function DashboardPage() {
                     <MonitorHeartIcon color="warning" fontSize="small" />
                     <Typography variant="body2">
                       {
-                        OPD_ENCOUNTERS.filter((encounter) => encounter.queuePriority === 'Urgent')
+                        encounters.filter((encounter) => encounter.queuePriority === 'Urgent')
                           .length
                       } urgent OPD cases in triage/consult workflow.
                     </Typography>

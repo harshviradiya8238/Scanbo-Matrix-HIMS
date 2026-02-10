@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import RolesPermissionsPage from '@/src/screens/staff/RolesPermissionsPage';
 
 export default function RolesPage() {
-  return <PageTemplate title="Roles & Permissions" currentPageTitle="Roles" />;
+  return <RolesPermissionsPage />;
 }

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "opd:server": "npx json-server --watch data/opd-db.json --port 4000"
   },
   "dependencies": {
     "@emotion/cache": "^11.11.0",

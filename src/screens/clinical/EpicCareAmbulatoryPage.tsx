@@ -7,6 +7,11 @@ import { Card, StatTile } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { useTheme } from '@mui/material';
 import { getSoftSurface, getSubtleSurface } from '@/src/core/theme/surfaces';
+import { useMrnParam } from '@/src/core/patients/useMrnParam';
+import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
+import { useUser } from '@/src/core/auth/UserContext';
+import { usePermission } from '@/src/core/auth/usePermission';
+import { canAccessRoute } from '@/src/core/navigation/route-access';
 import {
   Air as AirIcon,
   Biotech as BiotechIcon,
@@ -403,9 +408,13 @@ export default function EpicCareAmbulatoryPage() {
   const theme = useTheme();
   const softSurface = getSoftSurface(theme);
   const subtleSurface = getSubtleSurface(theme);
+  const mrnParam = useMrnParam();
+  const { permissions } = useUser();
+  const can = usePermission();
   const [selectedPatientId, setSelectedPatientId] = React.useState(QUEUE_PATIENTS[0].id);
   const [search, setSearch] = React.useState('');
   const [activeTab, setActiveTab] = React.useState(0);
+  const [mrnApplied, setMrnApplied] = React.useState(false);
 
   const timelineDotColor = React.useCallback(
     (type: TimelineType) => getTimelineDotColor(type, theme.palette),
@@ -417,6 +426,12 @@ export default function EpicCareAmbulatoryPage() {
     () => QUEUE_PATIENTS.find((p) => p.id === selectedPatientId) ?? QUEUE_PATIENTS[0],
     [selectedPatientId]
   );
+  const flowMrn = selectedPatient?.mrn ?? mrnParam;
+  const pageSubtitle = formatPatientLabel(selectedPatient?.name, flowMrn);
+  const withMrn = React.useCallback(
+    (route: string) => (flowMrn ? `${route}?mrn=${flowMrn}` : route),
+    [flowMrn]
+  );
 
   const filteredQueue = React.useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -427,6 +442,16 @@ export default function EpicCareAmbulatoryPage() {
       )
     );
   }, [search]);
+
+  React.useEffect(() => {
+    if (!mrnParam || mrnApplied) return;
+    const match = QUEUE_PATIENTS.find((patient) => patient.mrn === mrnParam);
+    if (match) {
+      setSelectedPatientId(match.id);
+      setSearch(mrnParam);
+    }
+    setMrnApplied(true);
+  }, [mrnParam, mrnApplied]);
 
   const waitingCount = React.useMemo(
     () => QUEUE_PATIENTS.filter((p) => p.status === 'Waiting').length,
@@ -469,9 +494,18 @@ export default function EpicCareAmbulatoryPage() {
     }));
   };
 
+  const canNavigate = React.useCallback(
+    (route: string) => canAccessRoute(route, permissions),
+    [permissions]
+  );
+
+  const canWriteNotes = can('clinical.notes.write');
+  const canWriteOrders = can('clinical.orders.write');
+
   return (
     <PageTemplate
       title="Ambulatory Care (OPD)"
+      subtitle={pageSubtitle}
       currentPageTitle="Clinical Encounters"
     >
       <Stack spacing={2}>
@@ -507,14 +541,16 @@ export default function EpicCareAmbulatoryPage() {
                 <Button
                   variant="contained"
                   startIcon={<MedicalServicesIcon />}
-                  onClick={() => router.push('/appointments/visit')}
+                  disabled={!canNavigate('/appointments/visit')}
+                  onClick={() => router.push(withMrn('/appointments/visit'))}
                 >
                   Start New Encounter
                 </Button>
                 <Button
                   variant="outlined"
                   startIcon={<EditNoteIcon />}
-                  onClick={() => router.push('/clinical/notes')}
+                  disabled={!canWriteNotes}
+                  onClick={() => router.push(withMrn('/clinical/notes'))}
                 >
                   Create Quick Note
                 </Button>
@@ -561,6 +597,121 @@ export default function EpicCareAmbulatoryPage() {
             />
           </Grid>
         </Grid>
+
+        <Card
+          elevation={0}
+          sx={{
+            p: 2,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Stack spacing={1.25}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              OPD Flow Links
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Jump to the connected OPD steps for the selected patient. MRN context stays in sync.
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/appointments/calendar')}
+                onClick={() => router.push(withMrn('/appointments/calendar'))}
+              >
+                Calendar
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/appointments/queue')}
+                onClick={() => router.push(withMrn('/appointments/queue'))}
+              >
+                Queue
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                disabled={!canNavigate('/appointments/visit')}
+                onClick={() => router.push(withMrn('/appointments/visit'))}
+              >
+                Visit
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/clinical/vitals')}
+                onClick={() => router.push(withMrn('/clinical/vitals'))}
+              >
+                Vitals
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canWriteNotes}
+                onClick={() => router.push(withMrn('/clinical/notes'))}
+              >
+                Notes
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/clinical/orders')}
+                onClick={() => router.push(withMrn('/clinical/orders'))}
+              >
+                Orders
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/clinical/prescriptions')}
+                onClick={() => router.push(withMrn('/clinical/prescriptions'))}
+              >
+                Prescriptions
+              </Button>
+            </Box>
+            <Divider />
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+              Related Actions
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/patients/profile')}
+                onClick={() => router.push(withMrn('/patients/profile'))}
+              >
+                Patient Profile
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/ipd/admissions')}
+                onClick={() => router.push(withMrn('/ipd/admissions'))}
+              >
+                Admit to IPD
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/clinical/modules/care-companion')}
+                onClick={() => router.push('/clinical/modules/care-companion')}
+              >
+                Care Companion
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/clinical/modules/bugsy-infection-control')}
+                onClick={() => router.push('/clinical/modules/bugsy-infection-control')}
+              >
+                Infection Control
+              </Button>
+            </Box>
+          </Stack>
+        </Card>
 
         <Grid container spacing={2}>
           <Grid item xs={12} lg={3}>
@@ -688,7 +839,8 @@ export default function EpicCareAmbulatoryPage() {
                       size="small"
                       variant="outlined"
                       startIcon={<PlaylistAddIcon />}
-                      onClick={() => router.push('/clinical/orders')}
+                      disabled={!canWriteOrders}
+                      onClick={() => router.push(withMrn('/clinical/orders'))}
                     >
                       Add Order
                     </Button>
@@ -696,7 +848,8 @@ export default function EpicCareAmbulatoryPage() {
                       size="small"
                       variant="contained"
                       startIcon={<EditNoteIcon />}
-                      onClick={() => router.push('/clinical/notes')}
+                      disabled={!canWriteNotes}
+                      onClick={() => router.push(withMrn('/clinical/notes'))}
                     >
                       Sign Note
                     </Button>

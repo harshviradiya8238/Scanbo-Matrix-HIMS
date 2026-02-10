@@ -8,6 +8,7 @@ import { Card } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { useTheme } from '@mui/material';
 import { getSoftSurface } from '@/src/core/theme/surfaces';
+import { getRoleLabel, getRolesForPermissions } from '@/src/core/navigation/permissions';
 import {
   ArrowBack as ArrowBackIcon,
   BuildCircle as BuildCircleIcon,
@@ -22,8 +23,9 @@ export default function ClinicalModulePlaceholderPage({
 }) {
   const theme = useTheme();
   const softSurface = getSoftSurface(theme);
+  const allowedRoles = getRolesForPermissions(moduleDefinition.requiredPermissions ?? ['clinical.read']);
   return (
-    <PageTemplate title={moduleDefinition.name} currentPageTitle="Clinical Module">
+    <PageTemplate title={moduleDefinition.name} currentPageTitle="Epic Module">
       <Stack spacing={2}>
         <Card
           elevation={0}
@@ -123,6 +125,19 @@ export default function ClinicalModulePlaceholderPage({
             </Card>
           </Grid>
         </Grid>
+
+        <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px dashed', borderColor: 'divider' }}>
+          <Stack spacing={1}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+              Role Access (Planned)
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              {allowedRoles.map((role) => (
+                <Chip key={role} size="small" label={getRoleLabel(role)} variant="outlined" />
+              ))}
+            </Stack>
+          </Stack>
+        </Card>
 
         <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px dashed', borderColor: 'divider' }}>
           <Typography variant="body2" color="text.secondary">

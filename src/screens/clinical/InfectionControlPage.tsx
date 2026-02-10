@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 import {
   Box,
@@ -14,13 +15,26 @@ import {
   Snackbar,
   Alert,
   Stack,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Tabs,
   TextField,
   Typography,
 } from '@/src/ui/components/atoms';
 import { Card, StatTile } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { alpha, useTheme } from '@mui/material';
+import { alpha, Divider, useTheme } from '@mui/material';
 import { getSoftSurface } from '@/src/core/theme/surfaces';
+import { useMrnParam } from '@/src/core/patients/useMrnParam';
+import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
+import { useUser } from '@/src/core/auth/UserContext';
+import { usePermission } from '@/src/core/auth/usePermission';
+import { canAccessRoute } from '@/src/core/navigation/route-access';
 import {
   AddCircle as AddCircleIcon,
   AssignmentTurnedIn as AssignmentTurnedInIcon,
@@ -83,7 +97,54 @@ interface ActionItem {
   priority: 'Urgent' | 'Routine';
 }
 
+interface CaseTimelineItem {
+  id: string;
+  label: string;
+  time: string;
+  status: 'Done' | 'Pending';
+}
+
+interface UnitRiskItem {
+  id: string;
+  unit: string;
+  risk: 'High' | 'Moderate' | 'Low';
+  activeCases: number;
+  trend: 'Up' | 'Flat' | 'Down';
+}
+
+interface LabTriggerItem {
+  id: string;
+  test: string;
+  patient: string;
+  organism: string;
+  collected: string;
+  status: 'New' | 'Reviewed';
+}
+
 const FLOW_STEPS = ['Detect', 'Isolate', 'Notify', 'Audit', 'Close'];
+const FLOW_STEP_DETAILS = [
+  'Detect new infections from lab triggers, alerts, and active case lists.',
+  'Place patients in isolation and track room status.',
+  'Notify teams with alerts and action assignments.',
+  'Run compliance audits and review results.',
+  'Close cases once actions are complete and isolation is cleared.',
+];
+
+function FlowTabPanel({
+  value,
+  index,
+  children,
+}: {
+  value: number;
+  index: number;
+  children: React.ReactNode;
+}) {
+  if (value !== index) {
+    return null;
+  }
+
+  return <Box sx={{ pt: 2 }}>{children}</Box>;
+}
 
 const INITIAL_CASES: InfectionCase[] = [
   {
@@ -202,18 +263,51 @@ const INITIAL_ACTIONS: ActionItem[] = [
   },
 ];
 
+const CASE_TIMELINES: Record<string, CaseTimelineItem[]> = {
+  'ic-1': [
+    { id: 'tl-1', label: 'MRSA positive culture', time: 'Today, 08:20 AM', status: 'Done' },
+    { id: 'tl-2', label: 'Isolation initiated', time: 'Today, 09:30 AM', status: 'Done' },
+    { id: 'tl-3', label: 'Contact tracing scheduled', time: 'Today, 12:00 PM', status: 'Pending' },
+  ],
+  'ic-2': [
+    { id: 'tl-4', label: 'C. diff confirmation', time: 'Today, 07:45 AM', status: 'Done' },
+    { id: 'tl-5', label: 'Environmental cleaning audit', time: 'Today, 03:30 PM', status: 'Pending' },
+  ],
+  'ic-3': [
+    { id: 'tl-6', label: 'COVID-19 retest negative', time: 'Yesterday, 02:10 PM', status: 'Done' },
+    { id: 'tl-7', label: 'Isolation cleared', time: 'Yesterday, 04:00 PM', status: 'Done' },
+  ],
+};
+
+const UNIT_RISK_OVERVIEW: UnitRiskItem[] = [
+  { id: 'ur-1', unit: 'Ward 3A', risk: 'High', activeCases: 3, trend: 'Up' },
+  { id: 'ur-2', unit: 'ICU', risk: 'Moderate', activeCases: 2, trend: 'Flat' },
+  { id: 'ur-3', unit: 'Ward 1B', risk: 'Low', activeCases: 1, trend: 'Down' },
+];
+
+const LAB_TRIGGERS: LabTriggerItem[] = [
+  { id: 'lb-1', test: 'Blood Culture', patient: 'Aarav Nair', organism: 'MRSA', collected: '08:10 AM', status: 'New' },
+  { id: 'lb-2', test: 'Stool Toxin', patient: 'Meera Joshi', organism: 'C. diff', collected: '07:30 AM', status: 'Reviewed' },
+  { id: 'lb-3', test: 'PCR Panel', patient: 'Ravi Iyer', organism: 'COVID-19', collected: 'Yesterday', status: 'Reviewed' },
+];
+
 export default function InfectionControlPage() {
+  const router = useRouter();
   const theme = useTheme();
   const softSurface = getSoftSurface(theme);
+  const mrnParam = useMrnParam();
+  const { permissions } = useUser();
+  const can = usePermission();
   const [cases, setCases] = React.useState<InfectionCase[]>(INITIAL_CASES);
   const [isolations, setIsolations] = React.useState<IsolationRoom[]>(INITIAL_ISOLATIONS);
   const [audits, setAudits] = React.useState<AuditRecord[]>(INITIAL_AUDITS);
   const [alerts, setAlerts] = React.useState<AlertItem[]>(INITIAL_ALERTS);
   const [actions, setActions] = React.useState<ActionItem[]>(INITIAL_ACTIONS);
   const [selectedCaseId, setSelectedCaseId] = React.useState<string>(INITIAL_CASES[0]?.id ?? '');
-  const [activeStep, setActiveStep] = React.useState(1);
+  const [activeTab, setActiveTab] = React.useState(0);
   const [caseDialogOpen, setCaseDialogOpen] = React.useState(false);
   const [auditDialogOpen, setAuditDialogOpen] = React.useState(false);
+  const [mrnApplied, setMrnApplied] = React.useState(false);
   const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string; severity: 'success' | 'info' }>({
     open: false,
     message: '',
@@ -235,6 +329,23 @@ export default function InfectionControlPage() {
   });
 
   const selectedCase = cases.find((item) => item.id === selectedCaseId) ?? cases[0];
+  const caseTimeline = CASE_TIMELINES[selectedCase?.id ?? ''] ?? [];
+  const closedCases = cases.filter((item) => item.status === 'Closed');
+  const flowMrn = selectedCase?.mrn ?? mrnParam;
+  const pageSubtitle = formatPatientLabel(selectedCase?.patientName, flowMrn);
+  const withMrn = React.useCallback(
+    (route: string) => (flowMrn ? `${route}?mrn=${flowMrn}` : route),
+    [flowMrn]
+  );
+
+  React.useEffect(() => {
+    if (!mrnParam || mrnApplied) return;
+    const match = cases.find((item) => item.mrn === mrnParam);
+    if (match) {
+      setSelectedCaseId(match.id);
+    }
+    setMrnApplied(true);
+  }, [mrnParam, mrnApplied, cases]);
 
   const handleResolveCase = (caseId: string) => {
     setCases((prev) =>
@@ -299,8 +410,19 @@ export default function InfectionControlPage() {
     setSnackbar({ open: true, message: 'Audit logged successfully.', severity: 'success' });
   };
 
+  const canNavigate = React.useCallback(
+    (route: string) => canAccessRoute(route, permissions),
+    [permissions]
+  );
+  const canWrite = can('clinical.infection_control.write');
+
+  const handlePrevTab = () => setActiveTab((prev) => Math.max(0, prev - 1));
+  const handleNextTab = () => setActiveTab((prev) => Math.min(prev + 1, FLOW_STEPS.length - 1));
+  const isFirstTab = activeTab === 0;
+  const isLastTab = activeTab === FLOW_STEPS.length - 1;
+
   return (
-    <PageTemplate title="Infection Control" currentPageTitle="Infection Control">
+    <PageTemplate title="Infection Control" subtitle={pageSubtitle} currentPageTitle="Infection Control">
       <Stack spacing={1.5}>
         <Card
           elevation={0}
@@ -333,14 +455,85 @@ export default function InfectionControlPage() {
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1}>
-                <Button variant="outlined" startIcon={<AssignmentTurnedInIcon />} onClick={() => setAuditDialogOpen(true)}>
+                <Button
+                  variant="outlined"
+                  startIcon={<AssignmentTurnedInIcon />}
+                  disabled={!canWrite}
+                  onClick={() => setAuditDialogOpen(true)}
+                >
                   Log Audit
                 </Button>
-                <Button variant="contained" startIcon={<AddCircleIcon />} onClick={() => setCaseDialogOpen(true)}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddCircleIcon />}
+                  disabled={!canWrite}
+                  onClick={() => setCaseDialogOpen(true)}
+                >
                   New Case
                 </Button>
               </Stack>
             </Stack>
+          </Stack>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            p: 1.75,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Stack spacing={1.25}>
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              spacing={1.25}
+              justifyContent="space-between"
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+            >
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Infection Control Flow
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Step {activeTab + 1} of {FLOW_STEPS.length}: {FLOW_STEPS[activeTab]} · {FLOW_STEP_DETAILS[activeTab]}
+                </Typography>
+              </Box>
+              <Stack direction="row" spacing={1}>
+                <Button variant="text" onClick={() => setActiveTab(0)}>
+                  Start
+                </Button>
+                <Button variant="outlined" onClick={handlePrevTab} disabled={isFirstTab}>
+                  Previous
+                </Button>
+                <Button variant="contained" onClick={handleNextTab} disabled={isLastTab}>
+                  Next
+                </Button>
+              </Stack>
+            </Stack>
+            <Tabs
+              value={activeTab}
+              onChange={(_, value: number) => setActiveTab(value)}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                minHeight: 44,
+                '& .MuiTab-root': {
+                  minHeight: 44,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                },
+              }}
+            >
+              <Tab icon={<BugReportIcon fontSize="small" />} iconPosition="start" label="Detect" />
+              <Tab icon={<HealthAndSafetyIcon fontSize="small" />} iconPosition="start" label="Isolate" />
+              <Tab icon={<CampaignIcon fontSize="small" />} iconPosition="start" label="Notify" />
+              <Tab icon={<AssignmentTurnedInIcon fontSize="small" />} iconPosition="start" label="Audit" />
+              <Tab icon={<CheckCircleIcon fontSize="small" />} iconPosition="start" label="Close" />
+            </Tabs>
           </Stack>
         </Card>
 
@@ -383,63 +576,151 @@ export default function InfectionControlPage() {
           </Grid>
         </Grid>
 
-        <Grid container spacing={1.5} alignItems="stretch">
-          <Grid item xs={12} md={7} sx={{ display: 'flex' }}>
+        <Card
+          elevation={0}
+          sx={{
+            p: 1.75,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Stack spacing={1.25}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              Connected Clinical Links
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Jump to related patient workflows while reviewing infections and isolation status.
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/patients/profile')}
+                onClick={() => router.push(withMrn('/patients/profile'))}
+              >
+                Patient Profile
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/diagnostics/lab/results')}
+                onClick={() => router.push(withMrn('/diagnostics/lab/results'))}
+              >
+                Lab Results
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/ipd/beds')}
+                onClick={() => router.push(withMrn('/ipd/beds'))}
+              >
+                IPD Bed Board
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/ipd/rounds')}
+                onClick={() => router.push(withMrn('/ipd/rounds'))}
+              >
+                IPD Rounds
+              </Button>
+            </Box>
+          </Stack>
+        </Card>
+
+        <FlowTabPanel value={activeTab} index={0}>
+          <Stack spacing={1.5}>
             <Card
               elevation={0}
-              sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
+              sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}
             >
               <Stack spacing={1.25}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                   Active Cases
                 </Typography>
-                <Stack spacing={1}>
-                  {cases.map((item) => (
-                    <Card
-                      key={item.id}
-                      variant="outlined"
-                      sx={{
-                        p: 1.25,
-                        borderRadius: 1.5,
-                        borderColor: item.id === selectedCaseId ? 'primary.main' : 'divider',
-                        backgroundColor:
-                          item.id === selectedCaseId ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-                      }}
-                      onClick={() => setSelectedCaseId(item.id)}
-                    >
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between">
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {item.patientName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {item.mrn} · {item.organism} · {item.unit}
-                          </Typography>
-                        </Box>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Chip
-                            size="small"
-                            label={item.risk}
-                            color={item.risk === 'High' ? 'error' : item.risk === 'Moderate' ? 'warning' : 'default'}
-                          />
-                          <Chip
-                            size="small"
-                            label={item.status}
-                            color={item.status === 'Closed' ? 'default' : item.status === 'Monitoring' ? 'info' : 'warning'}
-                          />
-                          {item.status !== 'Closed' ? (
-                            <Button size="small" variant="text" onClick={() => handleResolveCase(item.id)}>
-                              Close
-                            </Button>
-                          ) : null}
-                        </Stack>
-                      </Stack>
-                      <Typography variant="caption" color="text.secondary">
-                        Updated {item.lastUpdate}
-                      </Typography>
-                    </Card>
-                  ))}
-                </Stack>
+                <TableContainer
+                  sx={{
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1.5,
+                  }}
+                >
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700 }}>Patient</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Organism</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Unit</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Risk</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Updated</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }} align="right">
+                          Action
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {cases.map((item) => (
+                        <TableRow
+                          key={item.id}
+                          hover
+                          onClick={() => setSelectedCaseId(item.id)}
+                          sx={{
+                            cursor: 'pointer',
+                            backgroundColor:
+                              item.id === selectedCaseId ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+                          }}
+                        >
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {item.patientName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {item.mrn}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>{item.organism}</TableCell>
+                          <TableCell>{item.unit}</TableCell>
+                          <TableCell>
+                            <Chip
+                              size="small"
+                              label={item.risk}
+                              color={item.risk === 'High' ? 'error' : item.risk === 'Moderate' ? 'warning' : 'default'}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              size="small"
+                              label={item.status}
+                              color={item.status === 'Closed' ? 'default' : item.status === 'Monitoring' ? 'info' : 'warning'}
+                            />
+                          </TableCell>
+                          <TableCell>{item.lastUpdate}</TableCell>
+                          <TableCell align="right">
+                            {item.status !== 'Closed' ? (
+                              <Button
+                                size="small"
+                                variant="text"
+                                disabled={!canWrite}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleResolveCase(item.id);
+                                }}
+                              >
+                                Close
+                              </Button>
+                            ) : (
+                              <Typography variant="caption" color="text.secondary">
+                                -
+                              </Typography>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
                 {selectedCase ? (
                   <Box
                     sx={{
@@ -463,272 +744,554 @@ export default function InfectionControlPage() {
                     </Stack>
                   </Box>
                 ) : null}
+                <Divider />
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  Case Timeline
+                </Typography>
+                <TableContainer
+                  sx={{
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1.5,
+                  }}
+                >
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700 }}>Event</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Time</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {caseTimeline.map((event) => (
+                        <TableRow key={event.id} hover>
+                          <TableCell>{event.label}</TableCell>
+                          <TableCell>{event.time}</TableCell>
+                          <TableCell>
+                            <Chip
+                              size="small"
+                              label={event.status}
+                              color={event.status === 'Done' ? 'success' : 'warning'}
+                              variant={event.status === 'Done' ? 'filled' : 'outlined'}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {caseTimeline.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3}>
+                            <Typography variant="caption" color="text.secondary">
+                              No timeline events logged.
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </Stack>
             </Card>
-          </Grid>
 
-          <Grid item xs={12} md={5} sx={{ display: 'flex' }}>
-            <Card
-              elevation={0}
-              sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
-            >
-              <Stack spacing={1.25}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Response Flow
-                </Typography>
-                <Grid container spacing={1}>
-                  {FLOW_STEPS.map((step, index) => (
-                    <Grid key={step} item xs={12} sm={6}>
-                      <Button
-                        fullWidth
-                        size="small"
-                        variant={index === activeStep ? 'contained' : 'outlined'}
-                        color="primary"
-                        onClick={() => setActiveStep(index)}
-                        sx={{
-                          textTransform: 'none',
-                          fontWeight: 600,
-                          borderStyle: index < activeStep ? 'solid' : index === activeStep ? 'solid' : 'dashed',
-                        }}
-                      >
-                        {index + 1}. {step}
-                      </Button>
-                    </Grid>
-                  ))}
-                </Grid>
-                <Stack spacing={0.75}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <CheckCircleIcon fontSize="small" color="success" />
-                    <Typography variant="body2">4 cases advanced to audit stage today</Typography>
-                  </Stack>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <CampaignIcon fontSize="small" color="warning" />
-                    <Typography variant="body2">2 teams need escalation notifications</Typography>
-                  </Stack>
-                </Stack>
-              </Stack>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={7} sx={{ display: 'flex' }}>
-            <Card
-              elevation={0}
-              sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
-            >
-              <Stack spacing={1.25}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Isolation Tracker
-                </Typography>
-                <Stack spacing={0.9}>
-                  {isolations.map((room) => (
-                    <Box
-                      key={room.id}
+            <Grid container spacing={1.5} alignItems="stretch">
+              <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+                <Card
+                  elevation={0}
+                  sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
+                >
+                  <Stack spacing={1.25}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      Lab Triggers
+                    </Typography>
+                    <TableContainer
                       sx={{
-                        p: 1.25,
-                        borderRadius: 1.5,
                         border: '1px solid',
                         borderColor: 'divider',
-                        backgroundColor: alpha(theme.palette.primary.main, 0.03),
+                        borderRadius: 1.5,
                       }}
                     >
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between">
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            Room {room.room} · {room.unit}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {room.type} isolation · Started {room.startedAt}
-                          </Typography>
-                        </Box>
-                        <Stack direction="row" spacing={1} alignItems="center">
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 700 }}>Test</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Patient</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Organism</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Collected</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {LAB_TRIGGERS.map((item) => (
+                            <TableRow key={item.id} hover>
+                              <TableCell>{item.test}</TableCell>
+                              <TableCell>{item.patient}</TableCell>
+                              <TableCell>{item.organism}</TableCell>
+                              <TableCell>{item.collected}</TableCell>
+                              <TableCell>
+                                <Chip
+                                  size="small"
+                                  label={item.status}
+                                  color={item.status === 'New' ? 'warning' : 'success'}
+                                  variant={item.status === 'New' ? 'filled' : 'outlined'}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Stack>
+                </Card>
+              </Grid>
+              <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+                <Card
+                  elevation={0}
+                  sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
+                >
+                  <Stack spacing={1.25}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      Unit Risk Overview
+                    </Typography>
+                    <TableContainer
+                      sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1.5,
+                      }}
+                    >
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 700 }}>Unit</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Active Cases</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Trend</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Risk</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {UNIT_RISK_OVERVIEW.map((unit) => (
+                            <TableRow key={unit.id} hover>
+                              <TableCell>{unit.unit}</TableCell>
+                              <TableCell>{unit.activeCases}</TableCell>
+                              <TableCell>{unit.trend}</TableCell>
+                              <TableCell>
+                                <Chip
+                                  size="small"
+                                  label={unit.risk}
+                                  color={unit.risk === 'High' ? 'error' : unit.risk === 'Moderate' ? 'warning' : 'default'}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Stack>
+                </Card>
+              </Grid>
+            </Grid>
+          </Stack>
+        </FlowTabPanel>
+
+        <FlowTabPanel value={activeTab} index={1}>
+          <Card
+            elevation={0}
+            sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}
+          >
+            <Stack spacing={1.25}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Isolation Tracker
+              </Typography>
+              <TableContainer
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1.5,
+                }}
+              >
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 700 }}>Room</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Unit</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Started</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">
+                        Action
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {isolations.map((room) => (
+                      <TableRow key={room.id} hover>
+                        <TableCell>{room.room}</TableCell>
+                        <TableCell>{room.unit}</TableCell>
+                        <TableCell>{room.type}</TableCell>
+                        <TableCell>{room.startedAt}</TableCell>
+                        <TableCell>
                           <Chip
                             size="small"
                             label={room.status}
                             color={room.status === 'Active' ? 'warning' : room.status === 'Review' ? 'info' : 'default'}
                           />
-                          <Button size="small" variant="text" onClick={() => handleToggleIsolation(room.id)}>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Button
+                            size="small"
+                            variant="text"
+                            disabled={!canWrite}
+                            onClick={() => handleToggleIsolation(room.id)}
+                          >
                             {room.status === 'Cleared' ? 'Reopen' : 'Clear'}
                           </Button>
-                        </Stack>
-                      </Stack>
-                    </Box>
-                  ))}
-                </Stack>
-              </Stack>
-            </Card>
-          </Grid>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Stack>
+          </Card>
+        </FlowTabPanel>
 
-          <Grid item xs={12} md={5} sx={{ display: 'flex' }}>
-            <Card
-              elevation={0}
-              sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
-            >
-              <Stack spacing={1.25}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Alerts
-                </Typography>
-                <Stack spacing={0.9}>
-                  {alerts.map((alert) => (
-                    <Box
-                      key={alert.id}
-                      sx={{
-                        p: 1.25,
-                        borderRadius: 1.5,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                      }}
-                    >
-                      <Stack spacing={0.5}>
-                        <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <ReportProblemIcon fontSize="small" color={alert.severity === 'High' ? 'error' : 'warning'} />
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {alert.title}
-                            </Typography>
-                          </Stack>
-                          <Chip
-                            size="small"
-                            label={alert.severity}
-                            color={alert.severity === 'High' ? 'error' : alert.severity === 'Medium' ? 'warning' : 'default'}
-                            variant="outlined"
-                          />
-                        </Stack>
-                        <Typography variant="caption" color="text.secondary">
-                          {alert.details}
-                        </Typography>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Chip
-                            size="small"
-                            label={alert.acknowledged ? 'Acknowledged' : 'Open'}
-                            color={alert.acknowledged ? 'success' : 'warning'}
-                            variant={alert.acknowledged ? 'filled' : 'outlined'}
-                          />
-                          {!alert.acknowledged ? (
-                            <Button size="small" variant="text" onClick={() => handleAcknowledgeAlert(alert.id)}>
-                              Acknowledge
-                            </Button>
-                          ) : null}
-                        </Stack>
-                      </Stack>
-                    </Box>
-                  ))}
-                </Stack>
-              </Stack>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={7} sx={{ display: 'flex' }}>
-            <Card
-              elevation={0}
-              sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
-            >
-              <Stack spacing={1.25}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <FlowTabPanel value={activeTab} index={2}>
+          <Grid container spacing={1.5} alignItems="stretch">
+            <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+              <Card
+                elevation={0}
+                sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
+              >
+                <Stack spacing={1.25}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Audit Compliance
+                    Alerts
                   </Typography>
-                  <Button size="small" variant="text" onClick={() => setAuditDialogOpen(true)}>
-                    Add Audit
-                  </Button>
+                  <TableContainer
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1.5,
+                    }}
+                  >
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 700 }}>Alert</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Severity</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }} align="right">
+                            Action
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {alerts.map((alert) => (
+                          <TableRow key={alert.id} hover>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {alert.title}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {alert.details}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                size="small"
+                                label={alert.severity}
+                                color={alert.severity === 'High' ? 'error' : alert.severity === 'Medium' ? 'warning' : 'default'}
+                                variant="outlined"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                size="small"
+                                label={alert.acknowledged ? 'Acknowledged' : 'Open'}
+                                color={alert.acknowledged ? 'success' : 'warning'}
+                                variant={alert.acknowledged ? 'filled' : 'outlined'}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              {!alert.acknowledged ? (
+                                <Button
+                                  size="small"
+                                  variant="text"
+                                  disabled={!canWrite}
+                                  onClick={() => handleAcknowledgeAlert(alert.id)}
+                                >
+                                  Acknowledge
+                                </Button>
+                              ) : (
+                                <Typography variant="caption" color="text.secondary">
+                                  -
+                                </Typography>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 </Stack>
-                <Stack spacing={0.9}>
-                  {audits.map((audit) => (
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+              <Card
+                elevation={0}
+                sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
+              >
+                <Stack spacing={1.25}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    Action Queue
+                  </Typography>
+                  <TableContainer
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1.5,
+                    }}
+                  >
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Owner</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Due</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Priority</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }} align="right">
+                            Action
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {actions.map((action) => (
+                          <TableRow key={action.id} hover>
+                            <TableCell>{action.label}</TableCell>
+                            <TableCell>{action.owner}</TableCell>
+                            <TableCell>{action.due}</TableCell>
+                            <TableCell>
+                              <Chip
+                                size="small"
+                                label={action.priority}
+                                color={action.priority === 'Urgent' ? 'warning' : 'default'}
+                                variant={action.priority === 'Urgent' ? 'filled' : 'outlined'}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                size="small"
+                                label={action.status}
+                                color={action.status === 'Done' ? 'success' : action.status === 'In Progress' ? 'info' : 'default'}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              {action.status !== 'Done' ? (
+                                <Button
+                                  size="small"
+                                  variant="text"
+                                  disabled={!canWrite}
+                                  onClick={() => handleCompleteAction(action.id)}
+                                >
+                                  Done
+                                </Button>
+                              ) : (
+                                <Typography variant="caption" color="text.secondary">
+                                  -
+                                </Typography>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  <Stack direction="row" spacing={1}>
+                    <Button variant="outlined" startIcon={<CampaignIcon />} disabled={!canWrite}>
+                      Send Update
+                    </Button>
+                    <Button variant="outlined" startIcon={<ReportProblemIcon />} disabled={!canWrite}>
+                      Escalate
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Card>
+            </Grid>
+          </Grid>
+        </FlowTabPanel>
+
+        <FlowTabPanel value={activeTab} index={3}>
+          <Card
+            elevation={0}
+            sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}
+          >
+            <Stack spacing={1.25}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Audit Compliance
+                </Typography>
+                <Button
+                  size="small"
+                  variant="text"
+                  disabled={!canWrite}
+                  onClick={() => setAuditDialogOpen(true)}
+                >
+                  Add Audit
+                </Button>
+              </Stack>
+              <Stack spacing={0.9}>
+                <TableContainer
+                  sx={{
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1.5,
+                  }}
+                >
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700 }}>Ward</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Lead</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Last Audit</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Compliance</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {audits.map((audit) => (
+                        <TableRow key={audit.id} hover>
+                          <TableCell>{audit.ward}</TableCell>
+                          <TableCell>{audit.lead}</TableCell>
+                          <TableCell>{audit.lastAudit}</TableCell>
+                          <TableCell>
+                            <Chip
+                              size="small"
+                              label={`${audit.compliance}%`}
+                              color={audit.compliance >= 90 ? 'success' : 'warning'}
+                              variant="outlined"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Stack>
+            </Stack>
+          </Card>
+        </FlowTabPanel>
+
+        <FlowTabPanel value={activeTab} index={4}>
+          <Grid container spacing={1.5} alignItems="stretch">
+            <Grid item xs={12} md={5} sx={{ display: 'flex' }}>
+              <Card
+                elevation={0}
+                sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
+              >
+                <Stack spacing={1.25}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    Close Case
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Resolve the selected case once isolation and actions are complete.
+                  </Typography>
+                  {selectedCase ? (
                     <Box
-                      key={audit.id}
                       sx={{
                         p: 1.25,
                         borderRadius: 1.5,
-                        border: '1px solid',
+                        border: '1px dashed',
                         borderColor: 'divider',
-                        backgroundColor: alpha(theme.palette.primary.main, 0.03),
+                        backgroundColor: alpha(theme.palette.success.main, 0.05),
                       }}
                     >
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between">
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {audit.ward}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Lead: {audit.lead} · {audit.lastAudit}
-                          </Typography>
-                        </Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {selectedCase.patientName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        {selectedCase.organism} · {selectedCase.unit}
+                      </Typography>
+                      <Stack direction="row" spacing={0.75} flexWrap="wrap" sx={{ mt: 0.75 }}>
+                        <Chip size="small" label={`${selectedCase.risk} risk`} variant="outlined" />
                         <Chip
                           size="small"
-                          label={`${audit.compliance}%`}
-                          color={audit.compliance >= 90 ? 'success' : 'warning'}
-                          variant="outlined"
+                          label={selectedCase.status}
+                          color={selectedCase.status === 'Closed' ? 'default' : 'warning'}
                         />
                       </Stack>
                     </Box>
-                  ))}
-                </Stack>
-              </Stack>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={5} sx={{ display: 'flex' }}>
-            <Card
-              elevation={0}
-              sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
-            >
-              <Stack spacing={1.25}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Action Queue
-                </Typography>
-                <Stack spacing={0.9}>
-                  {actions.map((action) => (
-                    <Box
-                      key={action.id}
-                      sx={{
-                        p: 1.25,
-                        borderRadius: 1.5,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                      }}
-                    >
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between">
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {action.label}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Owner: {action.owner} · Due {action.due}
-                          </Typography>
-                        </Box>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Chip
-                            size="small"
-                            label={action.priority}
-                            color={action.priority === 'Urgent' ? 'warning' : 'default'}
-                            variant={action.priority === 'Urgent' ? 'filled' : 'outlined'}
-                          />
-                          <Chip
-                            size="small"
-                            label={action.status}
-                            color={action.status === 'Done' ? 'success' : action.status === 'In Progress' ? 'info' : 'default'}
-                          />
-                          {action.status !== 'Done' ? (
-                            <Button size="small" variant="text" onClick={() => handleCompleteAction(action.id)}>
-                              Done
-                            </Button>
-                          ) : null}
-                        </Stack>
-                      </Stack>
-                    </Box>
-                  ))}
-                </Stack>
-                <Stack direction="row" spacing={1}>
-                  <Button variant="outlined" startIcon={<CampaignIcon />}>
-                    Send Update
-                  </Button>
-                  <Button variant="outlined" startIcon={<ReportProblemIcon />}>
-                    Escalate
+                  ) : null}
+                  <Button
+                    variant="contained"
+                    disabled={!canWrite || !selectedCase || selectedCase.status === 'Closed'}
+                    onClick={() => {
+                      if (selectedCase) {
+                        handleResolveCase(selectedCase.id);
+                      }
+                    }}
+                  >
+                    Close Case
                   </Button>
                 </Stack>
-              </Stack>
-            </Card>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={7} sx={{ display: 'flex' }}>
+              <Card
+                elevation={0}
+                sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
+              >
+                <Stack spacing={1.25}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    Closed Cases
+                  </Typography>
+                  <TableContainer
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1.5,
+                    }}
+                  >
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 700 }}>Patient</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Organism</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Unit</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Updated</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {closedCases.map((item) => (
+                          <TableRow key={item.id} hover>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {item.patientName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {item.mrn}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>{item.organism}</TableCell>
+                            <TableCell>{item.unit}</TableCell>
+                            <TableCell>{item.lastUpdate}</TableCell>
+                          </TableRow>
+                        ))}
+                        {closedCases.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={4}>
+                              <Typography variant="caption" color="text.secondary">
+                                No closed cases yet.
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ) : null}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Stack>
+              </Card>
+            </Grid>
           </Grid>
-        </Grid>
+        </FlowTabPanel>
       </Stack>
 
       <Dialog open={caseDialogOpen} onClose={() => setCaseDialogOpen(false)} fullWidth maxWidth="sm">
@@ -773,7 +1336,7 @@ export default function InfectionControlPage() {
           <Button variant="text" onClick={() => setCaseDialogOpen(false)}>
             Cancel
           </Button>
-          <Button variant="contained" onClick={handleCreateCase}>
+          <Button variant="contained" disabled={!canWrite} onClick={handleCreateCase}>
             Create Case
           </Button>
         </DialogActions>
@@ -804,7 +1367,7 @@ export default function InfectionControlPage() {
           <Button variant="text" onClick={() => setAuditDialogOpen(false)}>
             Cancel
           </Button>
-          <Button variant="contained" onClick={handleLogAudit}>
+          <Button variant="contained" disabled={!canWrite} onClick={handleLogAudit}>
             Save Audit
           </Button>
         </DialogActions>

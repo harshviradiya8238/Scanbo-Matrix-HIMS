@@ -13,10 +13,11 @@ import {
   Send as SendIcon,
 } from '@mui/icons-material';
 import OpdFlowHeader from './components/OpdFlowHeader';
-import { OPD_ENCOUNTERS, OPD_MEDICATION_CATALOG } from './opd-mock-data';
+import { MedicationCatalogItem } from './opd-mock-data';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
+import { useOpdData } from '@/src/store/opdHooks';
 
 interface PrescriptionLine {
   id: string;
@@ -36,8 +37,8 @@ interface IssuedPrescription {
   prescriber: string;
 }
 
-function buildDefaultLine(): PrescriptionLine {
-  const first = OPD_MEDICATION_CATALOG[0];
+function buildDefaultLine(medications: MedicationCatalogItem[] = []): PrescriptionLine {
+  const first = medications[0];
   return {
     id: `rx-${Date.now()}`,
     medicationId: first?.id ?? '',
@@ -52,8 +53,11 @@ function buildDefaultLine(): PrescriptionLine {
 export default function OpdPrescriptionsPage() {
   const router = useRouter();
   const mrnParam = useMrnParam();
-  const [selectedPatientId, setSelectedPatientId] = React.useState(OPD_ENCOUNTERS[0]?.id ?? '');
-  const [draftLine, setDraftLine] = React.useState<PrescriptionLine>(buildDefaultLine());
+  const { encounters, medicationCatalog, status: opdStatus, error: opdError } = useOpdData();
+  const [selectedPatientId, setSelectedPatientId] = React.useState(encounters[0]?.id ?? '');
+  const [draftLine, setDraftLine] = React.useState<PrescriptionLine>(() =>
+    buildDefaultLine(medicationCatalog)
+  );
   const [prescriptionLines, setPrescriptionLines] = React.useState<PrescriptionLine[]>([]);
   const [issuedList, setIssuedList] = React.useState<IssuedPrescription[]>([]);
   const [snackbar, setSnackbar] = React.useState<{
@@ -67,9 +71,21 @@ export default function OpdPrescriptionsPage() {
   });
   const [mrnApplied, setMrnApplied] = React.useState(false);
 
+  React.useEffect(() => {
+    if (!selectedPatientId && encounters.length > 0) {
+      setSelectedPatientId(encounters[0].id);
+    }
+  }, [encounters, selectedPatientId]);
+
+  React.useEffect(() => {
+    if (!draftLine.medicationId && medicationCatalog.length > 0) {
+      setDraftLine(buildDefaultLine(medicationCatalog));
+    }
+  }, [draftLine.medicationId, medicationCatalog]);
+
   const selectedPatient = React.useMemo(
-    () => OPD_ENCOUNTERS.find((item) => item.id === selectedPatientId),
-    [selectedPatientId]
+    () => encounters.find((item) => item.id === selectedPatientId),
+    [encounters, selectedPatientId]
   );
 
   const flowMrn = selectedPatient?.mrn ?? mrnParam;
@@ -95,15 +111,15 @@ export default function OpdPrescriptionsPage() {
 
   React.useEffect(() => {
     if (!mrnParam || mrnApplied) return;
-    const match = OPD_ENCOUNTERS.find((item) => item.mrn === mrnParam);
+    const match = encounters.find((item) => item.mrn === mrnParam);
     if (match) {
       setSelectedPatientId(match.id);
     }
     setMrnApplied(true);
-  }, [mrnParam, mrnApplied]);
+  }, [mrnParam, mrnApplied, encounters]);
 
   const handleMedicationChange = (medicationId: string) => {
-    const selectedMedication = OPD_MEDICATION_CATALOG.find((item) => item.id === medicationId);
+    const selectedMedication = medicationCatalog.find((item) => item.id === medicationId);
     setDraftLine((prev) => ({
       ...prev,
       medicationId,
@@ -131,7 +147,7 @@ export default function OpdPrescriptionsPage() {
     ]);
 
     setDraftLine((prev) => ({
-      ...buildDefaultLine(),
+      ...buildDefaultLine(medicationCatalog),
       route: prev.route,
     }));
   };
@@ -172,6 +188,15 @@ export default function OpdPrescriptionsPage() {
   return (
     <PageTemplate title="Prescriptions" subtitle={pageSubtitle} currentPageTitle="Prescriptions">
       <Stack spacing={2}>
+        {opdStatus === 'loading' ? (
+          <Alert severity="info">Loading OPD data from the local JSON server.</Alert>
+        ) : null}
+        {opdStatus === 'error' ? (
+          <Alert severity="warning">
+            OPD JSON server not reachable. Showing fallback data.
+            {opdError ? ` (${opdError})` : ''}
+          </Alert>
+        ) : null}
         <OpdFlowHeader
           activeStep="prescriptions"
           title="OPD ePrescription"
@@ -216,7 +241,7 @@ export default function OpdPrescriptionsPage() {
                   value={selectedPatientId}
                   onChange={(event) => setSelectedPatientId(event.target.value)}
                 >
-                  {OPD_ENCOUNTERS.map((patient) => (
+                  {encounters.map((patient) => (
                     <MenuItem key={patient.id} value={patient.id}>
                       {patient.patientName} ({patient.mrn})
                     </MenuItem>
@@ -229,7 +254,7 @@ export default function OpdPrescriptionsPage() {
                   value={draftLine.medicationId}
                   onChange={(event) => handleMedicationChange(event.target.value)}
                 >
-                  {OPD_MEDICATION_CATALOG.map((item) => (
+                  {medicationCatalog.map((item) => (
                     <MenuItem key={item.id} value={item.id}>
                       {item.genericName} {item.strength}
                     </MenuItem>
@@ -288,7 +313,7 @@ export default function OpdPrescriptionsPage() {
                   <Typography variant="body2" color="text.secondary">No medications added.</Typography>
                 ) : (
                   prescriptionLines.map((line) => {
-                    const medication = OPD_MEDICATION_CATALOG.find((item) => item.id === line.medicationId);
+                    const medication = medicationCatalog.find((item) => item.id === line.medicationId);
                     if (!medication) return null;
 
                     return (

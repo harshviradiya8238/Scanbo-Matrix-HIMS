@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import RadiologyReportsScreen from '@/src/screens/clinical/RadiologyReportsPage';
 
 export default function ReportsPage() {
-  return <PageTemplate title="Radiology Reports" currentPageTitle="Reports" />;
+  return <RadiologyReportsScreen />;
 }

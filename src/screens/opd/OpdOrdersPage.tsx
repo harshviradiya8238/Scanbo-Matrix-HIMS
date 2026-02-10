@@ -14,10 +14,11 @@ import {
   Science as ScienceIcon,
 } from '@mui/icons-material';
 import OpdFlowHeader from './components/OpdFlowHeader';
-import { OPD_ENCOUNTERS, OPD_ORDER_CATALOG, OrderCatalogItem } from './opd-mock-data';
+import { OrderCatalogItem } from './opd-mock-data';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
+import { useOpdData } from '@/src/store/opdHooks';
 
 interface DraftOrderLine {
   id: string;
@@ -36,11 +37,12 @@ interface PlacedOrder {
   orderedAt: string;
 }
 
-function buildDefaultDraftLine(): DraftOrderLine {
+function buildDefaultDraftLine(orderCatalog: OrderCatalogItem[]): DraftOrderLine {
+  const first = orderCatalog[0];
   return {
     id: `line-${Date.now()}`,
-    catalogId: OPD_ORDER_CATALOG[0]?.id ?? '',
-    priority: OPD_ORDER_CATALOG[0]?.defaultPriority ?? 'Routine',
+    catalogId: first?.id ?? '',
+    priority: first?.defaultPriority ?? 'Routine',
     instructions: '',
   };
 }
@@ -48,10 +50,13 @@ function buildDefaultDraftLine(): DraftOrderLine {
 export default function OpdOrdersPage() {
   const router = useRouter();
   const mrnParam = useMrnParam();
-  const [selectedPatientId, setSelectedPatientId] = React.useState(OPD_ENCOUNTERS[0]?.id ?? '');
+  const { encounters, orderCatalog, status: opdStatus, error: opdError } = useOpdData();
+  const [selectedPatientId, setSelectedPatientId] = React.useState(encounters[0]?.id ?? '');
   const [search, setSearch] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState<'All' | OrderCatalogItem['category']>('All');
-  const [draftLine, setDraftLine] = React.useState<DraftOrderLine>(buildDefaultDraftLine());
+  const [draftLine, setDraftLine] = React.useState<DraftOrderLine>(() =>
+    buildDefaultDraftLine(orderCatalog)
+  );
   const [orderCart, setOrderCart] = React.useState<DraftOrderLine[]>([]);
   const [placedOrders, setPlacedOrders] = React.useState<PlacedOrder[]>([
     {
@@ -84,9 +89,21 @@ export default function OpdOrdersPage() {
   });
   const [mrnApplied, setMrnApplied] = React.useState(false);
 
+  React.useEffect(() => {
+    if (!selectedPatientId && encounters.length > 0) {
+      setSelectedPatientId(encounters[0].id);
+    }
+  }, [encounters, selectedPatientId]);
+
+  React.useEffect(() => {
+    if (!draftLine.catalogId && orderCatalog.length > 0) {
+      setDraftLine(buildDefaultDraftLine(orderCatalog));
+    }
+  }, [draftLine.catalogId, orderCatalog]);
+
   const selectedPatient = React.useMemo(
-    () => OPD_ENCOUNTERS.find((item) => item.id === selectedPatientId),
-    [selectedPatientId]
+    () => encounters.find((item) => item.id === selectedPatientId),
+    [encounters, selectedPatientId]
   );
 
   const flowMrn = selectedPatient?.mrn ?? mrnParam;
@@ -101,12 +118,12 @@ export default function OpdOrdersPage() {
   const filteredCatalog = React.useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    return OPD_ORDER_CATALOG.filter((item) => {
+    return orderCatalog.filter((item) => {
       const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
       const matchesQuery = query.length === 0 || item.name.toLowerCase().includes(query);
       return matchesCategory && matchesQuery;
     });
-  }, [categoryFilter, search]);
+  }, [categoryFilter, orderCatalog, search]);
 
   const patientOrders = React.useMemo(
     () => placedOrders.filter((order) => order.patientId === selectedPatientId),
@@ -124,17 +141,17 @@ export default function OpdOrdersPage() {
 
   React.useEffect(() => {
     if (!mrnParam || mrnApplied) return;
-    const match = OPD_ENCOUNTERS.find((item) => item.mrn === mrnParam);
+    const match = encounters.find((item) => item.mrn === mrnParam);
     if (match) {
       setSelectedPatientId(match.id);
     }
     setMrnApplied(true);
-  }, [mrnParam, mrnApplied]);
+  }, [mrnParam, mrnApplied, encounters]);
 
   const handleAddToCart = () => {
     if (!draftLine.catalogId) return;
 
-    const selectedCatalog = OPD_ORDER_CATALOG.find((item) => item.id === draftLine.catalogId);
+    const selectedCatalog = orderCatalog.find((item) => item.id === draftLine.catalogId);
     if (!selectedCatalog) return;
 
     setOrderCart((prev) => [
@@ -168,7 +185,7 @@ export default function OpdOrdersPage() {
 
     const newOrders: PlacedOrder[] = [];
     orderCart.forEach((line, index) => {
-      const catalog = OPD_ORDER_CATALOG.find((item) => item.id === line.catalogId);
+      const catalog = orderCatalog.find((item) => item.id === line.catalogId);
       if (!catalog) return;
 
       newOrders.push({
@@ -194,6 +211,15 @@ export default function OpdOrdersPage() {
   return (
     <PageTemplate title="Clinical Orders" subtitle={pageSubtitle} currentPageTitle="Orders">
       <Stack spacing={2}>
+        {opdStatus === 'loading' ? (
+          <Alert severity="info">Loading OPD data from the local JSON server.</Alert>
+        ) : null}
+        {opdStatus === 'error' ? (
+          <Alert severity="warning">
+            OPD JSON server not reachable. Showing fallback data.
+            {opdError ? ` (${opdError})` : ''}
+          </Alert>
+        ) : null}
         <OpdFlowHeader
           activeStep="orders"
           title="OPD Orders and Services"
@@ -236,7 +262,7 @@ export default function OpdOrdersPage() {
                   value={selectedPatientId}
                   onChange={(event) => setSelectedPatientId(event.target.value)}
                 >
-                  {OPD_ENCOUNTERS.map((patient) => (
+                  {encounters.map((patient) => (
                     <MenuItem key={patient.id} value={patient.id}>
                       {patient.patientName} ({patient.mrn})
                     </MenuItem>
@@ -322,7 +348,7 @@ export default function OpdOrdersPage() {
                   <Typography variant="body2" color="text.secondary">No orders in cart.</Typography>
                 ) : (
                   orderCart.map((line) => {
-                    const catalog = OPD_ORDER_CATALOG.find((item) => item.id === line.catalogId);
+                    const catalog = orderCatalog.find((item) => item.id === line.catalogId);
                     if (!catalog) return null;
                     return (
                       <Card key={line.id} variant="outlined" sx={{ p: 1.1, borderRadius: 1.5 }}>

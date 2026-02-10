@@ -83,6 +83,7 @@ export type CommonDataGridProps<R extends GridValidRowModel> = {
   tableId: string;
   columns: GridColDef<R>[];
   rows: R[];
+  tableHeight?: number | string;
   rowHeight?: number;
   getRowId?: GridRowIdGetter<R>;
   loading?: boolean;
@@ -177,6 +178,7 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
     tableId,
     columns,
     rows,
+    tableHeight = 640,
     rowHeight,
     getRowId,
     loading,
@@ -410,7 +412,7 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
         </Box>
       )}
 
-      <Box sx={{ height: 640, width: '100%' }}>
+      <Box sx={{ height: tableHeight, width: '100%' }}>
         <DataGridComponent
           apiRef={apiRef}
           rows={rows}

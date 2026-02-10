@@ -1,0 +1,59 @@
+[
+  {
+    "key": "NODE_ENV",
+    "value": "production",
+    "type": "encrypted",
+    "target": ["production", "preview", "development"]
+  },
+  {
+    "key": "NEXT_PUBLIC_APP_NAME",
+    "value": "Scanbo HIMS",
+    "type": "encrypted",
+    "target": ["production", "preview", "development"]
+  },
+  {
+    "key": "NEXT_PUBLIC_APP_URL",
+    "value": "https://your-project-name.vercel.app",
+    "type": "encrypted",
+    "target": ["production", "preview", "development"]
+  },
+  {
+    "key": "NEXT_PUBLIC_API_URL",
+    "value": "https://your-api-url.com/api",
+    "type": "encrypted",
+    "target": ["production", "preview", "development"]
+  },
+  {
+    "key": "NEXT_PUBLIC_API_TIMEOUT",
+    "value": "30000",
+    "type": "encrypted",
+    "target": ["production", "preview", "development"]
+  },
+  {
+    "key": "NEXT_PUBLIC_FEATURE_FLAGS",
+    "value": "",
+    "type": "encrypted",
+    "target": ["production", "preview", "development"]
+  },
+  {
+    "key": "NEXT_PUBLIC_TENANT_ID",
+    "value": "",
+    "type": "encrypted",
+    "target": ["production", "preview", "development"]
+  },
+  {
+    "key": "NEXT_PUBLIC_REGION",
+    "value": "us-east-1",
+    "type": "encrypted",
+    "target": ["production", "preview", "development"]
+  },
+  {
+    "key": "NEXT_PUBLIC_ANALYTICS_ID",
+    "value": "",
+    "type": "encrypted",
+    "target": ["production", "preview", "development"]
+  }
+]
+
+
+

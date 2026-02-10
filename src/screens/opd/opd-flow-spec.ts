@@ -73,6 +73,8 @@ const STEP_TO_STATE: Record<OpdFlowStepId, OutpatientStateId> = {
   visit: 'doctor_consultation',
   orders: 'billing_pending',
   prescriptions: 'visit_closed',
+  vitals: 'doctor_consultation',
+  notes: 'doctor_consultation',
 };
 
 export const getOutpatientStateForStep = (stepId: OpdFlowStepId) =>

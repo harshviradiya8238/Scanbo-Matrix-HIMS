@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 import {
   Avatar,
@@ -16,6 +17,10 @@ import { Card, StatTile } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { alpha, useTheme } from '@mui/material';
 import { getSoftSurface } from '@/src/core/theme/surfaces';
+import { useMrnParam } from '@/src/core/patients/useMrnParam';
+import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
+import { useUser } from '@/src/core/auth/UserContext';
+import { canAccessRoute } from '@/src/core/navigation/route-access';
 import {
   AccessTime as AccessTimeIcon,
   CheckCircle as CheckCircleIcon,
@@ -153,11 +158,41 @@ const STAFF_TASKS: StaffTask[] = [
 ];
 
 export default function WelcomeKioskPage() {
+  const router = useRouter();
   const theme = useTheme();
   const softSurface = getSoftSurface(theme);
+  const mrnParam = useMrnParam();
+  const { permissions } = useUser();
+  const [selectedSessionId, setSelectedSessionId] = React.useState(SESSIONS[0]?.id ?? '');
+  const [mrnApplied, setMrnApplied] = React.useState(false);
+
+  const selectedSession = React.useMemo(
+    () => SESSIONS.find((session) => session.id === selectedSessionId) ?? SESSIONS[0],
+    [selectedSessionId]
+  );
+  const flowMrn = selectedSession?.mrn ?? mrnParam;
+  const pageSubtitle = formatPatientLabel(selectedSession?.patientName, flowMrn);
+  const withMrn = React.useCallback(
+    (route: string) => (flowMrn ? `${route}?mrn=${flowMrn}` : route),
+    [flowMrn]
+  );
+
+  React.useEffect(() => {
+    if (!mrnParam || mrnApplied) return;
+    const match = SESSIONS.find((session) => session.mrn === mrnParam);
+    if (match) {
+      setSelectedSessionId(match.id);
+    }
+    setMrnApplied(true);
+  }, [mrnParam, mrnApplied]);
+
+  const canNavigate = React.useCallback(
+    (route: string) => canAccessRoute(route, permissions),
+    [permissions]
+  );
 
   return (
-    <PageTemplate title="Welcome Kiosk" currentPageTitle="Welcome Kiosk">
+    <PageTemplate title="Welcome Kiosk" subtitle={pageSubtitle} currentPageTitle="Welcome Kiosk">
       <Stack spacing={1.5}>
         <Card
           elevation={0}
@@ -191,11 +226,21 @@ export default function WelcomeKioskPage() {
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1}>
-                <Button variant="outlined" startIcon={<SearchIcon />}>
-                  Preview Kiosk
+                <Button
+                  variant="outlined"
+                  startIcon={<SearchIcon />}
+                  disabled={!canNavigate('/patients/registration')}
+                  onClick={() => router.push('/patients/registration')}
+                >
+                  Open Registration
                 </Button>
-                <Button variant="contained" endIcon={<DirectionsWalkIcon />}>
-                  Start Assisted Check-in
+                <Button
+                  variant="contained"
+                  endIcon={<DirectionsWalkIcon />}
+                  disabled={!canNavigate('/appointments/queue')}
+                  onClick={() => router.push(withMrn('/appointments/queue'))}
+                >
+                  Send to OPD Queue
                 </Button>
               </Stack>
             </Stack>
@@ -241,6 +286,67 @@ export default function WelcomeKioskPage() {
           </Grid>
         </Grid>
 
+        <Card
+          elevation={0}
+          sx={{
+            p: 1.75,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Stack spacing={1.25}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              Check-in Handoff
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Continue the selected check-in into OPD workflows with the same MRN context.
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/patients/profile')}
+                onClick={() => router.push(withMrn('/patients/profile'))}
+              >
+                Patient Profile
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/appointments/calendar')}
+                onClick={() => router.push(withMrn('/appointments/calendar'))}
+              >
+                Appointment Calendar
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/appointments/queue')}
+                onClick={() => router.push(withMrn('/appointments/queue'))}
+              >
+                OPD Queue
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/appointments/visit')}
+                onClick={() => router.push(withMrn('/appointments/visit'))}
+              >
+                Start Visit
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/patients/documents')}
+                onClick={() => router.push('/patients/documents')}
+              >
+                Documents
+              </Button>
+            </Box>
+          </Stack>
+        </Card>
+
         <Grid container spacing={1.5} alignItems="stretch">
           <Grid item xs={12} md={7} sx={{ display: 'flex' }}>
             <Card
@@ -259,7 +365,17 @@ export default function WelcomeKioskPage() {
                     <Card
                       key={session.id}
                       variant="outlined"
-                      sx={{ p: 1.25, borderRadius: 1.5 }}
+                      onClick={() => setSelectedSessionId(session.id)}
+                      sx={{
+                        p: 1.25,
+                        borderRadius: 1.5,
+                        borderColor: session.id === selectedSessionId ? 'primary.main' : 'divider',
+                        backgroundColor:
+                          session.id === selectedSessionId
+                            ? alpha(theme.palette.primary.main, 0.08)
+                            : 'transparent',
+                        cursor: 'pointer',
+                      }}
                     >
                       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} justifyContent="space-between">
                         <Stack direction="row" spacing={1} alignItems="center">

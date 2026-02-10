@@ -17,13 +17,14 @@ import {
 import OpdFlowHeader from './components/OpdFlowHeader';
 import {
   AppointmentStatus,
-  OPD_ENCOUNTERS,
-  OPD_PROVIDERS,
   OpdEncounterCase,
 } from './opd-mock-data';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
+import { useAppDispatch } from '@/src/store/hooks';
+import { updateEncounter } from '@/src/store/slices/opdSlice';
+import { useOpdData } from '@/src/store/opdHooks';
 
 interface QueueItem extends OpdEncounterCase {
   token: string;
@@ -54,12 +55,17 @@ const queueStatusColor: Record<AppointmentStatus, 'default' | 'info' | 'warning'
   'No Show': 'error',
 };
 
-function buildQueueData(): QueueItem[] {
-  return OPD_ENCOUNTERS.map((encounter, index) => ({
+function buildQueueData(
+  encounters: OpdEncounterCase[],
+  triageLevels: Record<string, QueueItem['triageLevel']>
+): QueueItem[] {
+  return encounters.map((encounter, index) => ({
     ...encounter,
     token: `Q-${String(index + 1).padStart(3, '0')}`,
     waitMinutes: encounter.status === 'Completed' ? 0 : 7 + index * 6,
-    triageLevel: encounter.queuePriority === 'Urgent' ? 'High' : index % 2 === 0 ? 'Moderate' : 'Low',
+    triageLevel:
+      triageLevels[encounter.id] ??
+      (encounter.queuePriority === 'Urgent' ? 'High' : index % 2 === 0 ? 'Moderate' : 'Low'),
     nurseAssigned: index % 2 === 0 ? 'Nurse Priya' : 'Nurse Kavya',
   }));
 }
@@ -90,7 +96,13 @@ function getQueueForm(item: QueueItem): QueueTriageForm {
 export default function OpdQueuePage() {
   const router = useRouter();
   const mrnParam = useMrnParam();
-  const [queue, setQueue] = React.useState<QueueItem[]>(buildQueueData());
+  const dispatch = useAppDispatch();
+  const { encounters, providers, status: opdStatus, error: opdError } = useOpdData();
+  const [triageLevels, setTriageLevels] = React.useState<Record<string, QueueItem['triageLevel']>>({});
+  const queue = React.useMemo(
+    () => buildQueueData(encounters, triageLevels),
+    [encounters, triageLevels]
+  );
   const [search, setSearch] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'All' | AppointmentStatus>('All');
   const [selectedId, setSelectedId] = React.useState(queue[0]?.id ?? '');
@@ -106,7 +118,7 @@ export default function OpdQueuePage() {
       bmi: '',
       triageNote: '',
       triageLevel: 'Low',
-      assignedDoctor: OPD_PROVIDERS[0],
+      assignedDoctor: providers[0] ?? '',
     }
   );
   const [snackbar, setSnackbar] = React.useState<{
@@ -191,19 +203,17 @@ export default function OpdQueuePage() {
 
   const persistSelectedQueueItem = (nextStatus?: AppointmentStatus) => {
     if (!selectedItem) return;
-
-    setQueue((prev) =>
-      prev.map((item) => {
-        if (item.id !== selectedItem.id) {
-          return item;
-        }
-        return {
-          ...item,
-          status: nextStatus ?? item.status,
+    setTriageLevels((prev) => ({
+      ...prev,
+      [selectedItem.id]: triageForm.triageLevel,
+    }));
+    dispatch(
+      updateEncounter({
+        id: selectedItem.id,
+        changes: {
+          status: nextStatus ?? selectedItem.status,
           triageNote: triageForm.triageNote,
-          triageLevel: triageForm.triageLevel,
           doctor: triageForm.assignedDoctor,
-          waitMinutes: nextStatus === 'Completed' ? 0 : item.waitMinutes,
           vitals: {
             bp: triageForm.bp,
             hr: triageForm.hr,
@@ -213,7 +223,7 @@ export default function OpdQueuePage() {
             weightKg: triageForm.weightKg,
             bmi: triageForm.bmi,
           },
-        };
+        },
       })
     );
   };
@@ -239,6 +249,15 @@ export default function OpdQueuePage() {
   return (
     <PageTemplate title="Appointments Queue" subtitle={pageSubtitle} currentPageTitle="Queue">
       <Stack spacing={2}>
+        {opdStatus === 'loading' ? (
+          <Alert severity="info">Loading OPD data from the local JSON server.</Alert>
+        ) : null}
+        {opdStatus === 'error' ? (
+          <Alert severity="warning">
+            OPD JSON server not reachable. Showing fallback data.
+            {opdError ? ` (${opdError})` : ''}
+          </Alert>
+        ) : null}
         <OpdFlowHeader
           activeStep="queue"
           title="OPD Front Desk and Triage Queue"
@@ -422,7 +441,7 @@ export default function OpdQueuePage() {
                         value={triageForm.assignedDoctor}
                         onChange={(event) => updateTriageField('assignedDoctor', event.target.value)}
                       >
-                        {OPD_PROVIDERS.map((provider) => (
+                        {providers.map((provider) => (
                           <MenuItem key={provider} value={provider}>
                             {provider}
                           </MenuItem>

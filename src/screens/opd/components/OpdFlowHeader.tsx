@@ -125,7 +125,7 @@ export default function OpdFlowHeader({
         </Stack>
 
         <Stack direction="row" spacing={1} flexWrap="wrap">
-          {OPD_FLOW_STEPS.map((step, index) => {
+          {OPD_FLOW_STEPS.map((step) => {
             const isActive = step.id === activeStep;
             return (
               <Button
@@ -140,25 +140,33 @@ export default function OpdFlowHeader({
                   borderStyle: isActive ? 'solid' : 'dashed',
                 }}
               >
-                {index + 1}. {step.label}
+                {step.label}
               </Button>
             );
           })}
           <Button
             size="small"
-            variant="outlined"
+            variant={activeStep === 'vitals' ? 'contained' : 'outlined'}
             color="primary"
             onClick={() => router.push(withMrn('/clinical/vitals'))}
-            sx={{ textTransform: 'none', fontWeight: 600, borderStyle: 'dashed' }}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              borderStyle: activeStep === 'vitals' ? 'solid' : 'dashed',
+            }}
           >
             Vitals
           </Button>
           <Button
             size="small"
-            variant="outlined"
+            variant={activeStep === 'notes' ? 'contained' : 'outlined'}
             color="primary"
             onClick={() => router.push(withMrn('/clinical/notes'))}
-            sx={{ textTransform: 'none', fontWeight: 600, borderStyle: 'dashed' }}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              borderStyle: activeStep === 'notes' ? 'solid' : 'dashed',
+            }}
           >
             Notes
           </Button>

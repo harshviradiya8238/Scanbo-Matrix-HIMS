@@ -12,10 +12,13 @@ import {
   WarningAmber as WarningAmberIcon,
 } from '@mui/icons-material';
 import OpdFlowHeader from './components/OpdFlowHeader';
-import { OPD_ENCOUNTERS, OPD_VITAL_TRENDS, VitalTrendRecord } from './opd-mock-data';
+import { VitalTrendRecord } from './opd-mock-data';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
+import { useAppDispatch } from '@/src/store/hooks';
+import { addVitalTrend, updateEncounter } from '@/src/store/slices/opdSlice';
+import { useOpdData } from '@/src/store/opdHooks';
 
 interface VitalsForm {
   bp: string;
@@ -42,8 +45,9 @@ function buildDefaultForm(): VitalsForm {
 export default function OpdVitalsPage() {
   const router = useRouter();
   const mrnParam = useMrnParam();
-  const [records, setRecords] = React.useState<VitalTrendRecord[]>(OPD_VITAL_TRENDS);
-  const [selectedPatientId, setSelectedPatientId] = React.useState(OPD_ENCOUNTERS[0]?.id ?? '');
+  const dispatch = useAppDispatch();
+  const { encounters, vitalTrends, status: opdStatus, error: opdError } = useOpdData();
+  const [selectedPatientId, setSelectedPatientId] = React.useState(encounters[0]?.id ?? '');
   const [form, setForm] = React.useState<VitalsForm>(buildDefaultForm());
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
@@ -57,8 +61,8 @@ export default function OpdVitalsPage() {
   const [mrnApplied, setMrnApplied] = React.useState(false);
 
   const selectedPatient = React.useMemo(
-    () => OPD_ENCOUNTERS.find((item) => item.id === selectedPatientId),
-    [selectedPatientId]
+    () => encounters.find((item) => item.id === selectedPatientId),
+    [encounters, selectedPatientId]
   );
 
   const flowMrn = selectedPatient?.mrn ?? mrnParam;
@@ -71,8 +75,8 @@ export default function OpdVitalsPage() {
   );
 
   const patientRecords = React.useMemo(
-    () => records.filter((record) => record.patientId === selectedPatientId),
-    [records, selectedPatientId]
+    () => vitalTrends.filter((record) => record.patientId === selectedPatientId),
+    [vitalTrends, selectedPatientId]
   );
 
   const latestRecord = patientRecords[patientRecords.length - 1];
@@ -87,12 +91,12 @@ export default function OpdVitalsPage() {
 
   React.useEffect(() => {
     if (!mrnParam || mrnApplied) return;
-    const match = OPD_ENCOUNTERS.find((item) => item.mrn === mrnParam);
+    const match = encounters.find((item) => item.mrn === mrnParam);
     if (match) {
       setSelectedPatientId(match.id);
     }
     setMrnApplied(true);
-  }, [mrnParam, mrnApplied]);
+  }, [mrnParam, mrnApplied, encounters]);
 
   const handleCaptureVitals = () => {
     if (!selectedPatient) return;
@@ -118,7 +122,23 @@ export default function OpdVitalsPage() {
       nurse: form.nurse,
     };
 
-    setRecords((prev) => [...prev, newRecord]);
+    dispatch(addVitalTrend(newRecord));
+    dispatch(
+      updateEncounter({
+        id: selectedPatient.id,
+        changes: {
+          vitals: {
+            bp: form.bp,
+            hr: form.hr,
+            rr: form.rr,
+            temp: form.temp,
+            spo2: form.spo2,
+            weightKg: selectedPatient.vitals.weightKg,
+            bmi: selectedPatient.vitals.bmi,
+          },
+        },
+      })
+    );
     setForm(buildDefaultForm());
     setSnackbar({
       open: true,
@@ -130,8 +150,17 @@ export default function OpdVitalsPage() {
   return (
     <PageTemplate title="Vitals" subtitle={pageSubtitle} currentPageTitle="Vitals">
       <Stack spacing={2}>
+        {opdStatus === 'loading' ? (
+          <Alert severity="info">Loading OPD data from the local JSON server.</Alert>
+        ) : null}
+        {opdStatus === 'error' ? (
+          <Alert severity="warning">
+            OPD JSON server not reachable. Showing fallback data.
+            {opdError ? ` (${opdError})` : ''}
+          </Alert>
+        ) : null}
         <OpdFlowHeader
-          activeStep="visit"
+          activeStep="vitals"
           title="Vitals Capture Station"
           description="Record pre-consultation and intra-visit vitals with trend tracking and alerts."
           patientMrn={flowMrn}
@@ -174,7 +203,7 @@ export default function OpdVitalsPage() {
                   value={selectedPatientId}
                   onChange={(event) => setSelectedPatientId(event.target.value)}
                 >
-                  {OPD_ENCOUNTERS.map((patient) => (
+                  {encounters.map((patient) => (
                     <MenuItem key={patient.id} value={patient.id}>
                       {patient.patientName} ({patient.mrn})
                     </MenuItem>

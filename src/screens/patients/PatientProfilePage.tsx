@@ -18,7 +18,7 @@ import {
 } from '@mui/icons-material';
 import GlobalPatientSearch from '@/src/ui/components/molecules/GlobalPatientSearch';
 import { GLOBAL_PATIENTS, getPatientByMrn } from '@/src/mocks/global-patients';
-import { OPD_APPOINTMENTS, OPD_ENCOUNTERS } from '@/src/screens/opd/opd-mock-data';
+import { useOpdData } from '@/src/store/opdHooks';
 import { ADMISSION_LEADS, INPATIENT_STAYS, INITIAL_BED_BOARD } from '@/src/screens/ipd/ipd-mock-data';
 
 const getInitials = (name: string) =>
@@ -37,15 +37,28 @@ export default function PatientProfilePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mrn = searchParams.get('mrn')?.toUpperCase() ?? '';
+  const { appointments, encounters, vitalTrends, notes } = useOpdData();
   const patient = getPatientByMrn(mrn);
 
   const opdAppointments = React.useMemo(
-    () => OPD_APPOINTMENTS.filter((appointment) => appointment.mrn === patient?.mrn),
-    [patient?.mrn]
+    () => appointments.filter((appointment) => appointment.mrn === patient?.mrn),
+    [appointments, patient?.mrn]
   );
   const opdEncounter = React.useMemo(
-    () => OPD_ENCOUNTERS.find((encounter) => encounter.mrn === patient?.mrn),
-    [patient?.mrn]
+    () => encounters.find((encounter) => encounter.mrn === patient?.mrn),
+    [encounters, patient?.mrn]
+  );
+  const vitalsCount = React.useMemo(
+    () =>
+      opdEncounter
+        ? vitalTrends.filter((record) => record.patientId === opdEncounter.id).length
+        : 0,
+    [opdEncounter, vitalTrends]
+  );
+  const notesCount = React.useMemo(
+    () =>
+      opdEncounter ? notes.filter((note) => note.patientId === opdEncounter.id).length : 0,
+    [notes, opdEncounter]
   );
   const upcomingOpd = React.useMemo(() => {
     const upcoming = opdAppointments
@@ -267,6 +280,91 @@ export default function PatientProfilePage() {
             />
           </Grid>
         </Grid>
+
+        <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            OPD Journey
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Snapshot of this patient across the outpatient flow.
+          </Typography>
+          <Divider sx={{ my: 1.5 }} />
+          <Stack spacing={1}>
+            {[
+              {
+                step: 'Calendar',
+                status: lastOpd
+                  ? `${lastOpd.status} · ${lastOpd.date} ${lastOpd.time} · ${lastOpd.provider}`
+                  : 'No appointment on record',
+                route: '/appointments/calendar',
+              },
+              {
+                step: 'Queue',
+                status: opdEncounter
+                  ? `${opdEncounter.status} · ${opdEncounter.doctor}`
+                  : 'Not in queue',
+                route: '/appointments/queue',
+              },
+              {
+                step: 'Visit',
+                status: opdEncounter
+                  ? opdEncounter.status === 'Completed'
+                    ? 'Visit completed'
+                    : 'Visit in progress'
+                  : 'Visit not started',
+                route: '/appointments/visit',
+              },
+              {
+                step: 'Vitals',
+                status: vitalsCount > 0 ? `${vitalsCount} capture(s)` : 'No vitals recorded',
+                route: '/clinical/vitals',
+              },
+              {
+                step: 'Notes',
+                status: notesCount > 0 ? `${notesCount} note(s)` : 'No notes recorded',
+                route: '/clinical/notes',
+              },
+              {
+                step: 'Orders',
+                status: 'Orders not tracked in demo store',
+                route: '/clinical/orders',
+              },
+              {
+                step: 'Prescriptions',
+                status: 'Prescriptions not tracked in demo store',
+                route: '/clinical/prescriptions',
+              },
+            ].map((row) => (
+              <Box
+                key={row.step}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: '1.5fr 2fr auto' },
+                  gap: 1,
+                  alignItems: 'center',
+                  border: '1px dashed',
+                  borderColor: 'divider',
+                  borderRadius: 1.5,
+                  p: 1.2,
+                }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  {row.step}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {row.status}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => router.push(`${row.route}?mrn=${patient.mrn}`)}
+                >
+                  Open
+                </Button>
+              </Box>
+            ))}
+          </Stack>
+        </Card>
 
         <Grid container spacing={2}>
           <Grid item xs={12} md={5}>

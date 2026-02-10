@@ -10,6 +10,9 @@ import { useTheme } from '@mui/material';
 import { getSoftSurface, getSubtleSurface } from '@/src/core/theme/surfaces';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
+import { useUser } from '@/src/core/auth/UserContext';
+import { usePermission } from '@/src/core/auth/usePermission';
+import { canAccessRoute } from '@/src/core/navigation/route-access';
 import {
   Bed as BedIcon,
   CalendarMonth as CalendarMonthIcon,
@@ -262,6 +265,8 @@ export default function InpatientClinDocPage() {
   const softSurface = getSoftSurface(theme);
   const subtleSurface = getSubtleSurface(theme);
   const mrnParam = useMrnParam();
+  const { permissions } = useUser();
+  const can = usePermission();
   const [selectedCaseId, setSelectedCaseId] = React.useState(INPATIENT_CASES[0].id);
   const [search, setSearch] = React.useState('');
   const [tab, setTab] = React.useState(0);
@@ -329,6 +334,13 @@ export default function InpatientClinDocPage() {
     setSaveStamp(now.toLocaleTimeString());
   };
 
+  const canNavigate = React.useCallback(
+    (route: string) => canAccessRoute(route, permissions),
+    [permissions]
+  );
+  const canWriteNotes = can('clinical.clindoc.write');
+  const canWriteOrders = can('clinical.orders.write');
+
   const stableCount = INPATIENT_CASES.filter((patientCase) => patientCase.status === 'Stable').length;
   const reviewCount = INPATIENT_CASES.filter((patientCase) => patientCase.status === 'Needs Review').length;
   const criticalCount = INPATIENT_CASES.filter((patientCase) => patientCase.status === 'Critical').length;
@@ -368,6 +380,7 @@ export default function InpatientClinDocPage() {
                 <Button
                   variant="contained"
                   startIcon={<LocalHospitalIcon />}
+                  disabled={!canNavigate('/ipd/admissions')}
                   onClick={() => router.push(withMrn('/ipd/admissions'))}
                 >
                   Open Admissions
@@ -375,6 +388,7 @@ export default function InpatientClinDocPage() {
                 <Button
                   variant="outlined"
                   startIcon={<HotelIcon />}
+                  disabled={!canNavigate('/ipd/beds')}
                   onClick={() => router.push(withMrn('/ipd/beds'))}
                 >
                   Open Bed Board
@@ -382,6 +396,7 @@ export default function InpatientClinDocPage() {
                 <Button
                   variant="outlined"
                   startIcon={<CalendarMonthIcon />}
+                  disabled={!canNavigate('/ipd/discharge')}
                   onClick={() => router.push(withMrn('/ipd/discharge'))}
                 >
                   Open Discharge
@@ -417,6 +432,97 @@ export default function InpatientClinDocPage() {
             />
           </Grid>
         </Grid>
+
+        <Card
+          elevation={0}
+          sx={{
+            p: 2,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Stack spacing={1.25}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              IPD Flow Links
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Move between admissions, bed board, rounds, and discharge with the current MRN context.
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/ipd/admissions')}
+                onClick={() => router.push(withMrn('/ipd/admissions'))}
+              >
+                Admissions
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/ipd/beds')}
+                onClick={() => router.push(withMrn('/ipd/beds'))}
+              >
+                Bed Board
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                disabled={!canNavigate('/ipd/rounds')}
+                onClick={() => router.push(withMrn('/ipd/rounds'))}
+              >
+                Rounds
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/ipd/discharge')}
+                onClick={() => router.push(withMrn('/ipd/discharge'))}
+              >
+                Discharge
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/clinical/orders')}
+                onClick={() => router.push(withMrn('/clinical/orders'))}
+              >
+                Orders
+              </Button>
+            </Box>
+            <Divider />
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+              Related Modules
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/patients/profile')}
+                onClick={() => router.push(withMrn('/patients/profile'))}
+              >
+                Patient Profile
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/clinical/modules/bugsy-infection-control')}
+                onClick={() => router.push('/clinical/modules/bugsy-infection-control')}
+              >
+                Infection Control
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canNavigate('/clinical/modules/care-companion')}
+                onClick={() => router.push('/clinical/modules/care-companion')}
+              >
+                Care Companion
+              </Button>
+            </Box>
+          </Stack>
+        </Card>
 
         <Grid container spacing={2}>
           <Grid item xs={12} lg={3}>
@@ -511,6 +617,7 @@ export default function InpatientClinDocPage() {
                       size="small"
                       variant="outlined"
                       startIcon={<PlaylistAddIcon />}
+                      disabled={!canWriteOrders}
                       onClick={() => router.push(withMrn('/clinical/orders'))}
                     >
                       Add Order
@@ -519,6 +626,7 @@ export default function InpatientClinDocPage() {
                       size="small"
                       variant="contained"
                       startIcon={<EditNoteIcon />}
+                      disabled={!canWriteNotes}
                       onClick={saveCurrentNote}
                     >
                       Save Note
@@ -600,6 +708,7 @@ export default function InpatientClinDocPage() {
                     size="small"
                     variant="outlined"
                     startIcon={<CalendarMonthIcon />}
+                    disabled={!canNavigate('/ipd/discharge')}
                     onClick={() => router.push(withMrn('/ipd/discharge'))}
                   >
                     Go to Discharge UI

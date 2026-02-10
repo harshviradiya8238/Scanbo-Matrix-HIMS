@@ -1,4 +1,11 @@
-export type OpdFlowStepId = 'calendar' | 'queue' | 'visit' | 'orders' | 'prescriptions';
+export type OpdFlowStepId =
+  | 'calendar'
+  | 'queue'
+  | 'visit'
+  | 'orders'
+  | 'prescriptions'
+  | 'vitals'
+  | 'notes';
 
 export interface OpdFlowStep {
   id: OpdFlowStepId;

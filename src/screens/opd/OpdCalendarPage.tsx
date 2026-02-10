@@ -49,10 +49,6 @@ import {
 import OpdFlowHeader from './components/OpdFlowHeader';
 import {
   AppointmentStatus,
-  OPD_APPOINTMENTS,
-  OPD_PROVIDER_AVAILABILITY,
-  OPD_PROVIDERS,
-  OPD_SLOT_TIMES,
   OpdAppointment,
   ProviderAvailability,
   VisitType,
@@ -60,6 +56,9 @@ import {
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { getPatientByMrn, GLOBAL_PATIENTS, GlobalPatient } from '@/src/mocks/global-patients';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
+import { useAppDispatch } from '@/src/store/hooks';
+import { addAppointment, addEncounter } from '@/src/store/slices/opdSlice';
+import { useOpdData } from '@/src/store/opdHooks';
 
 interface BookingForm {
   date: string;
@@ -128,15 +127,18 @@ const getSlotDurationMinutes = (slots: string[]) => {
   return Math.max(10, toMinutes(slots[1]) - toMinutes(slots[0]));
 };
 
-const slotDurationMinutes = getSlotDurationMinutes(OPD_SLOT_TIMES);
 const calendarMinTime = '00:00:00';
 const calendarMaxTime = '24:00:00';
 
-function buildDefaultBooking(): BookingForm {
+function buildDefaultBooking(
+  providers: string[],
+  slotTimes: string[],
+  defaultDate: string
+): BookingForm {
   return {
-    date: '2026-02-04',
-    time: OPD_SLOT_TIMES[0] ?? '09:00',
-    provider: OPD_PROVIDERS[0],
+    date: defaultDate,
+    time: slotTimes[0] ?? '09:00',
+    provider: providers[0] ?? '',
     department: 'General Medicine',
     patientName: '',
     mrn: '',
@@ -154,13 +156,23 @@ export default function OpdCalendarPage() {
   const calendarRef = React.useRef<FullCalendar | null>(null);
   const mrnParam = useMrnParam();
 
-  const [appointments, setAppointments] = React.useState<OpdAppointment[]>(OPD_APPOINTMENTS);
-  const [availability, setAvailability] = React.useState<ProviderAvailability[]>(
-    OPD_PROVIDER_AVAILABILITY
+  const dispatch = useAppDispatch();
+  const {
+    appointments,
+    providerAvailability,
+    providers,
+    slotTimes,
+    status: opdStatus,
+    error: opdError,
+  } = useOpdData();
+  const [availability, setAvailability] = React.useState<ProviderAvailability[]>(providerAvailability);
+  const [selectedDate, setSelectedDate] = React.useState(
+    appointments[0]?.date ?? formatIsoDate(new Date())
   );
-  const [selectedDate, setSelectedDate] = React.useState('2026-02-04');
   const [providerFilter, setProviderFilter] = React.useState<'All' | string>('All');
-  const [booking, setBooking] = React.useState<BookingForm>(buildDefaultBooking());
+  const [booking, setBooking] = React.useState<BookingForm>(() =>
+    buildDefaultBooking(providers, slotTimes, appointments[0]?.date ?? formatIsoDate(new Date()))
+  );
   const [errors, setErrors] = React.useState<BookingErrors>({});
   const [selectedPatientOption, setSelectedPatientOption] = React.useState<GlobalPatient | null>(null);
   const [bookingOpen, setBookingOpen] = React.useState(false);
@@ -178,6 +190,25 @@ export default function OpdCalendarPage() {
     severity: 'success',
   });
   const [mrnApplied, setMrnApplied] = React.useState(false);
+  const slotDurationMinutes = React.useMemo(
+    () => getSlotDurationMinutes(slotTimes),
+    [slotTimes]
+  );
+
+  React.useEffect(() => {
+    if (providerAvailability.length > 0) {
+      setAvailability(providerAvailability);
+    }
+  }, [providerAvailability]);
+
+  React.useEffect(() => {
+    if (!providers.length || !slotTimes.length) return;
+    setBooking((prev) => ({
+      ...prev,
+      provider: prev.provider || providers[0],
+      time: prev.time || slotTimes[0],
+    }));
+  }, [providers, slotTimes]);
 
   const seededPatient = React.useMemo(
     () => getPatientByMrn(booking.mrn || mrnParam),
@@ -451,7 +482,7 @@ export default function OpdCalendarPage() {
       phone: booking.phone,
     };
 
-    setAppointments((prev) => [...prev, created].sort((a, b) => a.time.localeCompare(b.time)));
+    dispatch(addAppointment(created));
     markSlotBooked(created.provider, created.date, created.time);
     setBookingOpen(false);
 
@@ -464,11 +495,38 @@ export default function OpdCalendarPage() {
     });
 
     if (sendToQueue) {
+      dispatch(
+        addEncounter({
+          id: `enc-${Date.now()}`,
+          appointmentId: created.id,
+          patientName: created.patientName,
+          mrn: created.mrn,
+          ageGender: created.ageGender,
+          doctor: created.provider,
+          department: created.department,
+          status: created.status,
+          queuePriority: 'Routine',
+          appointmentTime: created.time,
+          chiefComplaint: created.chiefComplaint,
+          triageNote: 'Sent from calendar to OPD queue.',
+          allergies: ['No known allergies'],
+          problems: [],
+          vitals: {
+            bp: '',
+            hr: '',
+            rr: '',
+            temp: '',
+            spo2: '',
+            weightKg: '',
+            bmi: '',
+          },
+        })
+      );
       router.push(withMrn('/appointments/queue'));
     }
 
     setBooking((prev) => ({
-      ...buildDefaultBooking(),
+      ...buildDefaultBooking(providers, slotTimes, prev.date),
       date: prev.date,
       provider: prev.provider,
       department: prev.department,
@@ -488,7 +546,7 @@ export default function OpdCalendarPage() {
             selectedEvent && selectedEvent.id === appointment.id ? ['fc-event-selected'] : [],
           extendedProps: { appointment },
         })),
-    [appointments, providerFilter, selectedEvent]
+    [appointments, providerFilter, selectedEvent, slotDurationMinutes]
   );
 
   const renderEventContent = React.useCallback(
@@ -520,11 +578,11 @@ export default function OpdCalendarPage() {
     setBooking((prev) => ({
       ...prev,
       date: selectedDate,
-      time: prev.time || OPD_SLOT_TIMES[0],
+      time: prev.time || slotTimes[0],
       provider: providerFilter === 'All' ? prev.provider : providerFilter,
     }));
     setBookingOpen(true);
-  }, [providerFilter, selectedDate]);
+  }, [providerFilter, selectedDate, slotTimes]);
 
   const handlePrev = () => calendarRef.current?.getApi().prev();
   const handleNext = () => calendarRef.current?.getApi().next();
@@ -555,6 +613,15 @@ export default function OpdCalendarPage() {
   return (
     <PageTemplate title="Appointments Calendar" subtitle={pageSubtitle} currentPageTitle="Calendar">
       <Stack spacing={2}>
+        {opdStatus === 'loading' ? (
+          <Alert severity="info">Loading OPD data from the local JSON server.</Alert>
+        ) : null}
+        {opdStatus === 'error' ? (
+          <Alert severity="warning">
+            OPD JSON server not reachable. Showing fallback data.
+            {opdError ? ` (${opdError})` : ''}
+          </Alert>
+        ) : null}
         <OpdFlowHeader
           activeStep="calendar"
           title="OPD Schedule and Booking"
@@ -681,7 +748,7 @@ export default function OpdCalendarPage() {
                       sx={{ minWidth: 200 }}
                     >
                       <MenuItem value="All">All Providers</MenuItem>
-                      {OPD_PROVIDERS.map((provider) => (
+                      {providers.map((provider) => (
                         <MenuItem key={provider} value={provider}>
                           {provider}
                         </MenuItem>
@@ -1033,7 +1100,7 @@ export default function OpdCalendarPage() {
               error={Boolean(errors.provider)}
               helperText={errors.provider}
             >
-              {OPD_PROVIDERS.map((provider) => (
+              {providers.map((provider) => (
                 <MenuItem key={provider} value={provider}>
                   {provider}
                 </MenuItem>

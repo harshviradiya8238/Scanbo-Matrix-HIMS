@@ -49,7 +49,7 @@ export const NAV_GROUPS: NavGroup[] = [
             iconName: 'HowToReg',
             route: '/clinical/modules/welcome-kiosk',
             type: 'item',
-            requiredPermissions: ['patients.create'],
+            requiredPermissions: ['clinical.kiosk.read', 'patients.create'],
             order: 2,
           },
           {
@@ -168,6 +168,21 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: 'reports',
+    label: 'REPORTS',
+    items: [
+      {
+        id: 'command-center',
+        label: 'Command Center (OPD/IPD)',
+        iconName: 'Leaderboard',
+        route: '/reports/doctor-volume',
+        type: 'item',
+        requiredPermissions: ['appointments.read'],
+        order: 1,
+      },
+    ],
+  },
+  {
     id: 'clinical',
     label: 'CLINICAL',
     items: [
@@ -234,13 +249,22 @@ export const NAV_GROUPS: NavGroup[] = [
             order: 6,
           },
           {
+            id: 'clinical-flow-overview',
+            label: 'Flow Overview',
+            iconName: 'Timeline',
+            route: '/clinical/flow-overview',
+            type: 'item',
+            requiredPermissions: ['clinical.flow_overview.read'],
+            order: 7,
+          },
+          {
             id: 'clinical-care-companion',
             label: 'Care Companion',
             iconName: 'Healing',
             route: '/clinical/modules/care-companion',
             type: 'item',
-            requiredPermissions: ['clinical.read'],
-            order: 7,
+            requiredPermissions: ['clinical.care_companion.read'],
+            order: 8,
           },
           {
             id: 'clinical-infection-control',
@@ -248,8 +272,8 @@ export const NAV_GROUPS: NavGroup[] = [
             iconName: 'Security',
             route: '/clinical/modules/bugsy-infection-control',
             type: 'item',
-            requiredPermissions: ['clinical.read'],
-            order: 8,
+            requiredPermissions: ['clinical.infection_control.read'],
+            order: 9,
           },
         ],
       },
@@ -335,13 +359,22 @@ export const NAV_GROUPS: NavGroup[] = [
             order: 2,
             children: [
               {
+                id: 'diagnostics-radiology-worklist',
+                label: 'Worklist',
+                iconName: 'List',
+                route: '/diagnostics/radiology/worklist',
+                type: 'item',
+                requiredPermissions: ['diagnostics.radiology.worklist.read'],
+                order: 1,
+              },
+              {
                 id: 'diagnostics-radiology-reports',
                 label: 'Reports',
                 iconName: 'Description',
                 route: '/diagnostics/radiology/reports',
                 type: 'item',
                 requiredPermissions: ['diagnostics.radiology.reports.read'],
-                order: 1,
+                order: 2,
               },
             ],
           },
@@ -498,7 +531,7 @@ export const NAV_GROUPS: NavGroup[] = [
         children: [
           {
             id: 'staff-users',
-            label: 'Users',
+            label: 'User Management',
             iconName: 'People',
             route: '/staff/users',
             type: 'item',
@@ -507,7 +540,7 @@ export const NAV_GROUPS: NavGroup[] = [
           },
           {
             id: 'staff-roles',
-            label: 'Roles & Permissions',
+            label: 'Role Management',
             iconName: 'AdminPanelSettings',
             route: '/staff/roles',
             type: 'item',

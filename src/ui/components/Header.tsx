@@ -35,17 +35,22 @@ import {
 import { getMenuItemByRoute } from '@/src/core/navigation/nav-config';
 import MobileMenuButton from './MobileMenuButton';
 import { useSidebarState } from '@/src/core/navigation/useSidebarState';
+import { useUser } from '@/src/core/auth/UserContext';
+import { getRoleLabel } from '@/src/core/navigation/permissions';
+import { UserRole } from '@/src/core/navigation/types';
+import { useStaffStore } from '@/src/core/staff/staffStore';
 
 interface HeaderProps {
   userName?: string;
-  userRole?: string;
   userAvatar?: string;
 }
 
-export default function Header({ userName = 'John Doe', userRole = 'DOCTOR', userAvatar }: HeaderProps) {
+export default function Header({ userName = 'John Doe', userAvatar }: HeaderProps) {
   const theme = useTheme();
   const router = useRouter();
   const pathname = usePathname() ?? '';
+  const { role, setRole } = useUser();
+  const { roles } = useStaffStore();
   const [userMenuAnchor, setUserMenuAnchor] = React.useState<null | HTMLElement>(null);
   const [quickMenuAnchor, setQuickMenuAnchor] = React.useState<null | HTMLElement>(null);
   const { toggle: toggleSidebar, isExpanded } = useSidebarState();
@@ -73,6 +78,11 @@ export default function Header({ userName = 'John Doe', userRole = 'DOCTOR', use
   const handleLogout = () => {
     handleUserMenuClose();
     router.push('/');
+  };
+
+  const handleRoleSelect = (nextRole: UserRole) => {
+    setRole(nextRole);
+    handleUserMenuClose();
   };
 
   const handleNavigate = (route: string) => {
@@ -290,7 +300,7 @@ export default function Header({ userName = 'John Doe', userRole = 'DOCTOR', use
           >
             <AvatarWithName
               name={userName}
-              subtitle={userRole.replace('_', ' ').toLowerCase()}
+              subtitle={getRoleLabel(role).toLowerCase()}
               avatarSrc={userAvatar}
               avatarProps={{
                 sx: {
@@ -372,6 +382,35 @@ export default function Header({ userName = 'John Doe', userRole = 'DOCTOR', use
           </Box>
           <Text sx={{ fontWeight: 600 }}>Settings</Text>
         </MenuItem>
+        <Divider />
+        <Box sx={{ px: 1.5, py: 1 }}>
+          <Text variant="caption" sx={{ fontWeight: 600, color: theme.palette.text.secondary }}>
+            Switch Role
+          </Text>
+        </Box>
+        {roles.map((roleOption) => (
+          <MenuItem
+            key={roleOption.id}
+            onClick={() => handleRoleSelect(roleOption.id as UserRole)}
+            selected={roleOption.id === role}
+            sx={{ gap: 1.25 }}
+          >
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: 1.5,
+                display: 'grid',
+                placeItems: 'center',
+                backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                color: theme.palette.primary.main,
+              }}
+            >
+              <PersonIcon sx={{ fontSize: 18 }} />
+            </Box>
+            <Text sx={{ fontWeight: 600 }}>{getRoleLabel(roleOption.id as UserRole)}</Text>
+          </MenuItem>
+        ))}
         <Divider />
         <MenuItem onClick={handleLogout} sx={{ gap: 1.25 }}>
           <Box
