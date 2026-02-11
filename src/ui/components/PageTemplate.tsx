@@ -12,6 +12,7 @@ interface PageTemplateProps {
   header?: React.ReactNode;
   children?: React.ReactNode;
   currentPageTitle?: string;
+  fullHeight?: boolean;
 }
 
 export default function PageTemplate({
@@ -22,6 +23,7 @@ export default function PageTemplate({
   header,
   children,
   currentPageTitle,
+  fullHeight,
 }: PageTemplateProps) {
   return (
     <PageLayout
@@ -31,6 +33,7 @@ export default function PageTemplate({
       actions={actions}
       header={header}
       currentPageTitle={currentPageTitle ?? title}
+      fullHeight={fullHeight}
     >
       {children || (
         <Section>

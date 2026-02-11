@@ -105,6 +105,7 @@ export type CommonDataGridProps<R extends GridValidRowModel> = {
     selection: GridRowSelectionModel;
     clearSelection: () => void;
   }) => React.ReactNode;
+  checkboxSelection?: boolean;
 };
 
 const getStorageKey = (tableId: string, persistKey?: string) =>
@@ -197,6 +198,7 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
     onFilterModelChange,
     onRowClick,
     renderBulkActions,
+    checkboxSelection = true,
   } = props;
 
   const storageKey = React.useMemo(
@@ -455,7 +457,7 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
               .filter(Boolean);
             setState((prev) => ({ ...prev, columnOrder: ordered }));
           }}
-          checkboxSelection
+          checkboxSelection={checkboxSelection}
           disableRowSelectionOnClick
           onRowSelectionModelChange={(model: GridRowSelectionModel) =>
             setRowSelectionModel(normalizeSelection(model))

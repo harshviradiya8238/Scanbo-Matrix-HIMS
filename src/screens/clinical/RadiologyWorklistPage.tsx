@@ -9,6 +9,9 @@ import {
   Box,
   Button,
   Chip,
+  Divider,
+  Drawer,
+  IconButton,
   MenuItem,
   Snackbar,
   Stack,
@@ -20,6 +23,8 @@ import Grid from '@/src/ui/components/layout/AlignedGrid';
 import DataTable from '@/src/ui/components/organisms/DataTable';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import {
+  ArrowForward as ArrowForwardIcon,
+  Close as CloseIcon,
   LocalHospital as LocalHospitalIcon,
   Send as SendIcon,
   Science as ScienceIcon,
@@ -64,6 +69,7 @@ export default function RadiologyWorklistPage() {
   const worklist = useAppSelector((state) => state.radiology.worklist);
 
   const [selectedWorklistId, setSelectedWorklistId] = React.useState(worklist[0]?.id ?? '');
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [mrnApplied, setMrnApplied] = React.useState(false);
   const [detailState, setDetailState] = React.useState({
     room: '',
@@ -123,23 +129,28 @@ export default function RadiologyWorklistPage() {
 
   const pendingCount = worklist.filter((item) => item.state !== 'Sent to PACS').length;
 
+  const handleReviewCase = React.useCallback((worklistId: string) => {
+    setSelectedWorklistId(worklistId);
+    setDrawerOpen(true);
+  }, []);
+
   const worklistColumns = React.useMemo<GridColDef<ModalityCase>[]>(
     () => [
       {
         field: 'patientName',
         headerName: 'Patient',
-        minWidth: 220,
+        minWidth: 260,
         flex: 1.1,
         renderCell: (params: GridRenderCellParams<ModalityCase>) => (
-          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ height: '100%' }}>
+          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0, py: 0.5 }}>
             <Avatar sx={{ width: 34, height: 34, bgcolor: 'primary.main', fontSize: 13 }}>
               {getInitials(params.row.patientName)}
             </Avatar>
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }} noWrap>
                 {params.row.patientName}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.3 }} noWrap>
                 {params.row.mrn}
               </Typography>
             </Box>
@@ -184,8 +195,28 @@ export default function RadiologyWorklistPage() {
           />
         ),
       },
+      {
+        field: 'actions',
+        headerName: 'Next',
+        width: 140,
+        sortable: false,
+        filterable: false,
+        renderCell: (params: GridRenderCellParams<ModalityCase>) => (
+          <Button
+            size="small"
+            variant="text"
+            endIcon={<ArrowForwardIcon />}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleReviewCase(String(params.id));
+            }}
+          >
+            Review
+          </Button>
+        ),
+      },
     ],
-    []
+    [handleReviewCase]
   );
 
   const handleSaveUpdates = () => {
@@ -278,19 +309,20 @@ export default function RadiologyWorklistPage() {
         </Grid>
 
         <Grid container spacing={2} alignItems="stretch">
-          <Grid item xs={12} lg={8} sx={{ display: 'flex' }}>
+          <Grid item xs={12} sx={{ display: 'flex' }}>
             <WorkflowSectionCard
               title="Modality Worklist"
-              subtitle="Track prep, scan progress, QA status, and transmit readiness."
+              subtitle="Click Review to open the details drawer."
               sx={{ flex: 1 }}
             >
               <DataTable
                 tableId="radiology-worklist-console"
                 rows={worklist}
                 columns={worklistColumns}
-                rowHeight={62}
+                rowHeight={80}
                 tableHeight={430}
-                onRowClick={(params) => setSelectedWorklistId(String(params.id))}
+                onRowClick={(params) => handleReviewCase(String(params.id))}
+                checkboxSelection={false}
                 toolbarConfig={{
                   title: 'Technician MWL',
                   showSavedViews: false,
@@ -300,27 +332,81 @@ export default function RadiologyWorklistPage() {
               />
             </WorkflowSectionCard>
           </Grid>
-          <Grid item xs={12} lg={4} sx={{ display: 'flex' }}>
-            <WorkflowSectionCard
-              title="Worklist Checklist"
-              subtitle="Update prep, QA, and transmit state before moving to radiology."
-              sx={{ flex: 1 }}
-            >
-              {selectedWorklist ? (
-                <Stack spacing={1.25}>
-                  <Stack direction="row" spacing={1.25} alignItems="center">
-                    <Avatar sx={{ width: 38, height: 38, bgcolor: 'primary.main', fontSize: 14 }}>
-                      {getInitials(selectedWorklist.patientName)}
-                    </Avatar>
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        {selectedWorklist.patientName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {selectedWorklist.mrn} · {selectedWorklist.room}
-                      </Typography>
-                    </Box>
-                  </Stack>
+        </Grid>
+      </Stack>
+
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        transitionDuration={{ enter: 280, exit: 200 }}
+        SlideProps={{
+          easing: {
+            enter: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+            exit: 'cubic-bezier(0.4, 0, 0.6, 1)',
+          },
+        }}
+        ModalProps={{
+          BackdropProps: {
+            sx: {
+              backgroundColor: 'rgba(15, 23, 42, 0.25)',
+              backdropFilter: 'blur(4px)',
+            },
+          },
+        }}
+        PaperProps={{
+          sx: {
+            width: { xs: '100%', sm: 460 },
+            p: 2.5,
+            borderTopLeftRadius: 20,
+            borderBottomLeftRadius: 20,
+            boxShadow: '0px 24px 60px rgba(15, 23, 42, 0.18)',
+          },
+        }}
+      >
+        <Stack spacing={2.5} sx={{ height: '100%' }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Worklist Checklist
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Update prep, QA, and transmit state before moving to radiology.
+              </Typography>
+            </Box>
+            <IconButton onClick={() => setDrawerOpen(false)} aria-label="Close details">
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+          <Divider />
+          {selectedWorklist ? (
+            <Stack spacing={2.5}>
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'action.hover',
+                }}
+              >
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Avatar sx={{ width: 46, height: 46, bgcolor: 'primary.main', fontSize: 14 }}>
+                    {getInitials(selectedWorklist.patientName)}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      {selectedWorklist.patientName}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {selectedWorklist.mrn} · {selectedWorklist.room}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {selectedWorklist.study}
+                    </Typography>
+                  </Box>
+                </Stack>
+                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1.5 }}>
                   <Chip
                     size="small"
                     label={`Worklist State: ${selectedWorklist.state}`}
@@ -329,31 +415,36 @@ export default function RadiologyWorklistPage() {
                   />
                   <Chip size="small" label={`Prep: ${selectedWorklist.prepStatus}`} variant="outlined" />
                   <Chip size="small" label={`Transmit: ${selectedWorklist.transmitState}`} variant="outlined" />
+                </Stack>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                  Worklist Details
+                </Typography>
+                <Stack spacing={1.25}>
                   <TextField
                     label="Room"
-                    size="small"
                     value={detailState.room}
                     onChange={(event) => setDetailState((prev) => ({ ...prev, room: event.target.value }))}
+                    fullWidth
                   />
                   <TextField
                     label="Prep Status"
-                    size="small"
                     value={detailState.prepStatus}
                     onChange={(event) =>
                       setDetailState((prev) => ({ ...prev, prepStatus: event.target.value }))
                     }
+                    fullWidth
                   />
                   <TextField
                     select
-                    size="small"
                     label="Worklist State"
                     value={detailState.state}
                     onChange={(event) =>
-                      setDetailState((prev) => ({
-                        ...prev,
-                        state: event.target.value as WorklistState,
-                      }))
+                      setDetailState((prev) => ({ ...prev, state: event.target.value as WorklistState }))
                     }
+                    fullWidth
                   >
                     {['Queued', 'In Progress', 'Tech QA', 'Sent to PACS'].map((option) => (
                       <MenuItem key={option} value={option}>
@@ -363,7 +454,6 @@ export default function RadiologyWorklistPage() {
                   </TextField>
                   <TextField
                     select
-                    size="small"
                     label="Transmit State"
                     value={detailState.transmitState}
                     onChange={(event) =>
@@ -372,6 +462,7 @@ export default function RadiologyWorklistPage() {
                         transmitState: event.target.value as ModalityCase['transmitState'],
                       }))
                     }
+                    fullWidth
                   >
                     {['Ready to Send', 'Sent', 'Retry'].map((option) => (
                       <MenuItem key={option} value={option}>
@@ -379,27 +470,36 @@ export default function RadiologyWorklistPage() {
                       </MenuItem>
                     ))}
                   </TextField>
-                  <Stack direction="row" spacing={1}>
-                    <Button variant="outlined" size="small" onClick={handleSaveUpdates}>
-                      Save Updates
-                    </Button>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<SendIcon />}
-                      onClick={handleSendToRadiologist}
-                    >
-                      Move to Radiologist
-                    </Button>
-                  </Stack>
                 </Stack>
-              ) : (
-                <Alert severity="info">Select a worklist case to update details.</Alert>
-              )}
-            </WorkflowSectionCard>
-          </Grid>
-        </Grid>
-      </Stack>
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                  Actions
+                </Typography>
+                <Stack spacing={1.25}>
+                  <Button variant="outlined" size="medium" fullWidth onClick={handleSaveUpdates}>
+                    Save Updates
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="medium"
+                    fullWidth
+                    startIcon={<SendIcon />}
+                    onClick={handleSendToRadiologist}
+                  >
+                    Move to Radiologist
+                  </Button>
+                </Stack>
+              </Box>
+            </Stack>
+          ) : (
+            <Alert severity="info">Click Review on a row to open worklist details.</Alert>
+          )}
+        </Stack>
+      </Drawer>
 
       <Snackbar
         open={snackbar.open}

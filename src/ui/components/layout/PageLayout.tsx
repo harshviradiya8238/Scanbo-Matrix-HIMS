@@ -10,6 +10,7 @@ interface PageLayoutProps {
   header?: React.ReactNode;
   children?: React.ReactNode;
   currentPageTitle?: string;
+  fullHeight?: boolean;
 }
 
 export default function PageLayout({
@@ -20,9 +21,33 @@ export default function PageLayout({
   header,
   children,
   currentPageTitle,
+  fullHeight,
 }: PageLayoutProps) {
+  const rootSx = fullHeight
+    ? {
+        width: '100%',
+        margin: 0,
+        padding: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+        height: '100%',
+      }
+    : { width: '100%', margin: 0, padding: 0 };
+  const contentSx = fullHeight
+    ? {
+        px: { xs: 2, sm: 3 },
+        pb: 2,
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }
+    : { px: { xs: 2, sm: 3 }, pb: 2 };
+
   return (
-    <Box sx={{ width: '100%', margin: 0, padding: 0 }}>
+    <Box sx={rootSx}>
       {header
         ? header
         : title
@@ -36,7 +61,7 @@ export default function PageLayout({
           />
         )
         : null}
-      <Box sx={{ px: { xs: 2, sm: 3 }, pb: 2 }}>{children}</Box>
+      <Box sx={contentSx}>{children}</Box>
     </Box>
   );
 }

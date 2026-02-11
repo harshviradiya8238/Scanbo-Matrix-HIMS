@@ -12,42 +12,47 @@ import {
   Divider,
   Drawer,
   IconButton,
-  MenuItem,
   Snackbar,
   Stack,
   TextField,
   Typography,
+  MenuItem,
 } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import DataTable from '@/src/ui/components/organisms/DataTable';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import {
-  ArrowForward as ArrowForwardIcon,
+  AssignmentTurnedIn as AssignmentTurnedInIcon,
   Close as CloseIcon,
   LocalHospital as LocalHospitalIcon,
-  TaskAlt as TaskAltIcon,
-  ViewList as ViewListIcon,
+  Science as ScienceIcon,
+  LocalShipping as LocalShippingIcon,
+  ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 import ModuleHeaderCard from '@/src/screens/clinical/components/ModuleHeaderCard';
 import WorkflowSectionCard from '@/src/screens/clinical/components/WorkflowSectionCard';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
-import { setReadingState, updateReadingCase } from '@/src/store/slices/radiologySlice';
-import { ImagingPriority, ReadingCase, ReportState } from '@/src/core/radiology/types';
+import { moveSampleToResults, updateSample } from '@/src/store/slices/labSlice';
+import { LabSample, SampleStatus } from '@/src/core/laboratory/types';
 
-const priorityColors: Record<ImagingPriority, 'error' | 'warning' | 'default'> = {
-  STAT: 'error',
-  Urgent: 'warning',
-  Routine: 'default',
+type SampleDetailState = {
+  collectionSite: string;
+  collectedBy: string;
+  collectionTime: string;
+  accessionNumber: string;
+  status: SampleStatus;
+  transport: string;
 };
 
-const reportColors: Record<ReportState, 'default' | 'info' | 'warning' | 'success'> = {
-  Unread: 'default',
-  Drafting: 'info',
-  'Need Addendum': 'warning',
-  'Final Signed': 'success',
+const statusColors: Record<SampleStatus, 'default' | 'info' | 'warning' | 'success' | 'error'> = {
+  Pending: 'warning',
+  Collected: 'info',
+  'In Transit': 'default',
+  Received: 'success',
+  Rejected: 'error',
 };
 
 const getInitials = (name: string) =>
@@ -59,16 +64,22 @@ const getInitials = (name: string) =>
     .join('')
     .toUpperCase();
 
-export default function RadiologyReportsPage() {
+export default function LabSamplesPage() {
   const router = useRouter();
   const mrnParam = useMrnParam();
   const dispatch = useAppDispatch();
-  const reading = useAppSelector((state) => state.radiology.reading);
-  const reportTemplates = useAppSelector((state) => state.radiology.reportTemplates);
+  const samples = useAppSelector((state) => state.lab.samples);
 
-  const [selectedReadingId, setSelectedReadingId] = React.useState(reading[0]?.id ?? '');
-  const [selectedTemplate, setSelectedTemplate] = React.useState(reportTemplates[0] ?? '');
+  const [selectedSampleId, setSelectedSampleId] = React.useState(samples[0]?.id ?? '');
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [detailState, setDetailState] = React.useState<SampleDetailState>({
+    collectionSite: '',
+    collectedBy: '',
+    collectionTime: '',
+    accessionNumber: '',
+    status: 'Pending',
+    transport: '',
+  });
   const [mrnApplied, setMrnApplied] = React.useState(false);
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
@@ -80,51 +91,65 @@ export default function RadiologyReportsPage() {
     severity: 'success',
   });
 
-  const selectedReading = React.useMemo(
-    () => reading.find((item) => item.id === selectedReadingId) ?? reading[0],
-    [reading, selectedReadingId]
+  const selectedSample = React.useMemo(
+    () => samples.find((sample) => sample.id === selectedSampleId) ?? samples[0],
+    [samples, selectedSampleId]
   );
 
   React.useEffect(() => {
-    if (reading.length === 0) {
-      setSelectedReadingId('');
+    if (samples.length === 0) {
+      setSelectedSampleId('');
       return;
     }
-    if (!reading.find((item) => item.id === selectedReadingId)) {
-      setSelectedReadingId(reading[0].id);
+    if (!samples.find((sample) => sample.id === selectedSampleId)) {
+      setSelectedSampleId(samples[0].id);
     }
-  }, [reading, selectedReadingId]);
+  }, [samples, selectedSampleId]);
 
   React.useEffect(() => {
     if (!mrnParam || mrnApplied) return;
-    const match = reading.find((item) => item.mrn === mrnParam);
+    const match = samples.find((sample) => sample.mrn === mrnParam);
     if (match) {
-      setSelectedReadingId(match.id);
+      setSelectedSampleId(match.id);
     }
     setMrnApplied(true);
-  }, [mrnApplied, mrnParam, reading]);
+  }, [mrnApplied, mrnParam, samples]);
 
-  const pageSubtitle = formatPatientLabel(selectedReading?.patientName, selectedReading?.mrn);
+  React.useEffect(() => {
+    if (!selectedSample) return;
+    setDetailState({
+      collectionSite: selectedSample.collectionSite,
+      collectedBy: selectedSample.collectedBy,
+      collectionTime: selectedSample.collectionTime,
+      accessionNumber: selectedSample.accessionNumber,
+      status: selectedSample.status,
+      transport: selectedSample.transport,
+    });
+  }, [selectedSample]);
+
+  const pageSubtitle = formatPatientLabel(selectedSample?.patientName, selectedSample?.mrn);
   const withMrn = React.useCallback(
-    (route: string) => (selectedReading?.mrn ? `${route}?mrn=${selectedReading.mrn}` : route),
-    [selectedReading]
+    (route: string) => (selectedSample?.mrn ? `${route}?mrn=${selectedSample.mrn}` : route),
+    [selectedSample]
   );
 
-  const pendingCount = reading.filter((item) => item.state !== 'Final Signed').length;
+  const pendingCount = samples.filter((sample) => sample.status === 'Pending').length;
+  const transitCount = samples.filter((sample) => sample.status === 'In Transit').length;
+  const receivedCount = samples.filter((sample) => sample.status === 'Received').length;
 
-  const handleReviewCase = React.useCallback((readingId: string) => {
-    setSelectedReadingId(readingId);
+  const handleReviewSample = React.useCallback((sampleId: string) => {
+    setSelectedSampleId(sampleId);
     setDrawerOpen(true);
   }, []);
 
-  const readingColumns = React.useMemo<GridColDef<ReadingCase>[]>(
+  const sampleColumns = React.useMemo<GridColDef<LabSample>[]>(
     () => [
       {
         field: 'patientName',
         headerName: 'Patient',
         minWidth: 260,
         flex: 1.1,
-        renderCell: (params: GridRenderCellParams<ReadingCase>) => (
+        renderCell: (params: GridRenderCellParams<LabSample>) => (
           <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0, py: 0.5 }}>
             <Avatar sx={{ width: 34, height: 34, bgcolor: 'primary.main', fontSize: 13 }}>
               {getInitials(params.row.patientName)}
@@ -141,40 +166,39 @@ export default function RadiologyReportsPage() {
         ),
       },
       {
-        field: 'subspecialty',
-        headerName: 'Subspecialty',
-        width: 150,
+        field: 'testPanel',
+        headerName: 'Panel',
+        minWidth: 200,
+        flex: 1,
       },
       {
-        field: 'modality',
-        headerName: 'Modality',
-        width: 110,
+        field: 'specimenType',
+        headerName: 'Specimen',
+        width: 130,
       },
       {
-        field: 'priority',
-        headerName: 'Priority',
-        width: 110,
-        renderCell: (params: GridRenderCellParams<ReadingCase, ImagingPriority>) => (
-          <Chip size="small" label={params.row.priority} color={priorityColors[params.row.priority]} />
-        ),
-      },
-      {
-        field: 'turnaround',
-        headerName: 'TAT',
-        width: 115,
-      },
-      {
-        field: 'state',
-        headerName: 'Report',
+        field: 'status',
+        headerName: 'Status',
         width: 140,
-        renderCell: (params: GridRenderCellParams<ReadingCase, ReportState>) => (
-          <Chip
-            size="small"
-            label={params.row.state}
-            color={reportColors[params.row.state]}
-            variant={params.row.state === 'Final Signed' ? 'filled' : 'outlined'}
-          />
+        renderCell: (params: GridRenderCellParams<LabSample, SampleStatus>) => (
+          <Chip size="small" label={params.row.status} color={statusColors[params.row.status]} />
         ),
+      },
+      {
+        field: 'accessionNumber',
+        headerName: 'Accession',
+        width: 160,
+      },
+      {
+        field: 'collectionTime',
+        headerName: 'Collected At',
+        width: 140,
+      },
+      {
+        field: 'transport',
+        headerName: 'Transport',
+        minWidth: 170,
+        flex: 0.9,
       },
       {
         field: 'actions',
@@ -182,14 +206,14 @@ export default function RadiologyReportsPage() {
         width: 140,
         sortable: false,
         filterable: false,
-        renderCell: (params: GridRenderCellParams<ReadingCase>) => (
+        renderCell: (params: GridRenderCellParams<LabSample>) => (
           <Button
             size="small"
             variant="text"
             endIcon={<ArrowForwardIcon />}
             onClick={(event) => {
               event.stopPropagation();
-              handleReviewCase(String(params.id));
+              handleReviewSample(String(params.id));
             }}
           >
             Review
@@ -197,54 +221,64 @@ export default function RadiologyReportsPage() {
         ),
       },
     ],
-    [handleReviewCase]
+    [handleReviewSample]
   );
 
-  const handleSignReport = () => {
-    if (!selectedReading) return;
-    dispatch(setReadingState({ id: selectedReading.id, state: 'Final Signed' }));
-    setSnackbar({
-      open: true,
-      message: `Report signed for ${selectedReading.patientName}.`,
-      severity: 'success',
-    });
+  const handleSaveUpdates = () => {
+    if (!selectedSample) return;
+    dispatch(
+      updateSample({
+        id: selectedSample.id,
+        changes: {
+          ...detailState,
+        },
+      })
+    );
+    setSnackbar({ open: true, message: 'Sample updated.', severity: 'success' });
+  };
+
+  const handleMarkCollected = () => {
+    if (!selectedSample) return;
+    dispatch(updateSample({ id: selectedSample.id, changes: { status: 'Collected' } }));
+    setSnackbar({ open: true, message: 'Sample marked collected.', severity: 'success' });
+  };
+
+  const handleSendToLab = () => {
+    if (!selectedSample) return;
+    dispatch(updateSample({ id: selectedSample.id, changes: { status: 'Received' } }));
+    setSnackbar({ open: true, message: 'Sample received in lab.', severity: 'info' });
+  };
+
+  const handleSendToResults = () => {
+    if (!selectedSample) return;
+    dispatch(moveSampleToResults(selectedSample.id));
+    setSnackbar({ open: true, message: 'Result record created.', severity: 'success' });
   };
 
   return (
-    <PageTemplate title="Radiology Reports" subtitle={pageSubtitle} currentPageTitle="Reports">
+    <PageTemplate title="Lab Samples" subtitle={pageSubtitle} currentPageTitle="Samples">
       <Stack spacing={2}>
         <ModuleHeaderCard
-          title="Radiology Report Queue"
-          description="Review images, apply structured templates, and sign final reports."
-          chips={[
-            { label: 'Radiology', color: 'primary' },
-            { label: 'Radiologist Workflow', variant: 'outlined' },
-          ]}
+          title="Sample Collection & Intake"
+          description="Track collection, transport, and lab receipt before results entry."
+          chips={[{ label: 'Laboratory', color: 'primary' }, { label: 'Sample Workflow', variant: 'outlined' }]}
           actions={
             <>
-              <Button
-                variant="outlined"
-                startIcon={<LocalHospitalIcon />}
-                onClick={() => router.push(withMrn('/clinical/modules/radiant'))}
-              >
-                Open Workflow
+              <Button variant="outlined" startIcon={<ScienceIcon />} onClick={() => router.push(withMrn('/orders/lab'))}>
+                Open Orders
               </Button>
-              <Button
-                variant="contained"
-                startIcon={<ViewListIcon />}
-                onClick={() => router.push(withMrn('/diagnostics/radiology/worklist'))}
-              >
-                Technician Worklist
+              <Button variant="contained" startIcon={<LocalHospitalIcon />} onClick={() => router.push(withMrn('/diagnostics/lab/results'))}>
+                Open Results
               </Button>
             </>
           }
         />
 
-        <Grid container spacing={2}>
+        <Grid container spacing={2} alignItems="stretch">
           <Grid item xs={12} md={4}>
             <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="caption" color="text.secondary">
-                Reports Pending
+                Pending Collection
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700, color: 'warning.main' }}>
                 {pendingCount}
@@ -254,20 +288,20 @@ export default function RadiologyReportsPage() {
           <Grid item xs={12} md={4}>
             <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="caption" color="text.secondary">
-                Total in Queue
+                In Transit
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                {reading.length}
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'info.main' }}>
+                {transitCount}
               </Typography>
             </Card>
           </Grid>
           <Grid item xs={12} md={4}>
             <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="caption" color="text.secondary">
-                Selected Template
+                Received
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 700, color: 'info.main' }}>
-                {selectedTemplate || '--'}
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main' }}>
+                {receivedCount}
               </Typography>
             </Card>
           </Grid>
@@ -276,20 +310,20 @@ export default function RadiologyReportsPage() {
         <Grid container spacing={2} alignItems="stretch">
           <Grid item xs={12} sx={{ display: 'flex' }}>
             <WorkflowSectionCard
-              title="Reading Worklist"
+              title="Sample Queue"
               subtitle="Click Review to open the details drawer."
               sx={{ flex: 1 }}
             >
               <DataTable
-                tableId="radiology-reading-console"
-                rows={reading}
-                columns={readingColumns}
+                tableId="lab-samples-console"
+                rows={samples}
+                columns={sampleColumns}
                 rowHeight={80}
                 tableHeight={430}
-                onRowClick={(params) => handleReviewCase(String(params.id))}
+                onRowClick={(params) => handleReviewSample(String(params.id))}
                 checkboxSelection={false}
                 toolbarConfig={{
-                  title: 'Radiologist Reading Queue',
+                  title: 'Samples',
                   showSavedViews: false,
                   showDensity: false,
                   showQuickFilter: true,
@@ -333,10 +367,10 @@ export default function RadiologyReportsPage() {
           <Stack direction="row" alignItems="center" justifyContent="space-between">
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Report Checklist
+                Sample Details
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Use templates and finalize the report.
+                Update accession details and confirm lab receipt.
               </Typography>
             </Box>
             <IconButton onClick={() => setDrawerOpen(false)} aria-label="Close details">
@@ -344,7 +378,7 @@ export default function RadiologyReportsPage() {
             </IconButton>
           </Stack>
           <Divider />
-          {selectedReading ? (
+          {selectedSample ? (
             <Stack spacing={2.5}>
               <Box
                 sx={{
@@ -357,86 +391,91 @@ export default function RadiologyReportsPage() {
               >
                 <Stack direction="row" spacing={1.5} alignItems="center">
                   <Avatar sx={{ width: 46, height: 46, bgcolor: 'primary.main', fontSize: 14 }}>
-                    {getInitials(selectedReading.patientName)}
+                    {getInitials(selectedSample.patientName)}
                   </Avatar>
                   <Box>
                     <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                      {selectedReading.patientName}
+                      {selectedSample.patientName}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {selectedReading.mrn} · {selectedReading.subspecialty}
+                      {selectedSample.mrn}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {selectedReading.modality} · {selectedReading.study}
+                      {selectedSample.specimenType} · {selectedSample.testPanel}
                     </Typography>
                   </Box>
                 </Stack>
                 <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1.5 }}>
                   <Chip
                     size="small"
-                    label={`Report State: ${selectedReading.state}`}
-                    color={reportColors[selectedReading.state]}
+                    label={`Status: ${selectedSample.status}`}
+                    color={statusColors[selectedSample.status]}
                     variant="outlined"
                   />
-                  <Chip
-                    size="small"
-                    label={`Priority: ${selectedReading.priority}`}
-                    color={priorityColors[selectedReading.priority]}
-                    variant="outlined"
-                  />
-                  <Chip
-                    size="small"
-                    label={`Prior Study: ${selectedReading.hasPrior ? 'Available' : 'Not Found'}`}
-                    color={selectedReading.hasPrior ? 'success' : 'default'}
-                    variant="outlined"
-                  />
+                  <Chip size="small" label={`Accession: ${selectedSample.accessionNumber}`} variant="outlined" />
                 </Stack>
-                {selectedReading.contrastSafety ? (
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Contrast {selectedReading.contrastSafety.risk} · Creatinine {selectedReading.contrastSafety.creatinine} · eGFR{' '}
-                    {selectedReading.contrastSafety.egfr}
-                  </Typography>
-                ) : null}
               </Box>
 
               <Box>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                  Report Settings
+                  Collection Information
                 </Typography>
                 <Stack spacing={1.25}>
                   <TextField
-                    select
-                    label="Report State"
-                    value={selectedReading.state}
+                    label="Collection Site"
+                    value={detailState.collectionSite}
                     onChange={(event) =>
-                      dispatch(
-                        updateReadingCase({
-                          id: selectedReading.id,
-                          changes: { state: event.target.value as ReportState },
-                        })
-                      )
+                      setDetailState((prev) => ({ ...prev, collectionSite: event.target.value }))
+                    }
+                    fullWidth
+                  />
+                  <TextField
+                    label="Collected By"
+                    value={detailState.collectedBy}
+                    onChange={(event) =>
+                      setDetailState((prev) => ({ ...prev, collectedBy: event.target.value }))
+                    }
+                    fullWidth
+                  />
+                  <TextField
+                    label="Collection Time"
+                    value={detailState.collectionTime}
+                    onChange={(event) =>
+                      setDetailState((prev) => ({ ...prev, collectionTime: event.target.value }))
+                    }
+                    fullWidth
+                  />
+                  <TextField
+                    label="Accession Number"
+                    value={detailState.accessionNumber}
+                    onChange={(event) =>
+                      setDetailState((prev) => ({ ...prev, accessionNumber: event.target.value }))
+                    }
+                    fullWidth
+                  />
+                  <TextField
+                    select
+                    label="Status"
+                    value={detailState.status}
+                    onChange={(event) =>
+                      setDetailState((prev) => ({ ...prev, status: event.target.value as SampleStatus }))
                     }
                     fullWidth
                   >
-                    {['Unread', 'Drafting', 'Need Addendum', 'Final Signed'].map((option) => (
+                    {['Pending', 'Collected', 'In Transit', 'Received', 'Rejected'].map((option) => (
                       <MenuItem key={option} value={option}>
                         {option}
                       </MenuItem>
                     ))}
                   </TextField>
                   <TextField
-                    select
-                    label="Report Template"
-                    value={selectedTemplate}
-                    onChange={(event) => setSelectedTemplate(event.target.value)}
+                    label="Transport"
+                    value={detailState.transport}
+                    onChange={(event) =>
+                      setDetailState((prev) => ({ ...prev, transport: event.target.value }))
+                    }
                     fullWidth
-                  >
-                    {reportTemplates.map((template) => (
-                      <MenuItem key={template} value={template}>
-                        {template}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                  />
                 </Stack>
               </Box>
 
@@ -447,29 +486,41 @@ export default function RadiologyReportsPage() {
                   Actions
                 </Typography>
                 <Stack spacing={1.25}>
+                  <Button variant="outlined" size="medium" fullWidth onClick={handleSaveUpdates}>
+                    Save Updates
+                  </Button>
                   <Button
                     variant="contained"
                     size="medium"
                     fullWidth
-                    startIcon={<TaskAltIcon />}
-                    onClick={handleSignReport}
+                    startIcon={<AssignmentTurnedInIcon />}
+                    onClick={handleMarkCollected}
                   >
-                    Sign Report
+                    Mark Collected
                   </Button>
                   <Button
-                    variant="outlined"
+                    variant="text"
+                    size="medium"
+                    fullWidth
+                    startIcon={<LocalShippingIcon />}
+                    onClick={handleSendToLab}
+                  >
+                    Mark Received
+                  </Button>
+                  <Button
+                    variant="text"
                     size="medium"
                     fullWidth
                     startIcon={<LocalHospitalIcon />}
-                    onClick={() => router.push(withMrn('/clinical/modules/radiant'))}
+                    onClick={handleSendToResults}
                   >
-                    Open Workflow
+                    Send to Results
                   </Button>
                 </Stack>
               </Box>
             </Stack>
           ) : (
-            <Alert severity="info">Click Review on a row to open report details.</Alert>
+            <Alert severity="info">Click Review on a row to open sample details.</Alert>
           )}
         </Stack>
       </Drawer>

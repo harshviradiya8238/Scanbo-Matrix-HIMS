@@ -15,6 +15,7 @@ export type StaffRole = {
   description: string;
   permissions: string[];
   isSystem: boolean;
+  isActive: boolean;
   createdAt: string;
   updatedAt?: string;
 };
@@ -50,6 +51,7 @@ const buildDefaultRoles = (): StaffRole[] =>
     description: ROLE_METADATA[role as SystemUserRole]?.description ?? '',
     permissions: getSystemPermissionsForRole(role as SystemUserRole),
     isSystem: true,
+    isActive: true,
     createdAt: DEFAULT_TIMESTAMP,
     updatedAt: DEFAULT_TIMESTAMP,
   }));
@@ -227,6 +229,7 @@ const normalizeState = (state: StaffState): StaffState => {
       id: role.id,
       isSystem: true,
       permissions: normalizePermissions(override.permissions ?? role.permissions),
+      isActive: override.isActive ?? role.isActive ?? true,
       updatedAt: override.updatedAt ?? role.updatedAt,
     };
   });
@@ -237,6 +240,7 @@ const normalizeState = (state: StaffState): StaffState => {
       ...role,
       isSystem: false,
       permissions: normalizePermissions(role.permissions),
+      isActive: role.isActive ?? true,
       createdAt: role.createdAt ?? DEFAULT_TIMESTAMP,
       updatedAt: role.updatedAt ?? DEFAULT_TIMESTAMP,
     }));
@@ -330,6 +334,7 @@ export function useStaffStore() {
         description: payload.description?.trim() ?? '',
         permissions: normalizePermissions(cloneFrom?.permissions ?? []),
         isSystem: false,
+        isActive: true,
         createdAt: now,
         updatedAt: now,
       };

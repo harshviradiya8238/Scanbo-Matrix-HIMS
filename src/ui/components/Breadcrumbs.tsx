@@ -71,7 +71,7 @@ export default function Breadcrumbs({ currentPageTitle }: BreadcrumbsProps) {
               href={item.route || '#'}
               sx={{
                 textDecoration: 'none',
-                fontSize: '0.8rem',
+                // fontSize: '0.8rem',
                 color: 'text.secondary',
                 fontWeight: 500,
                 '&:hover': {

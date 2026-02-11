@@ -12,10 +12,15 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   IconButton,
+  List,
+  ListItemButton,
+  ListItemText,
   MenuItem,
   Snackbar,
   Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -23,25 +28,16 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Tooltip,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card, CardHeader, StatTile } from '@/src/ui/components/molecules';
+import { Card, CardHeader } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { alpha, useTheme } from '@mui/material';
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Shield as ShieldIcon,
-  Security as SecurityIcon,
-  Group as GroupIcon,
-  Tune as TuneIcon,
-} from '@mui/icons-material';
+import { Add as AddIcon, Close as CloseIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { NAV_GROUPS } from '@/src/core/navigation/nav-config';
 import { CLINICAL_MODULES } from '@/src/screens/clinical/module-registry';
 import { useStaffStore } from '@/src/core/staff/staffStore';
 import { usePermission } from '@/src/core/auth/usePermission';
+import { hasPermission } from '@/src/core/navigation/permissions';
 
 const PERMISSION_GROUPS = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -81,82 +77,68 @@ const EXTRA_PERMISSIONS = [
   'reports.analytics.write',
 ];
 
-const ACTION_COLUMNS = ['create', 'read', 'write'] as const;
-
 const toTitleCase = (value: string) =>
   value
-    .replace(/_/g, ' ')
+    .replace(/[._]/g, ' ')
     .replace(/\b\w/g, (match) => match.toUpperCase());
 
-const formatPermissionLabel = (permission: string, groupLabel: string) => {
-  const parts = permission.split('.');
-  if (parts.length === 1) return toTitleCase(permission);
-  const action = parts.pop() ?? '';
-  const subject = parts.slice(1).join(' ');
-  const subjectLabel = subject ? toTitleCase(subject) : groupLabel;
-  return `${subjectLabel} · ${toTitleCase(action)}`;
+type PermissionMeta = {
+  key: string;
+  groupId: string;
+  groupLabel: string;
+  featureKey: string;
+  featureLabel: string;
+  action: string;
+  actionLabel: string;
+  isWildcard: boolean;
 };
-
-type PermissionItem = { key: string; label: string };
-
-type PermissionGroup = {
-  id: string;
-  label: string;
-  permissions: PermissionItem[];
-};
-
-type PermissionMatrixRow =
-  | {
-      type: 'group';
-      groupId: string;
-      groupLabel: string;
-      hasGroupAccess: boolean;
-    }
-  | {
-      type: 'subject';
-      groupId: string;
-      groupLabel: string;
-      subjectKey: string;
-      subjectLabel: string;
-      actions: string[];
-      otherActions: string[];
-      hasGroupAccess: boolean;
-      hasSubjectAccess: boolean;
-      actionPermissions: Record<(typeof ACTION_COLUMNS)[number], { key: string; exists: boolean; assigned: boolean }>;
-    };
 
 export default function RolesPermissionsPage() {
-  const theme = useTheme();
-  const panelHeight = 'calc(100vh - 200px)';
-  const {
-    roles,
-    users,
-    addRole,
-    updateRole,
-    deleteRole,
-  } = useStaffStore();
+  const { roles, users, addRole, updateRole, deleteRole } = useStaffStore();
   const permissionGate = usePermission();
   const canManageRoles = permissionGate(['staff.roles.write', 'staff.roles.manage']);
 
   const [selectedRoleId, setSelectedRoleId] = React.useState<string>(roles[0]?.id ?? '');
+  const [roleForm, setRoleForm] = React.useState({
+    label: '',
+    description: '',
+    isActive: true,
+  });
   const [roleSearch, setRoleSearch] = React.useState('');
-  const [roleFilter, setRoleFilter] = React.useState<'all' | 'system' | 'custom'>('all');
-  const [permissionSearch, setPermissionSearch] = React.useState('');
-  const [permissionView, setPermissionView] = React.useState<'all' | 'assigned' | 'unassigned'>('assigned');
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [editingRoleId, setEditingRoleId] = React.useState<string | null>(null);
-  const [roleDraft, setRoleDraft] = React.useState({
+  const [rolesDialogOpen, setRolesDialogOpen] = React.useState(false);
+
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [createDraft, setCreateDraft] = React.useState({
     label: '',
     description: '',
     cloneFromId: '',
   });
+
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleteReassignRoleId, setDeleteReassignRoleId] = React.useState('');
+
+  const [moduleFilter, setModuleFilter] = React.useState('all');
+  const [featureSearch, setFeatureSearch] = React.useState('');
+  const [privilegeSearch, setPrivilegeSearch] = React.useState('');
+  const [assignedSearch, setAssignedSearch] = React.useState('');
+  const [selectedAvailable, setSelectedAvailable] = React.useState<Set<string>>(() => new Set());
+
   const [snackbar, setSnackbar] = React.useState({
     open: false,
     message: '',
     severity: 'success' as 'success' | 'error' | 'info',
   });
+
+  React.useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const main = document.querySelector('main');
+    if (!main) return;
+    const prevOverflow = main.style.overflow;
+    main.style.overflow = 'hidden';
+    return () => {
+      main.style.overflow = prevOverflow;
+    };
+  }, []);
 
   React.useEffect(() => {
     if (!selectedRoleId && roles.length > 0) {
@@ -168,7 +150,27 @@ export default function RolesPermissionsPage() {
     () => roles.find((role) => role.id === selectedRoleId) ?? roles[0],
     [roles, selectedRoleId]
   );
-  const fullAccess = selectedRole?.permissions.includes('*');
+  const fullAccess = Boolean(selectedRole?.permissions.includes('*'));
+
+  React.useEffect(() => {
+    if (!selectedRole) return;
+    setRoleForm({
+      label: selectedRole.label,
+      description: selectedRole.description,
+      isActive: selectedRole.isActive ?? true,
+    });
+  }, [selectedRole?.id, selectedRole?.label, selectedRole?.description, selectedRole?.isActive]);
+
+  React.useEffect(() => {
+    setSelectedAvailable(new Set());
+  }, [selectedRoleId]);
+
+  const roleDirty = Boolean(
+    selectedRole &&
+      (roleForm.label.trim() !== selectedRole.label ||
+        roleForm.description.trim() !== selectedRole.description ||
+        roleForm.isActive !== (selectedRole.isActive ?? true))
+  );
 
   const roleUserCounts = React.useMemo(() => {
     const counts = new Map<string, number>();
@@ -178,20 +180,16 @@ export default function RolesPermissionsPage() {
     return counts;
   }, [users]);
 
-  const visibleRoles = React.useMemo(() => {
-    return roles.filter((role) => {
-      const matchesFilter =
-        roleFilter === 'all' ||
-        (roleFilter === 'system' && role.isSystem) ||
-        (roleFilter === 'custom' && !role.isSystem);
-      const matchesSearch =
-        role.label.toLowerCase().includes(roleSearch.toLowerCase()) ||
-        role.id.toLowerCase().includes(roleSearch.toLowerCase());
-      return matchesFilter && matchesSearch;
-    });
-  }, [roles, roleFilter, roleSearch]);
+  const groupLabelMap = React.useMemo(
+    () => new Map(PERMISSION_GROUPS.map((group) => [group.id, group.label])),
+    []
+  );
+  const getGroupLabel = React.useCallback(
+    (groupId: string) => groupLabelMap.get(groupId) ?? toTitleCase(groupId),
+    [groupLabelMap]
+  );
 
-  const permissionGroups = React.useMemo(() => {
+  const permissionCatalog = React.useMemo<PermissionMeta[]>(() => {
     const permissionSet = new Set<string>();
 
     roles.forEach((role) => role.permissions.forEach((perm) => permissionSet.add(perm)));
@@ -210,206 +208,172 @@ export default function RolesPermissionsPage() {
 
     permissionSet.delete('*');
 
-    const groupMap = new Map<string, Set<string>>();
-    permissionSet.forEach((perm) => {
-      if (perm.endsWith('.*')) return;
-      const [groupId] = perm.split('.');
-      if (!groupId) return;
-      if (!groupMap.has(groupId)) {
-        groupMap.set(groupId, new Set());
-      }
-      groupMap.get(groupId)?.add(perm);
-    });
+    return Array.from(permissionSet)
+      .filter(Boolean)
+      .map((permission) => {
+        const parts = permission.split('.');
+        const groupId = parts[0] ?? '';
+        const action = parts.length > 1 ? parts[parts.length - 1] : '';
+        const subjectParts = parts.length > 2 ? parts.slice(1, -1) : [];
+        const featureKey = subjectParts.join('.');
+        const featureLabel = featureKey ? toTitleCase(featureKey) : getGroupLabel(groupId);
+        const actionLabel = action ? (action === '*' ? 'All' : toTitleCase(action)) : '';
 
-    const knownGroupIds = new Set(PERMISSION_GROUPS.map((group) => group.id));
-    const groups: PermissionGroup[] = [];
-
-    PERMISSION_GROUPS.forEach((group) => {
-      const permissions = Array.from(groupMap.get(group.id) ?? []);
-      if (permissions.length === 0) return;
-      const items = permissions
-        .sort()
-        .map((perm) => ({
-          key: perm,
-          label: formatPermissionLabel(perm, group.label),
-        }))
-        .filter((item) => {
-          if (!permissionSearch) return true;
-          const query = permissionSearch.toLowerCase();
-          return item.key.toLowerCase().includes(query) || item.label.toLowerCase().includes(query);
-        });
-      if (items.length === 0) return;
-      groups.push({ id: group.id, label: group.label, permissions: items });
-    });
-
-    const extraGroups = Array.from(groupMap.keys())
-      .filter((groupId) => !knownGroupIds.has(groupId))
-      .sort();
-
-    extraGroups.forEach((groupId) => {
-      const permissions = Array.from(groupMap.get(groupId) ?? []).sort();
-      const items = permissions
-        .map((perm) => ({
-          key: perm,
-          label: formatPermissionLabel(perm, toTitleCase(groupId)),
-        }))
-        .filter((item) => {
-          if (!permissionSearch) return true;
-          const query = permissionSearch.toLowerCase();
-          return item.key.toLowerCase().includes(query) || item.label.toLowerCase().includes(query);
-        });
-      if (items.length === 0) return;
-      groups.push({ id: groupId, label: toTitleCase(groupId), permissions: items });
-    });
-
-    return groups;
-  }, [roles, permissionSearch]);
-
-  const permissionRows = React.useMemo<PermissionMatrixRow[]>(() => {
-    if (!selectedRole) return [];
-
-    const rows: PermissionMatrixRow[] = [];
-
-    permissionGroups.forEach((group) => {
-      const groupWildcard = `${group.id}.*`;
-      const hasGroupAccess = selectedRole.permissions.includes(groupWildcard);
-
-      const subjectMap = new Map<
-        string,
-        { label: string; actions: Set<string> }
-      >();
-
-      group.permissions.forEach((perm) => {
-        const key = perm.key;
-        const parts = key.split('.');
-        if (parts.length < 2) return;
-        const action = parts[parts.length - 1];
-        const subjectParts = parts.slice(1, -1);
-        const subjectKey = subjectParts.length === 0 ? group.id : `${group.id}.${subjectParts.join('.')}`;
-        const subjectLabel = subjectParts.length === 0 ? group.label : toTitleCase(subjectParts.join(' '));
-
-        if (!subjectMap.has(subjectKey)) {
-          subjectMap.set(subjectKey, { label: subjectLabel, actions: new Set() });
-        }
-        subjectMap.get(subjectKey)?.actions.add(action);
-      });
-
-      if (subjectMap.size === 0 && !hasGroupAccess) return;
-
-      const subjectRows: PermissionMatrixRow[] = [];
-
-      subjectMap.forEach((subjectData, subjectKey) => {
-        const actions = Array.from(subjectData.actions).sort();
-        const subjectWildcard = `${subjectKey}.*`;
-        const hasSubjectAccess = selectedRole.permissions.includes(subjectWildcard);
-        const actionPermissions = {
-          create: { key: '', exists: false, assigned: false },
-          read: { key: '', exists: false, assigned: false },
-          write: { key: '', exists: false, assigned: false },
+        return {
+          key: permission,
+          groupId,
+          groupLabel: getGroupLabel(groupId),
+          featureKey,
+          featureLabel,
+          action,
+          actionLabel,
+          isWildcard: action === '*',
         };
-
-        ACTION_COLUMNS.forEach((action) => {
-          const permissionKey =
-            subjectKey === group.id ? `${group.id}.${action}` : `${subjectKey}.${action}`;
-          const exists = subjectData.actions.has(action);
-          const assigned =
-            fullAccess ||
-            hasGroupAccess ||
-            hasSubjectAccess ||
-            selectedRole.permissions.includes(permissionKey);
-          actionPermissions[action] = { key: permissionKey, exists, assigned };
-        });
-
-        const hasVisibleAction = actions.some((action) => {
-          if (permissionView === 'all') return true;
-          const permissionKey =
-            subjectKey === group.id ? `${group.id}.${action}` : `${subjectKey}.${action}`;
-          const assigned =
-            fullAccess ||
-            hasGroupAccess ||
-            hasSubjectAccess ||
-            selectedRole.permissions.includes(permissionKey);
-          if (permissionView === 'assigned') return assigned;
-          return !assigned;
-        });
-
-        if (!hasVisibleAction) return;
-
-        const otherActions = actions.filter(
-          (action) => !ACTION_COLUMNS.includes(action as (typeof ACTION_COLUMNS)[number])
-        );
-
-        subjectRows.push({
-          type: 'subject',
-          groupId: group.id,
-          groupLabel: group.label,
-          subjectKey,
-          subjectLabel: subjectData.label,
-          actions,
-          otherActions,
-          hasGroupAccess,
-          hasSubjectAccess,
-          actionPermissions,
-        });
+      })
+      .sort((a, b) => {
+        const groupCompare = a.groupLabel.localeCompare(b.groupLabel);
+        if (groupCompare !== 0) return groupCompare;
+        const featureCompare = a.featureLabel.localeCompare(b.featureLabel);
+        if (featureCompare !== 0) return featureCompare;
+        const actionCompare = a.actionLabel.localeCompare(b.actionLabel);
+        if (actionCompare !== 0) return actionCompare;
+        return a.key.localeCompare(b.key);
       });
+  }, [roles, getGroupLabel]);
 
-      if (subjectRows.length === 0 && !hasGroupAccess) return;
-
-      rows.push({
-        type: 'group',
-        groupId: group.id,
-        groupLabel: group.label,
-        hasGroupAccess,
-      });
-      rows.push(...subjectRows);
+  const moduleOptions = React.useMemo(() => {
+    const map = new Map<string, string>();
+    permissionCatalog.forEach((perm) => {
+      if (!map.has(perm.groupId)) {
+        map.set(perm.groupId, perm.groupLabel);
+      }
     });
+    return Array.from(map.entries())
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [permissionCatalog]);
 
-    return rows;
-  }, [permissionGroups, permissionView, selectedRole, fullAccess]);
+  const availablePermissions = React.useMemo(() => {
+    if (!selectedRole) return [];
+    return permissionCatalog.filter((perm) => !hasPermission(selectedRole.permissions, perm.key));
+  }, [permissionCatalog, selectedRole]);
 
-  const handleOpenCreate = () => {
-    setEditingRoleId(null);
-    setRoleDraft({ label: '', description: '', cloneFromId: roles[0]?.id ?? '' });
-    setDialogOpen(true);
-  };
+  const assignedPermissions = React.useMemo(() => {
+    if (!selectedRole) return [];
+    const assigned = new Set(selectedRole.permissions);
+    return permissionCatalog.filter((perm) => assigned.has(perm.key));
+  }, [permissionCatalog, selectedRole]);
 
-  const handleOpenEdit = () => {
+  const filteredAvailable = React.useMemo(() => {
+    const featureQuery = featureSearch.trim().toLowerCase();
+    const privilegeQuery = privilegeSearch.trim().toLowerCase();
+
+    return availablePermissions.filter((perm) => {
+      if (moduleFilter !== 'all' && perm.groupId !== moduleFilter) return false;
+      if (featureQuery) {
+        const featureMatch =
+          perm.featureLabel.toLowerCase().includes(featureQuery) ||
+          perm.featureKey.toLowerCase().includes(featureQuery);
+        if (!featureMatch) return false;
+      }
+      if (privilegeQuery) {
+        const privilegeMatch =
+          perm.key.toLowerCase().includes(privilegeQuery) ||
+          perm.actionLabel.toLowerCase().includes(privilegeQuery);
+        if (!privilegeMatch) return false;
+      }
+      return true;
+    });
+  }, [availablePermissions, featureSearch, privilegeSearch, moduleFilter]);
+
+  const filteredAssigned = React.useMemo(() => {
+    const query = assignedSearch.trim().toLowerCase();
+    if (!query) return assignedPermissions;
+    return assignedPermissions.filter((perm) => {
+      return (
+        perm.groupLabel.toLowerCase().includes(query) ||
+        perm.featureLabel.toLowerCase().includes(query) ||
+        perm.key.toLowerCase().includes(query)
+      );
+    });
+  }, [assignedPermissions, assignedSearch]);
+
+  const visibleAvailableKeys = React.useMemo(
+    () => filteredAvailable.map((perm) => perm.key),
+    [filteredAvailable]
+  );
+
+  const allVisibleSelected =
+    visibleAvailableKeys.length > 0 && visibleAvailableKeys.every((key) => selectedAvailable.has(key));
+  const someVisibleSelected = visibleAvailableKeys.some((key) => selectedAvailable.has(key));
+
+  const filteredRoles = React.useMemo(() => {
+    const query = roleSearch.trim().toLowerCase();
+    if (!query) return roles;
+    return roles.filter((role) => {
+      return role.label.toLowerCase().includes(query) || role.id.toLowerCase().includes(query);
+    });
+  }, [roles, roleSearch]);
+
+  const handleToggleFullAccess = () => {
     if (!selectedRole) return;
-    setEditingRoleId(selectedRole.id);
-    setRoleDraft({
-      label: selectedRole.label,
-      description: selectedRole.description,
-      cloneFromId: '',
-    });
-    setDialogOpen(true);
+    if (selectedRole.permissions.includes('*')) {
+      updateRole(selectedRole.id, { permissions: [] });
+    } else {
+      updateRole(selectedRole.id, { permissions: ['*'] });
+    }
   };
 
   const handleSaveRole = () => {
-    if (!roleDraft.label.trim()) {
+    if (!selectedRole) return;
+    if (!roleForm.label.trim()) {
       setSnackbar({ open: true, message: 'Role name is required.', severity: 'error' });
       return;
     }
-    if (editingRoleId) {
-      updateRole(editingRoleId, {
-        label: roleDraft.label,
-        description: roleDraft.description,
-      });
-      setSnackbar({ open: true, message: 'Role updated successfully.', severity: 'success' });
-      setDialogOpen(false);
+    updateRole(selectedRole.id, {
+      label: roleForm.label,
+      description: roleForm.description,
+      isActive: roleForm.isActive,
+    });
+    setSnackbar({ open: true, message: 'Role updated successfully.', severity: 'success' });
+  };
+
+  const handleOpenCreate = () => {
+    setCreateDraft({
+      label: '',
+      description: '',
+      cloneFromId: selectedRole?.id ?? roles[0]?.id ?? '',
+    });
+    setCreateDialogOpen(true);
+  };
+
+  const handleCreateRole = () => {
+    if (!createDraft.label.trim()) {
+      setSnackbar({ open: true, message: 'Role name is required.', severity: 'error' });
       return;
     }
     const newRoleId = addRole({
-      label: roleDraft.label,
-      description: roleDraft.description,
-      cloneFromId: roleDraft.cloneFromId || undefined,
+      label: createDraft.label,
+      description: createDraft.description,
+      cloneFromId: createDraft.cloneFromId || undefined,
     });
     if (newRoleId) {
       setSelectedRoleId(newRoleId);
+      setCreateDialogOpen(false);
       setSnackbar({ open: true, message: 'New role created.', severity: 'success' });
-      setDialogOpen(false);
       return;
     }
     setSnackbar({ open: true, message: 'Unable to create role.', severity: 'error' });
+  };
+
+  const handleOpenDelete = () => {
+    if (!selectedRole || selectedRole.isSystem) return;
+    setDeleteReassignRoleId(
+      roles.find((item) => item.id === 'HOSPITAL_ADMIN')?.id ??
+        roles.find((item) => item.id !== selectedRole.id)?.id ??
+        ''
+    );
+    setDeleteDialogOpen(true);
   };
 
   const handleDeleteRole = () => {
@@ -420,520 +384,581 @@ export default function RolesPermissionsPage() {
     setSelectedRoleId('');
   };
 
-  const handlePermissionUpdate = (permissions: string[]) => {
-    if (!selectedRole) return;
-    updateRole(selectedRole.id, { permissions });
+  const toggleAvailablePermission = (permissionKey: string) => {
+    setSelectedAvailable((prev) => {
+      const next = new Set(prev);
+      if (next.has(permissionKey)) {
+        next.delete(permissionKey);
+      } else {
+        next.add(permissionKey);
+      }
+      return next;
+    });
   };
 
-  const handleToggleFullAccess = () => {
-    if (!selectedRole) return;
-    if (selectedRole.permissions.includes('*')) {
-      handlePermissionUpdate([]);
-    } else {
-      handlePermissionUpdate(['*']);
-    }
+  const handleSelectAll = () => {
+    setSelectedAvailable((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        visibleAvailableKeys.forEach((key) => next.delete(key));
+      } else {
+        visibleAvailableKeys.forEach((key) => next.add(key));
+      }
+      return next;
+    });
   };
 
-  const togglePermission = (permission: string, groupId: string, subjectKey: string, actions: string[]) => {
-    if (!selectedRole) return;
-    const current = new Set(selectedRole.permissions);
-    if (current.has('*')) return;
-
-    const subjectWildcard = `${subjectKey}.*`;
-    if (current.has(subjectWildcard)) {
-      current.delete(subjectWildcard);
-      actions.forEach((action) => {
-        const key = subjectKey === groupId ? `${groupId}.${action}` : `${subjectKey}.${action}`;
-        current.add(key);
-      });
-    }
-
-    if (current.has(permission)) {
-      current.delete(permission);
-    } else {
-      current.add(permission);
-    }
-
-    const groupWildcard = `${groupId}.*`;
-    if (current.has(groupWildcard)) {
-      current.delete(groupWildcard);
-    }
-
-    handlePermissionUpdate(Array.from(current));
+  const handleAssignPrivileges = () => {
+    if (!selectedRole || !canManageRoles || selectedAvailable.size === 0) return;
+    const next = new Set(selectedRole.permissions);
+    selectedAvailable.forEach((permission) => next.add(permission));
+    updateRole(selectedRole.id, { permissions: Array.from(next) });
+    setSelectedAvailable(new Set());
+    setSnackbar({ open: true, message: 'Privileges assigned successfully.', severity: 'success' });
   };
 
-  const toggleGroupAccess = (groupId: string) => {
-    if (!selectedRole) return;
-    const groupWildcard = `${groupId}.*`;
-    const current = new Set(selectedRole.permissions);
-    if (current.has('*')) return;
-
-    if (current.has(groupWildcard)) {
-      current.delete(groupWildcard);
-    } else {
-      Array.from(current).forEach((perm) => {
-        if (perm.startsWith(`${groupId}.`)) {
-          current.delete(perm);
-        }
-      });
-      current.add(groupWildcard);
-    }
-
-    handlePermissionUpdate(Array.from(current));
+  const handleRemovePrivilege = (permissionKey: string) => {
+    if (!selectedRole || !canManageRoles) return;
+    const next = new Set(selectedRole.permissions);
+    if (!next.has(permissionKey)) return;
+    next.delete(permissionKey);
+    updateRole(selectedRole.id, { permissions: Array.from(next) });
   };
-
 
   return (
-    <PageTemplate
-      title="Role Management"
-      subtitle={undefined}
-      currentPageTitle="Role Management"
-    >
-      <Stack spacing={1.5}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
-            <StatTile
-              label="Total roles"
-              value={roles.length}
-              subtitle="Access profiles"
-              tone="primary"
-              icon={<ShieldIcon fontSize="small" />}
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <StatTile
-              label="Custom roles"
-              value={roles.filter((role) => !role.isSystem).length}
-              subtitle="Tailored access"
-              tone="info"
-              icon={<SecurityIcon fontSize="small" />}
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <StatTile
-              label="Assigned users"
-              value={users.length}
-              subtitle="Active directory"
-              tone="success"
-              icon={<GroupIcon fontSize="small" />}
-            />
-          </Grid>
-        </Grid>
+    <PageTemplate title="Role Management" subtitle={undefined} currentPageTitle="Role Management" fullHeight>
+      <Stack spacing={2} sx={{ flex: 1, minHeight: 0, height: '100%', overflow: 'hidden' }}>
+        <Card
+          elevation={0}
+          sx={{
+            borderRadius: 2.5,
+            border: '1px solid',
+            borderColor: 'divider',
+            flexShrink: 0,
+          }}
+        >
+          <CardHeader
+            title="Role Details"
+            padding={1.5}
+            action={
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Button size="small" variant="outlined" onClick={() => setRolesDialogOpen(true)}>
+                  View All
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleOpenCreate}
+                  disabled={!canManageRoles}
+                >
+                  Create Role
+                </Button>
+              </Stack>
+            }
+          />
+          <Box sx={{ px: 2, pb: 1.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              Update role information and access status
+            </Typography>
+            <Grid container spacing={1.5} alignItems="center" sx={{ mt: 0.5 }}>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  select
+                  size="small"
+                  label="Role"
+                  value={selectedRole?.id ?? ''}
+                  onChange={(event) => setSelectedRoleId(event.target.value)}
+                >
+                  {roles.map((role) => (
+                    <MenuItem key={role.id} value={role.id}>
+                      {role.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  size="small"
+                  label="Role Name"
+                  placeholder="e.g., Finance"
+                  value={roleForm.label}
+                  onChange={(event) => setRoleForm((prev) => ({ ...prev, label: event.target.value }))}
+                  disabled={!selectedRole || !canManageRoles}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  size="small"
+                  label="Description"
+                  placeholder="Describe this role"
+                  value={roleForm.description}
+                  onChange={(event) => setRoleForm((prev) => ({ ...prev, description: event.target.value }))}
+                  disabled={!selectedRole || !canManageRoles}
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={roleForm.isActive}
+                        onChange={(event) =>
+                          setRoleForm((prev) => ({ ...prev, isActive: event.target.checked }))
+                        }
+                        disabled={!selectedRole || !canManageRoles}
+                      />
+                    }
+                    label="Active"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={fullAccess}
+                        onChange={handleToggleFullAccess}
+                        disabled={!selectedRole || !canManageRoles}
+                      />
+                    }
+                    label="Full Access"
+                  />
+                </Stack>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                {selectedRole ? (
+                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                    <Chip
+                      size="small"
+                      label={selectedRole.isSystem ? 'System role' : 'Custom role'}
+                      variant="outlined"
+                    />
+                    <Chip
+                      size="small"
+                      label={`${roleUserCounts.get(selectedRole.id) ?? 0} users`}
+                      variant="outlined"
+                    />
+                    {fullAccess ? <Chip size="small" label="Full access" color="success" /> : null}
+                  </Stack>
+                ) : null}
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Stack direction="row" spacing={1} alignItems="center" justifyContent={{ md: 'flex-end' }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleSaveRole}
+                    disabled={!selectedRole || !canManageRoles || !roleDirty}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={handleOpenDelete}
+                    disabled={!selectedRole || selectedRole.isSystem || !canManageRoles}
+                  >
+                    Delete
+                  </Button>
+                </Stack>
+              </Grid>
+            </Grid>
+          </Box>
+        </Card>
 
-        <Box sx={{ height: { md: panelHeight }, overflow: { md: 'hidden' } }}>
-        <Grid container spacing={2} sx={{ height: '100%' }}>
-          <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+        <Grid
+          container
+          spacing={2}
+          sx={{
+            flex: '1 1 0',
+            minHeight: 0,
+            alignItems: 'stretch',
+            flexWrap: 'nowrap',
+            overflow: 'hidden',
+          }}
+        >
+          <Grid item xs={6} md={6} sx={{ minHeight: 0, height: '100%', display: 'flex', minWidth: 0 }}>
             <Card
               elevation={0}
               sx={{
                 borderRadius: 2.5,
                 border: '1px solid',
                 borderColor: 'divider',
-                height: '100%',
+                flex: 1,
+                minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column',
               }}
             >
               <CardHeader
-                title="Roles"
-                subtitle="Manage access profiles"
-                action={
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={handleOpenCreate}
-                    disabled={!canManageRoles}
-                  >
-                    Create Role
-                  </Button>
-                }
+                title="Assign Privileges"
+                subtitle="Select features and attach to this role"
+                padding={1.5}
               />
               <Box
                 sx={{
                   px: 2,
-                  pt: 1.5,
-                  pb: 2,
+                  pb: 1.5,
                   flex: 1,
                   minHeight: 0,
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 1.5,
+                  overflow: 'hidden',
                 }}
               >
-                <Stack spacing={1.5}>
-                  <TextField
-                    size="small"
-                    placeholder="Search roles"
-                    value={roleSearch}
-                    onChange={(event) => setRoleSearch(event.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <Box sx={{ mr: 1, display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
-                          <TuneIcon fontSize="small" />
-                        </Box>
-                      ),
+                <Grid container spacing={1} alignItems="center">
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      select
+                      size="small"
+                      label="Module"
+                      value={moduleFilter}
+                      onChange={(event) => setModuleFilter(event.target.value)}
+                      disabled={!selectedRole}
+                    >
+                      <MenuItem value="all">All modules</MenuItem>
+                      {moduleOptions.map((module) => (
+                        <MenuItem key={module.id} value={module.id}>
+                          {module.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      size="small"
+                      label="Feature"
+                      placeholder="Search feature"
+                      value={featureSearch}
+                      onChange={(event) => setFeatureSearch(event.target.value)}
+                      disabled={!selectedRole}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      size="small"
+                      label="Privileges"
+                      placeholder="Search privilege"
+                      value={privilegeSearch}
+                      onChange={(event) => setPrivilegeSearch(event.target.value)}
+                      disabled={!selectedRole}
+                    />
+                  </Grid>
+                </Grid>
+
+                {!selectedRole ? (
+                  <Alert severity="info">Select a role to manage privileges.</Alert>
+                ) : null}
+                {fullAccess ? (
+                  <Alert severity="info">Full access enabled. Disable it to assign granular privileges.</Alert>
+                ) : null}
+
+                <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', overflow: 'hidden' }}>
+                  <TableContainer
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      flex: 1,
+                      minHeight: 0,
+                      height: '100%',
+                      overflow: 'auto',
+                      '& .MuiTableCell-root': { py: 0.75 },
                     }}
-                  />
-                  <TextField
-                    select
-                    size="small"
-                    label="Filter"
-                    value={roleFilter}
-                    onChange={(event) => setRoleFilter(event.target.value as 'all' | 'system' | 'custom')}
                   >
-                    <MenuItem value="all">All roles</MenuItem>
-                    <MenuItem value="system">System roles</MenuItem>
-                    <MenuItem value="custom">Custom roles</MenuItem>
-                  </TextField>
-                </Stack>
-                <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', pr: 0.5 }}>
-                  <Stack spacing={1.5}>
-                    {visibleRoles.map((role) => {
-                      const userCount = roleUserCounts.get(role.id) ?? 0;
-                      const isSelected = role.id === selectedRole?.id;
-                      return (
-                        <Box
-                          key={role.id}
-                          onClick={() => setSelectedRoleId(role.id)}
-                          sx={{
-                            borderRadius: 2,
-                            border: '1px solid',
-                            borderColor: isSelected ? 'primary.main' : 'divider',
-                            p: 1.25,
-                            cursor: 'pointer',
-                            backgroundColor: isSelected ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-                          }}
-                        >
-                        <Stack spacing={0.5}>
-                          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                              {role.label}
-                            </Typography>
-                            <Stack direction="row" spacing={0.5} alignItems="center">
-                              {role.isSystem ? (
-                                <Chip size="small" label="System" variant="outlined" />
-                              ) : (
-                                <Chip size="small" label="Custom" color="info" variant="outlined" />
-                              )}
-                              {isSelected ? (
-                                <Stack direction="row" spacing={0.25}>
-                                  <Tooltip title="Edit role">
-                                    <span>
-                                      <IconButton
-                                        size="small"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          handleOpenEdit();
-                                        }}
-                                        disabled={!canManageRoles}
-                                      >
-                                        <EditIcon fontSize="small" />
-                                      </IconButton>
-                                    </span>
-                                  </Tooltip>
-                                  <Tooltip title={role.isSystem ? 'System roles cannot be deleted' : 'Delete role'}>
-                                    <span>
-                                      <IconButton
-                                        size="small"
-                                        color="error"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          if (role.isSystem) return;
-                                          setDeleteReassignRoleId(
-                                            roles.find((item) => item.id === 'HOSPITAL_ADMIN')?.id ?? roles[0]?.id ?? ''
-                                          );
-                                          setDeleteDialogOpen(true);
-                                        }}
-                                        disabled={role.isSystem || !canManageRoles}
-                                      >
-                                        <DeleteIcon fontSize="small" />
-                                      </IconButton>
-                                    </span>
-                                  </Tooltip>
-                                </Stack>
-                              ) : null}
-                            </Stack>
-                          </Stack>
-                          <Typography variant="caption" color="text.secondary">
-                            {role.description || 'No description added yet.'}
-                          </Typography>
-                          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                            <Chip size="small" label={`${userCount} users`} variant="outlined" />
-                            {role.permissions.includes('*') ? (
-                              <Chip size="small" label="Full access" color="success" />
-                            ) : (
-                              <Chip size="small" label={`${role.permissions.length} permissions`} variant="outlined" />
-                            )}
-                          </Stack>
-                        </Stack>
-                        </Box>
-                      );
-                    })}
-                    {visibleRoles.length === 0 ? (
-                      <Typography variant="body2" color="text.secondary">
-                        No roles found. Try adjusting filters.
-                      </Typography>
-                    ) : null}
-                  </Stack>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 700, width: 70 }}>Select</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Feature</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Privileges</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {filteredAvailable.map((permission) => (
+                          <TableRow key={permission.key}>
+                            <TableCell align="center">
+                              <Checkbox
+                                size="small"
+                                checked={selectedAvailable.has(permission.key)}
+                                onChange={() => toggleAvailablePermission(permission.key)}
+                                disabled={!selectedRole || fullAccess || !canManageRoles}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Stack spacing={0.25}>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {permission.featureLabel}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {permission.groupLabel}
+                                </Typography>
+                              </Stack>
+                            </TableCell>
+                            <TableCell>
+                              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                                  {permission.key}
+                                </Typography>
+                                {permission.isWildcard ? (
+                                  <Chip size="small" label="Wildcard" variant="outlined" />
+                                ) : null}
+                              </Stack>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {filteredAvailable.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3}>
+                              <Typography variant="body2" color="text.secondary">
+                                Select a module or search to load available privileges.
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ) : null}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 </Box>
+
+                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={allVisibleSelected}
+                        indeterminate={!allVisibleSelected && someVisibleSelected}
+                        onChange={handleSelectAll}
+                        disabled={!selectedRole || fullAccess || filteredAvailable.length === 0 || !canManageRoles}
+                      />
+                    }
+                    label="Select All"
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleAssignPrivileges}
+                    disabled={!selectedRole || fullAccess || selectedAvailable.size === 0 || !canManageRoles}
+                  >
+                    Assign Privileges
+                  </Button>
+                </Stack>
               </Box>
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={8} sx={{ height: '100%' }}>
-            <Stack spacing={2} sx={{ height: '100%' }}>
-              <Card
-                elevation={0}
+          <Grid item xs={6} md={6} sx={{ minHeight: 0, height: '100%', display: 'flex', minWidth: 0 }}>
+            <Card
+              elevation={0}
+              sx={{
+                borderRadius: 2.5,
+                border: '1px solid',
+                borderColor: 'divider',
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <CardHeader
+                title="Configured Privileges"
+                subtitle="Privileges already granted"
+                padding={1.5}
+              />
+              <Box
                 sx={{
-                  borderRadius: 2.5,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  height: '100%',
+                  px: 2,
+                  pb: 1.5,
+                  flex: 1,
+                  minHeight: 0,
                   display: 'flex',
                   flexDirection: 'column',
+                  gap: 1.5,
+                  overflow: 'hidden',
                 }}
               >
-                <CardHeader
-                  title="Permission Builder"
-                  subtitle="Toggle granular permissions or grant full access"
-                  action={
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography variant="body2" color="text.secondary">
-                        Full Access
-                      </Typography>
-                      <Checkbox
-                        size="small"
-                        checked={Boolean(fullAccess)}
-                        onChange={handleToggleFullAccess}
-                        disabled={!selectedRole || !canManageRoles}
-                      />
-                    </Stack>
-                  }
+                <TextField
+                  size="small"
+                  label="Search"
+                  placeholder="Search assigned privileges"
+                  value={assignedSearch}
+                  onChange={(event) => setAssignedSearch(event.target.value)}
+                  disabled={!selectedRole}
                 />
-                <Box
-                  sx={{
-                    px: 2,
-                    pt: 1.5,
-                    pb: 2,
-                    flex: 1,
-                    minHeight: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                >
-                  <Stack spacing={1.5} sx={{ flex: 1, minHeight: 0 }}>
-                    <TextField
-                      size="small"
-                      placeholder="Search permissions"
-                      value={permissionSearch}
-                      onChange={(event) => setPermissionSearch(event.target.value)}
-                      InputProps={{
-                        startAdornment: (
-                          <Box sx={{ mr: 1, display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
-                            <TuneIcon fontSize="small" />
-                          </Box>
-                        ),
-                      }}
-                    />
 
-                    {!selectedRole ? (
-                      <Alert severity="info">Select a role to begin editing permissions.</Alert>
-                    ) : null}
+                {fullAccess ? (
+                  <Alert severity="info">Full access enabled. Disable it to manage assigned privileges.</Alert>
+                ) : null}
 
-                    <Stack direction="row" spacing={1} flexWrap="wrap">
-                      <Chip
-                        size="small"
-                        label="All"
-                        color={permissionView === 'all' ? 'primary' : 'default'}
-                        variant={permissionView === 'all' ? 'filled' : 'outlined'}
-                        onClick={() => setPermissionView('all')}
-                      />
-                      <Chip
-                        size="small"
-                        label="Assigned"
-                        color={permissionView === 'assigned' ? 'primary' : 'default'}
-                        variant={permissionView === 'assigned' ? 'filled' : 'outlined'}
-                        onClick={() => setPermissionView('assigned')}
-                      />
-                      <Chip
-                        size="small"
-                        label="Unassigned"
-                        color={permissionView === 'unassigned' ? 'primary' : 'default'}
-                        variant={permissionView === 'unassigned' ? 'filled' : 'outlined'}
-                        onClick={() => setPermissionView('unassigned')}
-                      />
-                    </Stack>
-
-                    <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-                      <TableContainer
-                        sx={{
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          borderRadius: 2,
-                          '& .MuiTableCell-root': { py: 0.75 },
-                        }}
-                      >
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell sx={{ fontWeight: 700, width: '38%' }}>Module</TableCell>
-                              <TableCell sx={{ fontWeight: 700, textAlign: 'center', width: 110 }}>
-                                Create
-                              </TableCell>
-                              <TableCell sx={{ fontWeight: 700, textAlign: 'center', width: 110 }}>
-                                Read
-                              </TableCell>
-                              <TableCell sx={{ fontWeight: 700, textAlign: 'center', width: 110 }}>
-                                Write
-                              </TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                          {permissionRows.map((row, index) => {
-                            if (row.type === 'group') {
-                              return (
-                                <TableRow
-                                  key={`${row.groupId}-group`}
-                                  sx={{
-                                    backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                                  }}
-                                >
-                                  <TableCell colSpan={4}>
-                                    <Stack direction="row" alignItems="center" justifyContent="space-between">
-                                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                                        {row.groupLabel}
-                                      </Typography>
-                                      <Stack direction="row" spacing={0.5} alignItems="center">
-                                        <Typography variant="caption" color="text.secondary">
-                                          Group access
-                                        </Typography>
-                                        <Checkbox
-                                          size="small"
-                                          checked={Boolean(fullAccess || row.hasGroupAccess)}
-                                          onChange={() => toggleGroupAccess(row.groupId)}
-                                          disabled={!selectedRole || Boolean(fullAccess) || !canManageRoles}
-                                        />
-                                      </Stack>
-                                    </Stack>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            }
-
-                            return (
-                              <TableRow key={`${row.groupId}-${row.subjectKey}-${index}`}>
-                                <TableCell>
-                                  <Stack spacing={0.25}>
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                      {row.subjectLabel}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                      {row.subjectKey}
-                                    </Typography>
-                                    {row.otherActions.length > 0 ? (
-                                      <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                                        {row.otherActions.map((action) => (
-                                          <Chip
-                                            key={`${row.subjectKey}-${action}`}
-                                            size="small"
-                                            label={toTitleCase(action)}
-                                            variant="outlined"
-                                          />
-                                        ))}
-                                      </Stack>
-                                    ) : null}
-                                  </Stack>
-                                </TableCell>
-                                {ACTION_COLUMNS.map((action) => {
-                                  const cell = row.actionPermissions[action];
-                                  return (
-                                    <TableCell key={`${row.subjectKey}-${action}`} align="center">
-                                          {cell.exists ? (
-                                        <Checkbox
-                                          size="small"
-                                          checked={cell.assigned}
-                                          onChange={() => togglePermission(cell.key, row.groupId, row.subjectKey, row.actions)}
-                                          disabled={
-                                            !selectedRole ||
-                                            Boolean(fullAccess || row.hasGroupAccess || !canManageRoles)
-                                          }
-                                        />
-                                      ) : (
-                                        <Typography variant="caption" color="text.secondary">
-                                          —
-                                        </Typography>
-                                      )}
-                                    </TableCell>
-                                  );
-                                })}
-                              </TableRow>
-                            );
-                          })}
-                          {permissionRows.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={4}>
-                                <Alert severity="info">
-                                  No permissions available. Adjust the filters above.
-                                </Alert>
-                              </TableCell>
-                            </TableRow>
-                          ) : null}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </Box>
-                  </Stack>
+                <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', overflow: 'hidden' }}>
+                  <TableContainer
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      flex: 1,
+                      minHeight: 0,
+                      height: '100%',
+                      overflow: 'auto',
+                      '& .MuiTableCell-root': { py: 0.75 },
+                    }}
+                  >
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 700 }}>Module</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Feature</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Privileges</TableCell>
+                          <TableCell sx={{ fontWeight: 700, width: 60 }} />
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {filteredAssigned.map((permission) => (
+                          <TableRow key={permission.key}>
+                            <TableCell>
+                              <Typography variant="body2">{permission.groupLabel}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">{permission.featureLabel}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                                  {permission.key}
+                                </Typography>
+                                {permission.isWildcard ? (
+                                  <Chip size="small" label="Wildcard" variant="outlined" />
+                                ) : null}
+                              </Stack>
+                            </TableCell>
+                            <TableCell align="center">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleRemovePrivilege(permission.key)}
+                                disabled={!selectedRole || fullAccess || !canManageRoles}
+                              >
+                                <CloseIcon fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {filteredAssigned.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={4}>
+                              <Typography variant="body2" color="text.secondary">
+                                No privileges assigned yet.
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ) : null}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 </Box>
-              </Card>
-
-            </Stack>
+              </Box>
+            </Card>
           </Grid>
         </Grid>
-        </Box>
       </Stack>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editingRoleId ? 'Edit Role' : 'Create New Role'}</DialogTitle>
+      <Dialog open={rolesDialogOpen} onClose={() => setRolesDialogOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>All Roles</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.5} sx={{ mt: 1 }}>
+            <TextField
+              size="small"
+              placeholder="Search roles"
+              value={roleSearch}
+              onChange={(event) => setRoleSearch(event.target.value)}
+            />
+            <List
+              dense
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                maxHeight: 360,
+                overflow: 'auto',
+              }}
+            >
+              {filteredRoles.map((role) => (
+                <ListItemButton
+                  key={role.id}
+                  selected={role.id === selectedRole?.id}
+                  onClick={() => {
+                    setSelectedRoleId(role.id);
+                    setRolesDialogOpen(false);
+                  }}
+                >
+                  <ListItemText
+                    primary={role.label}
+                    secondary={`${role.isSystem ? 'System' : 'Custom'} · ${
+                      roleUserCounts.get(role.id) ?? 0
+                    } users`}
+                  />
+                  {role.permissions.includes('*') ? (
+                    <Chip size="small" label="Full access" color="success" />
+                  ) : (
+                    <Chip size="small" label={`${role.permissions.length} perms`} variant="outlined" />
+                  )}
+                </ListItemButton>
+              ))}
+              {filteredRoles.length === 0 ? (
+                <Box sx={{ px: 2, py: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No roles found.
+                  </Typography>
+                </Box>
+              ) : null}
+            </List>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="text" onClick={() => setRolesDialogOpen(false)}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Create New Role</DialogTitle>
         <DialogContent>
           <Stack spacing={1.5} sx={{ mt: 1 }}>
             <TextField
               label="Role Name"
               placeholder="e.g., Quality Reviewer"
-              value={roleDraft.label}
-              onChange={(event) => setRoleDraft((prev) => ({ ...prev, label: event.target.value }))}
+              value={createDraft.label}
+              onChange={(event) => setCreateDraft((prev) => ({ ...prev, label: event.target.value }))}
             />
             <TextField
               label="Role Description"
               placeholder="Describe the key responsibility"
-              value={roleDraft.description}
-              onChange={(event) => setRoleDraft((prev) => ({ ...prev, description: event.target.value }))}
+              value={createDraft.description}
+              onChange={(event) => setCreateDraft((prev) => ({ ...prev, description: event.target.value }))}
             />
-            {!editingRoleId ? (
-              <TextField
-                select
-                label="Clone Permissions From"
-                value={roleDraft.cloneFromId}
-                onChange={(event) => setRoleDraft((prev) => ({ ...prev, cloneFromId: event.target.value }))}
-              >
-                {roles.map((role) => (
-                  <MenuItem key={role.id} value={role.id}>
-                    {role.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            ) : null}
+            <TextField
+              select
+              label="Clone Permissions From"
+              value={createDraft.cloneFromId}
+              onChange={(event) => setCreateDraft((prev) => ({ ...prev, cloneFromId: event.target.value }))}
+            >
+              {roles.map((role) => (
+                <MenuItem key={role.id} value={role.id}>
+                  {role.label}
+                </MenuItem>
+              ))}
+            </TextField>
             <Alert severity="info">
-              Permissions can be adjusted after the role is created using the toggle matrix.
+              Permissions can be adjusted after the role is created using the privilege lists.
             </Alert>
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button variant="text" onClick={() => setDialogOpen(false)}>
+          <Button variant="text" onClick={() => setCreateDialogOpen(false)}>
             Cancel
           </Button>
-          <Button variant="contained" onClick={handleSaveRole} disabled={!canManageRoles}>
-            {editingRoleId ? 'Save Changes' : 'Create Role'}
+          <Button variant="contained" onClick={handleCreateRole} disabled={!canManageRoles}>
+            Create Role
           </Button>
         </DialogActions>
       </Dialog>

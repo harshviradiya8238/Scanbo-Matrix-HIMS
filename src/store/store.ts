@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import counterSlice from './slices/counterSlice';
 import opdSlice from './slices/opdSlice';
 import radiologySlice from './slices/radiologySlice';
+import labSlice from './slices/labSlice';
 
 export const makeStore = () => {
   return configureStore({
@@ -9,6 +10,7 @@ export const makeStore = () => {
       counter: counterSlice,
       opd: opdSlice,
       radiology: radiologySlice,
+      lab: labSlice,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({

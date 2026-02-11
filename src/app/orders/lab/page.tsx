@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import LabOrdersScreen from '@/src/screens/clinical/LabOrdersPage';
 
 export default function LabOrdersPage() {
-  return <PageTemplate title="Lab Orders" currentPageTitle="Lab Orders" />;
+  return <LabOrdersScreen />;
 }
