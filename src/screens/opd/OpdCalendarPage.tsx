@@ -147,6 +147,8 @@ const getSlotDurationMinutes = (slots: string[]) => {
 const calendarMinTime = '00:00:00';
 const calendarMaxTime = '24:00:00';
 const defaultDepartment = 'General Medicine';
+type SlotCheckTone = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+type SlotCheckResult = { status: string; available: boolean; tone: SlotCheckTone; message: string };
 
 function buildDefaultBooking(
   providers: string[],
@@ -434,7 +436,7 @@ export default function OpdCalendarPage() {
   );
 
   const getSlotCheck = React.useCallback(
-    (provider: string, date: string, time: string, editTarget?: OpdAppointment | null) => {
+    (provider: string, date: string, time: string, editTarget?: OpdAppointment | null): SlotCheckResult => {
       if (!provider || !date || !time) {
         return { status: 'Select time', available: false, tone: 'info' as const, message: '' };
       }
@@ -464,12 +466,8 @@ export default function OpdCalendarPage() {
         return { status: slot.status, available: true, tone: 'info' as const, message: '' };
       }
 
-      return {
-        status: slot.status,
-        available: false,
-        tone: slot.status === 'Booked' ? 'error' : 'warning',
-        message: `Slot is ${slot.status.toLowerCase()}.`,
-      };
+      const tone: SlotCheckTone = slot.status === 'Booked' ? 'error' : 'warning';
+      return { status: slot.status, available: false, tone, message: `Slot is ${slot.status.toLowerCase()}.` };
     },
     [getSlotForSelection, hasOverlappingAppointment]
   );
