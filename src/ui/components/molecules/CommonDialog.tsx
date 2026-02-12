@@ -12,7 +12,8 @@ import {
   Typography,
 } from '@/src/ui/components/atoms';
 
-export interface CommonDialogProps extends Omit<DialogProps, 'onClose' | 'children'> {
+export interface CommonDialogProps
+  extends Omit<DialogProps, 'onClose' | 'children' | 'title' | 'content'> {
   onClose: () => void;
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
