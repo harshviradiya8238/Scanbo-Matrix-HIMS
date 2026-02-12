@@ -19,7 +19,7 @@ import {
   TextField,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card } from '@/src/ui/components/molecules';
+import { Card, CommonDialog } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import DataTable from '@/src/ui/components/organisms/DataTable';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
@@ -601,27 +601,18 @@ export default function RadiologyOrdersPage() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={Boolean(confirmAction)} onClose={() => setConfirmAction(null)}>
-        <DialogTitle>{confirmAction?.title}</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            {confirmAction?.description}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmAction(null)}>Cancel</Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => {
-              confirmAction?.onConfirm();
-              setConfirmAction(null);
-            }}
-          >
-            Confirm
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <CommonDialog
+        open={Boolean(confirmAction)}
+        onClose={() => setConfirmAction(null)}
+        title={confirmAction?.title}
+        description={confirmAction?.description}
+        confirmLabel="Confirm"
+        confirmColor="error"
+        onConfirm={() => {
+          confirmAction?.onConfirm();
+          setConfirmAction(null);
+        }}
+      />
 
       <Snackbar
         open={snackbar.open}

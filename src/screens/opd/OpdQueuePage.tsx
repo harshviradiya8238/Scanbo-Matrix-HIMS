@@ -53,6 +53,7 @@ const queueStatusColor: Record<AppointmentStatus, 'default' | 'info' | 'warning'
   'In Consultation': 'warning',
   Completed: 'success',
   'No Show': 'error',
+  Cancelled: 'error',
 };
 
 function buildQueueData(
@@ -339,7 +340,7 @@ export default function OpdQueuePage() {
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value as 'All' | AppointmentStatus)}
                 >
-                  {['All', 'Scheduled', 'Checked-In', 'In Triage', 'In Consultation', 'Completed', 'No Show'].map(
+                  {['All', 'Scheduled', 'Checked-In', 'In Triage', 'In Consultation', 'Completed', 'No Show', 'Cancelled'].map(
                     (status) => (
                       <MenuItem key={status} value={status}>
                         {status}

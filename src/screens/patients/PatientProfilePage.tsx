@@ -20,7 +20,7 @@ import {
   TableRow,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card, StatTile } from '@/src/ui/components/molecules';
+import { Card, CommonDialog, StatTile } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { useTheme, alpha } from '@mui/material';
 import {
@@ -45,11 +45,18 @@ import {
   Vaccines as VaccinesIcon,
   WarningAmber as WarningAmberIcon,
   WaterDrop as WaterDropIcon,
+  EditCalendar as EditCalendarIcon,
+  CancelOutlined as CancelOutlinedIcon,
+  AccessTime as AccessTimeIcon,
+  LocationOn as LocationOnIcon,
 } from '@mui/icons-material';
 import GlobalPatientSearch from '@/src/ui/components/molecules/GlobalPatientSearch';
 import { GLOBAL_PATIENTS, getPatientByMrn } from '@/src/mocks/global-patients';
 import { useOpdData } from '@/src/store/opdHooks';
 import { getSoftSurface } from '@/src/core/theme/surfaces';
+import { AppointmentStatus, OpdAppointment } from '@/src/screens/opd/opd-mock-data';
+import { useAppDispatch } from '@/src/store/hooks';
+import { updateAppointment } from '@/src/store/slices/opdSlice';
 
 const getInitials = (name: string) =>
   name
@@ -66,6 +73,16 @@ const formatLongDate = (value?: string | null) =>
     : '—';
 
 const buildDateTime = (date: string, time: string) => new Date(`${date}T${time}:00`);
+
+const appointmentStatusTone: Record<AppointmentStatus, 'default' | 'info' | 'warning' | 'success' | 'error'> = {
+  Scheduled: 'info',
+  'Checked-In': 'success',
+  'In Triage': 'warning',
+  'In Consultation': 'warning',
+  Completed: 'success',
+  'No Show': 'error',
+  Cancelled: 'error',
+};
 
 const formatFrequency = (value: string) => {
   switch (value) {
@@ -118,6 +135,7 @@ export default function PatientProfilePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mrn = searchParams.get('mrn')?.toUpperCase() ?? '';
+  const dispatch = useAppDispatch();
   const { appointments, encounters, vitalTrends, medicationCatalog } = useOpdData();
   const patient = getPatientByMrn(mrn);
   const cardShadow = '0 12px 24px rgba(15, 23, 42, 0.06)';
@@ -125,6 +143,7 @@ export default function PatientProfilePage() {
   const lightBorder = `1px solid ${alpha(theme.palette.text.primary, 0.04)}`;
   const dividerSx = { my: 1.5, borderColor: alpha(theme.palette.text.primary, 0.08) };
   const tabHeaderSx = { mb: 1.5 };
+  const [cancelTarget, setCancelTarget] = React.useState<OpdAppointment | null>(null);
 
   const opdAppointments = React.useMemo(
     () => appointments.filter((appointment) => appointment.mrn === patient?.mrn),
@@ -143,6 +162,34 @@ export default function PatientProfilePage() {
       ),
     [opdAppointments]
   );
+
+  const handleReschedule = React.useCallback(
+    (appointment: OpdAppointment) => {
+      router.push(
+        `/appointments/calendar?mrn=${appointment.mrn}&date=${appointment.date}&appointmentId=${appointment.id}`
+      );
+    },
+    [router]
+  );
+
+  const handleCancelAppointment = React.useCallback(
+    (appointment: OpdAppointment) => {
+      if (appointment.status === 'Cancelled') return;
+      setCancelTarget(appointment);
+    },
+    []
+  );
+
+  const confirmCancelAppointment = React.useCallback(() => {
+    if (!cancelTarget) return;
+    dispatch(
+      updateAppointment({
+        id: cancelTarget.id,
+        changes: { status: 'Cancelled' },
+      })
+    );
+    setCancelTarget(null);
+  }, [cancelTarget, dispatch]);
 
   const latestAppointment = timelineAppointments[0];
 
@@ -443,13 +490,11 @@ export default function PatientProfilePage() {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignSelf={{ xs: 'stretch', lg: 'center' }}>
               <Button
                 variant="contained"
-                onClick={() => router.push(`/appointments/visit?mrn=${patient.mrn}`)}
+                onClick={() => router.push(`/appointments/calendar?mrn=${patient.mrn}&booking=1`)}
               >
-                New Visit
+                New Appointment
               </Button>
-              <Button variant="outlined">
-                Send Message
-              </Button>
+              <Button variant="outlined">Send Message</Button>
               <Button
                 variant="outlined"
                 onClick={() => {
@@ -723,7 +768,7 @@ export default function PatientProfilePage() {
                     '& .MuiTab-root.Mui-selected': {
                       color: 'common.white',
                       backgroundColor: theme.palette.primary.main,
-                      boxShadow: `0 6px 12px ${alpha(theme.palette.primary.main, 0.24)}`,
+                      // boxShadow: `0 6px 12px ${alpha(theme.palette.primary.main, 0.24)}`,
                     },
                   }}
                 >
@@ -1076,44 +1121,117 @@ export default function PatientProfilePage() {
                         key={appointment.id}
                         sx={{
                           display: 'grid',
-                          gridTemplateColumns: { xs: '1fr', sm: '96px 1fr' },
+                          gridTemplateColumns: { xs: '1fr', sm: '96px 1fr', md: '96px 1fr 220px' },
                           gap: 2,
                           p: 2,
                           borderRadius: 2,
-                          backgroundColor: alpha(theme.palette.text.primary, 0.02),
+                          backgroundColor: theme.palette.background.paper,
                           border: lightBorder,
+                          position: 'relative',
+                          '&:before': {
+                            content: '""',
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            width: 4,
+                            height: '100%',
+                            borderTopLeftRadius: 8,
+                            borderBottomLeftRadius: 8,
+                            backgroundColor: theme.palette.primary.main,
+                          },
                         }}
                       >
                         <Box
                           sx={{
                             p: 1,
                             borderRadius: 2,
-                            backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                            backgroundColor: alpha(theme.palette.primary.main, 0.08),
                             textAlign: 'center',
                           }}
                         >
-                          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                          <Typography
+                            variant="h5"
+                            sx={{ fontWeight: 700, fontSize: 30, color: theme.palette.primary.main }}
+                          >
                             {new Date(appointment.date).getDate()}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
                             {new Date(appointment.date).toLocaleDateString('en-US', { month: 'short' })}
                           </Typography>
                         </Box>
-                        <Box>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                            {appointment.department}
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                            {appointment.chiefComplaint?.trim() || appointment.department}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {appointment.time} · {appointment.provider}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {appointment.chiefComplaint}
-                          </Typography>
-                          <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                            <Chip label={appointment.status} size="small" variant="outlined" />
-                            <Chip label={appointment.visitType} size="small" variant="outlined" />
+                          <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.5 }}>
+                            <AccessTimeIcon fontSize="small" color="primary" />
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {appointment.time}
+                            </Typography>
+                          </Stack>
+                          <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 0.5 }}>
+                            <LocationOnIcon fontSize="small" color="primary" />
+                            <Typography variant="body2" color="text.secondary">
+                              {appointment.department} · {appointment.provider}
+                            </Typography>
+                            <Chip
+                              label={appointment.status}
+                              size="small"
+                              variant="outlined"
+                              color={appointmentStatusTone[appointment.status]}
+                            />
                           </Stack>
                         </Box>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+                          sx={{ minWidth: 0, flexWrap: { xs: 'wrap', md: 'nowrap' } }}
+                        >
+                         
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={<EditCalendarIcon fontSize="small" />}
+                            onClick={() => handleReschedule(appointment)}
+                            disabled={appointment.status === 'Cancelled'}
+                            sx={{
+                              minWidth: 130,
+                              height: 36,
+                              borderRadius: 999,
+                              fontWeight: 600,
+                              px: 2.4,
+                              boxShadow: 'none',
+                            }}
+                          >
+                            Reschedule
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<CancelOutlinedIcon fontSize="small" />}
+                            onClick={() => handleCancelAppointment(appointment)}
+                            disabled={appointment.status === 'Cancelled'}
+                            sx={{
+                              minWidth: 110,
+                              height: 36,
+                              borderRadius: 999,
+                              borderColor: alpha(theme.palette.error.main, 0.45),
+                              color: theme.palette.error.main,
+                              fontWeight: 600,
+                              px: 2.2,
+                              bgcolor: theme.palette.background.paper,
+                              '&:hover': {
+                                borderColor: theme.palette.error.main,
+                                bgcolor: alpha(theme.palette.error.main, 0.08),
+                              },
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </Stack>
                       </Box>
                     ))
                   ) : (
@@ -1123,6 +1241,23 @@ export default function PatientProfilePage() {
                   )}
                 </Stack>
                 </TabPanel>
+
+                <CommonDialog
+                  open={Boolean(cancelTarget)}
+                  onClose={() => setCancelTarget(null)}
+                  title="Cancel Appointment"
+                  description={
+                    <>
+                      Are you sure you want to cancel the appointment on{' '}
+                      <strong>{formatLongDate(cancelTarget?.date)}</strong> at{' '}
+                      <strong>{cancelTarget?.time}</strong>?
+                    </>
+                  }
+                  cancelLabel="Keep Appointment"
+                  confirmLabel="Cancel Appointment"
+                  confirmColor="error"
+                  onConfirm={confirmCancelAppointment}
+                />
 
                 <TabPanel value={activeTab} tab="immunizations">
                 <Stack direction="row" spacing={1} alignItems="center" sx={tabHeaderSx}>

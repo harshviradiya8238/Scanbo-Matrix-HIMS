@@ -38,6 +38,15 @@ const theme = createTheme(baseTheme, {
         },
       },
     },
+    MuiBackdrop: {
+      styleOverrides: {
+        root: {
+          backgroundColor: 'rgba(15, 23, 42, 0.25)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+        },
+      },
+    },
     MuiCard: {
       styleOverrides: {
         root: {

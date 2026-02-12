@@ -5,3 +5,4 @@ export { default as StatTile } from './StatTile';
 export { default as AvatarWithName } from './AvatarWithName';
 export { default as EmptyState } from './EmptyState';
 export { default as Pagination } from './Pagination';
+export { default as CommonDialog } from './CommonDialog';

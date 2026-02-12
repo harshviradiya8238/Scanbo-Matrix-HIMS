@@ -21,7 +21,7 @@ import {
   Tooltip,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card, CardHeader, StatTile } from '@/src/ui/components/molecules';
+import { Card, CardHeader, CommonDialog, StatTile } from '@/src/ui/components/molecules';
 import { alpha, useTheme } from '@mui/material';
 import {
   Add as AddIcon,
@@ -599,22 +599,17 @@ export default function StaffUsersPage() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Delete User</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            This will remove the user from the directory. This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="text" onClick={() => setDeleteDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="contained" color="error" onClick={handleDeleteUser} disabled={!canManageUsers}>
-            Delete User
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <CommonDialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        title="Delete User"
+        description="This will remove the user from the directory. This action cannot be undone."
+        cancelLabel="Cancel"
+        confirmLabel="Delete User"
+        confirmColor="error"
+        onConfirm={handleDeleteUser}
+        confirmButtonProps={{ disabled: !canManageUsers }}
+      />
 
       <Snackbar
         open={snackbar.open}

@@ -32,31 +32,53 @@ export default function Breadcrumbs({ currentPageTitle }: BreadcrumbsProps) {
     ? [{ id: 'current', label: currentPageTitle }]
     : [];
 
+  const commonSx = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 0.75,
+    px: 0.75,
+    py: 0.35,
+    borderRadius: 999,
+    lineHeight: 1.2,
+    fontSize: { xs: '0.85rem', md: '0.9rem' },
+  };
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <MuiBreadcrumbs
-        separator={<NavigateNextIcon fontSize="small" />}
+        separator={<NavigateNextIcon fontSize="small" sx={{ color: 'text.disabled' }} />}
         aria-label="breadcrumb navigation"
         sx={{
+          px: 1.25,
+          py: 0.75,
+          borderRadius: 999,
+          border: '1px solid',
+          borderColor: 'divider',
+          backgroundColor: 'background.paper',
+          boxShadow: '0px 1px 2px rgba(16, 24, 40, 0.08)',
+          '& .MuiBreadcrumbs-ol': {
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          },
           '& .MuiBreadcrumbs-separator': {
-            color: 'text.disabled',
-            mx: 0.75,
+            mx: 0.35,
           },
         }}
       >
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           const displayLabel = isLast && currentPageTitle ? currentPageTitle : item.label;
-
-          if (isLast) {
+          if (isLast || !item.route) {
             return (
               <Text
                 key={item.id}
-                color="text.primary"
+                component="span"
+                color={isLast ? 'text.primary' : 'text.secondary'}
+                aria-current={isLast ? 'page' : undefined}
                 sx={{
-                  fontWeight: 700,
-                  fontSize: { xs: '1rem', md: '1.1rem' },
-                  lineHeight: 1.2,
+                  ...commonSx,
+                  fontWeight: isLast ? 700 : 600,
+                  backgroundColor: isLast ? 'action.selected' : 'transparent',
                 }}
               >
                 {displayLabel}
@@ -68,14 +90,17 @@ export default function Breadcrumbs({ currentPageTitle }: BreadcrumbsProps) {
             <Link
               key={item.id}
               color="inherit"
-              href={item.route || '#'}
+              href={item.route}
               sx={{
+                ...commonSx,
                 textDecoration: 'none',
-                // fontSize: '0.8rem',
                 color: 'text.secondary',
-                fontWeight: 500,
+                fontWeight: 600,
+                transition: 'color 150ms ease, background-color 150ms ease',
                 '&:hover': {
-                  textDecoration: 'underline',
+                  color: 'text.primary',
+                  backgroundColor: 'action.hover',
+                  textDecoration: 'none',
                 },
                 '&:focus-visible': {
                   outline: `2px solid currentColor`,

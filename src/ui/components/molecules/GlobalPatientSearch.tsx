@@ -51,6 +51,11 @@ export default function GlobalPatientSearch({
   return (
     <Autocomplete
       options={filteredOptions}
+      getOptionLabel={(option) =>
+        typeof option === 'string' ? option : `${option.name} · ${option.mrn}`
+      }
+      popupIcon={null}
+      forcePopupIcon={false}
       value={null}
       inputValue={inputValue}
       onInputChange={(_, value) => setInputValue(value)}
@@ -92,7 +97,7 @@ export default function GlobalPatientSearch({
           InputProps={{
             ...params.InputProps,
             startAdornment: (
-              <InputAdornment position="start">
+              <InputAdornment position="start" sx={{ pl: 0.75 }}>
                 <SearchIcon sx={{ fontSize: 20, color: theme.palette.text.secondary }} />
               </InputAdornment>
             ),

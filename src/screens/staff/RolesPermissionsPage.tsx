@@ -30,7 +30,7 @@ import {
   TextField,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card, CardHeader } from '@/src/ui/components/molecules';
+import { Card, CardHeader, CommonDialog } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { Add as AddIcon, Close as CloseIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { NAV_GROUPS } from '@/src/core/navigation/nav-config';
@@ -963,9 +963,12 @@ export default function RolesPermissionsPage() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Delete Role</DialogTitle>
-        <DialogContent>
+      <CommonDialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        title="Delete Role"
+        maxWidth="sm"
+        content={
           <Stack spacing={1.5} sx={{ mt: 1 }}>
             <Typography variant="body2" color="text.secondary">
               Users assigned to this role must be reassigned before deletion.
@@ -985,16 +988,13 @@ export default function RolesPermissionsPage() {
                 ))}
             </TextField>
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="text" onClick={() => setDeleteDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="contained" color="error" onClick={handleDeleteRole} disabled={!canManageRoles}>
-            Delete Role
-          </Button>
-        </DialogActions>
-      </Dialog>
+        }
+        cancelLabel="Cancel"
+        confirmLabel="Delete Role"
+        confirmColor="error"
+        onConfirm={handleDeleteRole}
+        confirmButtonProps={{ disabled: !canManageRoles }}
+      />
 
       <Snackbar
         open={snackbar.open}

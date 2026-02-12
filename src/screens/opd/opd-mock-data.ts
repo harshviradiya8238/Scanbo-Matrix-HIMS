@@ -4,7 +4,8 @@ export type AppointmentStatus =
   | 'In Triage'
   | 'In Consultation'
   | 'Completed'
-  | 'No Show';
+  | 'No Show'
+  | 'Cancelled';
 
 export type VisitType = 'New' | 'Follow-up' | 'Review';
 export type QueuePriority = 'Routine' | 'Urgent';

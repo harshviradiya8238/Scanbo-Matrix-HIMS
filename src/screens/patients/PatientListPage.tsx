@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Avatar, Box, Button, Chip, Drawer, FormControl, IconButton, InputLabel, Menu, MenuItem, Select, SelectChangeEvent, Slider, Stack, TextField, Typography, Snackbar, Alert, Divider, Autocomplete, Dialog, DialogActions, DialogContent, DialogTitle } from '@/src/ui/components/atoms';
-import { Card, StatTile } from '@/src/ui/components/molecules';
+import { Avatar, Box, Button, Chip, Drawer, FormControl, IconButton, InputLabel, Menu, MenuItem, Select, SelectChangeEvent, Slider, Stack, TextField, Typography, Snackbar, Alert, Divider, Autocomplete } from '@/src/ui/components/atoms';
+import { Card, CommonDialog, StatTile } from '@/src/ui/components/molecules';
 import { useTheme } from '@mui/material';
 import { getSoftSurface, getSubtleSurface } from '@/src/core/theme/surfaces';
 import {
@@ -757,27 +757,18 @@ export default function PatientListPage() {
         </Alert>
       </Snackbar>
 
-      <Dialog open={Boolean(confirmAction)} onClose={() => setConfirmAction(null)}>
-        <DialogTitle>{confirmAction?.title}</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            {confirmAction?.description}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmAction(null)}>Cancel</Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => {
-              confirmAction?.onConfirm();
-              setConfirmAction(null);
-            }}
-          >
-            Confirm
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <CommonDialog
+        open={Boolean(confirmAction)}
+        onClose={() => setConfirmAction(null)}
+        title={confirmAction?.title}
+        description={confirmAction?.description}
+        confirmLabel="Confirm"
+        confirmColor="error"
+        onConfirm={() => {
+          confirmAction?.onConfirm();
+          setConfirmAction(null);
+        }}
+      />
     </Box>
   );
 }
