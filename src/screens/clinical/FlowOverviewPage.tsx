@@ -34,8 +34,6 @@ import {
   HowToReg as HowToRegIcon,
   LocalHospital as LocalHospitalIcon,
   MedicalServices as MedicalServicesIcon,
-  MonitorHeart as MonitorHeartIcon,
-  NoteAlt as NoteAltIcon,
   PersonAdd as PersonAddIcon,
   Queue as QueueIcon,
   Science as ScienceIcon,
@@ -84,25 +82,11 @@ const INTAKE_STEPS: FlowStep[] = [
 
 const OPD_STEPS: FlowStep[] = [
   {
-    id: 'ambulatory',
-    title: 'EpicCare Ambulatory',
-    description: 'Encounter workspace for OPD visits.',
-    route: '/clinical/modules/ambulatory-care-opd',
+    id: 'visit',
+    title: 'Visit Workspace',
+    description: 'Consultation and encounter documentation.',
+    route: '/appointments/visit',
     icon: <MedicalServicesIcon fontSize="small" />,
-  },
-  {
-    id: 'vitals',
-    title: 'Vitals',
-    description: 'Capture nurse observations and triage data.',
-    route: '/clinical/vitals',
-    icon: <MonitorHeartIcon fontSize="small" />,
-  },
-  {
-    id: 'notes',
-    title: 'Clinical Notes',
-    description: 'SOAP notes and assessment.',
-    route: '/clinical/notes',
-    icon: <NoteAltIcon fontSize="small" />,
   },
   {
     id: 'orders',

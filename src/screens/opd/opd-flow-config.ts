@@ -1,11 +1,18 @@
+/*
+OPD FLOW:
+1. Appointment created
+2. Patient arrives -> encounter created
+3. Doctor starts visit
+4. Orders and prescriptions added
+5. Visit completed
+*/
+
 export type OpdFlowStepId =
   | 'calendar'
   | 'queue'
   | 'visit'
   | 'orders'
-  | 'prescriptions'
-  | 'vitals'
-  | 'notes';
+  | 'prescriptions';
 
 export interface OpdFlowStep {
   id: OpdFlowStepId;

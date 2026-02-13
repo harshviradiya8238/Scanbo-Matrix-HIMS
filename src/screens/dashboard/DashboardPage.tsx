@@ -54,9 +54,9 @@ export default function DashboardPage() {
     () =>
       encounters.filter(
         (encounter) =>
-          encounter.status === 'Checked-In' ||
-          encounter.status === 'In Triage' ||
-          encounter.status === 'In Consultation'
+          encounter.status === 'ARRIVED' ||
+          encounter.status === 'IN_QUEUE' ||
+          encounter.status === 'IN_PROGRESS'
       ).length,
     [encounters]
   );

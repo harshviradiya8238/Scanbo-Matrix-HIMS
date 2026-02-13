@@ -36,8 +36,6 @@ import {
   MedicalServices as MedicalServicesIcon,
   Science as ScienceIcon,
   LocalPharmacy as LocalPharmacyIcon,
-  StickyNote2 as StickyNote2Icon,
-  MonitorHeart as VitalsIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material';
 import { getSoftSurface } from '@/src/core/theme/surfaces';
@@ -103,7 +101,7 @@ export default function DoctorVolumeReportPage() {
   );
 
   const activeEncounters = React.useMemo(
-    () => encounters.filter((enc) => enc.status !== 'Completed'),
+    () => encounters.filter((enc) => enc.status !== 'COMPLETED'),
     [encounters]
   );
 
@@ -178,8 +176,6 @@ export default function DoctorVolumeReportPage() {
                 { label: 'Visit', icon: <MedicalServicesIcon fontSize="small" />, route: '/appointments/visit' },
                 { label: 'Orders', icon: <ScienceIcon fontSize="small" />, route: '/clinical/orders' },
                 { label: 'Prescriptions', icon: <LocalPharmacyIcon fontSize="small" />, route: '/clinical/prescriptions' },
-                { label: 'Vitals', icon: <VitalsIcon fontSize="small" />, route: '/clinical/vitals' },
-                { label: 'Notes', icon: <StickyNote2Icon fontSize="small" />, route: '/clinical/notes' },
               ].map((item) => (
                 <Button
                   key={item.label}

@@ -1,5 +1,5 @@
-import OpdVisitPage from '@/src/screens/opd/OpdVisitPage';
+import LegacyEncounterRedirect from '@/src/screens/opd/LegacyEncounterRedirect';
 
 export default function VisitPage() {
-  return <OpdVisitPage />;
+  return <LegacyEncounterRedirect target="visit" />;
 }

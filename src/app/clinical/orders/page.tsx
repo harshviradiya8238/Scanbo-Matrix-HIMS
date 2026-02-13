@@ -1,5 +1,5 @@
-import OpdOrdersPage from '@/src/screens/opd/OpdOrdersPage';
+import LegacyEncounterRedirect from '@/src/screens/opd/LegacyEncounterRedirect';
 
 export default function OrdersPage() {
-  return <OpdOrdersPage />;
+  return <LegacyEncounterRedirect target="orders" />;
 }

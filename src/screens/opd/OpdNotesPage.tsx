@@ -194,7 +194,7 @@ export default function OpdNotesPage() {
           </Alert>
         ) : null}
         <OpdFlowHeader
-          activeStep="notes"
+          activeStep="visit"
           title="Clinical Notes Composer"
           description="Write structured OPD notes using templates and maintain patient-wise documentation history."
           patientMrn={flowMrn}
@@ -406,4 +406,4 @@ export default function OpdNotesPage() {
     </PageTemplate>
   );
 }
-const OPD_HOME_ROUTE = '/reports/doctor-volume';
+const OPD_HOME_ROUTE = '/appointments/queue';

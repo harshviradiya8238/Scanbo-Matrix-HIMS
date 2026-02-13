@@ -113,11 +113,9 @@ These screens already exist in the app and are connected to the five implemented
 OPD Flow
 1. `/appointments/calendar`
 2. `/appointments/queue`
-3. `/appointments/visit`
-4. `/clinical/vitals`
-5. `/clinical/notes`
-6. `/clinical/orders`
-7. `/clinical/prescriptions`
+3. `/encounters/[encounterId]`
+4. `/encounters/[encounterId]/orders`
+5. `/encounters/[encounterId]/prescriptions`
 
 IPD Flow
 1. `/ipd/admissions`

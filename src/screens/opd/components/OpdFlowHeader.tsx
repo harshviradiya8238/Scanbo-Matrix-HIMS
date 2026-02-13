@@ -12,6 +12,11 @@ import {
   getOutpatientNextState,
   getOutpatientStateForStep,
 } from '../opd-flow-spec';
+import {
+  buildEncounterOrdersRoute,
+  buildEncounterPrescriptionsRoute,
+  buildEncounterRoute,
+} from '../opd-encounter';
 
 interface OpdFlowHeaderProps {
   activeStep: OpdFlowStepId;
@@ -19,6 +24,8 @@ interface OpdFlowHeaderProps {
   description: string;
   patientMrn?: string;
   patientName?: string;
+  encounterId?: string;
+  showStepButtons?: boolean;
   primaryAction?: {
     label: string;
     route: string;
@@ -31,6 +38,8 @@ export default function OpdFlowHeader({
   description,
   patientMrn,
   patientName,
+  encounterId,
+  showStepButtons = true,
   primaryAction,
 }: OpdFlowHeaderProps) {
   const router = useRouter();
@@ -45,6 +54,26 @@ export default function OpdFlowHeader({
       ? `${patientName} · ${patientMrn}`
       : patientName
     : patientMrn || '';
+  const resolveStepRoute = (stepId: OpdFlowStepId) => {
+    if (!encounterId) {
+      return OPD_FLOW_STEPS.find((step) => step.id === stepId)?.route ?? '/appointments/queue';
+    }
+
+    switch (stepId) {
+      case 'calendar':
+        return '/appointments/calendar';
+      case 'queue':
+        return '/appointments/queue';
+      case 'visit':
+        return buildEncounterRoute(encounterId);
+      case 'orders':
+        return buildEncounterOrdersRoute(encounterId);
+      case 'prescriptions':
+        return buildEncounterPrescriptionsRoute(encounterId);
+      default:
+        return '/appointments/queue';
+    }
+  };
 
   return (
     <Card
@@ -124,53 +153,29 @@ export default function OpdFlowHeader({
           ) : null}
         </Stack>
 
-        <Stack direction="row" spacing={1} flexWrap="wrap">
-          {OPD_FLOW_STEPS.map((step) => {
-            const isActive = step.id === activeStep;
-            return (
-              <Button
-                key={step.id}
-                variant={isActive ? 'contained' : 'outlined'}
-                color="primary"
-                size="small"
-                onClick={() => router.push(withMrn(step.route))}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  borderStyle: isActive ? 'solid' : 'dashed',
-                }}
-              >
-                {step.label}
-              </Button>
-            );
-          })}
-          <Button
-            size="small"
-            variant={activeStep === 'vitals' ? 'contained' : 'outlined'}
-            color="primary"
-            onClick={() => router.push(withMrn('/clinical/vitals'))}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 600,
-              borderStyle: activeStep === 'vitals' ? 'solid' : 'dashed',
-            }}
-          >
-            Vitals
-          </Button>
-          <Button
-            size="small"
-            variant={activeStep === 'notes' ? 'contained' : 'outlined'}
-            color="primary"
-            onClick={() => router.push(withMrn('/clinical/notes'))}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 600,
-              borderStyle: activeStep === 'notes' ? 'solid' : 'dashed',
-            }}
-          >
-            Notes
-          </Button>
-        </Stack>
+        {showStepButtons ? (
+          <Stack direction="row" spacing={1} flexWrap="wrap">
+            {OPD_FLOW_STEPS.map((step) => {
+              const isActive = step.id === activeStep;
+              return (
+                <Button
+                  key={step.id}
+                  variant={isActive ? 'contained' : 'outlined'}
+                  color="primary"
+                  size="small"
+                  onClick={() => router.push(withMrn(resolveStepRoute(step.id)))}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    borderStyle: isActive ? 'solid' : 'dashed',
+                  }}
+                >
+                  {step.label}
+                </Button>
+              );
+            })}
+          </Stack>
+        ) : null}
       </Stack>
     </Card>
   );

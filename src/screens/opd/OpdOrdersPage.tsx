@@ -2,39 +2,57 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import PageTemplate from '@/src/ui/components/PageTemplate';
-import { Alert, Box, Button, Chip, InputAdornment, MenuItem, Snackbar, Stack, TextField, Typography } from '@/src/ui/components/atoms';
+import {
+  Alert,
+  Avatar,
+  Box,
+  Button,
+  Chip,
+  IconButton,
+  InputAdornment,
+  MenuItem,
+  Snackbar,
+  Stack,
+  TextField,
+  Typography,
+} from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
+import { alpha, useTheme } from '@mui/material';
 import {
-  AddShoppingCart as AddShoppingCartIcon,
   DeleteOutline as DeleteOutlineIcon,
+  EditOutlined as EditOutlinedIcon,
   LocalPharmacy as LocalPharmacyIcon,
   Search as SearchIcon,
-  Science as ScienceIcon,
 } from '@mui/icons-material';
-import OpdFlowHeader from './components/OpdFlowHeader';
-import { OrderCatalogItem } from './opd-mock-data';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
-import { getPatientByMrn } from '@/src/mocks/global-patients';
+import { useAppDispatch } from '@/src/store/hooks';
+import {
+  addEncounterOrder,
+  removeEncounterOrder,
+  updateEncounter,
+  updateEncounterOrder,
+} from '@/src/store/slices/opdSlice';
 import { useOpdData } from '@/src/store/opdHooks';
+import { OrderCatalogItem } from './opd-mock-data';
+import {
+  buildEncounterPrescriptionsRoute,
+  buildEncounterRoute,
+  resolveEncounterFromState,
+} from './opd-encounter';
+import OpdLayout from './components/OpdLayout';
+import OpdTable from './components/OpdTable';
+
+interface OpdOrdersPageProps {
+  encounterId?: string;
+}
 
 interface DraftOrderLine {
   id: string;
   catalogId: string;
   priority: 'Routine' | 'Urgent';
   instructions: string;
-}
-
-interface PlacedOrder {
-  id: string;
-  patientId: string;
-  orderName: string;
-  category: OrderCatalogItem['category'];
-  priority: 'Routine' | 'Urgent';
-  status: 'Pending' | 'In Progress' | 'Completed';
-  orderedAt: string;
 }
 
 function buildDefaultDraftLine(orderCatalog: OrderCatalogItem[]): DraftOrderLine {
@@ -47,37 +65,36 @@ function buildDefaultDraftLine(orderCatalog: OrderCatalogItem[]): DraftOrderLine
   };
 }
 
-export default function OpdOrdersPage() {
+const getInitials = (name: string) =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase())
+    .slice(0, 2)
+    .join('');
+
+export default function OpdOrdersPage({ encounterId }: OpdOrdersPageProps) {
   const router = useRouter();
+  const theme = useTheme();
+  const dispatch = useAppDispatch();
   const mrnParam = useMrnParam();
-  const { encounters, orderCatalog, status: opdStatus, error: opdError } = useOpdData();
-  const [selectedPatientId, setSelectedPatientId] = React.useState(encounters[0]?.id ?? '');
+  const {
+    encounters,
+    orders,
+    orderCatalog,
+    status: opdStatus,
+    error: opdError,
+  } = useOpdData();
+
+  const encounter = React.useMemo(
+    () => resolveEncounterFromState(encounters, { encounterId, mrn: mrnParam }),
+    [encounters, encounterId, mrnParam]
+  );
+
   const [search, setSearch] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState<'All' | OrderCatalogItem['category']>('All');
-  const [draftLine, setDraftLine] = React.useState<DraftOrderLine>(() =>
-    buildDefaultDraftLine(orderCatalog)
-  );
-  const [orderCart, setOrderCart] = React.useState<DraftOrderLine[]>([]);
-  const [placedOrders, setPlacedOrders] = React.useState<PlacedOrder[]>([
-    {
-      id: 'placed-1',
-      patientId: 'enc-1',
-      orderName: 'HbA1c',
-      category: 'Lab',
-      priority: 'Routine',
-      status: 'In Progress',
-      orderedAt: '09:08 AM',
-    },
-    {
-      id: 'placed-2',
-      patientId: 'enc-3',
-      orderName: 'ECG 12-Lead',
-      category: 'Procedure',
-      priority: 'Urgent',
-      status: 'Pending',
-      orderedAt: '09:35 AM',
-    },
-  ]);
+  const [draftLine, setDraftLine] = React.useState<DraftOrderLine>(() => buildDefaultDraftLine(orderCatalog));
+  const [editingOrderId, setEditingOrderId] = React.useState<string | null>(null);
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
@@ -87,13 +104,6 @@ export default function OpdOrdersPage() {
     message: '',
     severity: 'success',
   });
-  const [mrnApplied, setMrnApplied] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!selectedPatientId && encounters.length > 0) {
-      setSelectedPatientId(encounters[0].id);
-    }
-  }, [encounters, selectedPatientId]);
 
   React.useEffect(() => {
     if (!draftLine.catalogId && orderCatalog.length > 0) {
@@ -101,19 +111,7 @@ export default function OpdOrdersPage() {
     }
   }, [draftLine.catalogId, orderCatalog]);
 
-  const selectedPatient = React.useMemo(
-    () => encounters.find((item) => item.id === selectedPatientId),
-    [encounters, selectedPatientId]
-  );
-
-  const flowMrn = selectedPatient?.mrn ?? mrnParam;
-  const seededPatient = getPatientByMrn(flowMrn);
-  const flowName = selectedPatient?.patientName || seededPatient?.name;
-  const pageSubtitle = formatPatientLabel(flowName, flowMrn);
-  const withMrn = React.useCallback(
-    (route: string) => (flowMrn ? `${route}?mrn=${flowMrn}` : route),
-    [flowMrn]
-  );
+  const subtitle = formatPatientLabel(encounter?.patientName, encounter?.mrn);
 
   const filteredCatalog = React.useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -125,12 +123,10 @@ export default function OpdOrdersPage() {
     });
   }, [categoryFilter, orderCatalog, search]);
 
-  const patientOrders = React.useMemo(
-    () => placedOrders.filter((order) => order.patientId === selectedPatientId),
-    [placedOrders, selectedPatientId]
+  const encounterOrders = React.useMemo(
+    () => orders.filter((item) => item.encounterId === encounter?.id),
+    [orders, encounter?.id]
   );
-
-  const pendingCount = patientOrders.filter((order) => order.status !== 'Completed').length;
 
   const updateDraftField = <K extends keyof DraftOrderLine>(
     field: K,
@@ -139,135 +135,191 @@ export default function OpdOrdersPage() {
     setDraftLine((prev) => ({ ...prev, [field]: value }));
   };
 
-  React.useEffect(() => {
-    if (!mrnParam || mrnApplied) return;
-    const match = encounters.find((item) => item.mrn === mrnParam);
-    if (match) {
-      setSelectedPatientId(match.id);
-    }
-    setMrnApplied(true);
-  }, [mrnParam, mrnApplied, encounters]);
+  const resetDraft = React.useCallback(() => {
+    setDraftLine(buildDefaultDraftLine(orderCatalog));
+    setEditingOrderId(null);
+  }, [orderCatalog]);
 
-  const handleAddToCart = () => {
-    if (!draftLine.catalogId) return;
+  const handleEditOrder = (orderId: string) => {
+    const selectedOrder = encounterOrders.find((item) => item.id === orderId);
+    if (!selectedOrder) return;
 
-    const selectedCatalog = orderCatalog.find((item) => item.id === draftLine.catalogId);
-    if (!selectedCatalog) return;
+    const matchingCatalog = orderCatalog.find(
+      (item) => item.name === selectedOrder.orderName && item.category === selectedOrder.category
+    );
 
-    setOrderCart((prev) => [
-      ...prev,
-      {
-        ...draftLine,
-        id: `line-${Date.now()}-${prev.length}`,
-        priority: draftLine.priority || selectedCatalog.defaultPriority,
-      },
-    ]);
-
-    setDraftLine((prev) => ({
-      ...prev,
-      instructions: '',
-      priority: selectedCatalog.defaultPriority,
-    }));
-  };
-
-  const handleRemoveCartItem = (lineId: string) => {
-    setOrderCart((prev) => prev.filter((line) => line.id !== lineId));
-  };
-
-  const handlePlaceOrders = () => {
-    if (!selectedPatient) return;
-    if (orderCart.length === 0) {
-      setSnackbar({ open: true, message: 'Order cart is empty.', severity: 'error' });
-      return;
-    }
-
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    const newOrders: PlacedOrder[] = [];
-    orderCart.forEach((line, index) => {
-      const catalog = orderCatalog.find((item) => item.id === line.catalogId);
-      if (!catalog) return;
-
-      newOrders.push({
-        id: `placed-${Date.now()}-${index}`,
-        patientId: selectedPatient.id,
-        orderName: catalog.name,
-        category: catalog.category,
-        priority: line.priority,
-        status: 'Pending',
-        orderedAt: now,
-      });
+    setCategoryFilter(selectedOrder.category);
+    setDraftLine({
+      id: `line-edit-${Date.now()}`,
+      catalogId: matchingCatalog?.id ?? orderCatalog[0]?.id ?? '',
+      priority: selectedOrder.priority,
+      instructions: selectedOrder.instructions,
     });
+    setEditingOrderId(selectedOrder.id);
+  };
 
-    setPlacedOrders((prev) => [...newOrders, ...prev]);
-    setOrderCart([]);
+  const handleDeleteOrder = (orderId: string) => {
+    dispatch(removeEncounterOrder(orderId));
+    if (editingOrderId === orderId) {
+      resetDraft();
+    }
     setSnackbar({
       open: true,
-      message: `${newOrders.length} orders placed for ${selectedPatient.patientName}.`,
+      message: 'Order removed successfully.',
       severity: 'success',
     });
   };
 
+  const handleSaveOrder = () => {
+    if (!encounter) return;
+
+    const selectedCatalog = orderCatalog.find((item) => item.id === draftLine.catalogId);
+    if (!selectedCatalog) {
+      setSnackbar({ open: true, message: 'Select an order from catalog.', severity: 'error' });
+      return;
+    }
+
+    const orderedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (editingOrderId) {
+      dispatch(
+        updateEncounterOrder({
+          id: editingOrderId,
+          changes: {
+            orderName: selectedCatalog.name,
+            category: selectedCatalog.category,
+            priority: draftLine.priority,
+            instructions: draftLine.instructions,
+            orderedAt,
+          },
+        })
+      );
+      resetDraft();
+      setSnackbar({ open: true, message: 'Order updated successfully.', severity: 'success' });
+      return;
+    }
+
+    dispatch(
+      addEncounterOrder({
+        id: `order-${Date.now()}`,
+        encounterId: encounter.id,
+        patientId: encounter.patientId,
+        orderName: selectedCatalog.name,
+        category: selectedCatalog.category,
+        priority: draftLine.priority,
+        status: 'Pending',
+        instructions: draftLine.instructions,
+        orderedAt,
+      })
+    );
+
+    dispatch(
+      updateEncounter({
+        id: encounter.id,
+        changes: { status: 'IN_PROGRESS' },
+      })
+    );
+
+    resetDraft();
+    setSnackbar({
+      open: true,
+      message: 'Order added successfully.',
+      severity: 'success',
+    });
+  };
+
+  if (!encounter) {
+    return (
+      <OpdLayout title="Encounter Orders" subtitle={mrnParam ? `MRN ${mrnParam}` : undefined} currentPageTitle="Orders">
+        <Alert severity="error">Orders require an encounter context. Start from Queue and open a consultation.</Alert>
+      </OpdLayout>
+    );
+  }
+
   return (
-    <PageTemplate title="Clinical Orders" subtitle={pageSubtitle} currentPageTitle="Orders">
-      <Stack spacing={2}>
-        {opdStatus === 'loading' ? (
-          <Alert severity="info">Loading OPD data from the local JSON server.</Alert>
-        ) : null}
-        {opdStatus === 'error' ? (
-          <Alert severity="warning">
-            OPD JSON server not reachable. Showing fallback data.
-            {opdError ? ` (${opdError})` : ''}
-          </Alert>
-        ) : null}
-        <OpdFlowHeader
-          activeStep="orders"
-          title="OPD Orders and Services"
-          description="Build an order cart, set urgency, and submit lab/radiology/procedure requests."
-          patientMrn={flowMrn}
-          patientName={flowName}
-          primaryAction={{ label: 'Go to Prescriptions', route: '/clinical/prescriptions' }}
-        />
+    <OpdLayout title="Encounter Orders" subtitle={subtitle} currentPageTitle="Orders">
+      {opdStatus === 'loading' ? <Alert severity="info">Loading OPD data from the local JSON server.</Alert> : null}
+      {opdStatus === 'error' ? (
+        <Alert severity="warning">
+          OPD JSON server not reachable. Showing fallback data.
+          {opdError ? ` (${opdError})` : ''}
+        </Alert>
+      ) : null}
 
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
-            <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-              <Typography variant="caption" color="text.secondary">Orders in Cart</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>{orderCart.length}</Typography>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-              <Typography variant="caption" color="text.secondary">Patient Pending Orders</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 700, color: 'warning.main' }}>{pendingCount}</Typography>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-              <Typography variant="caption" color="text.secondary">Total Placed (Today)</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main' }}>{placedOrders.length}</Typography>
-            </Card>
-          </Grid>
-        </Grid>
+      <Card
+        elevation={0}
+        sx={{
+          p: 2,
+          borderRadius: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+          background: `linear-gradient(115deg, ${alpha(theme.palette.info.main, 0.16)} 0%, ${theme.palette.background.paper} 38%)`,
+        }}
+      >
+        <Stack
+          direction={{ xs: 'column', lg: 'row' }}
+          spacing={1.2}
+          justifyContent="space-between"
+          alignItems={{ xs: 'flex-start', lg: 'center' }}
+        >
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+              Clinical Orders
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Add lab, radiology, and procedure orders under encounter {encounter.id}.
+            </Typography>
+            <Stack direction="row" spacing={0.7} flexWrap="wrap" sx={{ mt: 1 }}>
+              <Chip size="small" label={`Patient ${encounter.patientName}`} color="primary" />
+              <Chip size="small" label={encounter.status.replace('_', ' ')} variant="outlined" />
+              <Chip size="small" label={`${encounterOrders.length} placed`} variant="outlined" />
+            </Stack>
+          </Box>
 
-        <Grid container spacing={2}>
-          <Grid item xs={12} lg={4}>
-            <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <Button variant="outlined" onClick={() => router.push(buildEncounterRoute(encounter.id))}>
+              Back to Consultation
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<LocalPharmacyIcon />}
+              onClick={() => router.push(buildEncounterPrescriptionsRoute(encounter.id))}
+            >
+              Continue to Prescriptions
+            </Button>
+          </Stack>
+        </Stack>
+      </Card>
+
+      <Grid container spacing={2}>
+        <Grid item xs={12} lg={4}>
+          <Stack spacing={2}>
+            <Card elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+              <Stack direction="row" spacing={1.2} alignItems="center">
+                <Avatar sx={{ width: 52, height: 52, bgcolor: 'primary.main', fontWeight: 700 }}>
+                  {getInitials(encounter.patientName)}
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    {encounter.patientName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {encounter.mrn} · {encounter.ageGender}
+                  </Typography>
+                </Box>
+              </Stack>
+              <Stack direction="row" spacing={0.8} flexWrap="wrap" sx={{ mt: 1.1 }}>
+                <Chip size="small" label={encounter.department} variant="outlined" />
+                <Chip size="small" label={`Dr. ${encounter.doctor.replace('Dr. ', '')}`} />
+                <Chip size="small" color="warning" label={`Queue ${encounter.queuePriority}`} />
+              </Stack>
+            </Card>
+
+            <Card elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
               <Stack spacing={1.2}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Order Entry</Typography>
-
-                <TextField
-                  select
-                  label="Patient"
-                  value={selectedPatientId}
-                  onChange={(event) => setSelectedPatientId(event.target.value)}
-                >
-                  {encounters.map((patient) => (
-                    <MenuItem key={patient.id} value={patient.id}>
-                      {patient.patientName} ({patient.mrn})
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Order Entry
+                </Typography>
 
                 <TextField
                   size="small"
@@ -313,9 +365,7 @@ export default function OpdOrdersPage() {
                   select
                   label="Priority"
                   value={draftLine.priority}
-                  onChange={(event) =>
-                    updateDraftField('priority', event.target.value as 'Routine' | 'Urgent')
-                  }
+                  onChange={(event) => updateDraftField('priority', event.target.value as 'Routine' | 'Urgent')}
                 >
                   {['Routine', 'Urgent'].map((priority) => (
                     <MenuItem key={priority} value={priority}>
@@ -327,141 +377,80 @@ export default function OpdOrdersPage() {
                 <TextField
                   label="Instructions"
                   multiline
-                  minRows={2}
+                  minRows={3}
                   value={draftLine.instructions}
                   onChange={(event) => updateDraftField('instructions', event.target.value)}
                 />
 
-                <Button variant="outlined" startIcon={<AddShoppingCartIcon />} onClick={handleAddToCart}>
-                  Add to Cart
-                </Button>
-                <Button variant="contained" onClick={handlePlaceOrders}>Place Orders</Button>
-              </Stack>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} lg={4}>
-            <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-              <Stack spacing={1}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Order Cart</Typography>
-                {orderCart.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">No orders in cart.</Typography>
-                ) : (
-                  orderCart.map((line) => {
-                    const catalog = orderCatalog.find((item) => item.id === line.catalogId);
-                    if (!catalog) return null;
-                    return (
-                      <Card key={line.id} variant="outlined" sx={{ p: 1.1, borderRadius: 1.5 }}>
-                        <Stack spacing={0.7}>
-                          <Stack direction="row" justifyContent="space-between" alignItems="center">
-                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                              {catalog.name}
-                            </Typography>
-                            <Button
-                              size="small"
-                              color="error"
-                              startIcon={<DeleteOutlineIcon />}
-                              onClick={() => handleRemoveCartItem(line.id)}
-                            >
-                              Remove
-                            </Button>
-                          </Stack>
-                          <Stack direction="row" spacing={0.75}>
-                            <Chip size="small" variant="outlined" label={catalog.category} />
-                            <Chip size="small" color={line.priority === 'Urgent' ? 'warning' : 'default'} label={line.priority} />
-                          </Stack>
-                          {line.instructions ? (
-                            <Typography variant="caption" color="text.secondary">
-                              {line.instructions}
-                            </Typography>
-                          ) : null}
-                        </Stack>
-                      </Card>
-                    );
-                  })
-                )}
-              </Stack>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} lg={4}>
-            <Stack spacing={2}>
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-                <Stack spacing={1}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Placed Orders</Typography>
-                  {patientOrders.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">No orders placed for selected patient.</Typography>
-                  ) : (
-                    patientOrders.map((order) => (
-                      <Card key={order.id} variant="outlined" sx={{ p: 1.1, borderRadius: 1.5 }}>
-                        <Stack spacing={0.45}>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{order.orderName}</Typography>
-                          <Stack direction="row" spacing={0.75}>
-                            <Chip size="small" variant="outlined" label={order.category} />
-                            <Chip size="small" color={order.priority === 'Urgent' ? 'warning' : 'default'} label={order.priority} />
-                            <Chip
-                              size="small"
-                              color={
-                                order.status === 'Completed'
-                                  ? 'success'
-                                  : order.status === 'In Progress'
-                                  ? 'info'
-                                  : 'default'
-                              }
-                              label={order.status}
-                            />
-                          </Stack>
-                          <Typography variant="caption" color="text.secondary">Ordered at {order.orderedAt}</Typography>
-                        </Stack>
-                      </Card>
-                    ))
-                  )}
-                </Stack>
-              </Card>
-
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-                <Stack spacing={1}>
-                  {selectedPatient ? (
-                    <>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{selectedPatient.patientName}</Typography>
-                      <Typography variant="caption" color="text.secondary">{selectedPatient.mrn} · {selectedPatient.department}</Typography>
-                    </>
-                  ) : null}
-                  <Button
-                    variant="outlined"
-                    startIcon={<LocalPharmacyIcon />}
-                    onClick={() => router.push(withMrn('/clinical/prescriptions'))}
-                  >
-                    Continue to Prescription
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  <Button variant="outlined" onClick={resetDraft}>
+                    Cancel
                   </Button>
-                  <Button
-                    variant="text"
-                    startIcon={<ScienceIcon />}
-                    onClick={() => router.push(withMrn('/appointments/visit'))}
-                  >
-                    Back to Encounter
+                  <Button variant="contained" onClick={handleSaveOrder}>
+                    {editingOrderId ? 'Update Order' : 'Add Order'}
                   </Button>
                 </Stack>
-              </Card>
-            </Stack>
-          </Grid>
+              </Stack>
+            </Card>
+          </Stack>
         </Grid>
 
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={3200}
+        <Grid item xs={12} lg={8}>
+          <Stack spacing={1}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              Order List
+            </Typography>
+            <OpdTable
+              rows={encounterOrders}
+              emptyMessage="No orders have been placed for this encounter."
+              rowKey={(row) => row.id}
+              variant="plain"
+              columns={[
+                { id: 'name', label: 'Order', render: (row) => row.orderName },
+                { id: 'category', label: 'Category', render: (row) => row.category },
+                { id: 'priority', label: 'Priority', render: (row) => row.priority },
+                { id: 'status', label: 'Status', render: (row) => row.status },
+                { id: 'at', label: 'Ordered At', render: (row) => row.orderedAt },
+                {
+                  id: 'actions',
+                  label: 'Actions',
+                  align: 'right',
+                  render: (row) => (
+                    <Stack direction="row" spacing={0.25} justifyContent="flex-end">
+                      <IconButton size="small" aria-label="Edit order" onClick={() => handleEditOrder(row.id)}>
+                        <EditOutlinedIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        aria-label="Delete order"
+                        color="error"
+                        onClick={() => handleDeleteOrder(row.id)}
+                      >
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
+                  ),
+                },
+              ]}
+            />
+          </Stack>
+        </Grid>
+      </Grid>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3200}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
           onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
         >
-          <Alert
-            onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-            severity={snackbar.severity}
-            sx={{ width: '100%' }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-      </Stack>
-    </PageTemplate>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </OpdLayout>
   );
 }

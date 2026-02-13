@@ -1,5 +1,5 @@
-import OpdNotesPage from '@/src/screens/opd/OpdNotesPage';
+import LegacyEncounterRedirect from '@/src/screens/opd/LegacyEncounterRedirect';
 
 export default function NotesPage() {
-  return <OpdNotesPage />;
+  return <LegacyEncounterRedirect target="visit" tab="notes" />;
 }

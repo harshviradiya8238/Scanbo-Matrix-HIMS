@@ -160,7 +160,7 @@ export default function OpdVitalsPage() {
           </Alert>
         ) : null}
         <OpdFlowHeader
-          activeStep="vitals"
+          activeStep="visit"
           title="Vitals Capture Station"
           description="Record pre-consultation and intra-visit vitals with trend tracking and alerts."
           patientMrn={flowMrn}

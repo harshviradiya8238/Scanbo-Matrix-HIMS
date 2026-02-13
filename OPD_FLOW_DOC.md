@@ -1,6 +1,6 @@
 # OPD Flow (Dummy JSON + Redux)
 
-This project now loads OPD data from a local JSON server when available, and falls back to the in-app mock data when the server is not running. The OPD flow screens (calendar, queue, visit, vitals, orders, prescriptions, notes) all read from the same Redux slice so changes persist across the flow.
+This project now loads OPD data from a local JSON server when available, and falls back to the in-app mock data when the server is not running. The primary OPD flow is encounter-centric: appointment and queue feed one encounter, and orders/prescriptions are saved against that encounter.
 
 ## Quick Start
 
@@ -18,14 +18,21 @@ This serves the data file at `data/opd-db.json` on `http://localhost:4000`.
 npm run dev
 ```
 
-3. Open the OPD flow
+3. Open the OPD flow (primary path)
 
 - Calendar: `/appointments/calendar`
 - Queue: `/appointments/queue`
-- Visit: `/appointments/visit`
+- Visit: `/encounters/[encounterId]`
+- Orders: `/encounters/[encounterId]/orders`
+- Prescriptions: `/encounters/[encounterId]/prescriptions`
+
+Legacy routes still work as redirects:
+- `/appointments/visit`
+- `/clinical/orders`
+- `/clinical/prescriptions`
+
+Optional supporting screens:
 - Vitals: `/clinical/vitals`
-- Orders: `/clinical/orders`
-- Prescriptions: `/clinical/prescriptions`
 - Notes: `/clinical/notes`
 
 ## Environment
@@ -56,8 +63,9 @@ See `env.example` for reference.
 
 - Creating a booking and choosing “Send to Queue” will add a new encounter and route you to the queue.
 - Queue triage updates encounter status and vitals in Redux.
-- Vitals capture writes to the vitals trend list and updates the encounter vitals.
-- Completing a visit updates the encounter (and linked appointment status) to `Completed`.
+- Queue uses encounter lifecycle states (`ARRIVED`, `IN_QUEUE`, `IN_PROGRESS`, `COMPLETED`).
+- Orders and prescriptions can only be saved with an `encounterId`.
+- Completing a visit updates the encounter status to `COMPLETED` and syncs the linked appointment status.
 
 ## Fallback Behavior
 

@@ -1,5 +1,5 @@
-import OpdVitalsPage from '@/src/screens/opd/OpdVitalsPage';
+import LegacyEncounterRedirect from '@/src/screens/opd/LegacyEncounterRedirect';
 
 export default function VitalsPage() {
-  return <OpdVitalsPage />;
+  return <LegacyEncounterRedirect target="visit" tab="vitals" />;
 }

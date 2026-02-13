@@ -7,6 +7,14 @@ export type AppointmentStatus =
   | 'No Show'
   | 'Cancelled';
 
+export type EncounterStatus =
+  | 'BOOKED'
+  | 'ARRIVED'
+  | 'IN_QUEUE'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
 export type VisitType = 'New' | 'Follow-up' | 'Review';
 export type QueuePriority = 'Routine' | 'Urgent';
 export type SlotStatus = 'Available' | 'Booked' | 'Break' | 'Blocked';
@@ -42,19 +50,23 @@ export interface ProviderAvailability {
 
 export interface OpdEncounterCase {
   id: string;
+  patientId: string;
   appointmentId: string;
   patientName: string;
   mrn: string;
   ageGender: string;
   doctor: string;
   department: string;
-  status: AppointmentStatus;
+  status: EncounterStatus;
   queuePriority: QueuePriority;
   appointmentTime: string;
   chiefComplaint: string;
   triageNote: string;
   allergies: string[];
   problems: string[];
+  notes: string[];
+  orders: string[];
+  prescriptions: string[];
   vitals: {
     bp: string;
     hr: string;
@@ -64,6 +76,31 @@ export interface OpdEncounterCase {
     weightKg: string;
     bmi: string;
   };
+}
+
+export interface OpdEncounterOrder {
+  id: string;
+  encounterId: string;
+  patientId: string;
+  orderName: string;
+  category: OrderCatalogItem['category'];
+  priority: 'Routine' | 'Urgent';
+  status: 'Pending' | 'In Progress' | 'Completed';
+  instructions: string;
+  orderedAt: string;
+}
+
+export interface OpdEncounterPrescription {
+  id: string;
+  encounterId: string;
+  patientId: string;
+  medicationName: string;
+  dose: string;
+  frequency: string;
+  durationDays: string;
+  route: 'Oral' | 'IV' | 'IM' | 'Topical';
+  instructions: string;
+  issuedAt: string;
 }
 
 export interface VitalTrendRecord {
@@ -288,19 +325,23 @@ export const OPD_PROVIDER_AVAILABILITY: ProviderAvailability[] = [
 export const OPD_ENCOUNTERS: OpdEncounterCase[] = [
   {
     id: 'enc-1',
+    patientId: 'MRN-245781',
     appointmentId: 'appt-1',
     patientName: 'Aarav Nair',
     mrn: 'MRN-245781',
     ageGender: '34 / Male',
     doctor: 'Dr. Nisha Rao',
     department: 'General Medicine',
-    status: 'In Consultation',
+    status: 'IN_PROGRESS',
     queuePriority: 'Urgent',
     appointmentTime: '09:00',
     chiefComplaint: 'High blood sugar and fatigue',
     triageNote: 'Fasting sugar elevated, patient reports poor sleep and diet adherence.',
     allergies: ['Penicillin'],
     problems: ['Type 2 Diabetes Mellitus', 'Obesity'],
+    notes: [],
+    orders: [],
+    prescriptions: [],
     vitals: {
       bp: '142/92',
       hr: '96 bpm',
@@ -313,19 +354,23 @@ export const OPD_ENCOUNTERS: OpdEncounterCase[] = [
   },
   {
     id: 'enc-2',
+    patientId: 'MRN-245799',
     appointmentId: 'appt-2',
     patientName: 'Meera Joshi',
     mrn: 'MRN-245799',
     ageGender: '28 / Female',
     doctor: 'Dr. Nisha Rao',
     department: 'General Medicine',
-    status: 'Checked-In',
+    status: 'ARRIVED',
     queuePriority: 'Routine',
     appointmentTime: '09:20',
     chiefComplaint: 'Headache and dizziness',
     triageNote: 'No loss of consciousness. Hydration poor as per patient.',
     allergies: ['No known allergies'],
     problems: ['Migraine'],
+    notes: [],
+    orders: [],
+    prescriptions: [],
     vitals: {
       bp: '118/76',
       hr: '82 bpm',
@@ -338,19 +383,23 @@ export const OPD_ENCOUNTERS: OpdEncounterCase[] = [
   },
   {
     id: 'enc-3',
+    patientId: 'MRN-245802',
     appointmentId: 'appt-3',
     patientName: 'Ravi Iyer',
     mrn: 'MRN-245802',
     ageGender: '52 / Male',
     doctor: 'Dr. Rohan Mehta',
     department: 'Cardiology',
-    status: 'In Triage',
+    status: 'IN_QUEUE',
     queuePriority: 'Urgent',
     appointmentTime: '09:40',
     chiefComplaint: 'Dyspnea on exertion',
     triageNote: 'Mild tachypnea observed, escalate to cardiology room on priority.',
     allergies: ['Sulfa drugs'],
     problems: ['Hypertension', 'Coronary artery disease'],
+    notes: [],
+    orders: [],
+    prescriptions: [],
     vitals: {
       bp: '150/95',
       hr: '102 bpm',
@@ -363,19 +412,23 @@ export const OPD_ENCOUNTERS: OpdEncounterCase[] = [
   },
   {
     id: 'enc-4',
+    patientId: 'MRN-245811',
     appointmentId: 'appt-4',
     patientName: 'Fatima Khan',
     mrn: 'MRN-245811',
     ageGender: '41 / Female',
     doctor: 'Dr. Sana Khan',
     department: 'ENT',
-    status: 'Scheduled',
+    status: 'BOOKED',
     queuePriority: 'Routine',
     appointmentTime: '10:00',
     chiefComplaint: 'Sore throat follow-up',
     triageNote: 'Awaiting check-in at front desk.',
     allergies: ['No known allergies'],
     problems: ['Recurrent pharyngitis'],
+    notes: [],
+    orders: [],
+    prescriptions: [],
     vitals: {
       bp: '120/78',
       hr: '80 bpm',
