@@ -8,10 +8,6 @@ import {
   Box,
   Button,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   IconButton,
   MenuItem,
@@ -20,24 +16,21 @@ import {
   TextField,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card } from '@/src/ui/components/molecules';
+import { Card, CommonDialog } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { alpha, useTheme } from '@mui/material';
+import { alpha, useTheme } from '@/src/ui/theme';
 import {
   Bolt as BoltIcon,
   Biotech as BiotechIcon,
-  CheckCircle as CheckCircleIcon,
   Description as DescriptionIcon,
   EditOutlined as EditOutlinedIcon,
   HistoryEdu as HistoryEduIcon,
   History as HistoryIcon,
   LibraryAdd as LibraryAddIcon,
   LocalPharmacy as LocalPharmacyIcon,
-  Logout as LogoutIcon,
   Medication as MedicationIcon,
   Mic as MicIcon,
   MonitorHeart as MonitorHeartIcon,
-  PlayArrow as PlayArrowIcon,
   RecordVoiceOver as RecordVoiceOverIcon,
   Save as SaveIcon,
   Science as ScienceIcon,
@@ -47,6 +40,7 @@ import {
   DeleteOutline as DeleteOutlineIcon,
 } from '@mui/icons-material';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
+import { useUser } from '@/src/core/auth/UserContext';
 import { getSoftSurface } from '@/src/core/theme/surfaces';
 import { useAppDispatch } from '@/src/store/hooks';
 import {
@@ -65,9 +59,11 @@ import {
 import { useOpdData } from '@/src/store/opdHooks';
 import { MedicationCatalogItem, OrderCatalogItem } from './opd-mock-data';
 import { resolveEncounterFromState } from './opd-encounter';
+import { getOpdRoleFlowProfile } from './opd-role-flow';
 import OpdLayout from './components/OpdLayout';
 import OpdTable from './components/OpdTable';
 import OpdTabs, { OpdTabItem } from './components/OpdTabs';
+import ConsultationWorkspaceHeader from './components/ConsultationWorkspaceHeader';
 
 interface OpdVisitPageProps {
   encounterId?: string;
@@ -291,6 +287,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   const searchParams = useSearchParams();
   const theme = useTheme();
   const softSurface = getSoftSurface(theme);
+  const { role } = useUser();
   const dispatch = useAppDispatch();
   const mrnParam = useMrnParam();
   const {
@@ -380,15 +377,35 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
     buildDefaultPrescriptionLine(medicationCatalog)
   );
   const [editingPrescriptionId, setEditingPrescriptionId] = React.useState<string | null>(null);
+  const roleProfile = React.useMemo(() => getOpdRoleFlowProfile(role), [role]);
+  const canStartConsult = roleProfile.capabilities.canStartConsult;
+  const canViewClinicalHistory = roleProfile.capabilities.canViewClinicalHistory;
+  const canDocumentConsultation = roleProfile.capabilities.canDocumentConsultation;
+  const canPlaceOrders = roleProfile.capabilities.canPlaceOrders;
+  const canPrescribe = roleProfile.capabilities.canPrescribe;
+  const canCompleteVisit = roleProfile.capabilities.canCompleteVisit;
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
-    severity: 'success' | 'error' | 'info';
+    severity: 'success' | 'error' | 'info' | 'warning';
   }>({
     open: false,
     message: '',
     severity: 'success',
   });
+
+  const guardRoleAction = React.useCallback(
+    (allowed: boolean, actionLabel: string): boolean => {
+      if (allowed) return true;
+      setSnackbar({
+        open: true,
+        message: `${roleProfile.label} cannot ${actionLabel}.`,
+        severity: 'warning',
+      });
+      return false;
+    },
+    [roleProfile.label]
+  );
 
   React.useEffect(() => {
     const timer = window.setInterval(() => {
@@ -534,6 +551,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   }, []);
 
   const openDiagnosisDialog = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'manage diagnosis details in this encounter')) return;
     resetDiagnosisForm();
     setDiagnosisDialogOpen(true);
   };
@@ -554,6 +572,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleEditDiagnosis = (diagnosisId: string) => {
+    if (!guardRoleAction(canDocumentConsultation, 'edit diagnosis details')) return;
     const selected = diagnosisLines.find((line) => line.id === diagnosisId);
     if (!selected) return;
     setDiagnosisDraft({
@@ -565,6 +584,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleDeleteDiagnosis = (diagnosisId: string) => {
+    if (!guardRoleAction(canDocumentConsultation, 'delete diagnosis entries')) return;
     const next = diagnosisLines.filter((line) => line.id !== diagnosisId);
     setDiagnosisLines(next);
     persistDiagnosisProblems(next);
@@ -579,6 +599,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleSaveDiagnosis = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'save diagnosis details')) return;
     const name = diagnosisDraft.diagnosisName.trim();
     if (!name) {
       setSnackbar({ open: true, message: 'Diagnosis is required.', severity: 'error' });
@@ -659,6 +680,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   }, [encounter]);
 
   const openNotesDialog = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'manage consultation notes')) return;
     resetNotesForm();
     setNotesDialogOpen(true);
   };
@@ -669,6 +691,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleEditNote = (noteId: string) => {
+    if (!guardRoleAction(canDocumentConsultation, 'edit consultation notes')) return;
     const selected = encounterNotes.find((note) => note.id === noteId);
     if (!selected) return;
     setNotesDraft({
@@ -681,6 +704,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleDeleteNote = (noteId: string) => {
+    if (!guardRoleAction(canDocumentConsultation, 'delete consultation notes')) return;
     dispatch(removeNote(noteId));
     if (editingNoteId === noteId) {
       resetNotesForm();
@@ -689,6 +713,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleSaveNotesFromDialog = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'save consultation notes')) return;
     if (!encounter) return;
     if (!notesDraft.title.trim() || !notesDraft.content.trim()) {
       setSnackbar({ open: true, message: 'Note title and content are required.', severity: 'error' });
@@ -730,11 +755,13 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleOpenNotesDictation = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'dictate consultation notes')) return;
     setNotesDictationText(notesTabDraft.progressNotes);
     setNotesDictationOpen(true);
   };
 
   const handleApplyNotesDictation = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'apply dictated consultation notes')) return;
     const text = notesDictationText.trim();
     if (!text) {
       setSnackbar({ open: true, message: 'Enter dictated text before applying.', severity: 'error' });
@@ -746,6 +773,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleInsertNotesTemplate = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'insert note templates')) return;
     const template = noteTemplates.find((item) => item.id === selectedNoteTemplateId);
     if (!template) {
       setSnackbar({ open: true, message: 'Select a template first.', severity: 'error' });
@@ -762,6 +790,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleInsertNotesMacro = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'insert clinical note macros')) return;
     const macro = [
       'Clinical reassessment done. Red-flag symptoms explained.',
       'Medication adherence reinforced and lifestyle modifications advised.',
@@ -774,6 +803,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleGenerateHandout = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'generate patient handouts')) return;
     if (!encounter) return;
     if (!notesTabDraft.patientInstructions.trim()) {
       setSnackbar({ open: true, message: 'Add patient instructions to generate handout.', severity: 'error' });
@@ -798,6 +828,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleScheduleFollowup = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'schedule follow-up plans')) return;
     if (!encounter) return;
     if (!notesTabDraft.followupRequired) {
       setSnackbar({ open: true, message: 'Select follow-up timeframe.', severity: 'error' });
@@ -835,6 +866,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   }, [orderCatalog]);
 
   const openOrderDialog = () => {
+    if (!guardRoleAction(canPlaceOrders, 'manage encounter orders')) return;
     resetOrderForm();
     setOrdersDialogOpen(true);
   };
@@ -845,6 +877,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleEditOrder = (orderId: string) => {
+    if (!guardRoleAction(canPlaceOrders, 'edit encounter orders')) return;
     const selectedOrder = encounterOrders.find((item) => item.id === orderId);
     if (!selectedOrder) return;
 
@@ -864,6 +897,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleDeleteOrder = (orderId: string) => {
+    if (!guardRoleAction(canPlaceOrders, 'delete encounter orders')) return;
     dispatch(removeEncounterOrder(orderId));
     if (editingOrderId === orderId) {
       resetOrderForm();
@@ -877,6 +911,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   }, [medicationCatalog]);
 
   const openPrescriptionDialog = () => {
+    if (!guardRoleAction(canPrescribe, 'manage encounter prescriptions')) return;
     resetPrescriptionForm();
     setPrescriptionDialogOpen(true);
   };
@@ -887,6 +922,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleEditPrescription = (prescriptionId: string) => {
+    if (!guardRoleAction(canPrescribe, 'edit encounter prescriptions')) return;
     const selectedPrescription = encounterPrescriptions.find((item) => item.id === prescriptionId);
     if (!selectedPrescription) return;
 
@@ -908,6 +944,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleDeletePrescription = (prescriptionId: string) => {
+    if (!guardRoleAction(canPrescribe, 'delete encounter prescriptions')) return;
     dispatch(removeEncounterPrescription(prescriptionId));
     if (editingPrescriptionId === prescriptionId) {
       resetPrescriptionForm();
@@ -917,6 +954,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const saveVitals = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'save vitals')) return;
     if (!encounter) return;
     if (!vitalsDraft.bp || !vitalsDraft.hr || !vitalsDraft.rr || !vitalsDraft.temp || !vitalsDraft.spo2) {
       setSnackbar({ open: true, message: 'BP, HR, RR, Temp and SpO2 are required.', severity: 'error' });
@@ -949,6 +987,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const saveClinicalNote = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'save consultation notes')) return;
     if (!encounter) return;
     if (!soap.assessment.trim() || !soap.plan.trim()) {
       setSnackbar({ open: true, message: 'Assessment and plan are required.', severity: 'error' });
@@ -1016,11 +1055,13 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   );
 
   const handleVoiceInput = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'capture voice complaint notes')) return;
     setVoiceInputText(historyDraft.chiefComplaint);
     setVoiceDialogOpen(true);
   };
 
   const handleApplyVoiceInput = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'apply voice complaint notes')) return;
     const transcript = voiceInputText.trim();
     if (!transcript) {
       setSnackbar({ open: true, message: 'Enter dictated text before applying.', severity: 'error' });
@@ -1035,10 +1076,12 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleUseComplaintTemplate = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'use history templates')) return;
     setHistoryTemplateOpen(true);
   };
 
   const handleApplyComplaintTemplate = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'apply history templates')) return;
     const selected = HISTORY_TEMPLATES.find((item) => item.id === historyTemplateId);
     if (!selected) {
       setSnackbar({ open: true, message: 'Select a template to apply.', severity: 'error' });
@@ -1060,6 +1103,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleAddSymptom = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'add symptom details')) return;
     setSymptomDraft({
       symptom: '',
       duration: historyDraft.duration,
@@ -1069,6 +1113,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleSaveSymptom = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'save symptom details')) return;
     const symptom = symptomDraft.symptom.trim();
     if (!symptom) {
       setSnackbar({ open: true, message: 'Symptom name is required.', severity: 'error' });
@@ -1098,6 +1143,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleInsertPastHistory = (sourceEncounterId: string) => {
+    if (!guardRoleAction(canDocumentConsultation, 'insert past history details')) return;
     const source = priorEncounters.find((item) => item.id === sourceEncounterId);
     if (!source) {
       setSnackbar({ open: true, message: 'Unable to find selected past encounter.', severity: 'error' });
@@ -1116,17 +1162,20 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleReviewCurrentMedications = () => {
+    if (!guardRoleAction(canPrescribe, 'review current medications in prescriptions')) return;
     setActiveTab('prescriptions');
     setSnackbar({ open: true, message: 'Opened prescriptions for medication review.', severity: 'info' });
   };
 
   const handleAddAllergy = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'add allergy details')) return;
     setAllergyDialogOpen(true);
     setEditingAllergyIndex(null);
     setAllergyInput('');
   };
 
   const handleEditAllergies = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'edit allergy details')) return;
     setAllergyDialogOpen(true);
     setEditingAllergyIndex(null);
     setAllergyInput('');
@@ -1148,6 +1197,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleSaveAllergy = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'save allergy details')) return;
     if (!encounter) return;
     const value = allergyInput.trim();
     if (!value) {
@@ -1171,6 +1221,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleDeleteAllergy = (index: number) => {
+    if (!guardRoleAction(canDocumentConsultation, 'delete allergy details')) return;
     if (!encounter) return;
     const current = sanitizeAllergies(encounter.allergies);
     const next = current.filter((_, itemIndex) => itemIndex !== index);
@@ -1183,6 +1234,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleStartVisit = () => {
+    if (!guardRoleAction(canStartConsult, 'start consultation')) return;
     if (!encounter) return;
 
     dispatch(
@@ -1195,6 +1247,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleSaveConsultationDraft = () => {
+    if (!guardRoleAction(canDocumentConsultation, 'save consultation draft')) return;
     setSnackbar({ open: true, message: 'Consultation draft saved locally.', severity: 'info' });
   };
 
@@ -1204,6 +1257,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleCompleteVisit = () => {
+    if (!guardRoleAction(canCompleteVisit, 'complete consultation')) return;
     if (!encounter) return;
     if (encounter.status !== 'IN_PROGRESS') {
       setSnackbar({
@@ -1226,6 +1280,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleSaveOrder = () => {
+    if (!guardRoleAction(canPlaceOrders, 'save encounter orders')) return;
     if (!encounter) return;
     const selectedCatalog = orderCatalog.find((item) => item.id === orderDraft.catalogId);
     if (!selectedCatalog) {
@@ -1279,6 +1334,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
   };
 
   const handleSavePrescription = () => {
+    if (!guardRoleAction(canPrescribe, 'save encounter prescriptions')) return;
     if (!encounter) return;
 
     if (
@@ -1357,6 +1413,13 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
     (item) => item && item.toLowerCase() !== 'no known allergies'
   );
   const managedAllergies = sanitizeAllergies(encounter.allergies);
+  const workspaceDateLabel = React.useMemo(() => {
+    const current = new Date();
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, '0');
+    const day = String(current.getDate()).padStart(2, '0');
+    return `Date ${year}-${month}-${day}`;
+  }, []);
 
   return (
     <OpdLayout title="Consultation Workspace" currentPageTitle="Consultation">
@@ -1368,76 +1431,19 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
         </Alert>
       ) : null}
 
-      <Card
-        elevation={0}
-        sx={{
-          p: 2,
-          borderRadius: 2,
-          boxShadow: '0 12px 24px rgba(15, 23, 42, 0.06)',
-          backgroundColor: softSurface,
-        }}
-      >
-        <Stack
-          direction={{ xs: 'column', lg: 'row' }}
-          spacing={1.5}
-          justifyContent="space-between"
-          alignItems={{ xs: 'flex-start', lg: 'center' }}
-        >
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>
-              Consultation Workspace
-            </Typography>
-          </Box>
-
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
-            <Stack
-              direction="row"
-              spacing={0.75}
-              alignItems="center"
-              sx={{
-                px: 1.2,
-                py: 0.65,
-                borderRadius: 999,
-                border: '1px solid',
-                borderColor: 'divider',
-                backgroundColor: 'background.paper',
-              }}
-            >
-              <TimerIcon fontSize="small" color="primary" />
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {formatElapsed(elapsedSeconds)}
-              </Typography>
-            </Stack>
-
-            {encounter.status === 'IN_PROGRESS' ? (
-              <>
-                <Button variant="outlined" startIcon={<SaveIcon />} onClick={handleSaveConsultationDraft}>
-                  Save Draft
-                </Button>
-                <Button variant="contained" color="error" startIcon={<LogoutIcon />} onClick={handleExitVisit}>
-                  Exit
-                </Button>
-                <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<CheckCircleIcon />}
-                  onClick={handleCompleteVisit}
-                >
-                  Complete
-                </Button>
-              </>
-            ) : encounter.status === 'COMPLETED' ? (
-              <Button variant="contained" color="error" startIcon={<LogoutIcon />} onClick={handleExitVisit}>
-                Exit
-              </Button>
-            ) : (
-              <Button variant="outlined" startIcon={<PlayArrowIcon />} onClick={handleStartVisit}>
-                Start Consult
-              </Button>
-            )}
-          </Stack>
-        </Stack>
-      </Card>
+      <ConsultationWorkspaceHeader
+        status={encounter.status}
+        elapsedLabel={formatElapsed(elapsedSeconds)}
+        dateLabel={workspaceDateLabel}
+        surfaceColor={softSurface}
+        onSaveDraft={handleSaveConsultationDraft}
+        onExit={handleExitVisit}
+        onComplete={handleCompleteVisit}
+        onStart={handleStartVisit}
+        canSaveDraft={canDocumentConsultation}
+        canStart={canStartConsult}
+        canComplete={canCompleteVisit}
+      />
 
       <Grid container spacing={2}>
         <Grid item xs={12} lg={3}>
@@ -1563,10 +1569,18 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
               </Stack>
 
               <Stack spacing={0.8} sx={{ pt: 0.6 }}>
-                <Button variant="outlined" onClick={() => setActiveTab('history')}>
+                <Button
+                  variant="outlined"
+                  disabled={!canViewClinicalHistory}
+                  onClick={() => setActiveTab('history')}
+                >
                   View Full Medical History
                 </Button>
-                <Button variant="outlined" onClick={() => setActiveTab('notes')}>
+                <Button
+                  variant="outlined"
+                  disabled={!canViewClinicalHistory}
+                  onClick={() => setActiveTab('notes')}
+                >
                   View Documents & Notes
                 </Button>
               </Stack>
@@ -1664,7 +1678,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                     </Grid>
                   </Grid>
                   <Stack direction="row" justifyContent="flex-end">
-                    <Button variant="contained" onClick={saveVitals}>
+                    <Button variant="contained" disabled={!canDocumentConsultation} onClick={saveVitals}>
                       Save Vitals
                     </Button>
                   </Stack>
@@ -1868,6 +1882,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                         variant="outlined"
                         size="small"
                         startIcon={<BiotechIcon />}
+                        disabled={!canDocumentConsultation}
                         onClick={openDiagnosisDialog}
                       >
                         Manage Diagnosis
@@ -1912,13 +1927,19 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                         align: 'right',
                         render: (row) => (
                           <Stack direction="row" spacing={0.25} justifyContent="flex-end">
-                            <IconButton size="small" aria-label="Edit diagnosis" onClick={() => handleEditDiagnosis(row.id)}>
+                            <IconButton
+                              size="small"
+                              aria-label="Edit diagnosis"
+                              disabled={!canDocumentConsultation}
+                              onClick={() => handleEditDiagnosis(row.id)}
+                            >
                               <EditOutlinedIcon fontSize="small" />
                             </IconButton>
                             <IconButton
                               size="small"
                               aria-label="Delete diagnosis"
                               color="error"
+                              disabled={!canDocumentConsultation}
                               onClick={() => handleDeleteDiagnosis(row.id)}
                             >
                               <DeleteOutlineIcon fontSize="small" />
@@ -1962,7 +1983,12 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                     />
                   </Stack>
                   <Stack direction="row" justifyContent="flex-end">
-                    <Button variant="contained" startIcon={<SaveIcon />} onClick={saveClinicalNote}>
+                    <Button
+                      variant="contained"
+                      startIcon={<SaveIcon />}
+                      disabled={!canDocumentConsultation}
+                      onClick={saveClinicalNote}
+                    >
                       Save Consultation Note
                     </Button>
                   </Stack>
@@ -1978,6 +2004,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                         variant="outlined"
                         size="small"
                         startIcon={<ScienceIcon />}
+                        disabled={!canPlaceOrders}
                         onClick={openOrderDialog}
                       >
                         Manage Orders
@@ -1998,13 +2025,19 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                         align: 'right',
                         render: (row) => (
                           <Stack direction="row" spacing={0.25} justifyContent="flex-end">
-                            <IconButton size="small" aria-label="Edit order" onClick={() => handleEditOrder(row.id)}>
+                            <IconButton
+                              size="small"
+                              aria-label="Edit order"
+                              disabled={!canPlaceOrders}
+                              onClick={() => handleEditOrder(row.id)}
+                            >
                               <EditOutlinedIcon fontSize="small" />
                             </IconButton>
                             <IconButton
                               size="small"
                               aria-label="Delete order"
                               color="error"
+                              disabled={!canPlaceOrders}
                               onClick={() => handleDeleteOrder(row.id)}
                             >
                               <DeleteOutlineIcon fontSize="small" />
@@ -2026,6 +2059,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                         variant="outlined"
                         size="small"
                         startIcon={<LocalPharmacyIcon />}
+                        disabled={!canPrescribe}
                         onClick={openPrescriptionDialog}
                       >
                         Manage Prescriptions
@@ -2049,6 +2083,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                             <IconButton
                               size="small"
                               aria-label="Edit prescription"
+                              disabled={!canPrescribe}
                               onClick={() => handleEditPrescription(row.id)}
                             >
                               <EditOutlinedIcon fontSize="small" />
@@ -2057,6 +2092,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                               size="small"
                               aria-label="Delete prescription"
                               color="error"
+                              disabled={!canPrescribe}
                               onClick={() => handleDeletePrescription(row.id)}
                             >
                               <DeleteOutlineIcon fontSize="small" />
@@ -2140,6 +2176,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                           variant="outlined"
                           size="small"
                           startIcon={<DescriptionIcon />}
+                          disabled={!canDocumentConsultation}
                           onClick={handleGenerateHandout}
                         >
                           Generate Handout
@@ -2187,6 +2224,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                           variant="contained"
                           size="small"
                           startIcon={<TimerIcon />}
+                          disabled={!canDocumentConsultation}
                           onClick={handleScheduleFollowup}
                         >
                           Schedule Follow-up
@@ -2202,6 +2240,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                         variant="outlined"
                         size="small"
                         startIcon={<DescriptionIcon />}
+                        disabled={!canDocumentConsultation}
                         onClick={openNotesDialog}
                       >
                         Manage Notes
@@ -2238,13 +2277,19 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                         align: 'right',
                         render: (row) => (
                           <Stack direction="row" spacing={0.25} justifyContent="flex-end">
-                            <IconButton size="small" aria-label="Edit note" onClick={() => handleEditNote(row.id)}>
+                            <IconButton
+                              size="small"
+                              aria-label="Edit note"
+                              disabled={!canDocumentConsultation}
+                              onClick={() => handleEditNote(row.id)}
+                            >
                               <EditOutlinedIcon fontSize="small" />
                             </IconButton>
                             <IconButton
                               size="small"
                               aria-label="Delete note"
                               color="error"
+                              disabled={!canDocumentConsultation}
                               onClick={() => handleDeleteNote(row.id)}
                             >
                               <DeleteOutlineIcon fontSize="small" />
@@ -2262,80 +2307,70 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
 
       </Grid>
 
-      <Dialog open={voiceDialogOpen} onClose={() => setVoiceDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <MicIcon color="primary" fontSize="small" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Voice Input
-            </Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={1.2}>
-            <Typography variant="body2" color="text.secondary">
-              Paste dictated text and apply it to the chief complaint.
-            </Typography>
-            <TextField
-              fullWidth
-              multiline
-              minRows={4}
-              label="Dictated text"
-              value={voiceInputText}
-              onChange={(event) => setVoiceInputText(event.target.value)}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setVoiceDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" startIcon={<MicIcon />} onClick={handleApplyVoiceInput}>
-            Apply Voice Text
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <CommonDialog
+        open={voiceDialogOpen}
+        onClose={() => setVoiceDialogOpen(false)}
+        maxWidth="sm"
+        title="Voice Input"
+        icon={<MicIcon fontSize="small" />}
+        description="Paste dictated text and apply it to the chief complaint."
+        contentDividers
+        content={(
+          <TextField
+            fullWidth
+            multiline
+            minRows={4}
+            label="Dictated text"
+            value={voiceInputText}
+            onChange={(event) => setVoiceInputText(event.target.value)}
+          />
+        )}
+        actions={(
+          <>
+            <Button onClick={() => setVoiceDialogOpen(false)}>Cancel</Button>
+            <Button variant="contained" startIcon={<MicIcon />} onClick={handleApplyVoiceInput}>
+              Apply Voice Text
+            </Button>
+          </>
+        )}
+      />
 
-      <Dialog open={notesDictationOpen} onClose={() => setNotesDictationOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <MicIcon color="primary" fontSize="small" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Dictate Notes
-            </Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={1.2}>
-            <Typography variant="body2" color="text.secondary">
-              Paste dictated notes and apply to Progress Notes.
-            </Typography>
-            <TextField
-              fullWidth
-              multiline
-              minRows={5}
-              label="Dictated Notes"
-              value={notesDictationText}
-              onChange={(event) => setNotesDictationText(event.target.value)}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setNotesDictationOpen(false)}>Cancel</Button>
-          <Button variant="contained" startIcon={<MicIcon />} onClick={handleApplyNotesDictation}>
-            Apply Dictation
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <CommonDialog
+        open={notesDictationOpen}
+        onClose={() => setNotesDictationOpen(false)}
+        maxWidth="sm"
+        title="Dictate Notes"
+        icon={<MicIcon fontSize="small" />}
+        description="Paste dictated notes and apply to Progress Notes."
+        contentDividers
+        content={(
+          <TextField
+            fullWidth
+            multiline
+            minRows={5}
+            label="Dictated Notes"
+            value={notesDictationText}
+            onChange={(event) => setNotesDictationText(event.target.value)}
+          />
+        )}
+        actions={(
+          <>
+            <Button onClick={() => setNotesDictationOpen(false)}>Cancel</Button>
+            <Button variant="contained" startIcon={<MicIcon />} onClick={handleApplyNotesDictation}>
+              Apply Dictation
+            </Button>
+          </>
+        )}
+      />
 
-      <Dialog open={historyTemplateOpen} onClose={() => setHistoryTemplateOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <TextSnippetIcon color="primary" fontSize="small" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Use History Template
-            </Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
+      <CommonDialog
+        open={historyTemplateOpen}
+        onClose={() => setHistoryTemplateOpen(false)}
+        maxWidth="sm"
+        title="Use History Template"
+        icon={<TextSnippetIcon fontSize="small" />}
+        contentDividers
+        content={(
           <Stack spacing={1.2}>
             <TextField
               select
@@ -2369,25 +2404,25 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
               );
             })()}
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setHistoryTemplateOpen(false)}>Cancel</Button>
-          <Button variant="contained" startIcon={<TextSnippetIcon />} onClick={handleApplyComplaintTemplate}>
-            Apply Template
-          </Button>
-        </DialogActions>
-      </Dialog>
+        )}
+        actions={(
+          <>
+            <Button onClick={() => setHistoryTemplateOpen(false)}>Cancel</Button>
+            <Button variant="contained" startIcon={<TextSnippetIcon />} onClick={handleApplyComplaintTemplate}>
+              Apply Template
+            </Button>
+          </>
+        )}
+      />
 
-      <Dialog open={symptomDialogOpen} onClose={() => setSymptomDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <LibraryAddIcon color="primary" fontSize="small" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Add Symptom
-            </Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
+      <CommonDialog
+        open={symptomDialogOpen}
+        onClose={() => setSymptomDialogOpen(false)}
+        maxWidth="sm"
+        title="Add Symptom"
+        icon={<LibraryAddIcon fontSize="small" />}
+        contentDividers
+        content={(
           <Stack spacing={1.2}>
             <TextField
               fullWidth
@@ -2432,25 +2467,25 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
               ))}
             </TextField>
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSymptomDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" startIcon={<LibraryAddIcon />} onClick={handleSaveSymptom}>
-            Add Symptom
-          </Button>
-        </DialogActions>
-      </Dialog>
+        )}
+        actions={(
+          <>
+            <Button onClick={() => setSymptomDialogOpen(false)}>Cancel</Button>
+            <Button variant="contained" startIcon={<LibraryAddIcon />} onClick={handleSaveSymptom}>
+              Add Symptom
+            </Button>
+          </>
+        )}
+      />
 
-      <Dialog open={pastHistoryOpen} onClose={() => setPastHistoryOpen(false)} fullWidth maxWidth="md">
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <HistoryIcon color="primary" fontSize="small" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Past History
-            </Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
+      <CommonDialog
+        open={pastHistoryOpen}
+        onClose={() => setPastHistoryOpen(false)}
+        maxWidth="md"
+        title="Past History"
+        icon={<HistoryIcon fontSize="small" />}
+        contentDividers
+        content={(
           <Stack spacing={1.2}>
             {priorEncounters.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
@@ -2499,22 +2534,20 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
               </Card>
             ) : null}
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPastHistoryOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+        )}
+        actions={<Button onClick={() => setPastHistoryOpen(false)}>Close</Button>}
+      />
 
-      <Dialog open={allergyDialogOpen} onClose={closeAllergyDialog} fullWidth maxWidth="sm">
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <WarningAmberIcon color={managedAllergies.length ? 'error' : 'primary'} fontSize="small" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Manage Allergies
-            </Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
+      <CommonDialog
+        open={allergyDialogOpen}
+        onClose={closeAllergyDialog}
+        maxWidth="sm"
+        title="Manage Allergies"
+        icon={(
+          <WarningAmberIcon color={managedAllergies.length ? 'error' : 'primary'} fontSize="small" />
+        )}
+        contentDividers
+        content={(
           <Stack spacing={1.2}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={0.8}>
               <TextField
@@ -2560,22 +2593,18 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
               </Stack>
             )}
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeAllergyDialog}>Close</Button>
-        </DialogActions>
-      </Dialog>
+        )}
+        actions={<Button onClick={closeAllergyDialog}>Close</Button>}
+      />
 
-      <Dialog open={diagnosisDialogOpen} onClose={closeDiagnosisDialog} fullWidth maxWidth="md">
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <BiotechIcon color="primary" fontSize="small" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {editingDiagnosisId ? 'Edit Diagnosis' : 'Add Diagnosis'}
-            </Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
+      <CommonDialog
+        open={diagnosisDialogOpen}
+        onClose={closeDiagnosisDialog}
+        maxWidth="md"
+        title={editingDiagnosisId ? 'Edit Diagnosis' : 'Add Diagnosis'}
+        icon={<BiotechIcon fontSize="small" />}
+        contentDividers
+        content={(
           <Stack spacing={1.5}>
             <Grid container spacing={1.2}>
               <Grid item xs={12} sm={6}>
@@ -2666,25 +2695,25 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
               </Grid>
             </Grid>
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeDiagnosisDialog}>Cancel</Button>
-          <Button variant="contained" startIcon={<BiotechIcon />} onClick={handleSaveDiagnosis}>
-            {editingDiagnosisId ? 'Update Diagnosis' : 'Add Diagnosis'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        )}
+        actions={(
+          <>
+            <Button onClick={closeDiagnosisDialog}>Cancel</Button>
+            <Button variant="contained" startIcon={<BiotechIcon />} onClick={handleSaveDiagnosis}>
+              {editingDiagnosisId ? 'Update Diagnosis' : 'Add Diagnosis'}
+            </Button>
+          </>
+        )}
+      />
 
-      <Dialog open={notesDialogOpen} onClose={closeNotesDialog} fullWidth maxWidth="md">
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <DescriptionIcon color="primary" fontSize="small" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {editingNoteId ? 'Edit Note' : 'Add Note'}
-            </Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
+      <CommonDialog
+        open={notesDialogOpen}
+        onClose={closeNotesDialog}
+        maxWidth="md"
+        title={editingNoteId ? 'Edit Note' : 'Add Note'}
+        icon={<DescriptionIcon fontSize="small" />}
+        contentDividers
+        content={(
           <Stack spacing={1.5}>
             <Grid container spacing={1.2}>
               <Grid item xs={12} sm={8}>
@@ -2717,25 +2746,25 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
               </Grid>
             </Grid>
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeNotesDialog}>Cancel</Button>
-          <Button variant="contained" startIcon={<DescriptionIcon />} onClick={handleSaveNotesFromDialog}>
-            {editingNoteId ? 'Update Note' : 'Add Note'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        )}
+        actions={(
+          <>
+            <Button onClick={closeNotesDialog}>Cancel</Button>
+            <Button variant="contained" startIcon={<DescriptionIcon />} onClick={handleSaveNotesFromDialog}>
+              {editingNoteId ? 'Update Note' : 'Add Note'}
+            </Button>
+          </>
+        )}
+      />
 
-      <Dialog open={ordersDialogOpen} onClose={closeOrderDialog} fullWidth maxWidth="md">
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <ScienceIcon color="primary" fontSize="small" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {editingOrderId ? 'Edit Order' : 'Add Order'}
-            </Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
+      <CommonDialog
+        open={ordersDialogOpen}
+        onClose={closeOrderDialog}
+        maxWidth="md"
+        title={editingOrderId ? 'Edit Order' : 'Add Order'}
+        icon={<ScienceIcon fontSize="small" />}
+        contentDividers
+        content={(
           <Stack spacing={1.5}>
             <Grid container spacing={1.2}>
               <Grid item xs={12} sm={4}>
@@ -2797,25 +2826,25 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
               </Grid>
             </Grid>
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeOrderDialog}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveOrder}>
-            {editingOrderId ? 'Update Order' : 'Add Order'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        )}
+        actions={(
+          <>
+            <Button onClick={closeOrderDialog}>Cancel</Button>
+            <Button variant="contained" onClick={handleSaveOrder}>
+              {editingOrderId ? 'Update Order' : 'Add Order'}
+            </Button>
+          </>
+        )}
+      />
 
-      <Dialog open={prescriptionDialogOpen} onClose={closePrescriptionDialog} fullWidth maxWidth="md">
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <MedicationIcon color="primary" fontSize="small" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {editingPrescriptionId ? 'Edit Medication' : 'Add Medication'}
-            </Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
+      <CommonDialog
+        open={prescriptionDialogOpen}
+        onClose={closePrescriptionDialog}
+        maxWidth="md"
+        title={editingPrescriptionId ? 'Edit Medication' : 'Add Medication'}
+        icon={<MedicationIcon fontSize="small" />}
+        contentDividers
+        content={(
           <Stack spacing={1.5}>
             <Grid container spacing={1.2}>
               <Grid item xs={12}>
@@ -2898,14 +2927,16 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
               </Grid>
             </Grid>
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closePrescriptionDialog}>Cancel</Button>
-          <Button variant="contained" startIcon={<LocalPharmacyIcon />} onClick={handleSavePrescription}>
-            {editingPrescriptionId ? 'Update Medicine' : 'Add Medicine'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        )}
+        actions={(
+          <>
+            <Button onClick={closePrescriptionDialog}>Cancel</Button>
+            <Button variant="contained" startIcon={<LocalPharmacyIcon />} onClick={handleSavePrescription}>
+              {editingPrescriptionId ? 'Update Medicine' : 'Add Medicine'}
+            </Button>
+          </>
+        )}
+      />
 
       <Snackbar
         open={snackbar.open}

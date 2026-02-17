@@ -10,10 +10,6 @@ import {
   Button,
   Chip,
   Divider,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Drawer,
   IconButton,
   MenuItem,
@@ -616,9 +612,12 @@ export default function LabOrdersPage() {
         </Stack>
       </Drawer>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingOrder ? 'Edit Lab Order' : 'New Lab Order'}</DialogTitle>
-        <DialogContent>
+      <CommonDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        title={editingOrder ? 'Edit Lab Order' : 'New Lab Order'}
+        maxWidth="sm"
+        content={
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               select
@@ -717,14 +716,16 @@ export default function LabOrdersPage() {
               onChange={(event) => setFormState((prev) => ({ ...prev, department: event.target.value }))}
             />
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave}>
-            {editingOrder ? 'Save Changes' : 'Create Order'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        }
+        actions={
+          <>
+            <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="contained" onClick={handleSave}>
+              {editingOrder ? 'Save Changes' : 'Create Order'}
+            </Button>
+          </>
+        }
+      />
 
       <CommonDialog
         open={Boolean(confirmAction)}

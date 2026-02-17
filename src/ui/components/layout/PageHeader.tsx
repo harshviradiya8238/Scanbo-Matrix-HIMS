@@ -13,7 +13,6 @@ interface PageHeaderProps {
 
 export default function PageHeader({
   title,
-  subtitle,
   overline,
   actions,
   currentPageTitle,
@@ -35,11 +34,6 @@ export default function PageHeader({
           {!currentPageTitle ? (
             <Text variant="h5" component="h1" sx={{ fontWeight: 600, mb: 0 }}>
               {title}
-            </Text>
-          ) : null}
-          {subtitle ? (
-            <Text variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
-              {subtitle}
             </Text>
           ) : null}
         </Box>

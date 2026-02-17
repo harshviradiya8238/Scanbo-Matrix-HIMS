@@ -4,9 +4,9 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 import { Box, Button, Chip, Stack, Typography } from '@/src/ui/components/atoms';
-import { Card } from '@/src/ui/components/molecules';
+import { Card, CommandCenterChips } from '@/src/ui/components/molecules';
 import StatTile from '@/src/ui/components/molecules/StatTile';
-import { useTheme } from '@mui/material';
+import { useTheme } from '@/src/ui/theme';
 import { getSoftSurface, getSubtleSurface } from '@/src/core/theme/surfaces';
 import {
   ArrowForward as ArrowForwardIcon,
@@ -177,11 +177,9 @@ export default function DashboardPage() {
             alignItems={{ xs: 'flex-start', md: 'center' }}
           >
             <Box>
-              <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
-                <Chip size="small" color="primary" label="Command Center" />
-                <Chip size="small" color="success" variant="outlined" label="OPD + IPD + Billing" />
-                <Chip size="small" variant="outlined" label={`Date ${dashboardDate}`} />
-              </Stack>
+              <Box sx={{ mb: 1 }}>
+                <CommandCenterChips dateLabel={`Date ${dashboardDate}`} />
+              </Box>
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 Hospital Operations Overview
               </Typography>

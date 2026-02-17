@@ -1,5 +1,5 @@
-import InpatientClinDocPage from '@/src/screens/clinical/InpatientClinDocPage';
+import IpdRoundsPage from '@/src/screens/ipd/IpdRoundsPage';
 
 export default function RoundsPage() {
-  return <InpatientClinDocPage />;
+  return <IpdRoundsPage />;
 }

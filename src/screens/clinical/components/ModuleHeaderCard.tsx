@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Box, Chip, Stack, Typography } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
-import { useTheme } from '@mui/material';
+import { useTheme } from '@/src/ui/theme';
 import { getSoftSurface } from '@/src/core/theme/surfaces';
 
 type ModuleChip = {

@@ -8,10 +8,6 @@ import {
   Box,
   Button,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   IconButton,
   MenuItem,
@@ -22,7 +18,7 @@ import {
   Typography,
 } from '@/src/ui/components/atoms';
 import { Card, CardHeader, CommonDialog, StatTile } from '@/src/ui/components/molecules';
-import { alpha, useTheme } from '@mui/material';
+import { alpha, useTheme } from '@/src/ui/theme';
 import {
   Add as AddIcon,
   CheckCircle as CheckCircleIcon,
@@ -536,9 +532,12 @@ export default function StaffUsersPage() {
         </Box>
       </Stack>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editingUserId ? 'Edit User' : 'Invite User'}</DialogTitle>
-        <DialogContent>
+      <CommonDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        title={editingUserId ? 'Edit User' : 'Invite User'}
+        maxWidth="sm"
+        content={
           <Stack spacing={1.5} sx={{ mt: 1 }}>
             <TextField
               label="Full Name"
@@ -588,16 +587,18 @@ export default function StaffUsersPage() {
               <MenuItem value="suspended">Suspended</MenuItem>
             </TextField>
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="text" onClick={() => setDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={handleSaveUser} disabled={!canManageUsers}>
-            {editingUserId ? 'Save Changes' : 'Send Invite'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        }
+        actions={
+          <>
+            <Button variant="text" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="contained" onClick={handleSaveUser} disabled={!canManageUsers}>
+              {editingUserId ? 'Save Changes' : 'Send Invite'}
+            </Button>
+          </>
+        }
+      />
 
       <CommonDialog
         open={deleteDialogOpen}

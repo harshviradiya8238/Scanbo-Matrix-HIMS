@@ -22,7 +22,7 @@ import {
 } from '@/src/ui/components/atoms';
 import { Card, CommonDialog, StatTile } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { useTheme, alpha } from '@mui/material';
+import { alpha, useTheme } from '@/src/ui/theme';
 import {
   CalendarMonth as CalendarMonthIcon,
   Description as DescriptionIcon,

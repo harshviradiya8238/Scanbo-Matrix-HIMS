@@ -83,7 +83,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         id: 'appointments',
-        label: 'Appointments / OPD',
+        label: 'OPD / Appointments',
         iconName: 'Event',
         type: 'group',
         requiredPermissions: ['appointments.read'],
@@ -108,15 +108,6 @@ export const NAV_GROUPS: NavGroup[] = [
             order: 2,
             badgeCount: 0,
           },
-          {
-            id: 'appointments-visit',
-            label: 'Visit / Encounter',
-            iconName: 'MedicalServices',
-            route: '/appointments/visit',
-            type: 'item',
-            requiredPermissions: ['appointments.create'],
-            order: 3,
-          },
         ],
       },
       {
@@ -128,57 +119,51 @@ export const NAV_GROUPS: NavGroup[] = [
         order: 4,
         children: [
           {
+            id: 'ipd-dashboard',
+            label: 'IPD Dashboard',
+            iconName: 'Dashboard',
+            route: '/ipd/dashboard',
+            type: 'item',
+            requiredPermissions: ['ipd.read'],
+            order: 1,
+          },
+          {
             id: 'ipd-admissions',
-            label: 'Admissions',
+            label: 'Admission & ADT',
             iconName: 'HowToReg',
             route: '/ipd/admissions',
             type: 'item',
             requiredPermissions: ['ipd.admissions.write'],
-            order: 1,
+            order: 2,
           },
           {
             id: 'ipd-beds',
-            label: 'Bed / Ward Management',
+            label: 'Bed & Census',
             iconName: 'Hotel',
             route: '/ipd/beds',
             type: 'item',
             requiredPermissions: ['ipd.read'],
-            order: 2,
-          },
-          {
-            id: 'ipd-rounds',
-            label: 'Rounds',
-            iconName: 'AccessTime',
-            route: '/ipd/rounds',
-            type: 'item',
-            requiredPermissions: ['ipd.rounds.write'],
             order: 3,
           },
           {
+            id: 'ipd-clinical-care',
+            label: 'Clinical Care',
+            iconName: 'MedicalServices',
+            route: '/ipd/rounds',
+            type: 'item',
+            requiredPermissions: ['ipd.rounds.write'],
+            order: 4,
+          },
+          {
             id: 'ipd-discharge',
-            label: 'Discharge',
+            label: 'Discharge & Clearance',
             iconName: 'ExitToApp',
             route: '/ipd/discharge',
             type: 'item',
             requiredPermissions: ['ipd.discharge.write'],
-            order: 4,
+            order: 5,
           },
         ],
-      },
-    ],
-  },
-  {
-    id: 'reports',
-    label: 'REPORTS',
-    items: [
-      {
-        id: 'command-center',
-        label: 'Command Center (OPD/IPD)',
-        iconName: 'Leaderboard',
-        route: '/reports/doctor-volume',
-        type: 'item',
-        requiredPermissions: ['appointments.read'],
-        order: 1,
       },
     ],
   },
@@ -187,7 +172,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'CLINICAL',
     items: [
       {
-        id: 'clinical',
+        id: 'clinical-emr',
         label: 'Clinical / EMR',
         iconName: 'MedicalInformation',
         type: 'group',
@@ -605,7 +590,7 @@ export const NAV_GROUPS: NavGroup[] = [
         ],
       },
       {
-        id: 'admin',
+        id: 'admin-settings',
         label: 'Settings / Admin',
         iconName: 'Settings',
         type: 'group',
@@ -672,6 +657,31 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+const ROUTE_ALIAS_PATTERNS: Array<{
+  pattern: RegExp;
+  targetRoute: string;
+}> = [
+  {
+    pattern: /^\/encounters\/[^/]+(?:\/orders|\/prescriptions)?$/,
+    targetRoute: '/appointments/queue',
+  },
+];
+
+function normalizeRoute(route: string): string {
+  if (!route) return '';
+  if (route === '/') return route;
+  return route.replace(/\/+$/, '');
+}
+
+/**
+ * Resolve dynamic or alias routes to a canonical navigation route.
+ */
+export function resolveNavigationRoute(route: string): string {
+  const normalized = normalizeRoute(route);
+  const aliasMatch = ROUTE_ALIAS_PATTERNS.find((item) => item.pattern.test(normalized));
+  return aliasMatch?.targetRoute ?? normalized;
+}
+
 /**
  * Get all menu items flattened (for search, etc.)
  */
@@ -687,9 +697,11 @@ export function getAllMenuItems(): MenuItem[] {
  * Get menu item by route
  */
 export function getMenuItemByRoute(route: string): MenuItem | null {
+  const canonicalRoute = resolveNavigationRoute(route);
+
   function searchItems(items: MenuItem[]): MenuItem | null {
     for (const item of items) {
-      if (item.route === route) {
+      if (item.route === canonicalRoute) {
         return item;
       }
       if (item.children) {
@@ -711,12 +723,13 @@ export function getMenuItemByRoute(route: string): MenuItem | null {
  * Get breadcrumb path for a route
  */
 export function getBreadcrumbPath(route: string): MenuItem[] {
+  const canonicalRoute = resolveNavigationRoute(route);
   const path: MenuItem[] = [];
 
   function searchItems(items: MenuItem[], currentPath: MenuItem[] = []): boolean {
     for (const item of items) {
       const newPath = [...currentPath, item];
-      if (item.route === route) {
+      if (item.route === canonicalRoute) {
         path.push(...newPath);
         return true;
       }

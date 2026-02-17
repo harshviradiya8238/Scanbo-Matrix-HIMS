@@ -1,4 +1,4 @@
-export type IpdFlowStepId = 'admissions' | 'beds' | 'rounds' | 'discharge';
+export type IpdFlowStepId = 'dashboard' | 'beds' | 'clinical-care' | 'discharge';
 
 export interface IpdFlowStep {
   id: IpdFlowStepId;
@@ -9,27 +9,27 @@ export interface IpdFlowStep {
 
 export const IPD_FLOW_STEPS: IpdFlowStep[] = [
   {
-    id: 'admissions',
-    label: 'Admissions',
-    description: 'Capture inpatient intake and admission order.',
-    route: '/ipd/admissions',
+    id: 'dashboard',
+    label: 'IPD Dashboard',
+    description: 'Monitor census, occupancy, alerts, and operational tasks.',
+    route: '/ipd/dashboard',
   },
   {
     id: 'beds',
-    label: 'Bed / Ward',
-    description: 'Allocate, transfer, and track bed utilization.',
+    label: 'Bed & Census',
+    description: 'Allocate beds, manage transfers, and track inpatient census.',
     route: '/ipd/beds',
   },
   {
-    id: 'rounds',
-    label: 'Rounds',
-    description: 'Document daily rounds, orders, and progress notes.',
+    id: 'clinical-care',
+    label: 'Clinical Care',
+    description: 'Doctor rounds, nursing care, vitals, orders, and medication schedule.',
     route: '/ipd/rounds',
   },
   {
     id: 'discharge',
-    label: 'Discharge',
-    description: 'Finalize discharge checklist and summary.',
+    label: 'Discharge & Clearance',
+    description: 'Finalize checklist, billing clearance, and discharge summary.',
     route: '/ipd/discharge',
   },
 ];

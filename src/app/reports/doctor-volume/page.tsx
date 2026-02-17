@@ -37,7 +37,7 @@ import {
   Science as ScienceIcon,
   LocalPharmacy as LocalPharmacyIcon,
 } from '@mui/icons-material';
-import { useTheme } from '@mui/material';
+import { useTheme } from '@/src/ui/theme';
 import { getSoftSurface } from '@/src/core/theme/surfaces';
 import { DISCHARGE_CANDIDATES } from '@/src/screens/ipd/ipd-mock-data';
 
@@ -156,11 +156,20 @@ export default function DoctorVolumeReportPage() {
           <Alert severity="warning">OPD JSON server unreachable. Showing fallback data. {opdError ?? ''}</Alert>
         ) : null}
 
-        <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', backgroundColor: softSurface }}>
+        <Card
+          elevation={0}
+          sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', backgroundColor: softSurface }}
+        >
           <Stack spacing={1.2}>
-            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }}>
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              justifyContent="space-between"
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+            >
               <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>OPD Command Center</Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                  OPD Command Center
+                </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Manage OPD flow end-to-end and jump into any step.
                 </Typography>
@@ -171,7 +180,8 @@ export default function DoctorVolumeReportPage() {
             </Stack>
 
             <Stack direction="row" spacing={1} flexWrap="wrap">
-              {[{ label: 'Calendar', icon: <CalendarMonthIcon fontSize="small" />, route: '/appointments/calendar' },
+              {[
+                { label: 'Calendar', icon: <CalendarMonthIcon fontSize="small" />, route: '/appointments/calendar' },
                 { label: 'Queue', icon: <QueueIcon fontSize="small" />, route: '/appointments/queue' },
                 { label: 'Visit', icon: <MedicalServicesIcon fontSize="small" />, route: '/appointments/visit' },
                 { label: 'Orders', icon: <ScienceIcon fontSize="small" />, route: '/clinical/orders' },

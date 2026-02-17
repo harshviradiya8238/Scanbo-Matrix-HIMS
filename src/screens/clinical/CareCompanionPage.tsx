@@ -7,14 +7,11 @@ import {
   Box,
   Button,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   MenuItem,
   Snackbar,
   Alert,
   Stack,
+  Divider,
   Tab,
   Table,
   TableBody,
@@ -26,9 +23,9 @@ import {
   TextField,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card, StatTile } from '@/src/ui/components/molecules';
+import { Card, CommonDialog, StatTile } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { alpha, Divider, useTheme } from '@mui/material';
+import { alpha, useTheme } from '@/src/ui/theme';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { useUser } from '@/src/core/auth/UserContext';
@@ -1004,9 +1001,12 @@ export default function CareCompanionPage() {
         </FlowTabPanel>
       </Stack>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Create Care Plan</DialogTitle>
-        <DialogContent>
+      <CommonDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        title="Create Care Plan"
+        maxWidth="sm"
+        content={
           <Stack spacing={1.5} sx={{ mt: 1 }}>
             <TextField label="Patient Name" placeholder="Enter patient name" />
             <TextField label="Program" placeholder="e.g., Diabetes Support" />
@@ -1019,16 +1019,18 @@ export default function CareCompanionPage() {
             </TextField>
             <TextField label="Start Date" placeholder="Select start date" />
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="text" onClick={() => setDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="contained" disabled={!canWrite} onClick={handleCreatePlan}>
-            Create Plan
-          </Button>
-        </DialogActions>
-      </Dialog>
+        }
+        actions={
+          <>
+            <Button variant="text" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="contained" disabled={!canWrite} onClick={handleCreatePlan}>
+              Create Plan
+            </Button>
+          </>
+        }
+      />
 
       <Snackbar
         open={snackbar.open}

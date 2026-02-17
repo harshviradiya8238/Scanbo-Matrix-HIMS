@@ -67,6 +67,25 @@ See `env.example` for reference.
 - Orders and prescriptions can only be saved with an `encounterId`.
 - Completing a visit updates the encounter status to `COMPLETED` and syncs the linked appointment status.
 
+## Role-Based OPD Flow
+
+- Front Desk (`RECEPTION`)
+  - Primary screen: `/appointments/calendar`
+  - Actions: create booking, reschedule, create + check-in, monitor queue handoff
+  - Restricted: cannot start consult, place orders, or prescribe
+- Doctor (`DOCTOR`)
+  - Primary screen: `/appointments/queue`
+  - Actions: start consult, document encounter, place orders, issue prescriptions, complete visit
+  - Restricted: calendar booking actions are read-only
+- Hospital Admin (`HOSPITAL_ADMIN`)
+  - Primary screen: `/appointments/queue`
+  - Actions: full OPD actions across Front Desk and Doctor stages
+
+Encounter route protection now follows OPD clinical ownership:
+- `/encounters/[encounterId]` requires `clinical.ambulatory.write`
+- `/encounters/[encounterId]/orders` requires `clinical.orders.write`
+- `/encounters/[encounterId]/prescriptions` requires `clinical.prescriptions.write`
+
 ## Fallback Behavior
 
 If the JSON server is not running, the app automatically uses the fallback OPD mock data from:

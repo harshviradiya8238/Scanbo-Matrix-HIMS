@@ -22,7 +22,7 @@ import { Card, StatTile } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import DataTable from '@/src/ui/components/organisms/DataTable';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { alpha, useTheme } from '@mui/material';
+import { alpha, useTheme } from '@/src/ui/theme';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { useUser } from '@/src/core/auth/UserContext';

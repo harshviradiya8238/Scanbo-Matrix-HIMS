@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Box, Button, Chip, Stack, Typography } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
-import { alpha, useTheme } from '@mui/material';
+import { alpha, useTheme } from '@/src/ui/theme';
 import { getSoftSurface } from '@/src/core/theme/surfaces';
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import { OPD_FLOW_STEPS, OpdFlowStepId } from '../opd-flow-config';

@@ -8,10 +8,6 @@ import {
   Button,
   Checkbox,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   FormControlLabel,
   IconButton,
   List,
@@ -861,9 +857,12 @@ export default function RolesPermissionsPage() {
         </Grid>
       </Stack>
 
-      <Dialog open={rolesDialogOpen} onClose={() => setRolesDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>All Roles</DialogTitle>
-        <DialogContent>
+      <CommonDialog
+        open={rolesDialogOpen}
+        onClose={() => setRolesDialogOpen(false)}
+        title="All Roles"
+        maxWidth="sm"
+        content={
           <Stack spacing={1.5} sx={{ mt: 1 }}>
             <TextField
               size="small"
@@ -912,17 +911,20 @@ export default function RolesPermissionsPage() {
               ) : null}
             </List>
           </Stack>
-        </DialogContent>
-        <DialogActions>
+        }
+        actions={
           <Button variant="text" onClick={() => setRolesDialogOpen(false)}>
             Close
           </Button>
-        </DialogActions>
-      </Dialog>
+        }
+      />
 
-      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Create New Role</DialogTitle>
-        <DialogContent>
+      <CommonDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        title="Create New Role"
+        maxWidth="sm"
+        content={
           <Stack spacing={1.5} sx={{ mt: 1 }}>
             <TextField
               label="Role Name"
@@ -952,16 +954,18 @@ export default function RolesPermissionsPage() {
               Permissions can be adjusted after the role is created using the privilege lists.
             </Alert>
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="text" onClick={() => setCreateDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={handleCreateRole} disabled={!canManageRoles}>
-            Create Role
-          </Button>
-        </DialogActions>
-      </Dialog>
+        }
+        actions={
+          <>
+            <Button variant="text" onClick={() => setCreateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="contained" onClick={handleCreateRole} disabled={!canManageRoles}>
+              Create Role
+            </Button>
+          </>
+        }
+      />
 
       <CommonDialog
         open={deleteDialogOpen}

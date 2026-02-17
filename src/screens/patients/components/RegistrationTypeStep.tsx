@@ -2,7 +2,7 @@
 
 import { Box, Typography, Button, Stack, Divider, Chip, Label } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
-import { useTheme } from '@mui/material';
+import { useTheme } from '@/src/ui/theme';
 import { getPrimaryChipSx, getSoftSurface } from '@/src/core/theme/surfaces';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { FormikProps } from 'formik';

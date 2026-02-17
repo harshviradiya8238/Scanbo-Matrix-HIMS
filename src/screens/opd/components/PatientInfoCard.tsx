@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Avatar, Box, Chip, Divider, Stack, Typography } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
-import { alpha, useTheme } from '@mui/material';
+import { alpha, useTheme } from '@/src/ui/theme';
 import { EncounterStatus, OpdEncounterCase } from '../opd-mock-data';
 import { ENCOUNTER_STATUS_LABEL } from '../opd-encounter';
 import StatusBadge from './StatusBadge';

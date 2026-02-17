@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { alpha, useTheme } from '@mui/material';
+import { alpha, useTheme } from '@/src/ui/theme';
+import type { SxProps, Theme } from '@/src/ui/theme';
 import type { ButtonProps, DialogProps } from '@mui/material';
 import {
   Box,
@@ -34,6 +35,10 @@ export interface CommonDialogProps
   hideCancel?: boolean;
   hideActions?: boolean;
   loading?: boolean;
+  contentDividers?: boolean;
+  titleSx?: SxProps<Theme>;
+  contentSx?: SxProps<Theme>;
+  actionsSx?: SxProps<Theme>;
 }
 
 const CommonDialog = ({
@@ -58,6 +63,10 @@ const CommonDialog = ({
   hideCancel,
   hideActions,
   loading,
+  contentDividers = false,
+  titleSx,
+  contentSx,
+  actionsSx,
   maxWidth = 'xs',
   fullWidth = true,
   ...dialogProps
@@ -65,11 +74,12 @@ const CommonDialog = ({
   const theme = useTheme();
   const bodyContent = content ?? children;
   const showHeader = Boolean(title || subtitle || icon);
+  const isSimpleTitle = typeof title === 'string' || typeof title === 'number';
 
   return (
     <Dialog open={open} onClose={() => onClose()} fullWidth={fullWidth} maxWidth={maxWidth} {...dialogProps}>
       {showHeader && (
-        <DialogTitle sx={{ pb: bodyContent || description ? 1 : 2 }}>
+        <DialogTitle sx={{ pb: bodyContent || description ? 1 : 2, ...titleSx }}>
           <Stack direction="row" spacing={1.5} alignItems="center">
             {icon && (
               <Box
@@ -88,9 +98,13 @@ const CommonDialog = ({
             )}
             <Box>
               {title && (
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  {title}
-                </Typography>
+                isSimpleTitle ? (
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    {title}
+                  </Typography>
+                ) : (
+                  title
+                )
               )}
               {subtitle && (
                 <Typography variant="body2" color="text.secondary">
@@ -102,7 +116,7 @@ const CommonDialog = ({
         </DialogTitle>
       )}
       {(description || bodyContent) && (
-        <DialogContent sx={{ pt: showHeader ? 0 : 2 }}>
+        <DialogContent dividers={contentDividers} sx={{ pt: showHeader ? 0 : 2, ...contentSx }}>
           {description && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: bodyContent ? 1.5 : 0 }}>
               {description}
@@ -112,7 +126,7 @@ const CommonDialog = ({
         </DialogContent>
       )}
       {!hideActions && (
-        <DialogActions sx={{ px: 3, pb: 2, pt: description || bodyContent ? 0 : 1 }}>
+        <DialogActions sx={{ px: 3, pb: 2, pt: description || bodyContent ? 0 : 1, ...actionsSx }}>
           {actions ?? (
             <>
               {!hideCancel && (

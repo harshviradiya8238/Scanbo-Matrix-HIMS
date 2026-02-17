@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Typography, Button, Paper } from '@mui/material';
+import { Box, Button, Paper, Typography } from '@/src/ui/components/atoms';
 import { useRouter } from 'next/navigation';
 
 export default function NotFound() {

@@ -2,13 +2,13 @@
 
 import ClinicalModulePlaceholderPage from '@/src/screens/clinical/ClinicalModulePlaceholderPage';
 import EpicCareAmbulatoryPage from '@/src/screens/clinical/EpicCareAmbulatoryPage';
-import InpatientClinDocPage from '@/src/screens/clinical/InpatientClinDocPage';
 import WelcomeKioskPage from '@/src/screens/clinical/WelcomeKioskPage';
 import CareCompanionPage from '@/src/screens/clinical/CareCompanionPage';
 import InfectionControlPage from '@/src/screens/clinical/InfectionControlPage';
 import RegistrationAdtPage from '@/src/screens/clinical/RegistrationAdtPage';
 import OpdCalendarPage from '@/src/screens/opd/OpdCalendarPage';
 import RadiantImagingPage from '@/src/screens/clinical/RadiantImagingPage';
+import IpdRoundsPage from '@/src/screens/ipd/IpdRoundsPage';
 import { ClinicalModuleDefinition } from '@/src/screens/clinical/module-registry';
 
 interface ClinicalModuleClientProps {
@@ -21,7 +21,7 @@ export default function ClinicalModuleClient({ moduleDefinition }: ClinicalModul
   }
 
   if (moduleDefinition.slug === 'inpatient-documentation-clindoc') {
-    return <InpatientClinDocPage />;
+    return <IpdRoundsPage />;
   }
 
   if (moduleDefinition.slug === 'welcome-kiosk') {

@@ -3,27 +3,39 @@
 import * as React from 'react';
 import {
   Box,
-  Container,
-  Typography,
-  Button,
-  Paper,
-  TextField,
-  Stack,
   AppBar,
+  Button,
+  Container,
+  MenuItem,
+  Paper,
+  Stack,
+  TextField,
   Toolbar,
-} from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+  Typography,
+} from '@/src/ui/components/atoms';
+import { useTheme } from '@/src/ui/theme';
+import { useUser } from '@/src/core/auth/UserContext';
+import { getRoleLabel } from '@/src/core/navigation/permissions';
+import type { UserRole } from '@/src/core/navigation/types';
+import { getOpdRoleFlowProfile, OPD_LOGIN_ROLES } from '@/src/screens/opd/opd-role-flow';
 
 export default function HomePage() {
   const theme = useTheme();
+  const { role, setRole } = useUser();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [loginRole, setLoginRole] = React.useState<UserRole>('HOSPITAL_ADMIN');
+
+  React.useEffect(() => {
+    if (OPD_LOGIN_ROLES.includes(role)) {
+      setLoginRole(role);
+    }
+  }, [role]);
 
   const handleSignIn = () => {
-    // Handle sign in logic here
-    console.log('Sign in:', { email, password });
-    // Redirect to dashboard after successful login
-    window.location.href = '/dashboard';
+    setRole(loginRole);
+    const landingRoute = getOpdRoleFlowProfile(loginRole).landingRoute;
+    window.location.href = landingRoute;
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
@@ -92,6 +104,21 @@ export default function HomePage() {
                 required
                 autoComplete="current-password"
               />
+
+              <TextField
+                label="Login Perspective"
+                select
+                value={loginRole}
+                onChange={(event) => setLoginRole(event.target.value as UserRole)}
+                fullWidth
+                helperText="Use this to preview role-based OPD workflows."
+              >
+                {OPD_LOGIN_ROLES.map((roleOption) => (
+                  <MenuItem key={roleOption} value={roleOption}>
+                    {getRoleLabel(roleOption)}
+                  </MenuItem>
+                ))}
+              </TextField>
 
               <Button
                 variant="contained"

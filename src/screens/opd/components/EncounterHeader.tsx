@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Box, Button, Chip, Stack, Typography } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
-import { alpha, useTheme } from '@mui/material';
+import { alpha, useTheme } from '@/src/ui/theme';
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import { OpdEncounterCase } from '../opd-mock-data';
 import StatusBadge from './StatusBadge';

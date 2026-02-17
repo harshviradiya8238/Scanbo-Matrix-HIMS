@@ -9,10 +9,6 @@ import {
   Box,
   Button,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   MenuItem,
   Snackbar,
   Stack,
@@ -485,9 +481,12 @@ export default function RadiologyOrdersPage() {
         </Grid>
       </Stack>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingOrder ? 'Edit Radiology Order' : 'New Radiology Order'}</DialogTitle>
-        <DialogContent>
+      <CommonDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        title={editingOrder ? 'Edit Radiology Order' : 'New Radiology Order'}
+        maxWidth="sm"
+        content={
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               select
@@ -592,14 +591,16 @@ export default function RadiologyOrdersPage() {
               onChange={(event) => setFormState((prev) => ({ ...prev, clinicalCheck: event.target.value }))}
             />
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave}>
-            {editingOrder ? 'Save Changes' : 'Create Order'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        }
+        actions={
+          <>
+            <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="contained" onClick={handleSave}>
+              {editingOrder ? 'Save Changes' : 'Create Order'}
+            </Button>
+          </>
+        }
+      />
 
       <CommonDialog
         open={Boolean(confirmAction)}

@@ -6,7 +6,7 @@ import { ClinicalModuleDefinition } from './module-registry';
 import { Box, Button, Chip, Stack, Typography } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { useTheme } from '@mui/material';
+import { useTheme } from '@/src/ui/theme';
 import { getSoftSurface } from '@/src/core/theme/surfaces';
 import { getRoleLabel, getRolesForPermissions } from '@/src/core/navigation/permissions';
 import {

@@ -31,6 +31,7 @@ import {
   BarChart as BarChartIcon,
   Apps as AppsIcon,
   Menu as MenuIcon,
+  Queue as QueueIcon,
 } from '@mui/icons-material';
 import { getMenuItemByRoute } from '@/src/core/navigation/nav-config';
 import MobileMenuButton from './MobileMenuButton';
@@ -39,6 +40,7 @@ import { useUser } from '@/src/core/auth/UserContext';
 import { getRoleLabel } from '@/src/core/navigation/permissions';
 import { UserRole } from '@/src/core/navigation/types';
 import { useStaffStore } from '@/src/core/staff/staffStore';
+import { getOpdRoleFlowProfile } from '@/src/screens/opd/opd-role-flow';
 
 interface HeaderProps {
   userName?: string;
@@ -51,6 +53,7 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
   const pathname = usePathname() ?? '';
   const { role, setRole } = useUser();
   const { roles } = useStaffStore();
+  const roleFlow = React.useMemo(() => getOpdRoleFlowProfile(role), [role]);
   const [userMenuAnchor, setUserMenuAnchor] = React.useState<null | HTMLElement>(null);
   const [quickMenuAnchor, setQuickMenuAnchor] = React.useState<null | HTMLElement>(null);
   const { toggle: toggleSidebar, isExpanded } = useSidebarState();
@@ -90,20 +93,40 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
     router.push(route);
   };
 
-  const quickActions = [
-    {
-      label: 'New Patient',
-      icon: <PersonAddIcon fontSize="small" />,
-      route: '/patients/registration',
-      color: theme.palette.primary.main,
-    },
-    {
-      label: 'Schedule Visit',
-      icon: <EventIcon fontSize="small" />,
-      route: '/appointments/calendar',
-      color: theme.palette.success.main,
-    },
-  ];
+  const quickActions = React.useMemo(() => {
+    const actions: Array<{
+      label: string;
+      icon: React.ReactNode;
+      route: string;
+      color: string;
+    }> = [];
+
+    if (roleFlow.capabilities.canManageCalendar) {
+      actions.push({
+        label: 'New Patient',
+        icon: <PersonAddIcon fontSize="small" />,
+        route: '/patients/registration',
+        color: theme.palette.primary.main,
+      });
+      actions.push({
+        label: 'Schedule Visit',
+        icon: <EventIcon fontSize="small" />,
+        route: '/appointments/calendar',
+        color: theme.palette.success.main,
+      });
+    }
+
+    if (roleFlow.capabilities.canStartConsult) {
+      actions.push({
+        label: 'Open Queue',
+        icon: <QueueIcon fontSize="small" />,
+        route: '/appointments/queue',
+        color: theme.palette.info.main,
+      });
+    }
+
+    return actions;
+  }, [roleFlow.capabilities.canManageCalendar, roleFlow.capabilities.canStartConsult, theme.palette]);
 
   const quickLinks = [
     {

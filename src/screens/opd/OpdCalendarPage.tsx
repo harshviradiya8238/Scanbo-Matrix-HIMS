@@ -34,7 +34,7 @@ import {
 } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { alpha, useTheme } from '@mui/material';
+import { alpha, useTheme } from '@/src/ui/theme';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -61,9 +61,11 @@ import {
 } from './opd-mock-data';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { getPatientByMrn, GLOBAL_PATIENTS, GlobalPatient } from '@/src/mocks/global-patients';
+import { useUser } from '@/src/core/auth/UserContext';
 import { useAppDispatch } from '@/src/store/hooks';
 import { addAppointment, addEncounter, updateAppointment } from '@/src/store/slices/opdSlice';
 import { useOpdData } from '@/src/store/opdHooks';
+import { getOpdRoleFlowProfile } from './opd-role-flow';
 
 interface BookingForm {
   date: string;
@@ -174,6 +176,7 @@ export default function OpdCalendarPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const theme = useTheme();
+  const { role } = useUser();
   const calendarRef = React.useRef<FullCalendar | null>(null);
   const calendarContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mrnParam = useMrnParam();
@@ -241,16 +244,31 @@ export default function OpdCalendarPage() {
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
-    severity: 'success' | 'error' | 'info';
+    severity: 'success' | 'error' | 'info' | 'warning';
   }>({
     open: false,
     message: '',
     severity: 'success',
   });
   const [mrnApplied, setMrnApplied] = React.useState(false);
+  const roleProfile = React.useMemo(() => getOpdRoleFlowProfile(role), [role]);
+  const canManageCalendar = roleProfile.capabilities.canManageCalendar;
   const slotDurationMinutes = React.useMemo(
     () => getSlotDurationMinutes(slotTimes),
     [slotTimes]
+  );
+
+  const guardCalendarAction = React.useCallback(
+    (actionLabel: string): boolean => {
+      if (canManageCalendar) return true;
+      setSnackbar({
+        open: true,
+        message: `${roleProfile.label} has read-only calendar access. ${actionLabel} is restricted.`,
+        severity: 'warning',
+      });
+      return false;
+    },
+    [canManageCalendar, roleProfile.label]
   );
 
   React.useEffect(() => {
@@ -574,6 +592,7 @@ export default function OpdCalendarPage() {
 
   const handleDirectSlotPick = React.useCallback(
     (slot: ProviderSlot, overrides?: { provider?: string; date?: string; department?: string }) => {
+      if (!guardCalendarAction('Booking workflow')) return;
       if (slot.status !== 'Available') return;
       const selectedProvider = overrides?.provider ?? directProvider;
       const selectedDate = overrides?.date ?? directDate;
@@ -612,6 +631,7 @@ export default function OpdCalendarPage() {
       directDepartment,
       directProvider,
       ensureAvailabilitySlot,
+      guardCalendarAction,
       hasOverlappingAppointment,
       updateBookingField,
     ]
@@ -627,6 +647,11 @@ export default function OpdCalendarPage() {
         setCalendarView('timeGridDay');
         setSelectedDate(clickedDate);
         setDirectDate(clickedDate);
+        return;
+      }
+
+      if (!canManageCalendar) {
+        guardCalendarAction('Slot selection');
         return;
       }
 
@@ -694,6 +719,8 @@ export default function OpdCalendarPage() {
       hasOverlappingAppointment,
       providerDepartmentMap,
       providerFilter,
+      canManageCalendar,
+      guardCalendarAction,
     ]
   );
 
@@ -829,6 +856,7 @@ export default function OpdCalendarPage() {
 
   const openEditBooking = React.useCallback(
     (appointment: OpdAppointment) => {
+      if (!guardCalendarAction('Reschedule')) return;
       setEditingAppointment(appointment);
       setSlotLocked(false);
       setErrors({});
@@ -856,7 +884,7 @@ export default function OpdCalendarPage() {
       setSelectedEvent(null);
       setEventAnchor(null);
     },
-    []
+    [guardCalendarAction]
   );
 
   const closeBooking = React.useCallback(() => {
@@ -947,6 +975,7 @@ export default function OpdCalendarPage() {
   };
 
   const handleCreateBooking = (sendToQueue: boolean) => {
+    if (!guardCalendarAction('Create booking')) return;
     const valid = validateBooking();
     if (!valid) {
       setSnackbar({
@@ -1044,6 +1073,7 @@ export default function OpdCalendarPage() {
   };
 
   const handleUpdateBooking = () => {
+    if (!guardCalendarAction('Update booking')) return;
     if (!editingAppointment) return;
     const valid = validateBooking();
     if (!valid) {
@@ -1244,6 +1274,7 @@ export default function OpdCalendarPage() {
   );
 
   const handleNewBooking = React.useCallback(() => {
+    if (!guardCalendarAction('Create booking')) return;
     setEditingAppointment(null);
     setSlotLocked(false);
     setBooking((prev) => ({
@@ -1253,7 +1284,7 @@ export default function OpdCalendarPage() {
       provider: providerFilter === 'All' ? prev.provider : providerFilter,
     }));
     setBookingOpen(true);
-  }, [providerFilter, selectedDate, slotTimes]);
+  }, [guardCalendarAction, providerFilter, selectedDate, slotTimes]);
 
   const handlePrev = () => calendarRef.current?.getApi().prev();
   const handleNext = () => calendarRef.current?.getApi().next();
@@ -1284,6 +1315,11 @@ export default function OpdCalendarPage() {
   return (
     <PageTemplate title="Appointments Calendar" currentPageTitle="Calendar">
       <Stack spacing={2}>
+        {!canManageCalendar ? (
+          <Alert severity="info">
+            {roleProfile.label} view is read-only for calendar booking. Use queue for consultation actions.
+          </Alert>
+        ) : null}
         <Grid container spacing={2}>
           <Grid item xs={12}>
             <Card
@@ -1440,7 +1476,7 @@ export default function OpdCalendarPage() {
                         <MenuItem value="timeGridWeek">Week</MenuItem>
                         <MenuItem value="timeGridDay">Day</MenuItem>
                       </TextField>
-                      <Button size="small" variant="contained" onClick={handleNewBooking}>
+                      <Button size="small" variant="contained" disabled={!canManageCalendar} onClick={handleNewBooking}>
                         New Booking
                       </Button>
                     </Stack>
@@ -2189,7 +2225,7 @@ export default function OpdCalendarPage() {
                 <Button variant="outlined" onClick={closeBooking}>
                   Cancel
                 </Button>
-                <Button variant="contained" onClick={handleUpdateBooking}>
+                <Button variant="contained" disabled={!canManageCalendar} onClick={handleUpdateBooking}>
                   Save Changes
                 </Button>
               </Stack>
@@ -2198,6 +2234,7 @@ export default function OpdCalendarPage() {
                 <Button
                   variant="outlined"
                   startIcon={<PersonAddIcon />}
+                  disabled={!canManageCalendar}
                   onClick={() => handleCreateBooking(false)}
                 >
                   Create Booking
@@ -2206,6 +2243,7 @@ export default function OpdCalendarPage() {
                   variant="contained"
                   color="success"
                   startIcon={<GroupIcon />}
+                  disabled={!canManageCalendar}
                   onClick={() => handleCreateBooking(true)}
                 >
                   Create + Check-In
@@ -2296,6 +2334,7 @@ export default function OpdCalendarPage() {
                 <Button
                   size="small"
                   variant="outlined"
+                  disabled={!canManageCalendar}
                   onClick={() => openEditBooking(selectedEvent)}
                 >
                   Reschedule

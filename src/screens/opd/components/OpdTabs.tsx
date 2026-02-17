@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Tab, Tabs } from '@/src/ui/components/atoms';
-import { useTheme } from '@mui/material';
+import { useTheme } from '@/src/ui/theme';
 
 export interface OpdTabItem {
   id: string;

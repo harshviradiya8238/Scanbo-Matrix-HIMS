@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { SxProps, Theme } from '@mui/material';
+import type { SxProps, Theme } from '@/src/ui/theme';
 import { Box, Divider, Stack, Typography } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
 

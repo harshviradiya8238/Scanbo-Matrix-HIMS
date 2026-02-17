@@ -5,7 +5,7 @@ import Link from 'next/link';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 import { Box, Stack, Typography, TextField, InputAdornment, Chip, Button } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
-import { useTheme } from '@mui/material';
+import { useTheme } from '@/src/ui/theme';
 import { getSubtleSurface } from '@/src/core/theme/surfaces';
 import {
   DataGrid,

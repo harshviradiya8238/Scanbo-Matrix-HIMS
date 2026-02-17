@@ -20,6 +20,7 @@ import {
   ExpandMore,
 } from '@mui/icons-material';
 import { MenuItem } from '@/src/core/navigation/types';
+import { resolveNavigationRoute } from '@/src/core/navigation/nav-config';
 import { hasPermission } from '@/src/core/navigation/permissions';
 import SidebarPopover from './SidebarPopover';
 
@@ -49,6 +50,7 @@ export default function SidebarItem({
   const theme = useTheme();
   const router = useRouter();
   const pathname = usePathname();
+  const activeRoute = React.useMemo(() => resolveNavigationRoute(pathname ?? ''), [pathname]);
   const [isOpen, setIsOpen] = React.useState(false);
   const itemRef = React.useRef<HTMLDivElement>(null);
   const [popoverAnchor, setPopoverAnchor] = React.useState<HTMLElement | null>(null);
@@ -62,16 +64,16 @@ export default function SidebarItem({
 
   const IconComponent = item.iconName ? iconMap[item.iconName] : null;
   const hasChildren = item.children && item.children.length > 0;
-  const isActive = item.route === pathname;
+  const isActive = item.route === activeRoute;
   const hasActiveDescendant = React.useMemo(() => {
     if (!hasChildren || !item.children) return false;
     const checkChild = (child: MenuItem): boolean => {
-      if (child.route === pathname) return true;
+      if (child.route === activeRoute) return true;
       if (child.children) return child.children.some(checkChild);
       return false;
     };
     return item.children.some(checkChild);
-  }, [hasChildren, item.children, pathname]);
+  }, [activeRoute, hasChildren, item.children]);
   const isHighlighted = isActive || hasActiveDescendant;
   const isFavorite = favorites.includes(item.id);
   const isHovered = hoveredItemId === item.id;
@@ -81,9 +83,9 @@ export default function SidebarItem({
   React.useEffect(() => {
     if (hasChildren && item.children) {
       const hasActiveChild = item.children.some((child) => {
-        if (child.route === pathname) return true;
+        if (child.route === activeRoute) return true;
         if (child.children) {
-          return child.children.some((subChild) => subChild.route === pathname);
+          return child.children.some((subChild) => subChild.route === activeRoute);
         }
         return false;
       });
@@ -91,7 +93,7 @@ export default function SidebarItem({
         setIsOpen(true);
       }
     }
-  }, [pathname, hasChildren, item.children]);
+  }, [activeRoute, hasChildren, item.children]);
 
   // Close popover when sidebar expands
   React.useEffect(() => {
@@ -400,7 +402,7 @@ export default function SidebarItem({
             }
             setPopoverAnchor(null);
           }}
-          pathname={pathname ?? ''}
+          pathname={activeRoute}
           iconMap={iconMap}
           onMouseEnter={() => {
             // Clear close timeout when mouse enters popover

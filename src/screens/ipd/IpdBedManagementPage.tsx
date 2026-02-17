@@ -1,10 +1,24 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PageTemplate from '@/src/ui/components/PageTemplate';
-import { Alert, Box, Button, Checkbox, Chip, FormControlLabel, InputAdornment, MenuItem, Snackbar, Stack, TextField, Typography } from '@/src/ui/components/atoms';
-import { Card, StatTile } from '@/src/ui/components/molecules';
+import {
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  Chip,
+  FormControlLabel,
+  InputAdornment,
+  MenuItem,
+  Snackbar,
+  Stack,
+  TextField,
+  Typography,
+} from '@/src/ui/components/atoms';
+import { Card } from '@/src/ui/components/molecules';
+import { alpha } from '@/src/ui/theme';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import {
   Bed as BedIcon,
@@ -14,16 +28,24 @@ import {
   Search as SearchIcon,
   SwapHoriz as SwapHorizIcon,
 } from '@mui/icons-material';
-import IpdFlowHeader from './components/IpdFlowHeader';
 import {
+  ADMISSION_LEADS,
   BedStatus,
   INITIAL_BED_BOARD,
   INPATIENT_STAYS,
   WardBed,
 } from './ipd-mock-data';
+import {
+  IPD_COLORS,
+  IpdMetricCard,
+  IpdSectionCard,
+  ipdFormStylesSx,
+} from './components/ipd-ui';
+import IpdModuleTabs from './components/IpdModuleTabs';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
+import { assignIpdEncounterBed } from './ipd-encounter-context';
 
 interface BedAllocationForm {
   patientId: string;
@@ -43,21 +65,35 @@ interface BedMovementLog {
   operator: string;
 }
 
-const statusColorMap: Record<BedStatus, 'success' | 'info' | 'warning' | 'error'> = {
-  Available: 'success',
-  Occupied: 'info',
-  Cleaning: 'warning',
-  Reserved: 'warning',
-  Blocked: 'error',
+type BedCensusTab = 'bed-board' | 'waiting' | 'inpatient-list' | 'transfers' | 'isolation';
+
+const BED_CENSUS_TABS: Array<{ id: BedCensusTab; label: string }> = [
+  { id: 'bed-board', label: 'Bed Board' },
+  { id: 'waiting', label: 'Waiting for Bed' },
+  { id: 'inpatient-list', label: 'Inpatient List' },
+  { id: 'transfers', label: 'Transfers' },
+  { id: 'isolation', label: 'Isolation' },
+];
+
+function isBedCensusTab(value: string | null): value is BedCensusTab {
+  return value !== null && BED_CENSUS_TABS.some((tab) => tab.id === value);
+}
+
+const bedStatusColorMap: Record<BedStatus, string> = {
+  Available: IPD_COLORS.success,
+  Occupied: IPD_COLORS.danger,
+  Cleaning: IPD_COLORS.warning,
+  Reserved: IPD_COLORS.warning,
+  Blocked: IPD_COLORS.primary,
 };
 
-function getBedCardBorderColor(status: BedStatus): string {
-  if (status === 'Available') return 'success.main';
-  if (status === 'Occupied') return 'info.main';
-  if (status === 'Cleaning') return 'warning.main';
-  if (status === 'Reserved') return 'warning.main';
-  return 'error.main';
-}
+const bedStatusBackgroundMap: Record<BedStatus, string> = {
+  Available: alpha(IPD_COLORS.success, 0.06),
+  Occupied: alpha(IPD_COLORS.danger, 0.05),
+  Cleaning: alpha(IPD_COLORS.warning, 0.08),
+  Reserved: alpha(IPD_COLORS.warning, 0.08),
+  Blocked: alpha(IPD_COLORS.primary, 0.08),
+};
 
 function formatNowTime(): string {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -76,8 +112,10 @@ function clearPatientData(bed: WardBed): WardBed {
 
 export default function IpdBedManagementPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const mrnParam = useMrnParam();
   const [bedBoard, setBedBoard] = React.useState<WardBed[]>(INITIAL_BED_BOARD);
+  const [activeTab, setActiveTab] = React.useState<BedCensusTab>('bed-board');
   const [wardFilter, setWardFilter] = React.useState<'All' | string>('All');
   const [statusFilter, setStatusFilter] = React.useState<'All' | BedStatus>('All');
   const [search, setSearch] = React.useState('');
@@ -119,6 +157,13 @@ export default function IpdBedManagementPage() {
     severity: 'success',
   });
   const [mrnApplied, setMrnApplied] = React.useState(false);
+
+  React.useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (isBedCensusTab(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   const selectedPatient = React.useMemo(
     () => INPATIENT_STAYS.find((patient) => patient.id === allocation.patientId),
@@ -184,6 +229,56 @@ export default function IpdBedManagementPage() {
   ).length;
 
   const occupancyPercent = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+
+  const waitingForBedRows = React.useMemo(() => {
+    return ADMISSION_LEADS.filter((lead) => {
+      const alreadyAllocated = bedBoard.some((bed) => bed.mrn === lead.mrn && bed.status === 'Occupied');
+      return !alreadyAllocated;
+    });
+  }, [bedBoard]);
+
+  const inpatientRows = React.useMemo(() => {
+    return INPATIENT_STAYS.map((patient) => {
+      const bed = bedBoard.find((entry) => entry.patientId === patient.id);
+      return {
+        ...patient,
+        currentBed: bed?.bedNumber ?? patient.bed,
+        currentWard: bed?.ward ?? patient.ward,
+        status: bed?.status ?? 'Occupied',
+      };
+    });
+  }, [bedBoard]);
+
+  const isolationRows = React.useMemo(
+    () => bedBoard.filter((bed) => bed.isolation || bed.ward === 'ICU'),
+    [bedBoard]
+  );
+
+  const updateTabInRoute = React.useCallback(
+    (nextTab: BedCensusTab) => {
+      setActiveTab(nextTab);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('tab', nextTab);
+      if (displayMrn) {
+        params.set('mrn', displayMrn);
+      }
+      const query = params.toString();
+      router.replace(query ? `/ipd/beds?${query}` : '/ipd/beds', { scroll: false });
+    },
+    [displayMrn, router, searchParams]
+  );
+
+  const openClinicalCare = React.useCallback(
+    (mrn?: string, tab: string = 'rounds') => {
+      const params = new URLSearchParams();
+      const contextMrn = mrn || displayMrn;
+      if (contextMrn) params.set('mrn', contextMrn);
+      params.set('tab', tab);
+      const query = params.toString();
+      router.push(query ? `/ipd/rounds?${query}` : '/ipd/rounds');
+    },
+    [displayMrn, router]
+  );
 
   const updateAllocationField = <K extends keyof BedAllocationForm>(
     field: K,
@@ -300,6 +395,12 @@ export default function IpdBedManagementPage() {
 
     setMovementLog((prev) => [logEntry, ...prev]);
     setAllocation((prev) => ({ ...prev, targetBedId: '', notes: '' }));
+    assignIpdEncounterBed(
+      selectedPatient.id,
+      targetBed.bedNumber,
+      targetBed.ward,
+      selectedPatient.diagnosis
+    );
 
     setSnackbar({
       open: true,
@@ -309,68 +410,75 @@ export default function IpdBedManagementPage() {
   };
 
   return (
-    <PageTemplate title="Bed / Ward Management" subtitle={pageSubtitle} currentPageTitle="Beds">
+    <PageTemplate title="Bed & Census" subtitle={pageSubtitle} currentPageTitle="Bed & Census">
       <Stack spacing={2}>
-        <IpdFlowHeader
-          activeStep="beds"
-          title="Bed Allocation and Ward Operations"
-          description="Track occupancy, assign available beds, and process intra-ward transfers before physician rounds."
-          patientMrn={displayMrn}
-          patientName={displayName}
-          primaryAction={{
-            label: 'Go to Rounds',
-            route: '/ipd/rounds',
-          }}
-        />
-
         <Grid container spacing={2}>
           <Grid item xs={12} sm={3}>
-            <StatTile
+            <IpdMetricCard
               label="Occupancy"
               value={`${occupancyPercent}%`}
+              trend={`${occupiedBeds} of ${totalBeds} beds occupied`}
               tone="info"
               icon={<HotelIcon sx={{ fontSize: 32 }} />}
             />
           </Grid>
 
           <Grid item xs={12} sm={3}>
-            <StatTile
+            <IpdMetricCard
               label="Available Beds"
               value={availableBeds}
+              trend="Ready for new admissions"
               tone="success"
               icon={<CheckCircleIcon sx={{ fontSize: 32 }} />}
             />
           </Grid>
 
           <Grid item xs={12} sm={3}>
-            <StatTile
+            <IpdMetricCard
               label="Occupied Beds"
               value={occupiedBeds}
+              trend="Inpatient census"
               tone="warning"
               icon={<BedIcon sx={{ fontSize: 32 }} />}
             />
           </Grid>
 
           <Grid item xs={12} sm={3}>
-            <StatTile
+            <IpdMetricCard
               label="Blocked / Cleaning"
               value={blockedBeds}
-              tone="error"
+              trend="Temporarily unavailable"
+              tone="danger"
               icon={<CleaningServicesIcon sx={{ fontSize: 32 }} />}
             />
           </Grid>
         </Grid>
 
-        <Grid container spacing={2}>
+        <IpdSectionCard
+          title="Bed & Census Workspace"
+          subtitle="Manage bed board, waiting queue, inpatient list, transfers, and isolation workflow."
+          action={
+            <Stack direction="row" spacing={1}>
+              <Button size="small" variant="outlined" onClick={() => openClinicalCare(undefined, 'rounds')}>
+                Open Clinical Care
+              </Button>
+            </Stack>
+          }
+        >
+          <IpdModuleTabs
+            tabs={BED_CENSUS_TABS}
+            value={activeTab}
+            onChange={(value) => updateTabInRoute(value as BedCensusTab)}
+          />
+        </IpdSectionCard>
+
+        {activeTab === 'bed-board' ? (
+          <Grid container spacing={2}>
           <Grid item xs={12} lg={8}>
-            <Card
-              elevation={0}
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                border: '1px solid',
-                borderColor: 'divider',
-              }}
+            <IpdSectionCard
+              title="Bed Management"
+              subtitle="Monitor occupancy, filter wards, and assign the right bed."
+              bodySx={ipdFormStylesSx}
             >
               <Stack spacing={1.5}>
                 <Stack
@@ -379,10 +487,6 @@ export default function IpdBedManagementPage() {
                   justifyContent="space-between"
                   alignItems={{ xs: 'flex-start', md: 'center' }}
                 >
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Bed Board
-                  </Typography>
-
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                     <TextField
                       size="small"
@@ -444,7 +548,7 @@ export default function IpdBedManagementPage() {
                 >
                   {filteredBedBoard.map((bed) => {
                     const isSelected = allocation.targetBedId === bed.id;
-                    const statusColor = getBedCardBorderColor(bed.status);
+                    const statusColor = bedStatusColorMap[bed.status];
                     return (
                       <Box key={bed.id} sx={{ display: 'flex', minWidth: 0, width: '100%' }}>
                         <Card
@@ -453,10 +557,12 @@ export default function IpdBedManagementPage() {
                           sx={{
                             p: 1.4,
                             borderRadius: 1.6,
-                            border: '1.5px solid',
-                            borderColor: isSelected ? 'primary.main' : statusColor,
+                            border: '2px solid',
+                            borderColor: isSelected ? IPD_COLORS.primary : statusColor,
                             cursor: 'pointer',
-                            backgroundColor: isSelected ? 'primary.50' : 'background.paper',
+                            backgroundColor: isSelected
+                              ? alpha(IPD_COLORS.accent, 0.09)
+                              : bedStatusBackgroundMap[bed.status],
                             transition: 'all 0.15s ease-in-out',
                             display: 'flex',
                             flexDirection: 'column',
@@ -471,13 +577,19 @@ export default function IpdBedManagementPage() {
                         >
                           <Stack spacing={0.8} sx={{ height: '100%' }}>
                             <Stack direction="row" justifyContent="space-between" alignItems="center">
-                              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: IPD_COLORS.primary }}>
                                 {bed.bedNumber}
                               </Typography>
                               <Chip
                                 size="small"
-                                color={statusColorMap[bed.status]}
                                 label={bed.status}
+                                sx={{
+                                  fontWeight: 700,
+                                  color: statusColor,
+                                  border: '1px solid',
+                                  borderColor: alpha(statusColor, 0.55),
+                                  bgcolor: alpha(statusColor, 0.1),
+                                }}
                               />
                             </Stack>
                             <Typography
@@ -530,25 +642,17 @@ export default function IpdBedManagementPage() {
                   })}
                 </Box>
               </Stack>
-            </Card>
+            </IpdSectionCard>
           </Grid>
 
           <Grid item xs={12} lg={4}>
             <Stack spacing={2}>
-              <Card
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                }}
+              <IpdSectionCard
+                title="Allocation / Transfer"
+                subtitle="Assign beds for new admissions and clinical moves."
+                bodySx={ipdFormStylesSx}
               >
                 <Stack spacing={1.2}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Allocation / Transfer
-                  </Typography>
-
                   <TextField
                     select
                     label="Patient"
@@ -626,41 +730,30 @@ export default function IpdBedManagementPage() {
                     variant="contained"
                     startIcon={<SwapHorizIcon />}
                     onClick={handleAssignBed}
+                    sx={{
+                      background: `linear-gradient(135deg, ${IPD_COLORS.primary} 0%, ${IPD_COLORS.primaryLight} 100%)`,
+                      '&:hover': {
+                        background: `linear-gradient(135deg, ${IPD_COLORS.primaryLight} 0%, ${IPD_COLORS.primary} 100%)`,
+                      },
+                    }}
                   >
                     Confirm Allocation
                   </Button>
 
                   <Button
                     variant="outlined"
-                    onClick={() =>
-                      router.push(
-                        selectedPatient?.mrn
-                          ? `/ipd/rounds?mrn=${selectedPatient.mrn}`
-                          : mrnParam
-                          ? `/ipd/rounds?mrn=${mrnParam}`
-                          : '/ipd/rounds'
-                      )
-                    }
+                    onClick={() => openClinicalCare(selectedPatient?.mrn, 'rounds')}
                   >
                     Continue to Rounds
                   </Button>
                 </Stack>
-              </Card>
+              </IpdSectionCard>
 
-              <Card
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                }}
+              <IpdSectionCard
+                title="Bed Movement Log"
+                subtitle="Latest patient allocations and transfers."
               >
                 <Stack spacing={1}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Bed Movement Log
-                  </Typography>
-
                   {movementLog.slice(0, 6).map((entry) => (
                     <Stack key={entry.id} spacing={0.25} sx={{ py: 0.65, borderBottom: '1px dashed', borderColor: 'divider' }}>
                       <Stack direction="row" justifyContent="space-between" spacing={1}>
@@ -685,10 +778,182 @@ export default function IpdBedManagementPage() {
                     </Typography>
                   ) : null}
                 </Stack>
-              </Card>
+              </IpdSectionCard>
             </Stack>
           </Grid>
-        </Grid>
+          </Grid>
+        ) : null}
+
+        {activeTab === 'waiting' ? (
+          <IpdSectionCard
+            title="Waiting for Bed"
+            subtitle="Admission leads pending bed assignment."
+          >
+            <Stack spacing={1}>
+              {waitingForBedRows.length === 0 ? (
+                <Alert severity="success">All current admission leads are already mapped to beds.</Alert>
+              ) : (
+                waitingForBedRows.map((lead) => (
+                  <Card key={lead.id} variant="outlined" sx={{ p: 1.2, borderRadius: 1.6 }}>
+                    <Stack
+                      direction={{ xs: 'column', md: 'row' }}
+                      justifyContent="space-between"
+                      spacing={1}
+                      alignItems={{ xs: 'flex-start', md: 'center' }}
+                    >
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          {lead.patientName} ({lead.mrn})
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {lead.preferredWard} · {lead.consultant}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {lead.admissionReason}
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={0.8} alignItems="center">
+                        <Chip
+                          size="small"
+                          color={
+                            lead.priority === 'Emergency'
+                              ? 'error'
+                              : lead.priority === 'Urgent'
+                              ? 'warning'
+                              : 'default'
+                          }
+                          label={lead.priority}
+                        />
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            const matchedPatient = INPATIENT_STAYS.find((item) => item.mrn === lead.mrn);
+                            if (matchedPatient) {
+                              updateAllocationField('patientId', matchedPatient.id);
+                            }
+                            updateTabInRoute('bed-board');
+                          }}
+                        >
+                          Assign Bed
+                        </Button>
+                      </Stack>
+                    </Stack>
+                  </Card>
+                ))
+              )}
+            </Stack>
+          </IpdSectionCard>
+        ) : null}
+
+        {activeTab === 'inpatient-list' ? (
+          <IpdSectionCard title="Inpatient List" subtitle="Current census with bed and ward mapping.">
+            <Stack spacing={1}>
+              {inpatientRows.map((row) => (
+                <Card key={row.id} variant="outlined" sx={{ p: 1.2, borderRadius: 1.6 }}>
+                  <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1}>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        {row.patientName} ({row.mrn})
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {row.currentWard} · {row.currentBed} · {row.consultant}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {row.diagnosis}
+                      </Typography>
+                    </Box>
+                    <Stack direction="row" spacing={0.8} alignItems="center">
+                      <Chip size="small" label={row.status} color={row.status === 'Occupied' ? 'warning' : 'default'} />
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => openClinicalCare(row.mrn, 'rounds')}
+                      >
+                        Clinical Care
+                      </Button>
+                    </Stack>
+                  </Stack>
+                </Card>
+              ))}
+            </Stack>
+          </IpdSectionCard>
+        ) : null}
+
+        {activeTab === 'transfers' ? (
+          <IpdSectionCard title="Transfers" subtitle="Bed movement log and transfer workflow status.">
+            <Stack spacing={1}>
+              {movementLog.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  No bed movement recorded.
+                </Typography>
+              ) : (
+                movementLog.map((entry) => (
+                  <Card key={entry.id} variant="outlined" sx={{ p: 1.2, borderRadius: 1.6 }}>
+                    <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1}>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          {entry.patientName}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {entry.fromBed} {'>'} {entry.toBed} · {entry.time}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Handled by {entry.operator}
+                        </Typography>
+                      </Box>
+                      <Chip
+                        size="small"
+                        color={entry.action === 'Transfer' ? 'warning' : 'success'}
+                        label={entry.action}
+                      />
+                    </Stack>
+                  </Card>
+                ))
+              )}
+            </Stack>
+          </IpdSectionCard>
+        ) : null}
+
+        {activeTab === 'isolation' ? (
+          <IpdSectionCard title="Isolation Beds" subtitle="Isolation and ICU status view for infection-control readiness.">
+            <Stack spacing={1}>
+              {isolationRows.length === 0 ? (
+                <Alert severity="info">No isolation-designated beds are active right now.</Alert>
+              ) : (
+                isolationRows.map((bed) => (
+                  <Card key={bed.id} variant="outlined" sx={{ p: 1.2, borderRadius: 1.6 }}>
+                    <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1}>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          {bed.bedNumber} · {bed.ward}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {bed.patientName ?? 'No active patient'} {bed.mrn ? `(${bed.mrn})` : ''}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {bed.diagnosis ?? 'No diagnosis captured'} · {bed.status}
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={0.8} alignItems="center">
+                        <Chip
+                          size="small"
+                          color={bed.isolation ? 'warning' : 'default'}
+                          label={bed.isolation ? 'Isolation' : 'ICU Monitor'}
+                        />
+                        {bed.mrn ? (
+                          <Button size="small" variant="outlined" onClick={() => openClinicalCare(bed.mrn, 'rounds')}>
+                            Clinical Care
+                          </Button>
+                        ) : null}
+                      </Stack>
+                    </Stack>
+                  </Card>
+                ))
+              )}
+            </Stack>
+          </IpdSectionCard>
+        ) : null}
 
         <Snackbar
           open={snackbar.open}

@@ -7,14 +7,11 @@ import {
   Box,
   Button,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   MenuItem,
   Snackbar,
   Alert,
   Stack,
+  Divider,
   Tab,
   Table,
   TableBody,
@@ -26,9 +23,9 @@ import {
   TextField,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card, StatTile } from '@/src/ui/components/molecules';
+import { Card, CommonDialog, StatTile } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { alpha, Divider, useTheme } from '@mui/material';
+import { alpha, useTheme } from '@/src/ui/theme';
 import { getSoftSurface } from '@/src/core/theme/surfaces';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
@@ -1294,9 +1291,12 @@ export default function InfectionControlPage() {
         </FlowTabPanel>
       </Stack>
 
-      <Dialog open={caseDialogOpen} onClose={() => setCaseDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>New Infection Case</DialogTitle>
-        <DialogContent>
+      <CommonDialog
+        open={caseDialogOpen}
+        onClose={() => setCaseDialogOpen(false)}
+        title="New Infection Case"
+        maxWidth="sm"
+        content={
           <Stack spacing={1.5} sx={{ mt: 1 }}>
             <TextField
               label="Patient Name"
@@ -1331,20 +1331,25 @@ export default function InfectionControlPage() {
               ))}
             </TextField>
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="text" onClick={() => setCaseDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="contained" disabled={!canWrite} onClick={handleCreateCase}>
-            Create Case
-          </Button>
-        </DialogActions>
-      </Dialog>
+        }
+        actions={
+          <>
+            <Button variant="text" onClick={() => setCaseDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="contained" disabled={!canWrite} onClick={handleCreateCase}>
+              Create Case
+            </Button>
+          </>
+        }
+      />
 
-      <Dialog open={auditDialogOpen} onClose={() => setAuditDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Log Audit</DialogTitle>
-        <DialogContent>
+      <CommonDialog
+        open={auditDialogOpen}
+        onClose={() => setAuditDialogOpen(false)}
+        title="Log Audit"
+        maxWidth="sm"
+        content={
           <Stack spacing={1.5} sx={{ mt: 1 }}>
             <TextField
               label="Ward / Unit"
@@ -1362,16 +1367,18 @@ export default function InfectionControlPage() {
               onChange={(event) => setAuditForm((prev) => ({ ...prev, compliance: event.target.value }))}
             />
           </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="text" onClick={() => setAuditDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="contained" disabled={!canWrite} onClick={handleLogAudit}>
-            Save Audit
-          </Button>
-        </DialogActions>
-      </Dialog>
+        }
+        actions={
+          <>
+            <Button variant="text" onClick={() => setAuditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="contained" disabled={!canWrite} onClick={handleLogAudit}>
+              Save Audit
+            </Button>
+          </>
+        }
+      />
 
       <Snackbar
         open={snackbar.open}

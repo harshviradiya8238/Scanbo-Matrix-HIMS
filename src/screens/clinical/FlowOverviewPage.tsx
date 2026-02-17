@@ -18,7 +18,7 @@ import {
 } from '@/src/ui/components/atoms';
 import { Card, StatTile } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { alpha, useTheme } from '@mui/material';
+import { alpha, useTheme } from '@/src/ui/theme';
 import { getSoftSurface, getSubtleSurface } from '@/src/core/theme/surfaces';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';

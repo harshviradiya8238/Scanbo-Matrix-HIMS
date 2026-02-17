@@ -37,8 +37,8 @@ export const ROLE_METADATA: Record<
     description: 'Supports triage, vitals, clinical documentation, and inpatient care.',
   },
   RECEPTION: {
-    label: 'Reception',
-    description: 'Handles registration, appointments, and front-desk workflows.',
+    label: 'Front Desk',
+    description: 'Handles registration, appointments, check-in, and front-desk workflows.',
   },
   CARE_COORDINATOR: {
     label: 'Care Coordinator',

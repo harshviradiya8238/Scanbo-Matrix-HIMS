@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Box, Typography, Button, Paper } from '@mui/material';
+import { Box, Button, Paper, Typography } from '@/src/ui/components/atoms';
 
 export default function Error({
   error,

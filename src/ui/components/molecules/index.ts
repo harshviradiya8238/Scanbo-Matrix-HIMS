@@ -6,3 +6,5 @@ export { default as AvatarWithName } from './AvatarWithName';
 export { default as EmptyState } from './EmptyState';
 export { default as Pagination } from './Pagination';
 export { default as CommonDialog } from './CommonDialog';
+export { default as CommandCenterChips } from './CommandCenterChips';
+export { default as CommonTable } from './CommonTable';

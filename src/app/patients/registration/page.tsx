@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Box, Snackbar, Alert, Chip, Paper, Stack, Typography, useTheme } from '@mui/material';
+import { Alert, Box, Chip, Paper, Snackbar, Stack, Typography } from '@/src/ui/components/atoms';
+import { useTheme } from '@/src/ui/theme';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 
 import { PatientRegistrationFormData } from '@/src/screens/patients/types/patient-registration.types';
