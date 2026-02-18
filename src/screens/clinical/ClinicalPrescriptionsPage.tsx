@@ -45,6 +45,7 @@ import {
 type RouteType = 'PO (Oral)' | 'IV' | 'IM' | 'SC' | 'Topical';
 type RxStatus = 'Prescribed' | 'Dispensed' | 'Administered' | 'Stopped';
 type RxFilter = 'All' | RxStatus;
+type BillingStatus = 'Pending' | 'Ready for Billing' | 'Cancelled';
 
 interface PrescriptionRow {
   id: string;
@@ -70,7 +71,30 @@ interface PrescriptionDraft {
 
 type PrescriptionStore = Record<string, PrescriptionRow[]>;
 
+interface BillingEntry {
+  id: string;
+  orderId: string;
+  patientId: string;
+  patientMrn: string;
+  patientName: string;
+  admissionId: string;
+  encounterId: string;
+  category: 'Medication';
+  serviceCode: string;
+  serviceName: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  currency: 'INR';
+  status: BillingStatus;
+  orderedBy: string;
+  orderedAt: string;
+  statusUpdatedAt: string;
+  statusUpdatedBy: string;
+}
+
 const STORAGE_KEY = 'scanbo.hims.ipd.prescriptions.module.v1';
+const ORDER_BILLING_STORAGE_KEY = 'scanbo.hims.ipd.orders-billing.v1';
 
 const ROUTE_OPTIONS: RouteType[] = ['PO (Oral)', 'IV', 'IM', 'SC', 'Topical'];
 
@@ -106,6 +130,86 @@ function writeStore(store: PrescriptionStore): void {
 
 function isPendingMedication(status: RxStatus): boolean {
   return status === 'Prescribed' || status === 'Dispensed';
+}
+
+function mapRxStatusToBillingStatus(status: RxStatus): BillingStatus {
+  if (status === 'Stopped') return 'Cancelled';
+  if (status === 'Dispensed' || status === 'Administered') return 'Ready for Billing';
+  return 'Pending';
+}
+
+function syncPrescriptionBillingLedger(
+  encounters: IpdEncounterRecord[],
+  prescriptionStore: PrescriptionStore
+): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const raw = window.sessionStorage.getItem(ORDER_BILLING_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    const ordersByPatient = parsed?.ordersByPatient;
+    const existingBillingByPatient = (parsed?.billingByPatient ?? {}) as Record<string, BillingEntry[]>;
+    const nextBillingByPatient: Record<string, BillingEntry[]> = { ...existingBillingByPatient };
+
+    const encounterByPatientId = encounters.reduce<Record<string, IpdEncounterRecord>>((acc, record) => {
+      acc[record.patientId] = record;
+      return acc;
+    }, {});
+
+    Object.entries(prescriptionStore).forEach(([patientId, rows]) => {
+      const encounter = encounterByPatientId[patientId];
+      if (!encounter) return;
+
+      const preservedRows = (nextBillingByPatient[patientId] ?? []).filter(
+        (row) => !String(row.id).startsWith(`bill-rx-ipd-${patientId}-`)
+      );
+
+      const medicationRows: BillingEntry[] = rows
+        .filter((row) => !String(row.id).startsWith(`rounds-${patientId}-`))
+        .map((row) => {
+          const billingId = `bill-rx-ipd-${patientId}-${row.id}`;
+          const billingStatus = mapRxStatusToBillingStatus(row.status);
+
+          return {
+            id: billingId,
+            orderId: `rx-ipd-${row.id}`,
+            patientId,
+            patientMrn: encounter.mrn,
+            patientName: encounter.patientName,
+            admissionId: encounter.admissionId,
+            encounterId: encounter.encounterId,
+            category: 'Medication',
+            serviceCode: 'MED-IPD',
+            serviceName: `${row.medicationName} (${row.dose})`,
+            quantity: 1,
+            unitPrice: 300,
+            amount: 300,
+            currency: 'INR',
+            status: billingStatus,
+            orderedBy: row.prescribedBy,
+            orderedAt: row.updatedAt,
+            statusUpdatedAt: row.updatedAt,
+            statusUpdatedBy: row.prescribedBy,
+          };
+        });
+
+      nextBillingByPatient[patientId] = [...medicationRows, ...preservedRows];
+    });
+
+    window.sessionStorage.setItem(
+      ORDER_BILLING_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        ordersByPatient:
+          ordersByPatient && typeof ordersByPatient === 'object'
+            ? ordersByPatient
+            : {},
+        billingByPatient: nextBillingByPatient,
+      })
+    );
+  } catch {
+    // best effort sync only
+  }
 }
 
 export default function ClinicalPrescriptionsPage() {
@@ -156,6 +260,10 @@ export default function ClinicalPrescriptionsPage() {
   React.useEffect(() => {
     writeStore(rxStore);
   }, [rxStore]);
+
+  React.useEffect(() => {
+    syncPrescriptionBillingLedger(activeEncounters, rxStore);
+  }, [activeEncounters, rxStore]);
 
   const shouldFallbackToLegacy = Boolean(mrnParam && !ipdEncounterFromMrn);
   if (shouldFallbackToLegacy) {

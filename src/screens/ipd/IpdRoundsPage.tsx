@@ -36,6 +36,7 @@ import { useUser } from '@/src/core/auth/UserContext';
 import { canAccessRoute } from '@/src/core/navigation/route-access';
 import { ipdFormStylesSx } from './components/ipd-ui';
 import {
+  IpdEncounterRecord,
   IpdClinicalStatus,
   syncIpdEncounterClinical,
   syncIpdEncounterDischargeChecks,
@@ -73,6 +74,7 @@ type NoteKind = 'Physician Note' | 'Nursing Note' | 'SOAP Note';
 type NoteSeverity = 'Routine' | 'Urgent' | 'STAT';
 type ProcedureStatus = 'Completed' | 'Scheduled' | 'Pending' | 'In Progress';
 type MedicationSlot = 'morning' | 'afternoon' | 'night';
+type SharedPrescriptionStatus = 'Prescribed' | 'Dispensed' | 'Administered' | 'Stopped';
 
 interface ClinicalPatient {
   id: string;
@@ -144,6 +146,21 @@ interface PersistedOrderBillingState {
   ordersByPatient: Record<string, ClinicalOrder[]>;
   billingByPatient: Record<string, BillingEntry[]>;
 }
+
+interface SharedPrescriptionRow {
+  id: string;
+  medicationName: string;
+  dose: string;
+  route: string;
+  frequency: string;
+  duration: string;
+  notes: string;
+  status: SharedPrescriptionStatus;
+  prescribedBy: string;
+  updatedAt: string;
+}
+
+type SharedPrescriptionStore = Record<string, SharedPrescriptionRow[]>;
 
 interface ServicePriceMasterItem {
   code: string;
@@ -225,6 +242,9 @@ const PATIENT_EXTRA: Record<
 };
 
 const ORDER_BILLING_STORAGE_KEY = 'scanbo.hims.ipd.orders-billing.v1';
+const ROUNDS_MEDICATION_STORAGE_KEY = 'scanbo.hims.ipd.rounds-medications.v1';
+const IPD_PRESCRIPTION_STORAGE_KEY = 'scanbo.hims.ipd.prescriptions.module.v1';
+const ROUNDS_MEDICATION_BILLING_PREFIX = 'bill-rx-rounds-';
 
 const ORDER_TYPE_TO_BILLING_CATEGORY: Record<string, BillingCategory> = {
   lab: 'Lab',
@@ -937,10 +957,121 @@ function readPersistedOrderBillingState(): PersistedOrderBillingState | null {
 function writePersistedOrderBillingState(state: PersistedOrderBillingState): void {
   if (typeof window === 'undefined') return;
   try {
-    window.sessionStorage.setItem(ORDER_BILLING_STORAGE_KEY, JSON.stringify(state));
+    const existing = readPersistedOrderBillingState();
+    const mergedBillingByPatient = cloneBillingEntries(state.billingByPatient);
+
+    if (existing) {
+      Object.entries(existing.billingByPatient).forEach(([patientId, rows]) => {
+        const preservedPrescriptionRows = rows.filter((row) =>
+          String(row.id).startsWith('bill-rx-ipd-')
+        );
+        if (preservedPrescriptionRows.length === 0) return;
+
+        const currentRows = mergedBillingByPatient[patientId] ?? [];
+        const withoutPreservedRows = currentRows.filter(
+          (row) => !String(row.id).startsWith('bill-rx-ipd-')
+        );
+
+        mergedBillingByPatient[patientId] = [
+          ...preservedPrescriptionRows,
+          ...withoutPreservedRows,
+        ];
+      });
+    }
+
+    window.sessionStorage.setItem(
+      ORDER_BILLING_STORAGE_KEY,
+      JSON.stringify({
+        ...state,
+        billingByPatient: mergedBillingByPatient,
+      })
+    );
   } catch {
     // best-effort cache only
   }
+}
+
+function readPersistedRoundsMedicationRows(): Record<string, MedicationRow[]> | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(ROUNDS_MEDICATION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, MedicationRow[]>;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return cloneMedicationRows(parsed);
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedRoundsMedicationRows(state: Record<string, MedicationRow[]>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(ROUNDS_MEDICATION_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // best-effort cache only
+  }
+}
+
+function readSharedPrescriptionStore(): SharedPrescriptionStore {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.sessionStorage.getItem(IPD_PRESCRIPTION_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as SharedPrescriptionStore;
+    if (!parsed || typeof parsed !== 'object') return {};
+    return parsed;
+  } catch {
+    return {};
+  }
+}
+
+function writeSharedPrescriptionStore(state: SharedPrescriptionStore): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(IPD_PRESCRIPTION_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // best-effort cache only
+  }
+}
+
+function mapMedicationStateToSharedStatus(state: MedicationState): SharedPrescriptionStatus {
+  if (state === 'Given') return 'Administered';
+  if (state === 'Active') return 'Dispensed';
+  return 'Prescribed';
+}
+
+function sharedStatusRank(status: SharedPrescriptionStatus): number {
+  if (status === 'Stopped') return 4;
+  if (status === 'Administered') return 3;
+  if (status === 'Dispensed') return 2;
+  return 1;
+}
+
+function mergeSharedPrescriptionStatus(
+  mappedStatus: SharedPrescriptionStatus,
+  existingStatus?: SharedPrescriptionStatus
+): SharedPrescriptionStatus {
+  if (!existingStatus) return mappedStatus;
+  return sharedStatusRank(existingStatus) > sharedStatusRank(mappedStatus)
+    ? existingStatus
+    : mappedStatus;
+}
+
+function billingStatusRank(status: BillingStatus): number {
+  if (status === 'Cancelled') return 3;
+  if (status === 'Ready for Billing') return 2;
+  return 1;
+}
+
+function mergeRoundBillingStatus(
+  mappedStatus: BillingStatus,
+  existingStatus?: BillingStatus
+): BillingStatus {
+  if (!existingStatus) return mappedStatus;
+  return billingStatusRank(existingStatus) > billingStatusRank(mappedStatus)
+    ? existingStatus
+    : mappedStatus;
 }
 
 function cloneMedicationRows(source: Record<string, MedicationRow[]>): Record<string, MedicationRow[]> {
@@ -1074,6 +1205,78 @@ function noteMetaLine(note: ProgressNote): string {
   return `${note.role} | ${note.type}${note.severity ? ` | ${note.severity}` : ''}`;
 }
 
+function syncRoundMedicationBillingRows(
+  currentBillingByPatient: Record<string, BillingEntry[]>,
+  medicationsByPatient: Record<string, MedicationRow[]>,
+  patientById: Record<string, ClinicalPatient>,
+  encounterByPatientId: Record<string, IpdEncounterRecord>
+): Record<string, BillingEntry[]> {
+  const next = cloneBillingEntries(currentBillingByPatient);
+
+  Object.entries(medicationsByPatient).forEach(([patientId, medications]) => {
+    const patient = patientById[patientId];
+    const encounter = encounterByPatientId[patientId];
+    const consultant = patient?.consultant || encounter?.consultant || 'IPD Consultant';
+    const patientMrn = patient?.mrn || encounter?.mrn || '';
+    const patientName = patient?.name || encounter?.patientName || '';
+    const admissionId = encounter?.admissionId ?? `adm-${patientId}`;
+    const encounterId = encounter?.encounterId ?? `enc-${patientId}`;
+    const existingRows = next[patientId] ?? [];
+    const existingRoundRowsById = new Map(
+      existingRows
+        .filter((row) => String(row.id).startsWith(ROUNDS_MEDICATION_BILLING_PREFIX))
+        .map((row) => [row.id, row])
+    );
+    const preservedRows = existingRows.filter(
+      (row) => !String(row.id).startsWith(ROUNDS_MEDICATION_BILLING_PREFIX)
+    );
+
+    const medicationRows = medications.map((medication) => {
+      const billingId = `${ROUNDS_MEDICATION_BILLING_PREFIX}${patientId}-${medication.id}`;
+      const service = resolveBillingService('Medication', medication.medication);
+      const mappedStatus: BillingStatus = medication.state === 'Given' ? 'Ready for Billing' : 'Pending';
+      const stamp = new Date().toLocaleString();
+      const existing = existingRoundRowsById.get(billingId);
+      const billingStatus = mergeRoundBillingStatus(mappedStatus, existing?.status);
+      const serviceName = `${medication.medication} (${medication.dose})`;
+      const shouldRefreshStatusStamp =
+        !existing ||
+        existing.status !== billingStatus ||
+        existing.serviceName !== serviceName;
+
+      return {
+        id: billingId,
+        orderId: `rx-rounds-${patientId}-${medication.id}`,
+        patientId,
+        patientMrn,
+        patientName,
+        admissionId,
+        encounterId,
+        category: 'Medication' as BillingCategory,
+        serviceCode: service.code,
+        serviceName,
+        quantity: 1,
+        unitPrice: service.price,
+        amount: service.price,
+        currency: 'INR' as const,
+        status: billingStatus,
+        orderedBy: existing?.orderedBy ?? consultant,
+        orderedAt: existing?.orderedAt ?? stamp,
+        statusUpdatedAt: shouldRefreshStatusStamp
+          ? stamp
+          : existing?.statusUpdatedAt ?? stamp,
+        statusUpdatedBy: shouldRefreshStatusStamp
+          ? consultant
+          : existing?.statusUpdatedBy ?? consultant,
+      };
+    });
+
+    next[patientId] = [...medicationRows, ...preservedRows];
+  });
+
+  return next;
+}
+
 export default function IpdRoundsPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -1129,6 +1332,15 @@ export default function IpdRoundsPage() {
     [encounterRows]
   );
 
+  const patientById = React.useMemo(
+    () =>
+      clinicalPatients.reduce<Record<string, ClinicalPatient>>((accumulator, patient) => {
+        accumulator[patient.id] = patient;
+        return accumulator;
+      }, {}),
+    [clinicalPatients]
+  );
+
   const initialOrderBillingState = React.useMemo<PersistedOrderBillingState>(
     () => readPersistedOrderBillingState() ?? buildSeedOrderBillingState(),
     []
@@ -1147,7 +1359,7 @@ export default function IpdRoundsPage() {
   );
   const [medicationsByPatient, setMedicationsByPatient] = React.useState<
     Record<string, MedicationRow[]>
-  >(() => cloneMedicationRows(INITIAL_MEDICATIONS));
+  >(() => readPersistedRoundsMedicationRows() ?? cloneMedicationRows(INITIAL_MEDICATIONS));
   const [proceduresByPatient, setProceduresByPatient] = React.useState<
     Record<string, ProcedureRow[]>
   >(() => cloneProcedures(INITIAL_PROCEDURES));
@@ -1266,6 +1478,70 @@ export default function IpdRoundsPage() {
       billingByPatient,
     });
   }, [billingByPatient, ordersByPatient]);
+
+  React.useEffect(() => {
+    writePersistedRoundsMedicationRows(medicationsByPatient);
+  }, [medicationsByPatient]);
+
+  React.useEffect(() => {
+    const currentStore = readSharedPrescriptionStore();
+    const nextStore: SharedPrescriptionStore = { ...currentStore };
+
+    Object.entries(medicationsByPatient).forEach(([patientId, rows]) => {
+      const existingRows = nextStore[patientId] ?? [];
+      const existingRowById = new Map(existingRows.map((row) => [row.id, row]));
+      const preservedRows = existingRows.filter(
+        (row) => !String(row.id).startsWith(`rounds-${patientId}-`)
+      );
+      const consultant = patientById[patientId]?.consultant || 'IPD Consultant';
+
+      const mirroredRows: SharedPrescriptionRow[] = rows.map((row) => {
+        const mirroredId = `rounds-${patientId}-${row.id}`;
+        const mappedStatus = mapMedicationStateToSharedStatus(row.state);
+        const existing = existingRowById.get(mirroredId);
+        const nextStatus = mergeSharedPrescriptionStatus(mappedStatus, existing?.status);
+        const shouldRefreshTimestamp =
+          !existing ||
+          existing.status !== nextStatus ||
+          existing.medicationName !== row.medication ||
+          existing.dose !== row.dose ||
+          existing.route !== row.route ||
+          existing.frequency !== row.frequency;
+
+        return {
+          id: mirroredId,
+          medicationName: row.medication,
+          dose: row.dose,
+          route: row.route,
+          frequency: row.frequency,
+          duration: '',
+          notes: 'Synced from IPD Clinical Care workspace',
+          status: nextStatus,
+          prescribedBy: consultant,
+          updatedAt: shouldRefreshTimestamp
+            ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : existing?.updatedAt ?? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+      });
+
+      nextStore[patientId] = [...mirroredRows, ...preservedRows];
+    });
+
+    writeSharedPrescriptionStore(nextStore);
+  }, [medicationsByPatient, patientById]);
+
+  React.useEffect(() => {
+    setBillingByPatient((previous) => {
+      const next = syncRoundMedicationBillingRows(
+        previous,
+        medicationsByPatient,
+        patientById,
+        encounterByPatientId
+      );
+
+      return JSON.stringify(previous) === JSON.stringify(next) ? previous : next;
+    });
+  }, [encounterByPatientId, medicationsByPatient, patientById]);
 
   React.useEffect(() => {
     if (clinicalPatients.length === 0) {
@@ -3069,11 +3345,26 @@ export default function IpdRoundsPage() {
                       backgroundColor: alpha(theme.palette.primary.main, 0.04),
                     }}
                   >
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <AssignmentTurnedInIcon fontSize="small" color="primary" />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        Order-linked Billing Ledger ({patientBillingEntries.length})
-                      </Typography>
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={1}
+                      alignItems={{ xs: 'flex-start', sm: 'center' }}
+                      justifyContent="space-between"
+                    >
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <AssignmentTurnedInIcon fontSize="small" color="primary" />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          Order-linked Billing Ledger ({patientBillingEntries.length})
+                        </Typography>
+                      </Stack>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        disabled={!canNavigate('/ipd/charges')}
+                        onClick={() => openRoute('/ipd/charges?tab=charges', '/ipd/charges')}
+                      >
+                        Open Charge / Drug
+                      </Button>
                     </Stack>
                   </Box>
 

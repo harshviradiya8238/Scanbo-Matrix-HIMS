@@ -1,4 +1,4 @@
-export type IpdFlowStepId = 'dashboard' | 'beds' | 'clinical-care' | 'discharge';
+export type IpdFlowStepId = 'dashboard' | 'beds' | 'clinical-care' | 'charge-drug' | 'discharge';
 
 export interface IpdFlowStep {
   id: IpdFlowStepId;
@@ -25,6 +25,12 @@ export const IPD_FLOW_STEPS: IpdFlowStep[] = [
     label: 'Clinical Care',
     description: 'Doctor rounds, nursing care, vitals, orders, and medication schedule.',
     route: '/ipd/rounds',
+  },
+  {
+    id: 'charge-drug',
+    label: 'Charge / Drug',
+    description: 'Charge capture, DRG review, and pharmacy clearance before discharge.',
+    route: '/ipd/charges',
   },
   {
     id: 'discharge',

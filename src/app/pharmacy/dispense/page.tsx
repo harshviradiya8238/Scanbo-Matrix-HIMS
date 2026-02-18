@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import PharmacyDispensePage from '@/src/screens/pharmacy/PharmacyDispensePage';
 
 export default function DispensePage() {
-  return <PageTemplate title="Pharmacy Dispense" currentPageTitle="Dispense" />;
+  return <PharmacyDispensePage />;
 }
