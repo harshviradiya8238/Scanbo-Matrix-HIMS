@@ -99,6 +99,11 @@ const sortAppointments = (appointments: OpdAppointment[]) =>
     return a.time.localeCompare(b.time);
   });
 
+const normalizeMrn = (mrn: string): string => mrn.trim().toUpperCase();
+
+const isActiveEncounterStatus = (status: EncounterStatus): boolean =>
+  status !== 'COMPLETED' && status !== 'CANCELLED';
+
 const normalizeEncounter = (encounter: OpdEncounterCase): OpdEncounterCase => {
   const status = normalizeEncounterStatus(String(encounter.status));
   return {
@@ -118,6 +123,24 @@ const normalizeEncounter = (encounter: OpdEncounterCase): OpdEncounterCase => {
       bmi: encounter.vitals?.bmi ?? '',
     },
   };
+};
+
+const dedupeActiveEncounters = (encounters: OpdEncounterCase[]): OpdEncounterCase[] => {
+  const normalized = encounters.map(normalizeEncounter);
+  const seenActiveMrn = new Set<string>();
+  const dedupedReverse: OpdEncounterCase[] = [];
+
+  for (let index = normalized.length - 1; index >= 0; index -= 1) {
+    const encounter = normalized[index];
+    const mrnKey = normalizeMrn(encounter.mrn);
+    if (isActiveEncounterStatus(encounter.status) && mrnKey) {
+      if (seenActiveMrn.has(mrnKey)) continue;
+      seenActiveMrn.add(mrnKey);
+    }
+    dedupedReverse.push(encounter);
+  }
+
+  return dedupedReverse.reverse();
 };
 
 const applyEncounterStatusUpdate = (
@@ -201,7 +224,7 @@ const opdSlice = createSlice({
       if (Array.isArray(payload.appointments)) state.appointments = sortAppointments(payload.appointments);
       if (Array.isArray(payload.slotTimes)) state.slotTimes = [...payload.slotTimes];
       if (Array.isArray(payload.providerAvailability)) state.providerAvailability = [...payload.providerAvailability];
-      if (Array.isArray(payload.encounters)) state.encounters = payload.encounters.map(normalizeEncounter);
+      if (Array.isArray(payload.encounters)) state.encounters = dedupeActiveEncounters(payload.encounters);
       if (Array.isArray(payload.vitalTrends)) state.vitalTrends = [...payload.vitalTrends];
       if (Array.isArray(payload.orderCatalog)) state.orderCatalog = [...payload.orderCatalog];
       if (Array.isArray(payload.medicationCatalog)) state.medicationCatalog = [...payload.medicationCatalog];
@@ -218,7 +241,37 @@ const opdSlice = createSlice({
       state.appointments = sortAppointments([...state.appointments, action.payload]);
     },
     addEncounter: (state, action: PayloadAction<OpdEncounterCase>) => {
-      state.encounters = [...state.encounters, normalizeEncounter(action.payload)];
+      const incoming = normalizeEncounter(action.payload);
+      const incomingMrn = normalizeMrn(incoming.mrn);
+      const existingActiveIndex = state.encounters.findIndex(
+        (encounter) =>
+          normalizeMrn(encounter.mrn) === incomingMrn &&
+          isActiveEncounterStatus(encounter.status)
+      );
+
+      if (existingActiveIndex === -1) {
+        state.encounters = [...state.encounters, incoming];
+        return;
+      }
+
+      const existing = state.encounters[existingActiveIndex];
+      const merged: OpdEncounterCase = {
+        ...existing,
+        ...incoming,
+        id: existing.id,
+        patientId: existing.patientId || incoming.patientId || incoming.mrn,
+        notes: existing.notes,
+        orders: existing.orders,
+        prescriptions: existing.prescriptions,
+        vitals: {
+          ...existing.vitals,
+          ...incoming.vitals,
+        },
+      };
+
+      state.encounters = state.encounters.map((encounter, index) =>
+        index === existingActiveIndex ? merged : encounter
+      );
     },
     updateAppointment: (
       state,
@@ -381,7 +434,7 @@ const opdSlice = createSlice({
         state.appointments = sortAppointments(action.payload.appointments);
         state.slotTimes = action.payload.slotTimes;
         state.providerAvailability = action.payload.providerAvailability;
-        state.encounters = action.payload.encounters.map(normalizeEncounter);
+        state.encounters = dedupeActiveEncounters(action.payload.encounters);
         state.vitalTrends = action.payload.vitalTrends;
         state.orderCatalog = action.payload.orderCatalog;
         state.medicationCatalog = action.payload.medicationCatalog;

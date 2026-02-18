@@ -11,7 +11,7 @@ import {
 } from '@/src/store/slices/opdSlice';
 
 const OPD_STORAGE_KEY = 'scanbo:hims:opd:v1';
-const OPD_STORAGE_VERSION = 1;
+const OPD_STORAGE_VERSION = 2;
 
 interface OpdStoragePayload {
   version: number;
@@ -27,6 +27,12 @@ const parseStoredOpdData = (raw: string | null): Partial<OpdPersistedData> | nul
     if (!parsed || typeof parsed !== 'object') return null;
 
     if ('data' in parsed && parsed.data && typeof parsed.data === 'object') {
+      if (
+        typeof (parsed as { version?: unknown }).version === 'number' &&
+        (parsed as { version: number }).version !== OPD_STORAGE_VERSION
+      ) {
+        return null;
+      }
       return parsed.data;
     }
 

@@ -9,6 +9,7 @@ interface OpdRoleCapabilities {
   canPlaceOrders: boolean;
   canPrescribe: boolean;
   canCompleteVisit: boolean;
+  canTransferToIpd: boolean;
 }
 
 export interface OpdRoleFlowProfile {
@@ -40,6 +41,7 @@ const FRONT_DESK_PROFILE: OpdRoleFlowProfile = {
     canPlaceOrders: false,
     canPrescribe: false,
     canCompleteVisit: false,
+    canTransferToIpd: false,
   },
 };
 
@@ -63,6 +65,7 @@ const DOCTOR_PROFILE: OpdRoleFlowProfile = {
     canPlaceOrders: true,
     canPrescribe: true,
     canCompleteVisit: true,
+    canTransferToIpd: true,
   },
 };
 
@@ -86,6 +89,7 @@ const HOSPITAL_ADMIN_PROFILE: OpdRoleFlowProfile = {
     canPlaceOrders: true,
     canPrescribe: true,
     canCompleteVisit: true,
+    canTransferToIpd: true,
   },
 };
 
@@ -110,6 +114,7 @@ const DEFAULT_PROFILE: OpdRoleFlowProfile = {
     canPlaceOrders: false,
     canPrescribe: false,
     canCompleteVisit: false,
+    canTransferToIpd: false,
   },
 };
 

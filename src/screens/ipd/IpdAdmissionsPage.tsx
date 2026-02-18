@@ -29,14 +29,12 @@ import CommonTable, {
   CommonTableFilterOption,
 } from '@/src/ui/components/molecules/CommonTable';
 import {
-  AssignmentInd as AssignmentIndIcon,
-  LocalHospital as LocalHospitalIcon,
   Search as SearchIcon,
-  WarningAmber as WarningAmberIcon,
 } from '@mui/icons-material';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
+import { usePermission } from '@/src/core/auth/usePermission';
 import {
   ADMISSION_LEADS,
   AdmissionLead,
@@ -44,11 +42,14 @@ import {
   INPATIENT_STAYS,
 } from './ipd-mock-data';
 import {
-  IpdMetricCard,
   IpdSectionCard,
   ipdFormStylesSx,
 } from './components/ipd-ui';
-import { registerIpdAdmissionEncounter } from './ipd-encounter-context';
+import { registerIpdAdmissionEncounter, useIpdEncounters } from './ipd-encounter-context';
+import {
+  markOpdToIpdTransferHandledByMrn,
+  useOpdToIpdTransferLeads,
+} from './ipd-transfer-store';
 
 interface AdmissionDialogForm {
   patientName: string;
@@ -70,27 +71,30 @@ interface AdmissionDialogForm {
 
 type AdmissionErrors = Partial<Record<keyof AdmissionDialogForm, string>>;
 
-interface CreatedAdmission {
-  id: string;
-  mrn: string;
-  patientName: string;
-  ageGender: string;
-  admissionDate: string;
-  consultant: string;
-  ward: string;
-  status: 'Admitted' | 'Observation';
-  priority: AdmissionPriority;
-}
-
 interface PatientRow {
   id: string;
   mrn: string;
   patientName: string;
   ageGender: string;
   admissionDate: string;
+  admissionTimestamp: number;
   consultant: string;
   ward: string;
+  bed: string;
   status: 'Admitted' | 'Observation';
+  entryType: 'Existing' | 'Created Now';
+}
+
+interface AdmissionQueueRow {
+  id: string;
+  mrn: string;
+  patientName: string;
+  source: 'OPD' | 'ER' | 'Transfer';
+  priority: AdmissionPriority;
+  preferredWard: string;
+  consultant: string;
+  provisionalDiagnosis: string;
+  stage: 'Pending Admission' | 'Bed Pending';
 }
 
 function buildFilterOptions(values: string[], allLabel: string): CommonTableFilterOption[] {
@@ -149,9 +153,18 @@ function formatDateTimeForRow(date: Date): string {
   return `${datePart} ${timePart}`;
 }
 
+function normalizeMrn(value: string): string {
+  return value.trim().toUpperCase();
+}
+
 export default function IpdAdmissionsPage() {
   const router = useRouter();
   const mrnParam = useMrnParam();
+  const permissionGate = usePermission();
+  const ipdEncounters = useIpdEncounters();
+  const transferLeads = useOpdToIpdTransferLeads();
+  const canManageAdmissions = permissionGate('ipd.admissions.write');
+  const canOpenBedBoard = permissionGate(['ipd.beds.read', 'ipd.beds.write', 'ipd.read']);
 
   const [allSearch, setAllSearch] = React.useState('');
   const [allStatusFilter, setAllStatusFilter] = React.useState('all');
@@ -165,21 +178,7 @@ export default function IpdAdmissionsPage() {
   const [form, setForm] = React.useState<AdmissionDialogForm>(buildEmptyForm());
   const [errors, setErrors] = React.useState<AdmissionErrors>({});
   const [saveStamp, setSaveStamp] = React.useState('');
-  const [mrnApplied, setMrnApplied] = React.useState(false);
-
-  const [createdAdmissions, setCreatedAdmissions] = React.useState<CreatedAdmission[]>(
-    INPATIENT_STAYS.slice(0, 2).map((stay, index) => ({
-      id: `seed-${stay.id}`,
-      mrn: stay.mrn,
-      patientName: stay.patientName,
-      ageGender: stay.ageGender,
-      admissionDate: formatDateTimeForRow(new Date(stay.admissionDate)),
-      consultant: stay.consultant,
-      ward: stay.ward,
-      status: index === 0 ? 'Admitted' : 'Observation',
-      priority: index === 0 ? 'Urgent' : 'Routine',
-    }))
-  );
+  const appliedMrnRef = React.useRef<string>('');
 
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
@@ -191,19 +190,29 @@ export default function IpdAdmissionsPage() {
     severity: 'success',
   });
 
+  const queueRowsAll = React.useMemo(() => {
+    const merged = new Map<string, AdmissionLead>();
+    ADMISSION_LEADS.forEach((lead) => merged.set(normalizeMrn(lead.mrn), lead));
+    transferLeads.forEach((lead) => merged.set(normalizeMrn(lead.mrn), lead));
+    return Array.from(merged.values());
+  }, [transferLeads]);
+
   React.useEffect(() => {
-    if (!mrnParam || mrnApplied) return;
-    const lead = ADMISSION_LEADS.find((item) => item.mrn === mrnParam);
-    if (lead) {
-      setSelectedLeadId(lead.id);
-      setForm(buildFormFromLead(lead));
-    }
-    setMrnApplied(true);
-  }, [mrnParam, mrnApplied]);
+    if (!mrnParam) return;
+    const normalizedMrn = mrnParam.trim().toUpperCase();
+    if (!normalizedMrn || appliedMrnRef.current === normalizedMrn) return;
+
+    const lead = queueRowsAll.find((item) => normalizeMrn(item.mrn) === normalizedMrn);
+    if (!lead) return;
+
+    setSelectedLeadId(lead.id);
+    setForm(buildFormFromLead(lead));
+    appliedMrnRef.current = normalizedMrn;
+  }, [mrnParam, queueRowsAll]);
 
   const selectedLead = React.useMemo(
-    () => ADMISSION_LEADS.find((lead) => lead.id === selectedLeadId),
-    [selectedLeadId]
+    () => queueRowsAll.find((lead) => lead.id === selectedLeadId),
+    [queueRowsAll, selectedLeadId]
   );
 
   const seededPatient = getPatientByMrn(form.mrn || mrnParam);
@@ -211,38 +220,104 @@ export default function IpdAdmissionsPage() {
   const displayMrn = form.mrn || seededPatient?.mrn || mrnParam;
   const pageSubtitle = formatPatientLabel(displayName, displayMrn);
 
-  const queueRows = ADMISSION_LEADS;
+  const activeIpdPatients = React.useMemo(() => {
+    const seedByMrn = new Map(
+      INPATIENT_STAYS.map((stay) => [normalizeMrn(stay.mrn), stay] as const)
+    );
 
-  const allPatients = React.useMemo(() => {
-    const existing: PatientRow[] = INPATIENT_STAYS.map((stay) => ({
-      id: stay.id,
-      mrn: stay.mrn,
-      patientName: stay.patientName,
-      ageGender: stay.ageGender,
-      admissionDate: formatDateTimeForRow(new Date(stay.admissionDate)),
-      consultant: stay.consultant,
-      ward: stay.ward,
-      status: 'Admitted',
-    }));
+    const activeEncounters = ipdEncounters
+      .filter((record) => record.workflowStatus !== 'discharged')
+      .sort(
+        (left, right) =>
+          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
+      );
 
     const merged = new Map<string, PatientRow>();
-    existing.forEach((row) => merged.set(row.mrn, row));
+    activeEncounters.forEach((record) => {
+      const mrnKey = normalizeMrn(record.mrn);
+      if (!mrnKey || merged.has(mrnKey)) return;
 
-    createdAdmissions.forEach((row) => {
-      merged.set(row.mrn, {
-        id: row.id,
-        mrn: row.mrn,
-        patientName: row.patientName,
-        ageGender: row.ageGender,
-        admissionDate: row.admissionDate,
-        consultant: row.consultant,
-        ward: row.ward,
-        status: row.status,
+      const seed = seedByMrn.get(mrnKey);
+      const globalPatient = getPatientByMrn(record.mrn);
+      const encounterTimestamp = new Date(record.updatedAt).getTime();
+      const admissionTimestamp = seed
+        ? new Date(seed.admissionDate).getTime()
+        : Number.isFinite(encounterTimestamp)
+        ? encounterTimestamp
+        : Date.now();
+      const bed = record.bed?.trim() ?? '';
+
+      merged.set(mrnKey, {
+        id: record.patientId,
+        mrn: record.mrn,
+        patientName: record.patientName,
+        ageGender: seed?.ageGender ?? globalPatient?.ageGender ?? '--',
+        admissionDate: formatDateTimeForRow(new Date(admissionTimestamp)),
+        admissionTimestamp,
+        consultant: record.consultant || seed?.consultant || '--',
+        ward: record.ward || seed?.ward || '--',
+        bed,
+        status: bed ? 'Admitted' : 'Observation',
+        entryType: seed ? 'Existing' : 'Created Now',
       });
     });
 
+    return Array.from(merged.values()).sort(
+      (left, right) => right.admissionTimestamp - left.admissionTimestamp
+    );
+  }, [ipdEncounters]);
+
+  const allPatients = React.useMemo(
+    () => activeIpdPatients.filter((patient) => Boolean(patient.bed)),
+    [activeIpdPatients]
+  );
+
+  const activeIpdMrnSet = React.useMemo(
+    () => new Set(activeIpdPatients.map((row) => normalizeMrn(row.mrn))),
+    [activeIpdPatients]
+  );
+
+  const queueRows = React.useMemo<AdmissionQueueRow[]>(() => {
+    const pendingAdmissionRows: AdmissionQueueRow[] = queueRowsAll
+      .filter((lead) => !activeIpdMrnSet.has(normalizeMrn(lead.mrn)))
+      .map((lead) => ({
+        id: `lead-${lead.id}`,
+        mrn: lead.mrn,
+        patientName: lead.patientName,
+        source: lead.source,
+        priority: lead.priority,
+        preferredWard: lead.preferredWard,
+        consultant: lead.consultant,
+        provisionalDiagnosis: lead.provisionalDiagnosis,
+        stage: 'Pending Admission',
+      }));
+
+    const leadByMrn = new Map(
+      queueRowsAll.map((lead) => [normalizeMrn(lead.mrn), lead] as const)
+    );
+
+    const bedPendingRows: AdmissionQueueRow[] = activeIpdPatients
+      .filter((patient) => !patient.bed)
+      .map((patient) => {
+        const lead = leadByMrn.get(normalizeMrn(patient.mrn));
+        return {
+          id: `bed-pending-${patient.id}`,
+          mrn: patient.mrn,
+          patientName: patient.patientName,
+          source: lead?.source ?? 'Transfer',
+          priority: lead?.priority ?? 'Routine',
+          preferredWard: patient.ward,
+          consultant: patient.consultant,
+          provisionalDiagnosis: lead?.provisionalDiagnosis ?? '',
+          stage: 'Bed Pending',
+        };
+      });
+
+    const merged = new Map<string, AdmissionQueueRow>();
+    pendingAdmissionRows.forEach((row) => merged.set(normalizeMrn(row.mrn), row));
+    bedPendingRows.forEach((row) => merged.set(normalizeMrn(row.mrn), row));
     return Array.from(merged.values());
-  }, [createdAdmissions]);
+  }, [activeIpdMrnSet, activeIpdPatients, queueRowsAll]);
 
   const allPatientColumns: CommonTableColumn<PatientRow>[] = [
     {
@@ -256,6 +331,19 @@ export default function IpdAdmissionsPage() {
       label: 'Patient Name',
       minWidth: 170,
       renderCell: (patient) => <Typography sx={{ fontWeight: 600 }}>{patient.patientName}</Typography>,
+    },
+    {
+      id: 'entryType',
+      label: 'Entry',
+      minWidth: 130,
+      renderCell: (patient) => (
+        <Chip
+          size="small"
+          label={patient.entryType}
+          color={patient.entryType === 'Created Now' ? 'info' : 'default'}
+          variant={patient.entryType === 'Created Now' ? 'filled' : 'outlined'}
+        />
+      ),
     },
     {
       id: 'ageGender',
@@ -295,49 +383,70 @@ export default function IpdAdmissionsPage() {
     },
     {
       id: 'open',
-      label: 'Open',
+      label: 'Action',
       align: 'right',
-      minWidth: 140,
-      renderCell: (patient) => (
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={() => router.push(`/ipd/beds?mrn=${encodeURIComponent(patient.mrn)}`)}
-        >
-          Bed / Ward
-        </Button>
-      ),
+      minWidth: 160,
+      renderCell: (patient) => {
+        const hasBed = Boolean(patient.bed);
+        const route = hasBed
+          ? `/ipd/beds?mrn=${encodeURIComponent(patient.mrn)}&patientId=${encodeURIComponent(patient.id)}`
+          : `/ipd/beds?tab=bed-board&mrn=${encodeURIComponent(patient.mrn)}&patientId=${encodeURIComponent(patient.id)}`;
+
+        return (
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={!canOpenBedBoard}
+            onClick={() => router.push(route)}
+          >
+            {hasBed ? 'Bed / Ward' : 'Allocate Bed'}
+          </Button>
+        );
+      },
     },
   ];
 
-  const queueColumns: CommonTableColumn<AdmissionLead>[] = [
+  const queueColumns: CommonTableColumn<AdmissionQueueRow>[] = [
     {
       id: 'mrn',
       label: 'MRN',
       minWidth: 140,
-      renderCell: (lead) => lead.mrn,
+      renderCell: (row) => row.mrn,
     },
     {
       id: 'patientName',
       label: 'Patient Name',
       minWidth: 170,
-      renderCell: (lead) => <Typography sx={{ fontWeight: 600 }}>{lead.patientName}</Typography>,
+      renderCell: (row) => <Typography sx={{ fontWeight: 600 }}>{row.patientName}</Typography>,
+    },
+    {
+      id: 'stage',
+      label: 'Stage',
+      minWidth: 150,
+      renderCell: (row) => (
+        <Chip
+          size="small"
+          label={row.stage}
+          color={row.stage === 'Bed Pending' ? 'warning' : 'default'}
+          variant={row.stage === 'Bed Pending' ? 'filled' : 'outlined'}
+        />
+      ),
     },
     {
       id: 'source',
       label: 'Source',
       minWidth: 120,
-      renderCell: (lead) => lead.source,
+      renderCell: (row) => row.source,
     },
     {
       id: 'priority',
       label: 'Priority',
       minWidth: 120,
-      renderCell: (lead) => (
+      renderCell: (row) => (
         <Chip
           size="small"
-          label={lead.priority}
-          color={lead.priority === 'Routine' ? 'success' : lead.priority === 'Urgent' ? 'warning' : 'error'}
+          label={row.priority}
+          color={row.priority === 'Routine' ? 'success' : row.priority === 'Urgent' ? 'warning' : 'error'}
         />
       ),
     },
@@ -345,22 +454,27 @@ export default function IpdAdmissionsPage() {
       id: 'preferredWard',
       label: 'Preferred Ward',
       minWidth: 180,
-      renderCell: (lead) => lead.preferredWard,
+      renderCell: (row) => row.preferredWard,
     },
     {
       id: 'consultant',
       label: 'Consultant',
       minWidth: 180,
-      renderCell: (lead) => lead.consultant,
+      renderCell: (row) => row.consultant,
     },
     {
       id: 'action',
       label: 'Action',
       align: 'right',
-      minWidth: 150,
-      renderCell: (lead) => (
-        <Button size="small" variant="outlined" onClick={() => openDialogForLead(lead)}>
-          Add Admission
+      minWidth: 180,
+      renderCell: (row) => (
+        <Button
+          size="small"
+          variant="outlined"
+          disabled={!canOpenBedBoard || (row.stage === 'Pending Admission' && !canManageAdmissions)}
+          onClick={() => handleQueueAllocateBed(row)}
+        >
+          Allocate Bed
         </Button>
       ),
     },
@@ -431,9 +545,6 @@ export default function IpdAdmissionsPage() {
     });
   }, [queueRows, queueSearch, queuePriorityFilter, queueSourceFilter]);
 
-  const urgentCount = queueRows.filter((lead) => lead.priority !== 'Routine').length;
-  const insuranceCount = queueRows.filter((lead) => lead.patientType === 'Insurance').length;
-
   const updateFormField = <K extends keyof AdmissionDialogForm>(
     field: K,
     value: AdmissionDialogForm[K]
@@ -448,14 +559,74 @@ export default function IpdAdmissionsPage() {
     }
   };
 
-  const openDialogForLead = (lead: AdmissionLead) => {
-    setSelectedLeadId(lead.id);
-    setForm(buildFormFromLead(lead));
-    setErrors({});
-    setDialogOpen(true);
+  const handleQueueAllocateBed = (row: AdmissionQueueRow) => {
+    if (!canOpenBedBoard) {
+      setSnackbar({
+        open: true,
+        message: 'You do not have permission to open Bed / Ward.',
+        severity: 'error',
+      });
+      return;
+    }
+
+    let patientIdForRoute = activeIpdPatients.find(
+      (patient) => normalizeMrn(patient.mrn) === normalizeMrn(row.mrn)
+    )?.id;
+
+    if (row.stage === 'Pending Admission') {
+      if (!canManageAdmissions) {
+        setSnackbar({
+          open: true,
+          message: 'You do not have permission to create admissions.',
+          severity: 'error',
+        });
+        return;
+      }
+
+      const lead = queueRowsAll.find(
+        (item) => normalizeMrn(item.mrn) === normalizeMrn(row.mrn)
+      );
+      if (!lead) {
+        setSnackbar({
+          open: true,
+          message: 'Admission lead not found for this patient.',
+          severity: 'error',
+        });
+        return;
+      }
+
+      const registeredEncounter = registerIpdAdmissionEncounter({
+        patientId: `admission-${Date.now()}`,
+        mrn: lead.mrn.trim(),
+        patientName: lead.patientName.trim(),
+        consultant: lead.consultant.trim(),
+        ward: lead.preferredWard.trim(),
+        diagnosis: lead.provisionalDiagnosis.trim(),
+      });
+      patientIdForRoute = registeredEncounter.patientId;
+      markOpdToIpdTransferHandledByMrn(lead.mrn.trim());
+      setSnackbar({
+        open: true,
+        message: `Admission created for ${lead.patientName}. Proceed with bed allocation.`,
+        severity: 'success',
+      });
+    }
+
+    const patientIdQuery = patientIdForRoute
+      ? `&patientId=${encodeURIComponent(patientIdForRoute)}`
+      : '';
+    router.push(`/ipd/beds?tab=bed-board&mrn=${encodeURIComponent(row.mrn)}${patientIdQuery}`);
   };
 
   const openDialogForNew = () => {
+    if (!canManageAdmissions) {
+      setSnackbar({
+        open: true,
+        message: 'You do not have permission to create admissions.',
+        severity: 'error',
+      });
+      return;
+    }
     if (selectedLead) {
       setForm(buildFormFromLead(selectedLead));
     } else {
@@ -506,6 +677,14 @@ export default function IpdAdmissionsPage() {
   };
 
   const handleSaveDraft = () => {
+    if (!canManageAdmissions) {
+      setSnackbar({
+        open: true,
+        message: 'You do not have permission to save admission drafts.',
+        severity: 'error',
+      });
+      return;
+    }
     const now = new Date();
     const stamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setSaveStamp(stamp);
@@ -517,6 +696,14 @@ export default function IpdAdmissionsPage() {
   };
 
   const handleCreateAdmission = (openBedBoard: boolean) => {
+    if (!canManageAdmissions) {
+      setSnackbar({
+        open: true,
+        message: 'You do not have permission to create admissions.',
+        severity: 'error',
+      });
+      return;
+    }
     if (!validateForm()) {
       setSnackbar({
         open: true,
@@ -528,20 +715,7 @@ export default function IpdAdmissionsPage() {
 
     const now = new Date();
     const createdId = `admission-${Date.now()}`;
-    const created: CreatedAdmission = {
-      id: createdId,
-      mrn: form.mrn,
-      patientName: form.patientName,
-      ageGender: '--',
-      admissionDate: formatDateTimeForRow(now),
-      consultant: form.consultant,
-      ward: form.preferredWard,
-      status: form.priority === 'Routine' ? 'Admitted' : 'Observation',
-      priority: form.priority,
-    };
-
-    setCreatedAdmissions((prev) => [created, ...prev]);
-    registerIpdAdmissionEncounter({
+    const registeredEncounter = registerIpdAdmissionEncounter({
       patientId: createdId,
       mrn: form.mrn.trim(),
       patientName: form.patientName.trim(),
@@ -549,6 +723,7 @@ export default function IpdAdmissionsPage() {
       ward: form.preferredWard.trim(),
       diagnosis: form.provisionalDiagnosis.trim(),
     });
+    markOpdToIpdTransferHandledByMrn(form.mrn.trim());
     setSaveStamp(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     setDialogOpen(false);
 
@@ -559,20 +734,31 @@ export default function IpdAdmissionsPage() {
     });
 
     if (openBedBoard) {
-      router.push(form.mrn ? `/ipd/beds?mrn=${encodeURIComponent(form.mrn)}` : '/ipd/beds');
+      const mrnQuery = form.mrn ? `?mrn=${encodeURIComponent(form.mrn)}` : '?';
+      const separator = mrnQuery.includes('?mrn=') ? '&' : '';
+      const patientIdQuery = `patientId=${encodeURIComponent(registeredEncounter.patientId)}`;
+      router.push(`/ipd/beds${mrnQuery}${separator}${patientIdQuery}`);
     }
   };
 
   return (
     <PageTemplate title="IPD Admissions" subtitle={pageSubtitle} currentPageTitle="Admissions">
       <Stack spacing={2}>
-       
+        {!canManageAdmissions ? (
+          <Alert severity="warning">
+            You are in read-only mode for admissions. Contact admin for `ipd.admissions.write` access.
+          </Alert>
+        ) : null}
+        <Alert severity="info">
+          `All IPD Patients` shows only admitted patients (bed allocated). Patients pending bed allocation appear only
+          in `Admission Queue`.
+        </Alert>
 
         <IpdSectionCard
           title="Admission Records"
           // subtitle="All IPD Patients and Admission Queue in tab view."
           action={
-            <Button variant="contained" onClick={openDialogForNew}>
+            <Button variant="contained" onClick={openDialogForNew} disabled={!canManageAdmissions}>
               + New Admission
             </Button>
           }
@@ -613,8 +799,8 @@ export default function IpdAdmissionsPage() {
                   },
                 }}
               >
-                <Tab value="all" label={`All IPD Patients (${allPatients.length})`} />
-                <Tab value="queue" label={`Admission Queue (${queueRows.length})`} />
+                <Tab value="all" label={`All IPD Patients - Admitted (${allPatients.length})`} />
+                <Tab value="queue" label={`Admission Queue - Pending Bed (${queueRows.length})`} />
               </Tabs>
 
               {historyTab === 'all' ? (
@@ -744,8 +930,8 @@ export default function IpdAdmissionsPage() {
                 <CommonTable
                   rows={filteredQueueRows}
                   columns={queueColumns}
-                  getRowId={(lead) => lead.id}
-                  emptyMessage="No waiting admission leads found."
+                  getRowId={(row) => row.id}
+                  emptyMessage="No patients pending bed allocation."
                 />
               </Box>
             ) : null}
@@ -958,16 +1144,25 @@ export default function IpdAdmissionsPage() {
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button variant="outlined" onClick={handleSaveDraft}>
+            <Button variant="outlined" onClick={handleSaveDraft} disabled={!canManageAdmissions}>
               Save Draft
             </Button>
             <Button variant="outlined" onClick={() => setDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant="contained" onClick={() => handleCreateAdmission(false)}>
+            <Button
+              variant="contained"
+              onClick={() => handleCreateAdmission(false)}
+              disabled={!canManageAdmissions}
+            >
               Create Admission
             </Button>
-            <Button variant="contained" color="success" onClick={() => handleCreateAdmission(true)}>
+            <Button
+              variant="contained"
+              color="success"
+              onClick={() => handleCreateAdmission(true)}
+              disabled={!canManageAdmissions || !canOpenBedBoard}
+            >
               Create + Bed Allocate
             </Button>
           </DialogActions>

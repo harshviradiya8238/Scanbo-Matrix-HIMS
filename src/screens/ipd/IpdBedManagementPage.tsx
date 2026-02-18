@@ -29,10 +29,8 @@ import {
   SwapHoriz as SwapHorizIcon,
 } from '@mui/icons-material';
 import {
-  ADMISSION_LEADS,
   BedStatus,
   INITIAL_BED_BOARD,
-  INPATIENT_STAYS,
   WardBed,
 } from './ipd-mock-data';
 import {
@@ -45,7 +43,8 @@ import IpdModuleTabs from './components/IpdModuleTabs';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
-import { assignIpdEncounterBed } from './ipd-encounter-context';
+import { usePermission } from '@/src/core/auth/usePermission';
+import { assignIpdEncounterBed, useIpdEncounters } from './ipd-encounter-context';
 
 interface BedAllocationForm {
   patientId: string;
@@ -66,6 +65,16 @@ interface BedMovementLog {
 }
 
 type BedCensusTab = 'bed-board' | 'waiting' | 'inpatient-list' | 'transfers' | 'isolation';
+
+interface BedPatient {
+  id: string;
+  mrn: string;
+  patientName: string;
+  consultant: string;
+  diagnosis: string;
+  ward: string;
+  bed: string;
+}
 
 const BED_CENSUS_TABS: Array<{ id: BedCensusTab; label: string }> = [
   { id: 'bed-board', label: 'Bed Board' },
@@ -114,13 +123,17 @@ export default function IpdBedManagementPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mrnParam = useMrnParam();
+  const patientIdParam = searchParams.get('patientId')?.trim() ?? '';
+  const permissionGate = usePermission();
+  const ipdEncounters = useIpdEncounters();
+  const canManageBeds = permissionGate('ipd.beds.write');
   const [bedBoard, setBedBoard] = React.useState<WardBed[]>(INITIAL_BED_BOARD);
   const [activeTab, setActiveTab] = React.useState<BedCensusTab>('bed-board');
   const [wardFilter, setWardFilter] = React.useState<'All' | string>('All');
   const [statusFilter, setStatusFilter] = React.useState<'All' | BedStatus>('All');
   const [search, setSearch] = React.useState('');
   const [allocation, setAllocation] = React.useState<BedAllocationForm>({
-    patientId: INPATIENT_STAYS[0]?.id ?? '',
+    patientId: '',
     targetBedId: '',
     transferReason: 'New Admission',
     notes: '',
@@ -156,7 +169,8 @@ export default function IpdBedManagementPage() {
     message: '',
     severity: 'success',
   });
-  const [mrnApplied, setMrnApplied] = React.useState(false);
+  const appliedPatientIdRef = React.useRef<string>('');
+  const appliedMrnRef = React.useRef<string>('');
 
   React.useEffect(() => {
     const tabParam = searchParams.get('tab');
@@ -165,9 +179,32 @@ export default function IpdBedManagementPage() {
     }
   }, [searchParams]);
 
+  const ipdPatients = React.useMemo<BedPatient[]>(
+    () =>
+      ipdEncounters
+        .filter((record) => record.workflowStatus !== 'discharged')
+        .map((record) => ({
+          id: record.patientId,
+          mrn: record.mrn,
+          patientName: record.patientName,
+          consultant: record.consultant,
+          diagnosis: record.diagnosis,
+          ward: record.ward,
+          bed: record.bed,
+        }))
+        .sort((left, right) => left.patientName.localeCompare(right.patientName)),
+    [ipdEncounters]
+  );
+
+  React.useEffect(() => {
+    if (!allocation.patientId) return;
+    if (ipdPatients.some((patient) => patient.id === allocation.patientId)) return;
+    setAllocation((prev) => ({ ...prev, patientId: '', targetBedId: '' }));
+  }, [allocation.patientId, ipdPatients]);
+
   const selectedPatient = React.useMemo(
-    () => INPATIENT_STAYS.find((patient) => patient.id === allocation.patientId),
-    [allocation.patientId]
+    () => ipdPatients.find((patient) => patient.id === allocation.patientId),
+    [allocation.patientId, ipdPatients]
   );
 
   const currentBed = React.useMemo(
@@ -231,23 +268,25 @@ export default function IpdBedManagementPage() {
   const occupancyPercent = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
 
   const waitingForBedRows = React.useMemo(() => {
-    return ADMISSION_LEADS.filter((lead) => {
-      const alreadyAllocated = bedBoard.some((bed) => bed.mrn === lead.mrn && bed.status === 'Occupied');
+    return ipdPatients.filter((patient) => {
+      const alreadyAllocated = bedBoard.some(
+        (bed) => bed.patientId === patient.id && bed.status === 'Occupied'
+      );
       return !alreadyAllocated;
     });
-  }, [bedBoard]);
+  }, [bedBoard, ipdPatients]);
 
   const inpatientRows = React.useMemo(() => {
-    return INPATIENT_STAYS.map((patient) => {
+    return ipdPatients.map((patient) => {
       const bed = bedBoard.find((entry) => entry.patientId === patient.id);
       return {
         ...patient,
-        currentBed: bed?.bedNumber ?? patient.bed,
-        currentWard: bed?.ward ?? patient.ward,
+        currentBed: bed?.bedNumber ?? patient.bed ?? 'Not assigned',
+        currentWard: bed?.ward ?? patient.ward ?? '--',
         status: bed?.status ?? 'Occupied',
       };
     });
-  }, [bedBoard]);
+  }, [bedBoard, ipdPatients]);
 
   const isolationRows = React.useMemo(
     () => bedBoard.filter((bed) => bed.isolation || bed.ward === 'ICU'),
@@ -262,10 +301,13 @@ export default function IpdBedManagementPage() {
       if (displayMrn) {
         params.set('mrn', displayMrn);
       }
+      if (allocation.patientId) {
+        params.set('patientId', allocation.patientId);
+      }
       const query = params.toString();
       router.replace(query ? `/ipd/beds?${query}` : '/ipd/beds', { scroll: false });
     },
-    [displayMrn, router, searchParams]
+    [allocation.patientId, displayMrn, router, searchParams]
   );
 
   const openClinicalCare = React.useCallback(
@@ -288,21 +330,49 @@ export default function IpdBedManagementPage() {
   };
 
   React.useEffect(() => {
-    if (!mrnParam || mrnApplied) return;
-    const stay = INPATIENT_STAYS.find((patient) => patient.mrn === mrnParam);
-    if (stay) {
-      setAllocation((prev) => ({ ...prev, patientId: stay.id }));
-    }
+    if (!patientIdParam) return;
+    if (appliedPatientIdRef.current === patientIdParam) return;
+    const patient = ipdPatients.find((item) => item.id === patientIdParam);
+    if (!patient) return;
+
+    setAllocation((prev) => ({ ...prev, patientId: patient.id }));
+    appliedPatientIdRef.current = patientIdParam;
+  }, [patientIdParam, ipdPatients]);
+
+  React.useEffect(() => {
+    if (!mrnParam) return;
+    const normalizedMrn = mrnParam.trim().toUpperCase();
+    if (!normalizedMrn || appliedMrnRef.current === normalizedMrn) return;
+
+    const patient = ipdPatients.find((item) => item.mrn.trim().toUpperCase() === normalizedMrn);
     const bed = bedBoard.find((item) => item.mrn === mrnParam);
+
+    if (!patient && !bed) {
+      // Keep waiting until encounter/bed state is ready for this MRN.
+      return;
+    }
+
+    if (patient && !patientIdParam) {
+      setAllocation((prev) => ({ ...prev, patientId: patient.id }));
+    }
     if (bed) {
       setSearch(mrnParam);
       setWardFilter('All');
       setStatusFilter('All');
     }
-    setMrnApplied(true);
-  }, [mrnParam, mrnApplied, bedBoard]);
+    appliedMrnRef.current = normalizedMrn;
+  }, [mrnParam, patientIdParam, ipdPatients, bedBoard]);
 
   const handleAssignBed = () => {
+    if (!canManageBeds) {
+      setSnackbar({
+        open: true,
+        message: 'You do not have permission to allocate or transfer beds.',
+        severity: 'error',
+      });
+      return;
+    }
+
     if (!selectedPatient) {
       setSnackbar({
         open: true,
@@ -412,6 +482,12 @@ export default function IpdBedManagementPage() {
   return (
     <PageTemplate title="Bed & Census" subtitle={pageSubtitle} currentPageTitle="Bed & Census">
       <Stack spacing={2}>
+        {!canManageBeds ? (
+          <Alert severity="warning">
+            You are in read-only mode for bed allocation. Contact admin for `ipd.beds.write` access.
+          </Alert>
+        ) : null}
+
         <Grid container spacing={2}>
           <Grid item xs={12} sm={3}>
             <IpdMetricCard
@@ -553,13 +629,16 @@ export default function IpdBedManagementPage() {
                       <Box key={bed.id} sx={{ display: 'flex', minWidth: 0, width: '100%' }}>
                         <Card
                           elevation={0}
-                          onClick={() => updateAllocationField('targetBedId', bed.id)}
+                          onClick={() => {
+                            if (!canManageBeds) return;
+                            updateAllocationField('targetBedId', bed.id);
+                          }}
                           sx={{
                             p: 1.4,
                             borderRadius: 1.6,
                             border: '2px solid',
                             borderColor: isSelected ? IPD_COLORS.primary : statusColor,
-                            cursor: 'pointer',
+                            cursor: canManageBeds ? 'pointer' : 'default',
                             backgroundColor: isSelected
                               ? alpha(IPD_COLORS.accent, 0.09)
                               : bedStatusBackgroundMap[bed.status],
@@ -569,10 +648,12 @@ export default function IpdBedManagementPage() {
                             width: '100%',
                             // aspectRatio: '4 / 3',
                             overflow: 'hidden',
-                            '&:hover': {
-                              transform: 'translateY(-1px)',
-                              boxShadow: 2,
-                            },
+                            '&:hover': canManageBeds
+                              ? {
+                                  transform: 'translateY(-1px)',
+                                  boxShadow: 2,
+                                }
+                              : undefined,
                           }}
                         >
                           <Stack spacing={0.8} sx={{ height: '100%' }}>
@@ -658,8 +739,12 @@ export default function IpdBedManagementPage() {
                     label="Patient"
                     value={allocation.patientId}
                     onChange={(event) => updateAllocationField('patientId', event.target.value)}
+                    disabled={!canManageBeds}
                   >
-                    {INPATIENT_STAYS.map((patient) => (
+                    <MenuItem value="" disabled>
+                      Select patient
+                    </MenuItem>
+                    {ipdPatients.map((patient) => (
                       <MenuItem key={patient.id} value={patient.id}>
                         {patient.patientName} ({patient.mrn})
                       </MenuItem>
@@ -671,6 +756,7 @@ export default function IpdBedManagementPage() {
                     label="Target Bed"
                     value={allocation.targetBedId}
                     onChange={(event) => updateAllocationField('targetBedId', event.target.value)}
+                    disabled={!canManageBeds}
                   >
                     {allocatableBeds.map((bed) => (
                       <MenuItem key={bed.id} value={bed.id}>
@@ -684,6 +770,7 @@ export default function IpdBedManagementPage() {
                     label="Reason"
                     value={allocation.transferReason}
                     onChange={(event) => updateAllocationField('transferReason', event.target.value)}
+                    disabled={!canManageBeds}
                   >
                     {['New Admission', 'Clinical Transfer', 'Infection Isolation', 'Patient Preference'].map(
                       (reason) => (
@@ -700,6 +787,7 @@ export default function IpdBedManagementPage() {
                     label="Notes"
                     value={allocation.notes}
                     onChange={(event) => updateAllocationField('notes', event.target.value)}
+                    disabled={!canManageBeds}
                   />
 
                   <FormControlLabel
@@ -707,6 +795,7 @@ export default function IpdBedManagementPage() {
                       <Checkbox
                         checked={allocation.isolation}
                         onChange={(event) => updateAllocationField('isolation', event.target.checked)}
+                        disabled={!canManageBeds}
                       />
                     }
                     label="Mark as isolation bed"
@@ -730,6 +819,7 @@ export default function IpdBedManagementPage() {
                     variant="contained"
                     startIcon={<SwapHorizIcon />}
                     onClick={handleAssignBed}
+                    disabled={!canManageBeds}
                     sx={{
                       background: `linear-gradient(135deg, ${IPD_COLORS.primary} 0%, ${IPD_COLORS.primaryLight} 100%)`,
                       '&:hover': {
@@ -787,14 +877,14 @@ export default function IpdBedManagementPage() {
         {activeTab === 'waiting' ? (
           <IpdSectionCard
             title="Waiting for Bed"
-            subtitle="Admission leads pending bed assignment."
+            subtitle="Admitted patients pending bed assignment."
           >
             <Stack spacing={1}>
               {waitingForBedRows.length === 0 ? (
-                <Alert severity="success">All current admission leads are already mapped to beds.</Alert>
+                <Alert severity="success">All admitted patients are already mapped to beds.</Alert>
               ) : (
-                waitingForBedRows.map((lead) => (
-                  <Card key={lead.id} variant="outlined" sx={{ p: 1.2, borderRadius: 1.6 }}>
+                waitingForBedRows.map((patient) => (
+                  <Card key={patient.id} variant="outlined" sx={{ p: 1.2, borderRadius: 1.6 }}>
                     <Stack
                       direction={{ xs: 'column', md: 'row' }}
                       justifyContent="space-between"
@@ -803,35 +893,23 @@ export default function IpdBedManagementPage() {
                     >
                       <Box>
                         <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          {lead.patientName} ({lead.mrn})
+                          {patient.patientName} ({patient.mrn})
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          {lead.preferredWard} · {lead.consultant}
+                          {patient.ward || 'Ward pending'} · {patient.consultant}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {lead.admissionReason}
+                          {patient.diagnosis || 'Admission created. Awaiting bed allocation.'}
                         </Typography>
                       </Box>
                       <Stack direction="row" spacing={0.8} alignItems="center">
-                        <Chip
-                          size="small"
-                          color={
-                            lead.priority === 'Emergency'
-                              ? 'error'
-                              : lead.priority === 'Urgent'
-                              ? 'warning'
-                              : 'default'
-                          }
-                          label={lead.priority}
-                        />
+                        <Chip size="small" color="warning" label="Bed Pending" />
                         <Button
                           size="small"
                           variant="outlined"
+                          disabled={!canManageBeds}
                           onClick={() => {
-                            const matchedPatient = INPATIENT_STAYS.find((item) => item.mrn === lead.mrn);
-                            if (matchedPatient) {
-                              updateAllocationField('patientId', matchedPatient.id);
-                            }
+                            updateAllocationField('patientId', patient.id);
                             updateTabInRoute('bed-board');
                           }}
                         >

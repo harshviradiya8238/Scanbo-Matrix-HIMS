@@ -6,8 +6,10 @@ import {
   Alert,
   Button,
   Chip,
+  MenuItem,
   Snackbar,
   Stack,
+  TextField,
   Typography,
 } from '@/src/ui/components/atoms';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
@@ -16,6 +18,7 @@ import CommonTable, {
   CommonTableFilter,
   CommonTableFilterOption,
 } from '@/src/ui/components/molecules/CommonTable';
+import { CommonDialog } from '@/src/ui/components/molecules';
 import {
   Add as AddIcon,
   AssignmentInd as AssignmentIndIcon,
@@ -24,12 +27,14 @@ import {
   History as HistoryIcon,
   LocalHospital as LocalHospitalIcon,
   PlayArrow as PlayArrowIcon,
+  SwapHoriz as SwapHorizIcon,
   WarningAmber as WarningAmberIcon,
 } from '@mui/icons-material';
 import {
   EncounterStatus,
   OpdEncounterCase,
 } from './opd-mock-data';
+import { AdmissionPriority } from '@/src/screens/ipd/ipd-mock-data';
 import {
   ENCOUNTER_STATUS_LABEL,
   buildEncounterRoute,
@@ -38,6 +43,7 @@ import { useUser } from '@/src/core/auth/UserContext';
 import { useAppDispatch } from '@/src/store/hooks';
 import { updateEncounter } from '@/src/store/slices/opdSlice';
 import { useOpdData } from '@/src/store/opdHooks';
+import { usePermission } from '@/src/core/auth/usePermission';
 import OpdLayout from './components/OpdLayout';
 import ActionBar from './components/ActionBar';
 import {
@@ -45,7 +51,12 @@ import {
   IpdSectionCard,
   ipdFormStylesSx,
 } from '@/src/screens/ipd/components/ipd-ui';
+import { useIpdEncounters } from '@/src/screens/ipd/ipd-encounter-context';
 import { getOpdRoleFlowProfile } from './opd-role-flow';
+import {
+  buildDefaultTransferPayload,
+  upsertOpdToIpdTransferLead,
+} from '@/src/screens/ipd/ipd-transfer-store';
 
 type QueueStage = 'Waiting' | 'In Progress';
 
@@ -53,6 +64,14 @@ interface QueueItem extends OpdEncounterCase {
   token: string;
   waitMinutes: number;
   stage: QueueStage;
+}
+
+interface QueueTransferDraft {
+  priority: AdmissionPriority;
+  preferredWard: string;
+  provisionalDiagnosis: string;
+  admissionReason: string;
+  requestNote: string;
 }
 
 const ACTIVE_QUEUE_STATUSES: EncounterStatus[] = ['ARRIVED', 'IN_QUEUE', 'IN_PROGRESS'];
@@ -71,9 +90,45 @@ function buildFilterOptions(values: string[], allLabel: string): CommonTableFilt
   return [{ label: allLabel, value: 'all' }, ...uniqueValues.map((value) => ({ label: value, value }))];
 }
 
-function buildQueue(encounters: OpdEncounterCase[]): QueueItem[] {
-  const active = encounters
+const statusRank: Record<EncounterStatus, number> = {
+  BOOKED: 0,
+  ARRIVED: 1,
+  IN_QUEUE: 2,
+  IN_PROGRESS: 3,
+  COMPLETED: 0,
+  CANCELLED: 0,
+};
+
+function normalizeMrn(mrn: string): string {
+  return mrn.trim().toUpperCase();
+}
+
+function pickPreferredEncounter(current: OpdEncounterCase, incoming: OpdEncounterCase): OpdEncounterCase {
+  const currentRank = statusRank[current.status] ?? 0;
+  const incomingRank = statusRank[incoming.status] ?? 0;
+  if (incomingRank > currentRank) return incoming;
+  if (incomingRank < currentRank) return current;
+  if (incoming.appointmentTime >= current.appointmentTime) return incoming;
+  return current;
+}
+
+function buildQueue(encounters: OpdEncounterCase[], excludedMrnSet: Set<string>): QueueItem[] {
+  const activeCandidates = encounters
     .filter((item) => ACTIVE_QUEUE_STATUSES.includes(item.status))
+    .filter((item) => !excludedMrnSet.has(normalizeMrn(item.mrn)));
+
+  const activeByMrn = new Map<string, OpdEncounterCase>();
+  activeCandidates.forEach((item) => {
+    const key = normalizeMrn(item.mrn);
+    const existing = activeByMrn.get(key);
+    if (!existing) {
+      activeByMrn.set(key, item);
+      return;
+    }
+    activeByMrn.set(key, pickPreferredEncounter(existing, item));
+  });
+
+  const active = Array.from(activeByMrn.values())
     .sort((left, right) => left.appointmentTime.localeCompare(right.appointmentTime));
 
   return active.map((item, index) => {
@@ -92,6 +147,8 @@ function buildQueue(encounters: OpdEncounterCase[]): QueueItem[] {
 export default function OpdQueuePage() {
   const router = useRouter();
   const { role } = useUser();
+  const permissionGate = usePermission();
+  const ipdEncounters = useIpdEncounters();
   const dispatch = useAppDispatch();
   const {
     appointments,
@@ -100,11 +157,32 @@ export default function OpdQueuePage() {
     error: opdError,
   } = useOpdData();
 
-  const queue = React.useMemo(() => buildQueue(encounters), [encounters]);
+  const activeIpdMrnSet = React.useMemo(
+    () =>
+      new Set(
+        ipdEncounters
+          .filter((record) => record.workflowStatus !== 'discharged')
+          .map((record) => normalizeMrn(record.mrn))
+      ),
+    [ipdEncounters]
+  );
+
+  const queue = React.useMemo(() => buildQueue(encounters, activeIpdMrnSet), [encounters, activeIpdMrnSet]);
   const roleProfile = React.useMemo(() => getOpdRoleFlowProfile(role), [role]);
   const canStartConsult = roleProfile.capabilities.canStartConsult;
   const canViewHistory = roleProfile.capabilities.canViewClinicalHistory;
   const canCreateRegistration = roleProfile.capabilities.canManageCalendar;
+  const canTransferToIpd =
+    roleProfile.capabilities.canTransferToIpd && permissionGate('ipd.transfer.write');
+  const [transferDialogOpen, setTransferDialogOpen] = React.useState(false);
+  const [selectedTransferItem, setSelectedTransferItem] = React.useState<QueueItem | null>(null);
+  const [transferDraft, setTransferDraft] = React.useState<QueueTransferDraft>({
+    priority: 'Routine',
+    preferredWard: 'Medical Ward - 1',
+    provisionalDiagnosis: '',
+    admissionReason: '',
+    requestNote: '',
+  });
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
@@ -114,18 +192,21 @@ export default function OpdQueuePage() {
     message: '',
     severity: 'success',
   });
+  const [isHydrated, setIsHydrated] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const withMrn = React.useCallback(
     (route: string, mrn?: string) => (mrn ? `${route}?mrn=${encodeURIComponent(mrn)}` : route),
     []
   );
 
-  const waitingCount = encounters.filter((item) => item.status === 'ARRIVED' || item.status === 'IN_QUEUE').length;
-  const inProgressCount = encounters.filter((item) => item.status === 'IN_PROGRESS').length;
+  const waitingCount = queue.filter((item) => item.stage === 'Waiting').length;
+  const inProgressCount = queue.filter((item) => item.stage === 'In Progress').length;
   const completedCount = encounters.filter((item) => item.status === 'COMPLETED').length;
-  const emergencyCount = encounters.filter(
-    (item) => item.queuePriority === 'Urgent' && ACTIVE_QUEUE_STATUSES.includes(item.status)
-  ).length;
+  const emergencyCount = queue.filter((item) => item.queuePriority === 'Urgent').length;
 
   const averageWaitMinutes = React.useMemo(() => {
     const waitingRows = queue.filter((item) => item.stage === 'Waiting');
@@ -213,6 +294,117 @@ export default function OpdQueuePage() {
     [canViewHistory, roleProfile.label, router, withMrn]
   );
 
+  const handleOpenTransferDialog = React.useCallback(
+    (item: QueueItem) => {
+      if (!canTransferToIpd) {
+        setSnackbar({
+          open: true,
+          message: `${roleProfile.label} does not have permission to move patient to IPD.`,
+          severity: 'warning',
+        });
+        return;
+      }
+
+      const appointment = appointments.find((row) => row.id === item.appointmentId);
+      const defaults = buildDefaultTransferPayload(item, {
+        payerType: appointment?.payerType,
+        phone: appointment?.phone,
+        requestedBy: roleProfile.label,
+        requestedByRole: role,
+      });
+
+      setSelectedTransferItem(item);
+      setTransferDraft({
+        priority: defaults.priority,
+        preferredWard: defaults.preferredWard,
+        provisionalDiagnosis: defaults.provisionalDiagnosis ?? '',
+        admissionReason: defaults.admissionReason,
+        requestNote: '',
+      });
+      setTransferDialogOpen(true);
+    },
+    [appointments, canTransferToIpd, role, roleProfile.label]
+  );
+
+  const handleSubmitTransfer = React.useCallback(() => {
+    if (!selectedTransferItem) return;
+    if (!canTransferToIpd) {
+      setSnackbar({
+        open: true,
+        message: `${roleProfile.label} does not have permission to move patient to IPD.`,
+        severity: 'warning',
+      });
+      return;
+    }
+
+    if (!transferDraft.preferredWard.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Preferred ward is required for IPD transfer.',
+        severity: 'error',
+      });
+      return;
+    }
+
+    if (!transferDraft.admissionReason.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Admission reason is required for IPD transfer.',
+        severity: 'error',
+      });
+      return;
+    }
+
+    const appointment = appointments.find((row) => row.id === selectedTransferItem.appointmentId);
+    const defaults = buildDefaultTransferPayload(selectedTransferItem, {
+      payerType: appointment?.payerType,
+      phone: appointment?.phone,
+      requestedBy: roleProfile.label,
+      requestedByRole: role,
+    });
+
+    const result = upsertOpdToIpdTransferLead({
+      ...defaults,
+      priority: transferDraft.priority,
+      preferredWard: transferDraft.preferredWard.trim(),
+      provisionalDiagnosis: transferDraft.provisionalDiagnosis.trim() || defaults.provisionalDiagnosis,
+      admissionReason: transferDraft.admissionReason.trim(),
+      requestNote: transferDraft.requestNote.trim(),
+    });
+
+    dispatch(
+      updateEncounter({
+        id: selectedTransferItem.id,
+        changes: { status: 'COMPLETED' },
+      })
+    );
+
+    setTransferDialogOpen(false);
+    setSelectedTransferItem(null);
+    setSnackbar({
+      open: true,
+      message:
+        result.status === 'created'
+          ? `IPD transfer created for ${result.lead.patientName}.`
+          : `IPD transfer updated for ${result.lead.patientName}.`,
+      severity: 'success',
+    });
+    router.push(`/ipd/admissions?mrn=${encodeURIComponent(result.lead.mrn)}`);
+  }, [
+    appointments,
+    canTransferToIpd,
+    dispatch,
+    role,
+    roleProfile.label,
+    router,
+    selectedTransferItem,
+    transferDraft.admissionReason,
+    transferDraft.preferredWard,
+    transferDraft.priority,
+    transferDraft.provisionalDiagnosis,
+    transferDraft.requestNote,
+  ]);
+
   const queueColumns = React.useMemo<CommonTableColumn<QueueItem>[]>(
     () => [
       {
@@ -297,7 +489,7 @@ export default function OpdQueuePage() {
         id: 'actions',
         label: 'Action',
         align: 'right',
-        minWidth: 230,
+        minWidth: 360,
         renderCell: (row) => (
           <Stack direction="row" spacing={0.7} justifyContent="flex-end">
             <Button
@@ -318,12 +510,39 @@ export default function OpdQueuePage() {
             >
               View History
             </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="secondary"
+              startIcon={<SwapHorizIcon />}
+              disabled={!canTransferToIpd}
+              onClick={() => handleOpenTransferDialog(row)}
+            >
+              Move to IPD
+            </Button>
           </Stack>
         ),
       },
     ],
-    [canStartConsult, canViewHistory, handleStartConsult, handleViewHistory]
+    [
+      canStartConsult,
+      canTransferToIpd,
+      canViewHistory,
+      handleOpenTransferDialog,
+      handleStartConsult,
+      handleViewHistory,
+    ]
   );
+
+  if (!isHydrated) {
+    return (
+      <OpdLayout title="OPD Dashboard" currentPageTitle="Queue" showRoleGuide={false}>
+        <Stack spacing={2}>
+          <Alert severity="info">Loading OPD queue...</Alert>
+        </Stack>
+      </OpdLayout>
+    );
+  }
 
   return (
     <OpdLayout title="OPD Dashboard" currentPageTitle="Queue" showRoleGuide={false}>
@@ -430,6 +649,122 @@ export default function OpdQueuePage() {
           />
         </IpdSectionCard>
       </Stack>
+
+      <CommonDialog
+        open={transferDialogOpen}
+        onClose={() => {
+          setTransferDialogOpen(false);
+          setSelectedTransferItem(null);
+        }}
+        title="Move Patient to IPD"
+        subtitle={
+          selectedTransferItem
+            ? `${selectedTransferItem.patientName} (${selectedTransferItem.mrn})`
+            : undefined
+        }
+        maxWidth="sm"
+        content={
+          <Stack spacing={1.5} sx={{ pt: 1 }}>
+            <Alert severity="info">
+              Create an IPD admission request from OPD. This patient will appear in IPD Admission Queue.
+            </Alert>
+            <TextField
+              select
+              label="Priority"
+              value={transferDraft.priority}
+              onChange={(event) =>
+                setTransferDraft((prev) => ({
+                  ...prev,
+                  priority: event.target.value as AdmissionPriority,
+                }))
+              }
+              fullWidth
+            >
+              {['Routine', 'Urgent', 'Emergency'].map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              label="Preferred Ward"
+              value={transferDraft.preferredWard}
+              onChange={(event) =>
+                setTransferDraft((prev) => ({
+                  ...prev,
+                  preferredWard: event.target.value,
+                }))
+              }
+              fullWidth
+            >
+              {['Medical Ward - 1', 'Medical Ward - 2', 'Surgical Ward - 1', 'ICU', 'HDU'].map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Provisional Diagnosis"
+              value={transferDraft.provisionalDiagnosis}
+              onChange={(event) =>
+                setTransferDraft((prev) => ({
+                  ...prev,
+                  provisionalDiagnosis: event.target.value,
+                }))
+              }
+              fullWidth
+            />
+            <TextField
+              label="Admission Reason"
+              value={transferDraft.admissionReason}
+              onChange={(event) =>
+                setTransferDraft((prev) => ({
+                  ...prev,
+                  admissionReason: event.target.value,
+                }))
+              }
+              minRows={2}
+              multiline
+              fullWidth
+            />
+            <TextField
+              label="Internal Note (Optional)"
+              value={transferDraft.requestNote}
+              onChange={(event) =>
+                setTransferDraft((prev) => ({
+                  ...prev,
+                  requestNote: event.target.value,
+                }))
+              }
+              minRows={2}
+              multiline
+              fullWidth
+            />
+          </Stack>
+        }
+        actions={
+          <>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setTransferDialogOpen(false);
+                setSelectedTransferItem(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<SwapHorizIcon />}
+              onClick={handleSubmitTransfer}
+              disabled={!canTransferToIpd || !selectedTransferItem}
+            >
+              Move to IPD
+            </Button>
+          </>
+        }
+      />
 
       <Snackbar
         open={snackbar.open}

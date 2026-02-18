@@ -223,12 +223,16 @@ const normalizeState = (state: StaffState): StaffState => {
   const mergedSystemRoles = systemRoles.map((role) => {
     const override = roleById.get(role.id);
     if (!override) return role;
+    const mergedPermissions = normalizePermissions([
+      ...(role.permissions ?? []),
+      ...(override.permissions ?? []),
+    ]);
     return {
       ...role,
       ...override,
       id: role.id,
       isSystem: true,
-      permissions: normalizePermissions(override.permissions ?? role.permissions),
+      permissions: mergedPermissions,
       isActive: override.isActive ?? role.isActive ?? true,
       updatedAt: override.updatedAt ?? role.updatedAt,
     };

@@ -43,6 +43,7 @@ import {
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
+import { usePermission } from '@/src/core/auth/usePermission';
 import { ipdFormStylesSx } from './components/ipd-ui';
 import {
   markIpdEncounterDischarged,
@@ -155,6 +156,8 @@ export default function IpdDischargePage() {
   const theme = useTheme();
   const router = useRouter();
   const mrnParam = useMrnParam();
+  const permissionGate = usePermission();
+  const canManageDischarge = permissionGate('ipd.discharge.write');
   const encounterState = useIpdEncounterState();
   const initialPatientId = DISCHARGE_CANDIDATES[0]?.patientId ?? '';
 
@@ -203,6 +206,19 @@ export default function IpdDischargePage() {
     instructions: '',
   });
   const [confirmDischargeError, setConfirmDischargeError] = React.useState('');
+
+  const guardDischargeWrite = React.useCallback(
+    (actionLabel: string) => {
+      if (canManageDischarge) return true;
+      setSnackbar({
+        open: true,
+        message: `You do not have permission to ${actionLabel}.`,
+        severity: 'error',
+      });
+      return false;
+    },
+    [canManageDischarge]
+  );
 
   const activeCandidates = React.useMemo(
     () => DISCHARGE_CANDIDATES.filter((candidate) => !completedPatientIds.includes(candidate.patientId)),
@@ -342,6 +358,7 @@ export default function IpdDischargePage() {
   };
 
   const openDischargeConfirmation = (patientId: string) => {
+    if (!guardDischargeWrite('start discharge confirmation')) return;
     const draft = getDraftByPatientId(patientId);
     setSelectedPatientId(patientId);
     setConfirmPatientId(patientId);
@@ -360,6 +377,7 @@ export default function IpdDischargePage() {
   };
 
   const finalizeDischargeFromConfirmation = () => {
+    if (!guardDischargeWrite('complete discharge')) return;
     if (!confirmPatientId) return;
 
     if (!confirmDischargeDraft.followUpDate.trim()) {
@@ -404,6 +422,7 @@ export default function IpdDischargePage() {
   };
 
   const updateChecklistItem = (patientId: string, checklistId: string, checked: boolean) => {
+    if (!guardDischargeWrite('update discharge checklist')) return;
     setChecklists((prev) => ({
       ...prev,
       [patientId]: {
@@ -424,6 +443,7 @@ export default function IpdDischargePage() {
   };
 
   const handleSaveDraft = () => {
+    if (!guardDischargeWrite('save discharge draft')) return;
     const now = new Date();
     setSaveStamp(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     setSnackbar({
@@ -514,6 +534,9 @@ export default function IpdDischargePage() {
     patientId: string,
     draftOverride?: Partial<DischargeDraft>
   ): boolean => {
+    if (!guardDischargeWrite('complete discharge')) {
+      return false;
+    }
     if (completedPatientIds.includes(patientId)) {
       return false;
     }
@@ -824,6 +847,7 @@ export default function IpdDischargePage() {
                           <Button
                             size="small"
                             variant="contained"
+                            disabled={!canManageDischarge}
                             sx={{
                               ...actionButtonSx,
                               background: 'linear-gradient(90deg, #4f46e5 0%, #4338ca 100%)',
@@ -856,6 +880,12 @@ export default function IpdDischargePage() {
   return (
     <PageTemplate title="Discharge & AVS" subtitle={pageSubtitle} currentPageTitle="Discharge & AVS">
       <Stack spacing={2}>
+        {!canManageDischarge ? (
+          <Alert severity="warning">
+            You are in read-only mode for discharge workflow. Contact admin for `ipd.discharge.write` access.
+          </Alert>
+        ) : null}
+
         <Stack spacing={0}>
           <Card
             elevation={0}
@@ -895,7 +925,7 @@ export default function IpdDischargePage() {
                   size="small"
                   color="error"
                   variant="outlined"
-                  disabled={!selectedPatient}
+                  disabled={!selectedPatient || !canManageDischarge}
                   onClick={() => selectedPatient && openDischargeConfirmation(selectedPatient.id)}
                 >
                   Start Discharge
@@ -1143,6 +1173,7 @@ export default function IpdDischargePage() {
                                   size="small"
                                   variant={checked ? 'contained' : 'outlined'}
                                   sx={{ ...actionButtonSx, minWidth: 38, px: 0.8 }}
+                                  disabled={!canManageDischarge}
                                   onClick={() =>
                                     updateChecklistItem(selectedPatientId, item.id, !checked)
                                   }
@@ -1513,6 +1544,7 @@ export default function IpdDischargePage() {
                                 variant="outlined"
                                 sx={compactButtonSx}
                                 onClick={handleSaveDraft}
+                                disabled={!canManageDischarge}
                               >
                                 Save Draft
                               </Button>
@@ -1528,6 +1560,7 @@ export default function IpdDischargePage() {
                               <Button
                                 size="small"
                                 variant="contained"
+                                disabled={!canManageDischarge}
                                 sx={{
                                   ...compactButtonSx,
                                   background: 'linear-gradient(90deg, #4f46e5 0%, #4338ca 100%)',
@@ -1745,6 +1778,7 @@ export default function IpdDischargePage() {
                 color="success"
                 sx={compactButtonSx}
                 onClick={finalizeDischargeFromConfirmation}
+                disabled={!canManageDischarge}
               >
                 Finalize Discharge
               </Button>

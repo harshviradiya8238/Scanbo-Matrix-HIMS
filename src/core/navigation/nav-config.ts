@@ -142,7 +142,7 @@ export const NAV_GROUPS: NavGroup[] = [
             iconName: 'Hotel',
             route: '/ipd/beds',
             type: 'item',
-            requiredPermissions: ['ipd.read'],
+            requiredPermissions: ['ipd.beds.read'],
             order: 3,
           },
           {

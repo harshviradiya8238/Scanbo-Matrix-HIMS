@@ -39,6 +39,7 @@ import {
   IpdClinicalStatus,
   syncIpdEncounterClinical,
   syncIpdEncounterDischargeChecks,
+  useIpdEncounters,
 } from './ipd-encounter-context';
 import {
   AssignmentTurnedIn as AssignmentTurnedInIcon,
@@ -57,13 +58,16 @@ type ClinicalTab =
   | 'nursing'
   | 'vitals'
   | 'orders'
+  | 'billing'
   | 'medications'
   | 'notes'
   | 'procedures';
 
 type PatientStatus = 'Stable' | 'Needs Review' | 'Critical';
 type OrderPriority = 'Routine' | 'Urgent' | 'STAT';
-type OrderStatus = 'Pending' | 'Scheduled' | 'In Progress' | 'Completed';
+type OrderStatus = 'Pending' | 'Scheduled' | 'In Progress' | 'Completed' | 'Cancelled';
+type BillingCategory = 'Lab' | 'Imaging' | 'Procedure' | 'Consultation' | 'Medication' | 'Nursing' | 'Other';
+type BillingStatus = 'Pending' | 'Ready for Billing' | 'Cancelled';
 type MedicationState = 'Active' | 'Due' | 'Given';
 type NoteKind = 'Physician Note' | 'Nursing Note' | 'SOAP Note';
 type NoteSeverity = 'Routine' | 'Urgent' | 'STAT';
@@ -107,6 +111,47 @@ interface ClinicalOrder {
   time: string;
   priority: OrderPriority;
   status: OrderStatus;
+  billingId?: string;
+  billingCategory?: BillingCategory;
+  statusUpdatedAt?: string;
+  statusUpdatedBy?: string;
+}
+
+interface BillingEntry {
+  id: string;
+  orderId: string;
+  patientId: string;
+  patientMrn: string;
+  patientName: string;
+  admissionId: string;
+  encounterId: string;
+  category: BillingCategory;
+  serviceCode: string;
+  serviceName: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  currency: 'INR';
+  status: BillingStatus;
+  orderedBy: string;
+  orderedAt: string;
+  statusUpdatedAt: string;
+  statusUpdatedBy: string;
+}
+
+interface PersistedOrderBillingState {
+  version: 1;
+  ordersByPatient: Record<string, ClinicalOrder[]>;
+  billingByPatient: Record<string, BillingEntry[]>;
+}
+
+interface ServicePriceMasterItem {
+  code: string;
+  category: BillingCategory;
+  label: string;
+  price: number;
+  orderTypes: string[];
+  keywords: string[];
 }
 
 interface MedicationRow {
@@ -154,6 +199,7 @@ const CLINICAL_TABS: Array<{ id: ClinicalTab; label: string }> = [
   { id: 'nursing', label: 'Nursing Care' },
   { id: 'vitals', label: 'Vitals' },
   { id: 'orders', label: 'Orders' },
+  { id: 'billing', label: 'Billing' },
   { id: 'medications', label: 'Medication Schedule' },
   { id: 'notes', label: 'Progress Notes' },
   { id: 'procedures', label: 'Procedures / Consults' },
@@ -178,32 +224,126 @@ const PATIENT_EXTRA: Record<
   'ipd-4': { status: 'Needs Review', dayOfStay: 2, bloodGroup: 'AB+', allergy: 'Sulfa drugs' },
 };
 
-const CLINICAL_PATIENTS: ClinicalPatient[] = INPATIENT_STAYS.map((stay) => {
-  const [age = '--', gender = '--'] = stay.ageGender.split('/').map((value) => value.trim());
-  const extra = PATIENT_EXTRA[stay.id] ?? {
-    status: 'Stable' as PatientStatus,
-    dayOfStay: 1,
-    bloodGroup: '--',
-    allergy: 'No known allergies',
-  };
+const ORDER_BILLING_STORAGE_KEY = 'scanbo.hims.ipd.orders-billing.v1';
 
-  return {
-    id: stay.id,
-    mrn: stay.mrn,
-    name: stay.patientName,
-    age,
-    gender,
-    bed: stay.bed,
-    ward: stay.ward,
-    consultant: stay.consultant,
-    diagnosis: stay.diagnosis,
-    admissionDate: stay.admissionDate,
-    dayOfStay: extra.dayOfStay,
-    bloodGroup: extra.bloodGroup,
-    allergy: extra.allergy,
-    status: extra.status,
-  };
+const ORDER_TYPE_TO_BILLING_CATEGORY: Record<string, BillingCategory> = {
+  lab: 'Lab',
+  imaging: 'Imaging',
+  procedure: 'Procedure',
+  consult: 'Consultation',
+  medication: 'Medication',
+  nursing: 'Nursing',
+};
+
+const SERVICE_PRICE_MASTER: ServicePriceMasterItem[] = [
+  {
+    code: 'LAB-CBC',
+    category: 'Lab',
+    label: 'Complete Blood Count (CBC)',
+    price: 450,
+    orderTypes: ['lab'],
+    keywords: ['cbc', 'blood count'],
+  },
+  {
+    code: 'LAB-CRP',
+    category: 'Lab',
+    label: 'C-Reactive Protein (CRP)',
+    price: 700,
+    orderTypes: ['lab'],
+    keywords: ['crp'],
+  },
+  {
+    code: 'LAB-TROP',
+    category: 'Lab',
+    label: 'Troponin Panel',
+    price: 1600,
+    orderTypes: ['lab'],
+    keywords: ['troponin'],
+  },
+  {
+    code: 'IMG-CXR',
+    category: 'Imaging',
+    label: 'Chest X-Ray',
+    price: 900,
+    orderTypes: ['imaging'],
+    keywords: ['x-ray', 'xray', 'chest'],
+  },
+  {
+    code: 'IMG-CT',
+    category: 'Imaging',
+    label: 'CT Scan',
+    price: 4500,
+    orderTypes: ['imaging'],
+    keywords: ['ct'],
+  },
+  {
+    code: 'PROC-NEB',
+    category: 'Procedure',
+    label: 'Nebulization Therapy',
+    price: 1200,
+    orderTypes: ['procedure'],
+    keywords: ['nebulization', 'nebulisation'],
+  },
+  {
+    code: 'CONS-CARD',
+    category: 'Consultation',
+    label: 'Specialist Consultation',
+    price: 1500,
+    orderTypes: ['consult'],
+    keywords: ['review', 'consult', 'cardiology', 'pulmonology'],
+  },
+  {
+    code: 'MED-IPD',
+    category: 'Medication',
+    label: 'Medication Administration',
+    price: 350,
+    orderTypes: ['medication'],
+    keywords: ['medication', 'protocol'],
+  },
+  {
+    code: 'NUR-CARE',
+    category: 'Nursing',
+    label: 'Nursing Care Task',
+    price: 300,
+    orderTypes: ['nursing'],
+    keywords: ['education', 'monitoring', 'charting'],
+  },
+];
+
+const DEFAULT_SERVICE_BY_CATEGORY: Record<
+  BillingCategory,
+  { code: string; label: string; price: number }
+> = {
+  Lab: { code: 'LAB-GEN', label: 'General Lab Service', price: 500 },
+  Imaging: { code: 'IMG-GEN', label: 'General Imaging Service', price: 1200 },
+  Procedure: { code: 'PROC-GEN', label: 'General Procedure Service', price: 1800 },
+  Consultation: { code: 'CONS-GEN', label: 'Consultation Service', price: 1000 },
+  Medication: { code: 'MED-GEN', label: 'Medication Service', price: 300 },
+  Nursing: { code: 'NUR-GEN', label: 'Nursing Service', price: 250 },
+  Other: { code: 'SRV-GEN', label: 'General Service', price: 500 },
+};
+
+const INDIAN_CURRENCY = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
 });
+
+const STAY_BY_ID = INPATIENT_STAYS.reduce<Record<string, (typeof INPATIENT_STAYS)[number]>>(
+  (accumulator, stay) => {
+    accumulator[stay.id] = stay;
+    return accumulator;
+  },
+  {}
+);
+
+const STAY_BY_MRN = INPATIENT_STAYS.reduce<Record<string, (typeof INPATIENT_STAYS)[number]>>(
+  (accumulator, stay) => {
+    accumulator[stay.mrn.trim().toUpperCase()] = stay;
+    return accumulator;
+  },
+  {}
+);
 
 const INITIAL_VITALS: Record<string, VitalReading[]> = {
   'ipd-1': [
@@ -654,6 +794,155 @@ function cloneOrders(source: Record<string, ClinicalOrder[]>): Record<string, Cl
   ) as Record<string, ClinicalOrder[]>;
 }
 
+function cloneBillingEntries(source: Record<string, BillingEntry[]>): Record<string, BillingEntry[]> {
+  return Object.fromEntries(
+    Object.entries(source).map(([patientId, rows]) => [
+      patientId,
+      rows.map((row) => ({ ...row })),
+    ])
+  ) as Record<string, BillingEntry[]>;
+}
+
+function normalizeOrderType(type: string): string {
+  return type.trim().toLowerCase();
+}
+
+function resolveBillingCategory(orderType: string): BillingCategory {
+  return ORDER_TYPE_TO_BILLING_CATEGORY[normalizeOrderType(orderType)] ?? 'Other';
+}
+
+function resolveBillingService(
+  orderType: string,
+  description: string
+): { code: string; label: string; category: BillingCategory; price: number } {
+  const normalizedType = normalizeOrderType(orderType);
+  const normalizedDescription = description.trim().toLowerCase();
+  const matched = SERVICE_PRICE_MASTER.find((service) => {
+    const typeMatch = service.orderTypes.includes(normalizedType);
+    if (!typeMatch) return false;
+    if (!normalizedDescription) return true;
+    return service.keywords.some((keyword) => normalizedDescription.includes(keyword));
+  });
+
+  if (matched) {
+    return {
+      code: matched.code,
+      label: matched.label,
+      category: matched.category,
+      price: matched.price,
+    };
+  }
+
+  const category = resolveBillingCategory(orderType);
+  const fallback = DEFAULT_SERVICE_BY_CATEGORY[category];
+  return {
+    code: fallback.code,
+    label: fallback.label,
+    category,
+    price: fallback.price,
+  };
+}
+
+function billingStatusFromOrderStatus(status: OrderStatus): BillingStatus {
+  if (status === 'Cancelled') return 'Cancelled';
+  if (status === 'Completed') return 'Ready for Billing';
+  return 'Pending';
+}
+
+function formatBillingAmount(amount: number): string {
+  return INDIAN_CURRENCY.format(amount);
+}
+
+function buildSeedOrderBillingState(): PersistedOrderBillingState {
+  const ordersByPatient = cloneOrders(INITIAL_ORDERS);
+  const billingByPatient: Record<string, BillingEntry[]> = {};
+
+  Object.entries(ordersByPatient).forEach(([patientId, rows]) => {
+    const stay = STAY_BY_ID[patientId];
+
+    const seededOrders = rows.map((order) => {
+      const billingId = order.billingId ?? `bill-${order.id}`;
+      const service = resolveBillingService(order.type, order.description);
+      return {
+        ...order,
+        billingId,
+        billingCategory: service.category,
+        statusUpdatedAt: order.time,
+        statusUpdatedBy: order.orderedBy,
+      };
+    });
+
+    ordersByPatient[patientId] = seededOrders;
+    billingByPatient[patientId] = seededOrders.map((order) => {
+      const service = resolveBillingService(order.type, order.description);
+      const quantity = 1;
+      const unitPrice = service.price;
+      return {
+        id: order.billingId ?? `bill-${order.id}`,
+        orderId: order.id,
+        patientId,
+        patientMrn: stay?.mrn ?? '',
+        patientName: stay?.patientName ?? '',
+        admissionId: `adm-${patientId}`,
+        encounterId: `enc-${patientId}`,
+        category: service.category,
+        serviceCode: service.code,
+        serviceName: service.label,
+        quantity,
+        unitPrice,
+        amount: unitPrice * quantity,
+        currency: 'INR',
+        status: billingStatusFromOrderStatus(order.status),
+        orderedBy: order.orderedBy,
+        orderedAt: order.time,
+        statusUpdatedAt: order.statusUpdatedAt ?? order.time,
+        statusUpdatedBy: order.statusUpdatedBy ?? order.orderedBy,
+      };
+    });
+  });
+
+  return {
+    version: 1,
+    ordersByPatient,
+    billingByPatient,
+  };
+}
+
+function readPersistedOrderBillingState(): PersistedOrderBillingState | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(ORDER_BILLING_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PersistedOrderBillingState>;
+    if (
+      !parsed ||
+      typeof parsed !== 'object' ||
+      !parsed.ordersByPatient ||
+      typeof parsed.ordersByPatient !== 'object' ||
+      !parsed.billingByPatient ||
+      typeof parsed.billingByPatient !== 'object'
+    ) {
+      return null;
+    }
+    return {
+      version: 1,
+      ordersByPatient: cloneOrders(parsed.ordersByPatient as Record<string, ClinicalOrder[]>),
+      billingByPatient: cloneBillingEntries(parsed.billingByPatient as Record<string, BillingEntry[]>),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedOrderBillingState(state: PersistedOrderBillingState): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(ORDER_BILLING_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // best-effort cache only
+  }
+}
+
 function cloneMedicationRows(source: Record<string, MedicationRow[]>): Record<string, MedicationRow[]> {
   return Object.fromEntries(
     Object.entries(source).map(([patientId, rows]) => [
@@ -734,11 +1023,18 @@ function getVitalTone(
   return 'success';
 }
 
-function orderStatusChipColor(status: OrderStatus): 'default' | 'warning' | 'info' | 'success' {
+function orderStatusChipColor(status: OrderStatus): 'default' | 'warning' | 'info' | 'success' | 'error' {
+  if (status === 'Cancelled') return 'error';
   if (status === 'Pending') return 'warning';
   if (status === 'Scheduled') return 'default';
   if (status === 'In Progress') return 'info';
   return 'success';
+}
+
+function billingStatusChipColor(status: BillingStatus): 'warning' | 'success' | 'error' {
+  if (status === 'Cancelled') return 'error';
+  if (status === 'Ready for Billing') return 'success';
+  return 'warning';
 }
 
 function priorityChipColor(priority: OrderPriority): 'default' | 'warning' | 'error' {
@@ -768,6 +1064,12 @@ function mapPatientStatusToEncounterStatus(status: PatientStatus): IpdClinicalSt
   return 'stable';
 }
 
+function mapEncounterStatusToPatientStatus(status: IpdClinicalStatus): PatientStatus {
+  if (status === 'critical') return 'Critical';
+  if (status === 'watch') return 'Needs Review';
+  return 'Stable';
+}
+
 function noteMetaLine(note: ProgressNote): string {
   return `${note.role} | ${note.type}${note.severity ? ` | ${note.severity}` : ''}`;
 }
@@ -778,17 +1080,70 @@ export default function IpdRoundsPage() {
   const searchParams = useSearchParams();
   const mrnParam = useMrnParam();
   const theme = useTheme();
+  const encounterRows = useIpdEncounters();
   const { permissions } = useUser();
 
-  const [selectedPatientId, setSelectedPatientId] = React.useState(
-    CLINICAL_PATIENTS[0]?.id ?? ''
+  const clinicalPatients = React.useMemo<ClinicalPatient[]>(() => {
+    return encounterRows
+      .filter((record) => record.workflowStatus !== 'discharged')
+      .map((record) => {
+        const normalizedMrn = record.mrn.trim().toUpperCase();
+        const seededPatient = getPatientByMrn(record.mrn);
+        const staySeed = STAY_BY_MRN[normalizedMrn];
+        const [ageFromStay = '--', genderFromStay = '--'] = (staySeed?.ageGender ?? '')
+          .split('/')
+          .map((value) => value.trim())
+          .filter(Boolean);
+        const extra = PATIENT_EXTRA[record.patientId] ?? {
+          status: 'Stable' as PatientStatus,
+          dayOfStay: 1,
+          bloodGroup: '--',
+          allergy: 'No known allergies',
+        };
+
+        return {
+          id: record.patientId,
+          mrn: record.mrn,
+          name: record.patientName || seededPatient?.name || staySeed?.patientName || 'Unknown Patient',
+          age: seededPatient ? String(seededPatient.age) : ageFromStay,
+          gender: seededPatient?.gender ?? genderFromStay,
+          bed: record.bed || staySeed?.bed || '--',
+          ward: record.ward || staySeed?.ward || '--',
+          consultant: record.consultant || staySeed?.consultant || '--',
+          diagnosis: record.diagnosis || staySeed?.diagnosis || '--',
+          admissionDate: staySeed?.admissionDate ?? '--',
+          dayOfStay: extra.dayOfStay,
+          bloodGroup: extra.bloodGroup,
+          allergy: extra.allergy,
+          status: mapEncounterStatusToPatientStatus(record.clinicalStatus),
+        };
+      });
+  }, [encounterRows]);
+
+  const encounterByPatientId = React.useMemo(
+    () =>
+      encounterRows.reduce<Record<string, (typeof encounterRows)[number]>>((accumulator, record) => {
+        accumulator[record.patientId] = record;
+        return accumulator;
+      }, {}),
+    [encounterRows]
   );
+
+  const initialOrderBillingState = React.useMemo<PersistedOrderBillingState>(
+    () => readPersistedOrderBillingState() ?? buildSeedOrderBillingState(),
+    []
+  );
+
+  const [selectedPatientId, setSelectedPatientId] = React.useState('');
   const [activeTab, setActiveTab] = React.useState<ClinicalTab>('rounds');
   const [vitalsByPatient, setVitalsByPatient] = React.useState<Record<string, VitalReading[]>>(
     () => cloneVitals(INITIAL_VITALS)
   );
   const [ordersByPatient, setOrdersByPatient] = React.useState<Record<string, ClinicalOrder[]>>(
-    () => cloneOrders(INITIAL_ORDERS)
+    () => cloneOrders(initialOrderBillingState.ordersByPatient)
+  );
+  const [billingByPatient, setBillingByPatient] = React.useState<Record<string, BillingEntry[]>>(
+    () => cloneBillingEntries(initialOrderBillingState.billingByPatient)
   );
   const [medicationsByPatient, setMedicationsByPatient] = React.useState<
     Record<string, MedicationRow[]>
@@ -905,19 +1260,41 @@ export default function IpdRoundsPage() {
   }, [searchParams]);
 
   React.useEffect(() => {
-    if (!mrnParam) return;
-    const matched = CLINICAL_PATIENTS.find((patient) => patient.mrn === mrnParam);
-    if (!matched) return;
-    setSelectedPatientId((currentPatientId) =>
-      currentPatientId === matched.id ? currentPatientId : matched.id
-    );
-  }, [mrnParam]);
+    writePersistedOrderBillingState({
+      version: 1,
+      ordersByPatient,
+      billingByPatient,
+    });
+  }, [billingByPatient, ordersByPatient]);
+
+  React.useEffect(() => {
+    if (clinicalPatients.length === 0) {
+      setSelectedPatientId('');
+      return;
+    }
+
+    if (mrnParam) {
+      const matched = clinicalPatients.find((patient) => patient.mrn === mrnParam);
+      if (matched) {
+        setSelectedPatientId((currentPatientId) =>
+          currentPatientId === matched.id ? currentPatientId : matched.id
+        );
+        return;
+      }
+    }
+
+    setSelectedPatientId((currentPatientId) => {
+      if (currentPatientId && clinicalPatients.some((patient) => patient.id === currentPatientId)) {
+        return currentPatientId;
+      }
+      return clinicalPatients[0]?.id ?? '';
+    });
+  }, [clinicalPatients, mrnParam]);
 
   const selectedPatient = React.useMemo(
     () =>
-      CLINICAL_PATIENTS.find((patient) => patient.id === selectedPatientId) ??
-      CLINICAL_PATIENTS[0],
-    [selectedPatientId]
+      clinicalPatients.find((patient) => patient.id === selectedPatientId) ?? clinicalPatients[0] ?? null,
+    [clinicalPatients, selectedPatientId]
   );
 
   if (!selectedPatient) {
@@ -968,18 +1345,29 @@ export default function IpdRoundsPage() {
 
   const patientVitals = vitalsByPatient[selectedPatient.id] ?? [];
   const patientOrders = ordersByPatient[selectedPatient.id] ?? [];
+  const patientBillingEntries = billingByPatient[selectedPatient.id] ?? [];
   const patientMeds = medicationsByPatient[selectedPatient.id] ?? [];
   const patientNotes = notesByPatient[selectedPatient.id] ?? [];
   const patientProcedures = proceduresByPatient[selectedPatient.id] ?? [];
   const patientChecklist = checklistsByPatient[selectedPatient.id] ?? [];
   const latestVitals = patientVitals[0];
-  const pendingOrders = patientOrders.filter((order) => order.status !== 'Completed');
+  const pendingOrders = patientOrders.filter(
+    (order) => order.status !== 'Completed' && order.status !== 'Cancelled'
+  );
+  const pendingBillingEntries = patientBillingEntries.filter((entry) => entry.status === 'Pending');
+  const readyBillingEntries = patientBillingEntries.filter(
+    (entry) => entry.status === 'Ready for Billing'
+  );
+  const cancelledBillingEntries = patientBillingEntries.filter(
+    (entry) => entry.status === 'Cancelled'
+  );
+  const totalBillingAmount = patientBillingEntries.reduce((sum, entry) => sum + entry.amount, 0);
   const checklistDoneCount = patientChecklist.filter((item) => item.done).length;
-  const stableCount = CLINICAL_PATIENTS.filter((patient) => patient.status === 'Stable').length;
-  const reviewCount = CLINICAL_PATIENTS.filter(
+  const stableCount = clinicalPatients.filter((patient) => patient.status === 'Stable').length;
+  const reviewCount = clinicalPatients.filter(
     (patient) => patient.status === 'Needs Review'
   ).length;
-  const criticalCount = CLINICAL_PATIENTS.filter(
+  const criticalCount = clinicalPatients.filter(
     (patient) => patient.status === 'Critical'
   ).length;
 
@@ -988,11 +1376,13 @@ export default function IpdRoundsPage() {
     const selectedMeds = medicationsByPatient[selectedPatient.id] ?? [];
     const selectedChecklist = checklistsByPatient[selectedPatient.id] ?? [];
 
-    const pendingOrdersCount = selectedOrders.filter((order) => order.status !== 'Completed').length;
+    const pendingOrdersCount = selectedOrders.filter(
+      (order) => order.status !== 'Completed' && order.status !== 'Cancelled'
+    ).length;
     const pendingDiagnosticsCount = selectedOrders.filter((order) => {
       const orderType = order.type.toLowerCase();
       const isDiagnostic = orderType.includes('lab') || orderType.includes('imaging');
-      return isDiagnostic && order.status !== 'Completed';
+      return isDiagnostic && order.status !== 'Completed' && order.status !== 'Cancelled';
     }).length;
     const pendingMedicationsCount = selectedMeds.filter((row) => row.state !== 'Given').length;
     const followUpReady = selectedChecklist.find((item) => item.id === 'followup')?.done ?? false;
@@ -1024,7 +1414,12 @@ export default function IpdRoundsPage() {
 
   const tabItems = CLINICAL_TABS.map((tab) => ({
     ...tab,
-    count: tab.id === 'orders' ? pendingOrders.length : undefined,
+    count:
+      tab.id === 'orders'
+        ? pendingOrders.length
+        : tab.id === 'billing'
+        ? pendingBillingEntries.length
+        : undefined,
   }));
 
   const openRoute = (route: string, permissionRoute: string) => {
@@ -1046,7 +1441,7 @@ export default function IpdRoundsPage() {
   };
 
   const onSelectPatient = (patientId: string) => {
-    const patient = CLINICAL_PATIENTS.find((item) => item.id === patientId);
+    const patient = clinicalPatients.find((item) => item.id === patientId);
     if (!patient) return;
     setSelectedPatientId(patient.id);
     replaceWorkspaceQuery(activeTab, patient.mrn);
@@ -1055,6 +1450,105 @@ export default function IpdRoundsPage() {
   const showSnack = React.useCallback((message: string, severity: SnackSeverity = 'info') => {
     setSnackbar({ open: true, message, severity });
   }, []);
+
+  const appendOrderWithAutoBilling = React.useCallback(
+    (payload: {
+      type: string;
+      description: string;
+      frequency: string;
+      priority: OrderPriority;
+      orderedBy: string;
+    }) => {
+      const now = new Date();
+      const stamp = now.toLocaleString();
+      const orderId = `ord-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const billingId = `bill-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const service = resolveBillingService(payload.type, payload.description);
+      const encounter = encounterByPatientId[selectedPatient.id];
+
+      const newOrder: ClinicalOrder = {
+        id: orderId,
+        type: payload.type,
+        description: payload.description,
+        frequency: payload.frequency,
+        orderedBy: payload.orderedBy,
+        time: stamp,
+        priority: payload.priority,
+        status: 'Pending',
+        billingId,
+        billingCategory: service.category,
+        statusUpdatedAt: stamp,
+        statusUpdatedBy: payload.orderedBy,
+      };
+
+      const newBillingEntry: BillingEntry = {
+        id: billingId,
+        orderId: orderId,
+        patientId: selectedPatient.id,
+        patientMrn: selectedPatient.mrn,
+        patientName: selectedPatient.name,
+        admissionId: encounter?.admissionId ?? `adm-${selectedPatient.id}`,
+        encounterId: encounter?.encounterId ?? `enc-${selectedPatient.id}`,
+        category: service.category,
+        serviceCode: service.code,
+        serviceName: service.label,
+        quantity: 1,
+        unitPrice: service.price,
+        amount: service.price,
+        currency: 'INR',
+        status: 'Pending',
+        orderedBy: payload.orderedBy,
+        orderedAt: stamp,
+        statusUpdatedAt: stamp,
+        statusUpdatedBy: payload.orderedBy,
+      };
+
+      setOrdersByPatient((previous) => ({
+        ...previous,
+        [selectedPatient.id]: [newOrder, ...(previous[selectedPatient.id] ?? [])],
+      }));
+      setBillingByPatient((previous) => ({
+        ...previous,
+        [selectedPatient.id]: [newBillingEntry, ...(previous[selectedPatient.id] ?? [])],
+      }));
+
+      return { newOrder, newBillingEntry };
+    },
+    [encounterByPatientId, selectedPatient.id, selectedPatient.mrn, selectedPatient.name]
+  );
+
+  const updateSelectedOrderStatus = React.useCallback(
+    (orderId: string, status: OrderStatus) => {
+      const statusStamp = new Date().toLocaleString();
+      setOrdersByPatient((previous) => ({
+        ...previous,
+        [selectedPatient.id]: (previous[selectedPatient.id] ?? []).map((order) =>
+          order.id === orderId
+            ? {
+                ...order,
+                status,
+                statusUpdatedAt: statusStamp,
+                statusUpdatedBy: selectedPatient.consultant,
+              }
+            : order
+        ),
+      }));
+      setBillingByPatient((previous) => ({
+        ...previous,
+        [selectedPatient.id]: (previous[selectedPatient.id] ?? []).map((entry) =>
+          entry.orderId === orderId
+            ? {
+                ...entry,
+                status: billingStatusFromOrderStatus(status),
+                statusUpdatedAt: statusStamp,
+                statusUpdatedBy: selectedPatient.consultant,
+              }
+            : entry
+        ),
+      }));
+    },
+    [selectedPatient.consultant, selectedPatient.id]
+  );
 
   const openVitalsDialog = () => {
     setVitalsDialogError('');
@@ -1117,27 +1611,26 @@ export default function IpdRoundsPage() {
       return;
     }
 
-    const newOrder: ClinicalOrder = {
-      id: `ord-${Date.now()}`,
-      type: orderDraft.type,
-      description: orderDraft.notes.trim()
-        ? `${orderDraft.description.trim()} | Note: ${orderDraft.notes.trim()}`
-        : orderDraft.description.trim(),
-      frequency: orderDraft.duration.trim()
-        ? `${orderDraft.frequency.trim() || 'Once'} | ${orderDraft.duration.trim()}`
-        : orderDraft.frequency.trim() || 'Once',
-      orderedBy: selectedPatient.consultant,
-      time: new Date().toLocaleString(),
-      priority: orderDraft.priority,
-      status: 'Pending',
-    };
+    const description = orderDraft.notes.trim()
+      ? `${orderDraft.description.trim()} | Note: ${orderDraft.notes.trim()}`
+      : orderDraft.description.trim();
+    const frequency = orderDraft.duration.trim()
+      ? `${orderDraft.frequency.trim() || 'Once'} | ${orderDraft.duration.trim()}`
+      : orderDraft.frequency.trim() || 'Once';
 
-    setOrdersByPatient((previous) => ({
-      ...previous,
-      [selectedPatient.id]: [newOrder, ...(previous[selectedPatient.id] ?? [])],
-    }));
+    const { newOrder, newBillingEntry } = appendOrderWithAutoBilling({
+      type: orderDraft.type,
+      description,
+      frequency,
+      priority: orderDraft.priority,
+      orderedBy: selectedPatient.consultant,
+    });
+
     setOrderDialogOpen(false);
-    showSnack(`Order placed: ${newOrder.description}`, 'success');
+    showSnack(
+      `Order placed (${newOrder.id}). Billing ${newBillingEntry.id} generated for ${formatBillingAmount(newBillingEntry.amount)}.`,
+      'success'
+    );
     switchTab('orders');
   };
 
@@ -1270,12 +1763,13 @@ export default function IpdRoundsPage() {
   };
 
   const markOrderCompleted = (orderId: string) => {
-    setOrdersByPatient((previous) => ({
-      ...previous,
-      [selectedPatient.id]: (previous[selectedPatient.id] ?? []).map((order) =>
-        order.id === orderId ? { ...order, status: 'Completed' as OrderStatus } : order
-      ),
-    }));
+    updateSelectedOrderStatus(orderId, 'Completed');
+    showSnack('Order marked as completed. Billing updated to Ready for Billing.', 'success');
+  };
+
+  const cancelOrder = (orderId: string) => {
+    updateSelectedOrderStatus(orderId, 'Cancelled');
+    showSnack('Order cancelled. Linked billing entry was cancelled.', 'warning');
   };
 
   const placeQuickOrder = () => {
@@ -1285,25 +1779,23 @@ export default function IpdRoundsPage() {
     }
     setQuickOrderError('');
 
-    const newOrder: ClinicalOrder = {
-      id: `ord-${Date.now()}`,
+    const frequency = quickOrder.duration.trim()
+      ? `${quickOrder.frequency.trim() || 'Once'} | ${quickOrder.duration.trim()}`
+      : quickOrder.frequency.trim() || 'Once';
+
+    const { newOrder, newBillingEntry } = appendOrderWithAutoBilling({
       type: quickOrder.type,
       description: quickOrder.description.trim(),
-      frequency: quickOrder.duration.trim()
-        ? `${quickOrder.frequency.trim() || 'Once'} | ${quickOrder.duration.trim()}`
-        : quickOrder.frequency.trim() || 'Once',
-      orderedBy: selectedPatient.consultant,
-      time: new Date().toLocaleString(),
+      frequency,
       priority: quickOrder.priority,
-      status: 'Pending',
-    };
-
-    setOrdersByPatient((previous) => ({
-      ...previous,
-      [selectedPatient.id]: [newOrder, ...(previous[selectedPatient.id] ?? [])],
-    }));
+      orderedBy: selectedPatient.consultant,
+    });
 
     setQuickOrder((previous) => ({ ...previous, description: '', duration: '' }));
+    showSnack(
+      `Quick order placed (${newOrder.id}). Billing ${newBillingEntry.id} generated for ${formatBillingAmount(newBillingEntry.amount)}.`,
+      'success'
+    );
     if (activeTab !== 'orders') {
       setActiveTab('orders');
       replaceWorkspaceQuery('orders', selectedPatient.mrn);
@@ -2333,6 +2825,9 @@ export default function IpdRoundsPage() {
                                 <Typography variant="caption" color="text.secondary">
                                   {order.orderedBy} | {order.time}
                                 </Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                  Billing: {order.billingId ?? '--'} · {order.billingCategory ?? resolveBillingCategory(order.type)}
+                                </Typography>
                               </TableCell>
                               <TableCell>{order.frequency}</TableCell>
                               <TableCell>
@@ -2342,14 +2837,25 @@ export default function IpdRoundsPage() {
                                 <Chip size="small" color={orderStatusChipColor(order.status)} label={order.status} />
                               </TableCell>
                               <TableCell align="right">
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  disabled={order.status === 'Completed'}
-                                  onClick={() => markOrderCompleted(order.id)}
-                                >
-                                  Mark Done
-                                </Button>
+                                <Stack direction="row" spacing={0.8} justifyContent="flex-end">
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    disabled={order.status === 'Completed' || order.status === 'Cancelled'}
+                                    onClick={() => markOrderCompleted(order.id)}
+                                  >
+                                    Mark Done
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    color="error"
+                                    variant="text"
+                                    disabled={order.status === 'Completed' || order.status === 'Cancelled'}
+                                    onClick={() => cancelOrder(order.id)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </Stack>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -2501,6 +3007,154 @@ export default function IpdRoundsPage() {
                   </Card>
                 </Grid>
               </Grid>
+            ) : null}
+
+            {activeTab === 'billing' ? (
+              <Stack spacing={2}>
+                <Grid container spacing={1.2}>
+                  {[
+                    {
+                      id: 'total-billing',
+                      label: 'Total Charges',
+                      value: formatBillingAmount(totalBillingAmount),
+                      tone: 'primary.main',
+                    },
+                    {
+                      id: 'pending-billing',
+                      label: 'Pending Bills',
+                      value: `${pendingBillingEntries.length}`,
+                      tone: 'warning.main',
+                    },
+                    {
+                      id: 'ready-billing',
+                      label: 'Ready for Billing',
+                      value: `${readyBillingEntries.length}`,
+                      tone: 'success.main',
+                    },
+                    {
+                      id: 'cancelled-billing',
+                      label: 'Cancelled Bills',
+                      value: `${cancelledBillingEntries.length}`,
+                      tone: 'error.main',
+                    },
+                  ].map((item) => (
+                    <Grid xs={12} sm={6} md={3} key={item.id}>
+                      <Card
+                        elevation={0}
+                        sx={{
+                          p: 1.4,
+                          borderRadius: 1.8,
+                          border: '1px solid',
+                          borderColor: alpha(theme.palette.primary.main, 0.14),
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary">
+                          {item.label}
+                        </Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 800, color: item.tone }}>
+                          {item.value}
+                        </Typography>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+
+                <Card elevation={0} sx={sectionCardSx}>
+                  <Box
+                    sx={{
+                      px: 2,
+                      py: 1.5,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                    }}
+                  >
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <AssignmentTurnedInIcon fontSize="small" color="primary" />
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        Order-linked Billing Ledger ({patientBillingEntries.length})
+                      </Typography>
+                    </Stack>
+                  </Box>
+
+                  {patientBillingEntries.length === 0 ? (
+                    <Box sx={{ p: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No billing entries yet. Create an order to auto-generate billing.
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.05) }}>
+                          <TableRow>
+                            <TableCell>Billing ID</TableCell>
+                            <TableCell>Order Link</TableCell>
+                            <TableCell>Service</TableCell>
+                            <TableCell>Category</TableCell>
+                            <TableCell>Admission / Encounter</TableCell>
+                            <TableCell>Amount</TableCell>
+                            <TableCell>Status</TableCell>
+                            <TableCell>Audit</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {patientBillingEntries.map((entry) => (
+                            <TableRow key={entry.id}>
+                              <TableCell sx={{ fontWeight: 700 }}>{entry.id}</TableCell>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                  {entry.orderId}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  MRN: {entry.patientMrn}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                  {entry.serviceName}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {entry.serviceCode}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>{entry.category}</TableCell>
+                              <TableCell>
+                                <Typography variant="body2">{entry.admissionId}</Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {entry.encounterId}
+                                </Typography>
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: 700 }}>{formatBillingAmount(entry.amount)}</TableCell>
+                              <TableCell>
+                                <Chip
+                                  size="small"
+                                  color={billingStatusChipColor(entry.status)}
+                                  label={entry.status}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                                  Ordered by: {entry.orderedBy}
+                                </Typography>
+                                <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                                  Ordered at: {entry.orderedAt}
+                                </Typography>
+                                <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                                  Updated by: {entry.statusUpdatedBy}
+                                </Typography>
+                                <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                                  Updated at: {entry.statusUpdatedAt}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
+                </Card>
+              </Stack>
             ) : null}
 
             {activeTab === 'medications' ? (

@@ -1,5 +1,5 @@
-import LegacyEncounterRedirect from '@/src/screens/opd/LegacyEncounterRedirect';
+import ClinicalPrescriptionsPage from '@/src/screens/clinical/ClinicalPrescriptionsPage';
 
 export default function PrescriptionsPage() {
-  return <LegacyEncounterRedirect target="prescriptions" />;
+  return <ClinicalPrescriptionsPage />;
 }
