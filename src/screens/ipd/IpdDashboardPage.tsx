@@ -19,7 +19,6 @@ import {
 import { Card } from '@/src/ui/components/molecules';
 import { alpha, useTheme, Theme } from '@/src/ui/theme';
 import {
-  AddCircleOutline as AddCircleOutlineIcon,
   AssignmentTurnedIn as AssignmentTurnedInIcon,
   Bed as BedIcon,
   CheckCircle as CheckCircleIcon,
@@ -35,9 +34,6 @@ import {
   INITIAL_BED_BOARD,
   INPATIENT_STAYS,
 } from './ipd-mock-data';
-import { useMrnParam } from '@/src/core/patients/useMrnParam';
-import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
-import { getPatientByMrn } from '@/src/mocks/global-patients';
 import { useUser } from '@/src/core/auth/UserContext';
 import { canAccessRoute } from '@/src/core/navigation/route-access';
 import { IpdMetricCard } from './components/ipd-ui';
@@ -90,9 +86,9 @@ const DAY_OF_STAY_BY_PATIENT_ID: Record<string, number> = {
 };
 
 const QUICK_MODULES: QuickModule[] = [
-  { id: 'orders', short: 'OR', label: 'Orders', route: '/ipd/rounds', tab: 'orders' },
-  { id: 'lab', short: 'LB', label: 'Lab Results', route: '/ipd/rounds', tab: 'orders' },
-  { id: 'radiology', short: 'RA', label: 'Radiology', route: '/ipd/rounds', tab: 'procedures' },
+  { id: 'orders', short: 'OR', label: 'Orders', route: '/ipd/orders-tests/orders' },
+  { id: 'lab', short: 'LB', label: 'Lab Results', route: '/ipd/orders-tests/lab' },
+  { id: 'radiology', short: 'RA', label: 'Radiology', route: '/ipd/orders-tests/radiology' },
   { id: 'pharmacy', short: 'RX', label: 'Drug Review', route: '/ipd/charges', tab: 'drug' },
   { id: 'careteam', short: 'CT', label: 'Care Team', route: '/ipd/rounds', tab: 'rounds' },
   { id: 'flowsheet', short: 'FS', label: 'Flowsheets', route: '/ipd/rounds', tab: 'vitals' },
@@ -117,15 +113,8 @@ const QUICK_MODULES: QuickModule[] = [
 export default function IpdDashboardPage() {
   const theme = useTheme();
   const router = useRouter();
-  const mrnParam = useMrnParam();
   const encounterRows = useIpdEncounters();
   const { permissions } = useUser();
-
-  const patientFromMrn = getPatientByMrn(mrnParam);
-  const pageSubtitle = formatPatientLabel(
-    patientFromMrn?.name,
-    patientFromMrn?.mrn || mrnParam
-  );
 
   const activeEncounterRows = React.useMemo(
     () => encounterRows.filter((record) => record.workflowStatus !== 'discharged'),
@@ -167,14 +156,13 @@ export default function IpdDashboardPage() {
       if (tab) {
         params.set('tab', tab);
       }
-      const effectiveMrn = patientMrn ?? mrnParam;
-      if (effectiveMrn) {
-        params.set('mrn', effectiveMrn);
+      if (patientMrn) {
+        params.set('mrn', patientMrn);
       }
       const query = params.toString();
       return query ? `${route}?${query}` : route;
     },
-    [mrnParam]
+    []
   );
 
   const openRoute = React.useCallback(
@@ -400,54 +388,35 @@ export default function IpdDashboardPage() {
     },
   ];
 
+  const dashboardHeader = (
+    <Box
+      sx={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 11,
+        px: { xs: 1.75, sm: 2.5 },
+        py: 1.05,
+        borderBottom: '1px solid',
+        borderColor: alpha(theme.palette.primary.main, 0.18),
+        background: `linear-gradient(180deg, ${alpha(theme.palette.background.paper, 0.98)} 0%, ${alpha(
+          theme.palette.primary.light,
+          0.88
+        )} 100%)`,
+        backdropFilter: 'blur(8px)',
+      }}
+    >
+      <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', lineHeight: 1.05 }}>
+        IPD Dashboard
+      </Typography>
+      <Typography variant="body2" sx={{ mt: 0.25, color: 'text.secondary' }}>
+        Overview of all inpatients, bed status, and alerts.
+      </Typography>
+    </Box>
+  );
+
   return (
-    <PageTemplate title="IPD Dashboard" subtitle={pageSubtitle} currentPageTitle="IPD Dashboard">
+    <PageTemplate title="IPD Dashboard" header={dashboardHeader} currentPageTitle="IPD Dashboard">
       <Stack spacing={1.8}>
-        <Card
-          elevation={0}
-          sx={{
-            border: '1px solid',
-            borderColor: alpha(theme.palette.primary.main, 0.18),
-            borderRadius: 2.2,
-            overflow: 'hidden',
-          }}
-        >
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            justifyContent="space-between"
-            alignItems={{ xs: 'flex-start', md: 'center' }}
-            spacing={1.4}
-            sx={{
-              px: { xs: 1.6, sm: 2.2 },
-              py: { xs: 1.5, sm: 1.8 },
-              backgroundColor: alpha(theme.palette.primary.main, 0.05),
-            }}
-          >
-            <Box>
-              <Typography
-                variant="h5"
-                sx={{ fontWeight: 800, color: theme.palette.primary.main, lineHeight: 1.1 }}
-              >
-                IPD Dashboard
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 0.35, color: 'text.secondary' }}>
-                Overview of all inpatients, bed status, and alerts — 22 EPIC modules
-              </Typography>
-            </Box>
-
-            {/* <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddCircleOutlineIcon />}
-              disabled={!canNavigate('/ipd/admissions')}
-              onClick={() => openRoute('/ipd/admissions')}
-              sx={{ borderRadius: 1.4, px: 1.35, py: 0.5, minHeight: 34, fontWeight: 700 }}
-            >
-              Admit Patient
-            </Button> */}
-          </Stack>
-        </Card>
-
         <Box
           sx={{
             display: 'grid',

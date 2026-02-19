@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 import {
   Alert,
@@ -28,17 +28,15 @@ import CommonTable, {
   CommonTableColumn,
   CommonTableFilterOption,
 } from '@/src/ui/components/molecules/CommonTable';
-import {
-  Search as SearchIcon,
-} from '@mui/icons-material';
+import { Search as SearchIcon } from '@mui/icons-material';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
-import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
 import { usePermission } from '@/src/core/auth/usePermission';
 import {
   ADMISSION_LEADS,
   AdmissionLead,
   AdmissionPriority,
+  DISCHARGE_CANDIDATES,
   INPATIENT_STAYS,
 } from './ipd-mock-data';
 import {
@@ -50,6 +48,7 @@ import {
   markOpdToIpdTransferHandledByMrn,
   useOpdToIpdTransferLeads,
 } from './ipd-transfer-store';
+import IpdPatientTopBar, { IpdPatientOption, IpdPatientTopBarField } from './components/IpdPatientTopBar';
 
 interface AdmissionDialogForm {
   patientName: string;
@@ -79,6 +78,7 @@ interface PatientRow {
   admissionDate: string;
   admissionTimestamp: number;
   consultant: string;
+  diagnosis: string;
   ward: string;
   bed: string;
   status: 'Admitted' | 'Observation';
@@ -157,8 +157,30 @@ function normalizeMrn(value: string): string {
   return value.trim().toUpperCase();
 }
 
+const TOTAL_BILL_BY_PATIENT_ID: Record<string, number> = {
+  'ipd-1': 67000,
+  'ipd-2': 52000,
+  'ipd-3': 182000,
+  'ipd-4': 48000,
+};
+
+const INSURANCE_BY_PATIENT_ID: Record<string, string> = {
+  'ipd-1': 'Star Health',
+  'ipd-2': 'HDFC Ergo',
+  'ipd-3': 'New India Assurance',
+  'ipd-4': 'No Insurance',
+};
+
+const INR_CURRENCY = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+});
+
 export default function IpdAdmissionsPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const mrnParam = useMrnParam();
   const permissionGate = usePermission();
   const ipdEncounters = useIpdEncounters();
@@ -215,11 +237,6 @@ export default function IpdAdmissionsPage() {
     [queueRowsAll, selectedLeadId]
   );
 
-  const seededPatient = getPatientByMrn(form.mrn || mrnParam);
-  const displayName = form.patientName || seededPatient?.name;
-  const displayMrn = form.mrn || seededPatient?.mrn || mrnParam;
-  const pageSubtitle = formatPatientLabel(displayName, displayMrn);
-
   const activeIpdPatients = React.useMemo(() => {
     const seedByMrn = new Map(
       INPATIENT_STAYS.map((stay) => [normalizeMrn(stay.mrn), stay] as const)
@@ -255,6 +272,7 @@ export default function IpdAdmissionsPage() {
         admissionDate: formatDateTimeForRow(new Date(admissionTimestamp)),
         admissionTimestamp,
         consultant: record.consultant || seed?.consultant || '--',
+        diagnosis: record.diagnosis || seed?.diagnosis || '--',
         ward: record.ward || seed?.ward || '--',
         bed,
         status: bed ? 'Admitted' : 'Observation',
@@ -266,6 +284,33 @@ export default function IpdAdmissionsPage() {
       (left, right) => right.admissionTimestamp - left.admissionTimestamp
     );
   }, [ipdEncounters]);
+
+  const buildFormFromActivePatient = React.useCallback((patient: PatientRow): AdmissionDialogForm => {
+    const diagnosis = patient.diagnosis === '--' ? '' : patient.diagnosis;
+    return {
+      ...buildEmptyForm(),
+      patientName: patient.patientName,
+      mrn: patient.mrn,
+      admissionSource: 'Transfer',
+      consultant: patient.consultant === '--' ? '' : patient.consultant,
+      preferredWard: patient.ward === '--' ? '' : patient.ward,
+      provisionalDiagnosis: diagnosis,
+      admissionReason: diagnosis,
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (!mrnParam) return;
+    const normalizedMrn = normalizeMrn(mrnParam);
+    if (!normalizedMrn || appliedMrnRef.current === normalizedMrn) return;
+
+    const patient = activeIpdPatients.find((row) => normalizeMrn(row.mrn) === normalizedMrn);
+    if (!patient) return;
+
+    setSelectedLeadId('');
+    setForm(buildFormFromActivePatient(patient));
+    appliedMrnRef.current = normalizedMrn;
+  }, [activeIpdPatients, buildFormFromActivePatient, mrnParam]);
 
   const allPatients = React.useMemo(
     () => activeIpdPatients.filter((patient) => Boolean(patient.bed)),
@@ -318,6 +363,246 @@ export default function IpdAdmissionsPage() {
     bedPendingRows.forEach((row) => merged.set(normalizeMrn(row.mrn), row));
     return Array.from(merged.values());
   }, [activeIpdMrnSet, activeIpdPatients, queueRowsAll]);
+
+  const topBarPatientOptions = React.useMemo<IpdPatientOption[]>(() => {
+    const leadByMrn = new Map(
+      queueRowsAll.map((lead) => [normalizeMrn(lead.mrn), lead] as const)
+    );
+    const merged = new Map<string, IpdPatientOption>();
+
+    activeIpdPatients.forEach((patient) => {
+      const mrnKey = normalizeMrn(patient.mrn);
+      if (!mrnKey) return;
+
+      const lead = leadByMrn.get(mrnKey);
+      const dischargeCandidate = DISCHARGE_CANDIDATES.find((row) => row.patientId === patient.id);
+      const status = !patient.bed
+        ? 'Bed Pending'
+        : dischargeCandidate
+        ? 'Discharge Due'
+        : 'Admitted';
+      const insurance =
+        INSURANCE_BY_PATIENT_ID[patient.id] ??
+        (lead
+          ? lead.patientType === 'Insurance'
+            ? 'HealthSecure TPA'
+            : lead.patientType
+          : '--');
+      const tags = ['Admitted'];
+      if (!patient.bed) tags.push('Bed Pending');
+      if (dischargeCandidate) tags.push('Discharge Due');
+      if (
+        patient.ward.toLowerCase().includes('icu') ||
+        patient.bed.toLowerCase().includes('icu')
+      ) {
+        tags.push('ICU');
+      }
+
+      merged.set(mrnKey, {
+        patientId: patient.id,
+        name: patient.patientName,
+        mrn: patient.mrn,
+        ageGender: patient.ageGender,
+        ward: patient.ward,
+        bed: patient.bed || '--',
+        consultant: patient.consultant,
+        diagnosis: patient.diagnosis,
+        status,
+        statusTone:
+          status === 'Discharge Due'
+            ? 'warning'
+            : status === 'Bed Pending'
+            ? 'warning'
+            : 'success',
+        insurance,
+        totalBill: TOTAL_BILL_BY_PATIENT_ID[patient.id] ?? 0,
+        tags,
+      });
+    });
+
+    queueRowsAll.forEach((lead) => {
+      const mrnKey = normalizeMrn(lead.mrn);
+      if (!mrnKey || merged.has(mrnKey)) return;
+
+      const insurance =
+        lead.patientType === 'Insurance' ? 'HealthSecure TPA' : lead.patientType;
+      merged.set(mrnKey, {
+        patientId: `lead-${lead.id}`,
+        name: lead.patientName,
+        mrn: lead.mrn,
+        ageGender: `${lead.age} / ${lead.gender}`,
+        ward: lead.preferredWard,
+        bed: '--',
+        consultant: lead.consultant,
+        diagnosis: lead.provisionalDiagnosis,
+        status: 'Pending Admission',
+        statusTone: 'warning',
+        insurance,
+        totalBill: 0,
+        tags: ['Pending Admission', lead.priority, lead.source],
+      });
+    });
+
+    return Array.from(merged.values()).sort((left, right) =>
+      left.name.localeCompare(right.name)
+    );
+  }, [activeIpdPatients, queueRowsAll]);
+
+  const selectedTopBarPatient = React.useMemo<IpdPatientOption | null>(() => {
+    const currentMrn = normalizeMrn(form.mrn || selectedLead?.mrn || mrnParam || '');
+    if (!currentMrn) return topBarPatientOptions[0] ?? null;
+    return (
+      topBarPatientOptions.find((row) => normalizeMrn(row.mrn) === currentMrn) ??
+      topBarPatientOptions[0] ??
+      null
+    );
+  }, [form.mrn, mrnParam, selectedLead?.mrn, topBarPatientOptions]);
+
+  const topBarFields = React.useMemo<IpdPatientTopBarField[]>(() => {
+    if (!selectedTopBarPatient) return [];
+
+    const mrnKey = normalizeMrn(selectedTopBarPatient.mrn);
+    const lead = queueRowsAll.find((row) => normalizeMrn(row.mrn) === mrnKey);
+    const activePatient = activeIpdPatients.find(
+      (row) => normalizeMrn(row.mrn) === mrnKey
+    );
+    const stay = INPATIENT_STAYS.find((row) => normalizeMrn(row.mrn) === mrnKey);
+    const dischargeCandidate = activePatient
+      ? DISCHARGE_CANDIDATES.find((row) => row.patientId === activePatient.id)
+      : undefined;
+    const globalPatient = getPatientByMrn(selectedTopBarPatient.mrn);
+    const allergies =
+      lead?.knownAllergies || globalPatient?.tags?.join(', ') || 'No known';
+    const status =
+      selectedTopBarPatient.status ||
+      (activePatient?.bed ? 'Admitted' : 'Pending Admission');
+    const totalBillValueRaw = selectedTopBarPatient.totalBill;
+    const totalBillValue =
+      typeof totalBillValueRaw === 'number'
+        ? totalBillValueRaw
+        : Number(totalBillValueRaw);
+    const totalBill = Number.isFinite(totalBillValue)
+      ? INR_CURRENCY.format(totalBillValue)
+      : '--';
+
+    return [
+      {
+        id: 'age-sex',
+        label: 'Age / Sex',
+        value:
+          selectedTopBarPatient.ageGender ??
+          stay?.ageGender ??
+          (lead ? `${lead.age} / ${lead.gender}` : '--'),
+      },
+      {
+        id: 'ward-bed',
+        label: 'Ward / Bed',
+        value: `${selectedTopBarPatient.ward || '--'} · ${
+          selectedTopBarPatient.bed || '--'
+        }`,
+      },
+      { id: 'admitted', label: 'Admitted', value: stay?.admissionDate ?? '--' },
+      {
+        id: 'los',
+        label: 'LOS',
+        value: dischargeCandidate ? `Day ${dischargeCandidate.losDays}` : '--',
+      },
+      {
+        id: 'diagnosis',
+        label: 'Diagnosis',
+        value:
+          selectedTopBarPatient.diagnosis || lead?.provisionalDiagnosis || '--',
+      },
+      {
+        id: 'consultant',
+        label: 'Consultant',
+        value: selectedTopBarPatient.consultant || lead?.consultant || '--',
+      },
+      { id: 'blood-group', label: 'Blood Group', value: '--' },
+      {
+        id: 'allergies',
+        label: 'Allergies',
+        value: allergies,
+        tone: allergies === 'No known' ? 'success' : 'warning',
+      },
+      {
+        id: 'insurance',
+        label: 'Insurance',
+        value: selectedTopBarPatient.insurance || '--',
+        tone: 'info',
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        value: status,
+        tone:
+          status === 'Admitted'
+            ? 'success'
+            : status === 'Discharge Due'
+            ? 'warning'
+            : 'info',
+      },
+      { id: 'total-bill', label: 'Total Bill', value: totalBill, tone: 'info' },
+    ];
+  }, [activeIpdPatients, queueRowsAll, selectedTopBarPatient]);
+
+  const onSelectTopBarPatient = React.useCallback(
+    (patientId: string) => {
+      const selectedPatient = topBarPatientOptions.find(
+        (row) => row.patientId === patientId
+      );
+      if (!selectedPatient) return;
+
+      const mrnKey = normalizeMrn(selectedPatient.mrn);
+      const lead = queueRowsAll.find((row) => normalizeMrn(row.mrn) === mrnKey);
+      const activePatient = activeIpdPatients.find(
+        (row) => normalizeMrn(row.mrn) === mrnKey
+      );
+
+      if (lead) {
+        setSelectedLeadId(lead.id);
+        setForm(buildFormFromLead(lead));
+      } else if (activePatient) {
+        setSelectedLeadId('');
+        setForm(buildFormFromActivePatient(activePatient));
+      } else {
+        setSelectedLeadId('');
+        setForm((prev) => ({ ...prev, patientName: selectedPatient.name, mrn: selectedPatient.mrn }));
+      }
+
+      appliedMrnRef.current = mrnKey;
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('mrn', selectedPatient.mrn);
+      if (activePatient?.id) {
+        params.set('patientId', activePatient.id);
+      } else {
+        params.delete('patientId');
+      }
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [
+      activeIpdPatients,
+      buildFormFromActivePatient,
+      pathname,
+      queueRowsAll,
+      router,
+      searchParams,
+      topBarPatientOptions,
+    ]
+  );
+
+  const topBarHeader = (
+    <IpdPatientTopBar
+      moduleTitle="IPD Admissions"
+      sectionLabel="IPD"
+      pageLabel="Admissions"
+      patient={selectedTopBarPatient}
+      fields={topBarFields}
+      patientOptions={topBarPatientOptions}
+      onSelectPatient={onSelectTopBarPatient}
+    />
+  );
 
   const allPatientColumns: CommonTableColumn<PatientRow>[] = [
     {
@@ -507,6 +792,7 @@ export default function IpdAdmissionsPage() {
           patient.patientName,
           patient.ageGender,
           patient.admissionDate,
+          patient.diagnosis,
           patient.ward,
           patient.consultant,
           patient.status,
@@ -742,17 +1028,14 @@ export default function IpdAdmissionsPage() {
   };
 
   return (
-    <PageTemplate title="IPD Admissions" subtitle={pageSubtitle} currentPageTitle="Admissions">
+    <PageTemplate title="IPD Admissions" header={topBarHeader} currentPageTitle="Admissions">
       <Stack spacing={2}>
         {!canManageAdmissions ? (
           <Alert severity="warning">
             You are in read-only mode for admissions. Contact admin for `ipd.admissions.write` access.
           </Alert>
         ) : null}
-        <Alert severity="info">
-          `All IPD Patients` shows only admitted patients (bed allocated). Patients pending bed allocation appear only
-          in `Admission Queue`.
-        </Alert>
+     
 
         <IpdSectionCard
           title="Admission Records"

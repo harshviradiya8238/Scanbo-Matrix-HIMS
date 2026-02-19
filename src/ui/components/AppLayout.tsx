@@ -69,13 +69,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
       sx={{
         display: 'grid',
         gridTemplateColumns: `${sidebarColumn} 1fr`,
+        gridTemplateRows: 'minmax(0, 1fr)',
         transition: prefersReducedMotion
           ? 'none'
           : theme.transitions.create('grid-template-columns', {
               easing: theme.transitions.easing.sharp,
               duration: 220,
             }),
+        height: '100vh',
         minHeight: '100vh',
+        overflow: 'hidden',
         backgroundColor: theme.palette.background.default,
         width: '100%',
         margin: 0,
@@ -116,6 +119,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           display: 'flex',
           flexDirection: 'column',
           minWidth: 0,
+          minHeight: 0,
         }}
       >
         {/* Header */}
@@ -138,7 +142,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
           sx={{
             flex: 1,
             minHeight: 0,
-            overflow: 'auto',
+            overflowY: 'auto',
+            overflowX: 'hidden',
             backgroundColor: theme.palette.background.default,
             width: '100%',
             margin: 0,
@@ -147,7 +152,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             flexDirection: 'column',
           }}
         >
-          <Box sx={{ flex: 1, minHeight: 0 }}>
+          <Box sx={{ flex: '1 0 auto' }}>
             {hasAccess ? (
               children
             ) : (

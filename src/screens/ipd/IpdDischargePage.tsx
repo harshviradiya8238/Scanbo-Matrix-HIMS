@@ -1,11 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 import {
   Alert,
-  Avatar,
   Box,
   Button,
   Chip,
@@ -41,10 +40,14 @@ import {
   INPATIENT_STAYS,
 } from './ipd-mock-data';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
-import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
 import { usePermission } from '@/src/core/auth/usePermission';
 import { ipdFormStylesSx } from './components/ipd-ui';
+import IpdPatientTopBar, {
+  IPD_PATIENT_TOP_BAR_STICKY_OFFSET,
+  IpdPatientOption,
+  IpdPatientTopBarField,
+} from './components/IpdPatientTopBar';
 import {
   markIpdEncounterDischarged,
   IpdEncounterRecord,
@@ -154,19 +157,37 @@ const ORDER_BILLING_STORAGE_KEY = 'scanbo.hims.ipd.orders-billing.v1';
 const DISCHARGE_MEDICATION_BILLING_PREFIX = 'bill-rx-discharge-';
 const DISCHARGE_MEDICATION_RX_PREFIX = 'dc-rx-';
 
+const INSURANCE_BY_PATIENT_ID: Record<string, string> = {
+  'ipd-1': 'Star Health',
+  'ipd-2': 'HDFC Ergo',
+  'ipd-3': 'New India Assurance',
+  'ipd-4': 'No Insurance',
+};
+
+const TOTAL_BILL_BY_PATIENT_ID: Record<string, number> = {
+  'ipd-1': 67000,
+  'ipd-2': 52000,
+  'ipd-3': 182000,
+  'ipd-4': 48000,
+};
+
+const DUE_BILL_BY_PATIENT_ID: Record<string, number> = {
+  'ipd-1': 16750,
+  'ipd-2': 8000,
+  'ipd-3': 32000,
+  'ipd-4': 27000,
+};
+
+const INR_CURRENCY = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+});
+
 function defaultIsoDate(offsetDays = 0): string {
   const date = new Date();
   date.setDate(date.getDate() + offsetDays);
   return date.toISOString().slice(0, 10);
-}
-
-function initials(name: string): string {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('');
 }
 
 function buildInitialDraft(patientId: string): DischargeDraft {
@@ -420,6 +441,8 @@ function syncDischargeMedicationBilling(
 export default function IpdDischargePage() {
   const theme = useTheme();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const mrnParam = useMrnParam();
   const permissionGate = usePermission();
   const canManageDischarge = permissionGate('ipd.discharge.write');
@@ -570,9 +593,6 @@ export default function IpdDischargePage() {
   );
 
   const seededPatient = getPatientByMrn(selectedPatient?.mrn ?? mrnParam);
-  const displayName = selectedPatient?.patientName || seededPatient?.name;
-  const displayMrn = selectedPatient?.mrn || seededPatient?.mrn || mrnParam;
-  const pageSubtitle = formatPatientLabel(displayName, displayMrn);
 
   const getDraftByPatientId = React.useCallback(
     (patientId: string): DischargeDraft => drafts[patientId] ?? buildInitialDraft(patientId),
@@ -609,26 +629,122 @@ export default function IpdDischargePage() {
   const [selectedAge = '--', selectedGender = '--'] = selectedPatient?.ageGender
     .split('/')
     .map((value) => value.trim()) ?? ['--', '--'];
-  const selectedStatus = selectedPatient
-    ? resolveStatusPill(selectedPatient.diagnosis, selectedProgress.percent)
-    : { label: 'stable', color: theme.palette.success.dark, bg: alpha(theme.palette.success.main, 0.2) };
 
   const pendingCount = activeCandidates.length;
   const dischargedCount = completedEntries.length;
+
+  const topBarPatientOptions = React.useMemo<IpdPatientOption[]>(() => {
+    return INPATIENT_STAYS.map((patient) => {
+      const progress = getProgressByPatientId(patient.id);
+      const candidate = DISCHARGE_CANDIDATES.find((row) => row.patientId === patient.id);
+      const isDischarged = completedPatientIds.includes(patient.id);
+      const status = isDischarged
+        ? 'Discharged'
+        : progress.percent >= 80 || Boolean(candidate)
+        ? 'Discharge Due'
+        : patient.ward.toLowerCase().includes('icu')
+        ? 'ICU'
+        : 'Admitted';
+      const tags = ['Admitted'];
+      if (patient.ward.toLowerCase().includes('icu')) tags.push('ICU');
+      if (progress.percent >= 80 || Boolean(candidate)) tags.push('Discharge Due');
+      if (isDischarged) tags.push('Discharged');
+
+      return {
+        patientId: patient.id,
+        name: patient.patientName,
+        mrn: patient.mrn,
+        ageGender: patient.ageGender,
+        ward: patient.ward,
+        bed: patient.bed,
+        consultant: patient.consultant,
+        diagnosis: patient.diagnosis,
+        status,
+        statusTone: status === 'Discharged' ? 'success' : status === 'Discharge Due' ? 'warning' : status === 'ICU' ? 'info' : 'success',
+        insurance: INSURANCE_BY_PATIENT_ID[patient.id] ?? '--',
+        totalBill: TOTAL_BILL_BY_PATIENT_ID[patient.id] ?? 0,
+        dueAmount: DUE_BILL_BY_PATIENT_ID[patient.id] ?? 0,
+        tags,
+      };
+    });
+  }, [completedPatientIds, getProgressByPatientId]);
+
+  const selectedTopBarPatient = React.useMemo(
+    () => topBarPatientOptions.find((row) => row.patientId === selectedPatientId) ?? null,
+    [selectedPatientId, topBarPatientOptions]
+  );
+
+  const topBarFields = React.useMemo<IpdPatientTopBarField[]>(() => {
+    if (!selectedPatient) return [];
+    const allergies = seededPatient?.tags?.join(', ') || 'No known';
+    const status = completedPatientIds.includes(selectedPatient.id)
+      ? 'Discharged'
+      : selectedProgress.percent >= 80
+      ? 'Discharge Due'
+      : selectedPatient.ward.toLowerCase().includes('icu')
+      ? 'ICU'
+      : 'Admitted';
+
+    return [
+      { id: 'age-sex', label: 'Age / Sex', value: `${selectedAge} / ${selectedGender}` },
+      { id: 'ward-bed', label: 'Ward / Bed', value: `${selectedPatient.ward} · ${selectedPatient.bed}` },
+      { id: 'admitted', label: 'Admitted', value: selectedPatient.admissionDate || '--' },
+      { id: 'los', label: 'LOS', value: selectedCandidate ? `Day ${selectedCandidate.losDays}` : '--' },
+      { id: 'diagnosis', label: 'Diagnosis', value: selectedPatient.diagnosis || '--' },
+      { id: 'consultant', label: 'Consultant', value: selectedPatient.consultant || '--' },
+      { id: 'blood-group', label: 'Blood Group', value: '--' },
+      { id: 'allergies', label: 'Allergies', value: allergies, tone: allergies === 'No known' ? 'success' : 'warning' },
+      { id: 'insurance', label: 'Insurance', value: INSURANCE_BY_PATIENT_ID[selectedPatient.id] ?? '--', tone: 'info' },
+      { id: 'status', label: 'Status', value: status, tone: status === 'Discharged' ? 'success' : status === 'Discharge Due' ? 'warning' : 'info' },
+      {
+        id: 'total-bill',
+        label: 'Total Bill',
+        value: INR_CURRENCY.format(TOTAL_BILL_BY_PATIENT_ID[selectedPatient.id] ?? 0),
+        tone: 'info',
+      },
+    ];
+  }, [
+    completedPatientIds,
+    seededPatient?.tags,
+    selectedAge,
+    selectedCandidate,
+    selectedGender,
+    selectedPatient,
+    selectedProgress.percent,
+  ]);
+
+  const onTopBarSelectPatient = React.useCallback(
+    (patientId: string) => {
+      setSelectedPatientId(patientId);
+      const patient = INPATIENT_STAYS.find((row) => row.id === patientId);
+      const params = new URLSearchParams(searchParams.toString());
+      if (patient?.mrn) {
+        params.set('mrn', patient.mrn);
+      } else {
+        params.delete('mrn');
+      }
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
+
+  const topBarHeader = (
+    <IpdPatientTopBar
+      moduleTitle="IPD Discharge & AVS"
+      sectionLabel="IPD"
+      pageLabel="Discharge & AVS"
+      patient={selectedTopBarPatient}
+      fields={topBarFields}
+      patientOptions={topBarPatientOptions}
+      onSelectPatient={onTopBarSelectPatient}
+    />
+  );
 
   const openAvsForPatient = (patientId: string) => {
     setSelectedPatientId(patientId);
     setErrors({});
     setFlowTab('avs');
-  };
-
-  const openClinicalCareTab = (tab: 'vitals' | 'orders' | 'notes') => {
-    const params = new URLSearchParams();
-    params.set('tab', tab);
-    if (selectedPatient?.mrn) {
-      params.set('mrn', selectedPatient.mrn);
-    }
-    router.push(`/ipd/rounds?${params.toString()}`);
   };
 
   const openDischargeConfirmation = (patientId: string) => {
@@ -1261,7 +1377,7 @@ export default function IpdDischargePage() {
   });
 
   return (
-    <PageTemplate title="Discharge & AVS" subtitle={pageSubtitle} currentPageTitle="Discharge & AVS">
+    <PageTemplate title="Discharge & AVS" header={topBarHeader}>
       <Stack spacing={2}>
         {!canManageDischarge ? (
           <Alert severity="warning">
@@ -1320,7 +1436,7 @@ export default function IpdDischargePage() {
           <Box
             sx={{
               position: 'sticky',
-              top: 0,
+              top: IPD_PATIENT_TOP_BAR_STICKY_OFFSET,
               zIndex: 5,
               backgroundColor: alpha(theme.palette.background.default, 0.92),
               backdropFilter: 'blur(6px)',
@@ -1368,79 +1484,6 @@ export default function IpdDischargePage() {
             </Card>
           </Box>
         </Stack>
-
-        {selectedPatient && flowTab === 'avs' ? (
-          <Card
-            elevation={0}
-            sx={{
-              p: { xs: 1.25, md: 1.5 },
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: alpha(theme.palette.primary.main, 0.2),
-              backgroundColor: alpha(theme.palette.primary.main, 0.03),
-            }}
-          >
-            <Stack
-              direction={{ xs: 'column', md: 'row' }}
-              spacing={1}
-              alignItems={{ xs: 'flex-start', md: 'center' }}
-              justifyContent="space-between"
-            >
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
-                <Avatar
-                  sx={{
-                    width: 42,
-                    height: 42,
-                    bgcolor: 'primary.main',
-                    fontWeight: 800,
-                    fontSize: '0.95rem',
-                  }}
-                >
-                  {initials(selectedPatient.patientName)}
-                </Avatar>
-
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                      {selectedPatient.patientName}
-                    </Typography>
-                    <Chip
-                      size="small"
-                      label={selectedStatus.label}
-                      sx={{
-                        fontFamily: 'monospace',
-                        fontWeight: 700,
-                        color: selectedStatus.color,
-                        backgroundColor: selectedStatus.bg,
-                        textTransform: 'capitalize',
-                      }}
-                    />
-                    <Chip size="small" label={selectedPatient.mrn} variant="outlined" />
-                  </Stack>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    {selectedAge} / {selectedGender} · {selectedPatient.ward} / {selectedPatient.bed} · Day{' '}
-                    {selectedCandidate?.losDays ?? '--'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    {selectedPatient.diagnosis} · Consultant: {selectedPatient.consultant}
-                  </Typography>
-                </Box>
-              </Stack>
-
-              <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                <Button size="small" variant="text" onClick={() => openClinicalCareTab('vitals')}>
-                  Vitals
-                </Button>
-                <Button size="small" variant="text" onClick={() => openClinicalCareTab('orders')}>
-                  Orders
-                </Button>
-                <Button size="small" variant="outlined" onClick={() => openClinicalCareTab('notes')}>
-                  Notes
-                </Button>
-              </Stack>
-            </Stack>
-          </Card>
-        ) : null}
 
         {flowTab === 'pending'
           ? renderDischargeTable(

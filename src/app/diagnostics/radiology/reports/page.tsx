@@ -1,5 +1,13 @@
-import RadiologyReportsScreen from '@/src/screens/clinical/RadiologyReportsPage';
+import { redirect } from 'next/navigation';
 
-export default function ReportsPage() {
-  return <RadiologyReportsScreen />;
+interface LegacyRadiologyReportsPageProps {
+  searchParams?: {
+    mrn?: string | string[];
+  };
+}
+
+export default function ReportsPage({ searchParams }: LegacyRadiologyReportsPageProps) {
+  const mrnValue = searchParams?.mrn;
+  const mrn = Array.isArray(mrnValue) ? mrnValue[0] : mrnValue;
+  redirect(mrn ? `/ipd/orders-tests/radiology?mrn=${encodeURIComponent(mrn)}` : '/ipd/orders-tests/radiology');
 }

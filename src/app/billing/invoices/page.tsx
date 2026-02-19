@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import IpdChargeDrugPage from '@/src/screens/ipd/IpdChargeDrugPage';
 
 export default function InvoicesPage() {
-  return <PageTemplate title="Billing Invoices" currentPageTitle="Invoices" />;
+  return <IpdChargeDrugPage defaultView="invoices" />;
 }

@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Alert,
-  Avatar,
   Box,
   Button,
   Chip,
@@ -16,7 +15,7 @@ import {
   TextField,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card, CommonDialog } from '@/src/ui/components/molecules';
+import { Card, CommonDialog, PatientGlobalHeader } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { alpha, useTheme } from '@/src/ui/theme';
 import {
@@ -225,16 +224,14 @@ const formatElapsed = (seconds: number) => {
   return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 };
 
-const getInitials = (name: string) =>
-  name
-    .split(' ')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase())
-    .slice(0, 2)
-    .join('');
-
 const getPatientAge = (ageGender: string): string => ageGender.split('/')[0]?.trim() ?? ageGender;
 const getPatientGender = (ageGender: string): string => ageGender.split('/')[1]?.trim() ?? '--';
+const toDisplayStatusLabel = (status: string): string =>
+  status
+    .split(/[\s_]+/)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+    .join(' ');
 const sanitizeAllergies = (allergies: string[]): string[] =>
   Array.from(
     new Set(
@@ -1551,153 +1548,85 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
 
       <Grid container spacing={2}>
         <Grid item xs={12} lg={3}>
-          <Card
-            elevation={0}
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              boxShadow: '0 12px 24px rgba(15, 23, 42, 0.06)',
-              backgroundColor: 'background.paper',
-            }}
+          <PatientGlobalHeader
+            variant="opd"
+            patientName={encounter.patientName}
+            mrn={encounter.mrn}
+            ageGender={encounter.ageGender}
+            primaryContext={`Chief complaint: ${encounter.chiefComplaint || '--'}`}
+            providerLabel="Doctor"
+            providerName={encounter.doctor}
+            summaryItems={[
+              { label: 'Age', value: getPatientAge(encounter.ageGender) },
+              { label: 'Gender', value: getPatientGender(encounter.ageGender) },
+              { label: 'Department', value: encounter.department || '--' },
+              { label: 'Check-in Time', value: encounter.appointmentTime || '--' },
+            ]}
+            statusChips={[
+              {
+                label: `Status: ${toDisplayStatusLabel(encounter.status)}`,
+                color:
+                  encounter.status === 'COMPLETED'
+                    ? 'success'
+                    : encounter.status === 'CANCELLED'
+                    ? 'default'
+                    : 'info',
+                variant: 'outlined',
+              },
+              {
+                label: `Priority: ${encounter.queuePriority}`,
+                color: encounter.queuePriority === 'Urgent' ? 'error' : 'info',
+                variant: 'outlined',
+              },
+              ...(allergyList.length === 0
+                ? [
+                    {
+                      label: 'No known allergies',
+                      color: 'success' as const,
+                      variant: 'outlined' as const,
+                    },
+                  ]
+                : allergyList.slice(0, 2).map((allergy) => ({
+                    label: `Allergy: ${allergy}`,
+                    color: 'error' as const,
+                    variant: 'outlined' as const,
+                  }))),
+              ...(allergyList.length > 2
+                ? [
+                    {
+                      label: `+${allergyList.length - 2} more allergies`,
+                      color: 'error' as const,
+                      variant: 'outlined' as const,
+                    },
+                  ]
+                : []),
+            ]}
           >
-            <Stack spacing={1.5}>
-              <Stack direction="row" spacing={1.2} alignItems="center">
-                <Avatar sx={{ width: 56, height: 56, bgcolor: 'primary.main', fontWeight: 700, fontSize: 22 }}>
-                  {getInitials(encounter.patientName)}
-                </Avatar>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                    {encounter.patientName}
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    {encounter.mrn}
-                  </Typography>
-                </Box>
-              </Stack>
-
-              <Divider />
-
-              <Stack spacing={0.8}>
-                {[
-                  ['Age', getPatientAge(encounter.ageGender)],
-                  ['Gender', getPatientGender(encounter.ageGender)],
-                  ['Department', encounter.department],
-                  ['Check-in Time', encounter.appointmentTime],
-                ].map(([label, value]) => (
-                  <Stack
-                    key={label}
-                    direction="row"
-                    justifyContent="space-between"
-                    sx={{
-                      px: 1.2,
-                      py: 1.05,
-                      borderRadius: 1.2,
-                      backgroundColor: alpha(theme.palette.text.primary, 0.02),
-                    }}
-                  >
-                    <Typography variant="body2" color="text.secondary">
-                      {label}
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      {value}
-                    </Typography>
-                  </Stack>
-                ))}
-              </Stack>
-
-              <Divider />
-
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                Alerts
-              </Typography>
-
-              <Stack spacing={0.7}>
-                <Box
-                  sx={{
-                    px: 1.2,
-                    py: 0.45,
-                    borderRadius: 999,
-                    border: '1px solid',
-                    borderColor:
-                      encounter.queuePriority === 'Urgent'
-                        ? alpha(theme.palette.error.main, 0.4)
-                        : alpha(theme.palette.info.main, 0.4),
-                    color: encounter.queuePriority === 'Urgent' ? 'error.main' : 'info.main',
-                    backgroundColor:
-                      encounter.queuePriority === 'Urgent'
-                        ? alpha(theme.palette.error.main, 0.08)
-                        : alpha(theme.palette.info.main, 0.08),
-                    textAlign: 'center',
-                    fontWeight: 600,
-                  }}
-                >
-                  Priority: {encounter.queuePriority}
-                </Box>
-
-                {allergyList.length === 0 ? (
-                  <Box
-                    sx={{
-                      px: 1.2,
-                      py: 0.45,
-                      borderRadius: 999,
-                      border: '1px solid',
-                      borderColor: alpha(theme.palette.success.main, 0.35),
-                      color: 'success.main',
-                      backgroundColor: alpha(theme.palette.success.main, 0.08),
-                      textAlign: 'center',
-                      fontWeight: 600,
-                    }}
-                  >
-                    No known allergies
-                  </Box>
-                ) : (
-                  allergyList.map((allergy) => (
-                    <Box
-                      key={allergy}
-                      sx={{
-                        px: 1.2,
-                        py: 0.45,
-                        borderRadius: 999,
-                        border: '1px solid',
-                        borderColor: alpha(theme.palette.error.main, 0.4),
-                        color: 'error.main',
-                        backgroundColor: alpha(theme.palette.error.main, 0.08),
-                        textAlign: 'center',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Allergy: {allergy}
-                    </Box>
-                  ))
-                )}
-              </Stack>
-
-              <Stack spacing={0.8} sx={{ pt: 0.6 }}>
-                <Button
-                  variant="outlined"
-                  disabled={!canViewClinicalHistory}
-                  onClick={() => setActiveTab('history')}
-                >
-                  View Full Medical History
-                </Button>
-                <Button
-                  variant="outlined"
-                  disabled={!canViewClinicalHistory}
-                  onClick={() => setActiveTab('notes')}
-                >
-                  View Documents & Notes
-                </Button>
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  disabled={!canTransferToIpd}
-                  onClick={handleOpenTransferToIpd}
-                >
-                  Move Patient to IPD
-                </Button>
-              </Stack>
+            <Stack spacing={0.8} sx={{ pt: 0.4 }}>
+              <Button
+                variant="outlined"
+                disabled={!canViewClinicalHistory}
+                onClick={() => setActiveTab('history')}
+              >
+                View Full Medical History
+              </Button>
+              <Button
+                variant="outlined"
+                disabled={!canViewClinicalHistory}
+                onClick={() => setActiveTab('notes')}
+              >
+                View Documents & Notes
+              </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                disabled={!canTransferToIpd}
+                onClick={handleOpenTransferToIpd}
+              >
+                Move Patient to IPD
+              </Button>
             </Stack>
-          </Card>
+          </PatientGlobalHeader>
         </Grid>
 
         <Grid item xs={12} lg={9}>

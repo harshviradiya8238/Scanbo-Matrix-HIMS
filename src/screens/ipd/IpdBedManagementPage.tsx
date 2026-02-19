@@ -30,6 +30,8 @@ import {
 } from '@mui/icons-material';
 import {
   BedStatus,
+  DISCHARGE_CANDIDATES,
+  INPATIENT_STAYS,
   INITIAL_BED_BOARD,
   WardBed,
 } from './ipd-mock-data';
@@ -41,9 +43,9 @@ import {
 } from './components/ipd-ui';
 import IpdModuleTabs from './components/IpdModuleTabs';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
-import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
 import { usePermission } from '@/src/core/auth/usePermission';
+import IpdPatientTopBar, { IpdPatientOption, IpdPatientTopBarField } from './components/IpdPatientTopBar';
 import { assignIpdEncounterBed, useIpdEncounters } from './ipd-encounter-context';
 
 interface BedAllocationForm {
@@ -103,6 +105,26 @@ const bedStatusBackgroundMap: Record<BedStatus, string> = {
   Reserved: alpha(IPD_COLORS.warning, 0.08),
   Blocked: alpha(IPD_COLORS.primary, 0.08),
 };
+
+const INSURANCE_BY_PATIENT_ID: Record<string, string> = {
+  'ipd-1': 'Star Health',
+  'ipd-2': 'HDFC Ergo',
+  'ipd-3': 'New India Assurance',
+  'ipd-4': 'No Insurance',
+};
+
+const TOTAL_BILL_BY_PATIENT_ID: Record<string, number> = {
+  'ipd-1': 67000,
+  'ipd-2': 52000,
+  'ipd-3': 182000,
+  'ipd-4': 48000,
+};
+
+const INR_CURRENCY = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+});
 
 function formatNowTime(): string {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -213,9 +235,7 @@ export default function IpdBedManagementPage() {
   );
 
   const seededPatient = getPatientByMrn(selectedPatient?.mrn ?? mrnParam);
-  const displayName = selectedPatient?.patientName || seededPatient?.name;
   const displayMrn = selectedPatient?.mrn || seededPatient?.mrn || mrnParam;
-  const pageSubtitle = formatPatientLabel(displayName, displayMrn);
 
   const wardOptions = React.useMemo(() => {
     const wards = new Set<string>();
@@ -320,6 +340,103 @@ export default function IpdBedManagementPage() {
       router.push(query ? `/ipd/rounds?${query}` : '/ipd/rounds');
     },
     [displayMrn, router]
+  );
+
+  const topBarPatientOptions = React.useMemo<IpdPatientOption[]>(() => {
+    return ipdPatients.map((patient) => {
+      const globalPatient = getPatientByMrn(patient.mrn);
+      const stay = INPATIENT_STAYS.find((row) => row.id === patient.id || row.mrn === patient.mrn);
+      const candidate = DISCHARGE_CANDIDATES.find((row) => row.patientId === patient.id);
+      const bed = bedBoard.find((row) => row.patientId === patient.id);
+      const status = patient.ward.toLowerCase().includes('icu')
+        ? 'ICU'
+        : candidate
+        ? 'Discharge Due'
+        : 'Admitted';
+      const tags = ['Admitted'];
+      if (candidate) tags.push('Discharge Due');
+      if (patient.ward.toLowerCase().includes('icu') || patient.bed.toLowerCase().includes('icu')) tags.push('ICU');
+
+      return {
+        patientId: patient.id,
+        name: patient.patientName,
+        mrn: patient.mrn,
+        ageGender: stay?.ageGender ?? globalPatient?.ageGender ?? '--',
+        ward: bed?.ward ?? patient.ward ?? '--',
+        bed: bed?.bedNumber ?? patient.bed ?? '--',
+        consultant: patient.consultant || '--',
+        diagnosis: patient.diagnosis || '--',
+        status,
+        statusTone: status === 'ICU' ? 'info' : status === 'Discharge Due' ? 'warning' : 'success',
+        insurance: INSURANCE_BY_PATIENT_ID[patient.id] ?? '--',
+        totalBill: TOTAL_BILL_BY_PATIENT_ID[patient.id] ?? 0,
+        tags,
+      };
+    });
+  }, [bedBoard, ipdPatients]);
+
+  const selectedTopBarPatient = React.useMemo(
+    () =>
+      selectedPatient
+        ? topBarPatientOptions.find((row) => row.patientId === selectedPatient.id) ?? null
+        : topBarPatientOptions[0] ?? null,
+    [selectedPatient, topBarPatientOptions]
+  );
+
+  const topBarFields = React.useMemo<IpdPatientTopBarField[]>(() => {
+    const activePatient = selectedTopBarPatient;
+    if (!activePatient) return [];
+    const stay = INPATIENT_STAYS.find((row) => row.id === activePatient.patientId || row.mrn === activePatient.mrn);
+    const candidate = DISCHARGE_CANDIDATES.find((row) => row.patientId === activePatient.patientId);
+    const globalPatient = getPatientByMrn(activePatient.mrn);
+    const allergies = globalPatient?.tags?.join(', ') || 'No known';
+    const status = activePatient.status ?? 'Admitted';
+
+    return [
+      { id: 'age-sex', label: 'Age / Sex', value: stay?.ageGender ?? globalPatient?.ageGender ?? '--' },
+      { id: 'ward-bed', label: 'Ward / Bed', value: `${activePatient.ward ?? '--'} · ${activePatient.bed ?? '--'}` },
+      { id: 'admitted', label: 'Admitted', value: stay?.admissionDate ?? '--' },
+      { id: 'los', label: 'LOS', value: candidate ? `Day ${candidate.losDays}` : '--' },
+      { id: 'diagnosis', label: 'Diagnosis', value: activePatient.diagnosis || '--' },
+      { id: 'consultant', label: 'Consultant', value: activePatient.consultant || '--' },
+      { id: 'blood-group', label: 'Blood Group', value: '--' },
+      { id: 'allergies', label: 'Allergies', value: allergies, tone: allergies === 'No known' ? 'success' : 'warning' },
+      { id: 'insurance', label: 'Insurance', value: INSURANCE_BY_PATIENT_ID[activePatient.patientId] ?? '--', tone: 'info' },
+      { id: 'status', label: 'Status', value: status, tone: status === 'Discharge Due' ? 'warning' : 'success' },
+      {
+        id: 'total-bill',
+        label: 'Total Bill',
+        value: INR_CURRENCY.format(TOTAL_BILL_BY_PATIENT_ID[activePatient.patientId] ?? 0),
+        tone: 'info',
+      },
+    ];
+  }, [selectedTopBarPatient]);
+
+  const onTopBarSelectPatient = React.useCallback(
+    (patientId: string) => {
+      const patient = ipdPatients.find((row) => row.id === patientId);
+      if (!patient) return;
+      setAllocation((prev) => ({ ...prev, patientId, targetBedId: '' }));
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('tab', activeTab);
+      params.set('patientId', patientId);
+      params.set('mrn', patient.mrn);
+      const query = params.toString();
+      router.replace(query ? `/ipd/beds?${query}` : '/ipd/beds', { scroll: false });
+    },
+    [activeTab, ipdPatients, router, searchParams]
+  );
+
+  const topBarHeader = (
+    <IpdPatientTopBar
+      moduleTitle="IPD Bed & Census"
+      sectionLabel="IPD"
+      pageLabel="Bed & Census"
+      patient={selectedTopBarPatient}
+      fields={topBarFields}
+      patientOptions={topBarPatientOptions}
+      onSelectPatient={onTopBarSelectPatient}
+    />
   );
 
   const updateAllocationField = <K extends keyof BedAllocationForm>(
@@ -480,7 +597,7 @@ export default function IpdBedManagementPage() {
   };
 
   return (
-    <PageTemplate title="Bed & Census" subtitle={pageSubtitle} currentPageTitle="Bed & Census">
+    <PageTemplate title="Bed & Census" header={topBarHeader} currentPageTitle="Bed & Census">
       <Stack spacing={2}>
         {!canManageBeds ? (
           <Alert severity="warning">

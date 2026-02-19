@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import IpdChargeDrugPage from '@/src/screens/ipd/IpdChargeDrugPage';
 
 export default function RefundsPage() {
-  return <PageTemplate title="Billing Refunds" currentPageTitle="Refunds" />;
+  return <IpdChargeDrugPage defaultView="refunds" />;
 }

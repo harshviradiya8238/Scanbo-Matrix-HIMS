@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import IpdChargeDrugPage from '@/src/screens/ipd/IpdChargeDrugPage';
 
 export default function InsurancePage() {
-  return <PageTemplate title="Insurance / TPA" currentPageTitle="Insurance" />;
+  return <IpdChargeDrugPage defaultView="insurance" />;
 }

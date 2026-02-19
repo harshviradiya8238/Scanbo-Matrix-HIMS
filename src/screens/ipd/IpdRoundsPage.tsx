@@ -29,12 +29,16 @@ import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { Card, CommonDialog } from '@/src/ui/components/molecules';
 import { alpha, useTheme } from '@/src/ui/theme';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
-import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { INPATIENT_STAYS } from './ipd-mock-data';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
 import { useUser } from '@/src/core/auth/UserContext';
 import { canAccessRoute } from '@/src/core/navigation/route-access';
 import { ipdFormStylesSx } from './components/ipd-ui';
+import IpdPatientTopBar, {
+  IPD_PATIENT_TOP_BAR_STICKY_OFFSET,
+  IpdPatientOption,
+  IpdPatientTopBarField,
+} from './components/IpdPatientTopBar';
 import {
   IpdEncounterRecord,
   IpdClinicalStatus,
@@ -240,6 +244,26 @@ const PATIENT_EXTRA: Record<
   'ipd-3': { status: 'Critical', dayOfStay: 4, bloodGroup: 'A+', allergy: 'No known allergies' },
   'ipd-4': { status: 'Needs Review', dayOfStay: 2, bloodGroup: 'AB+', allergy: 'Sulfa drugs' },
 };
+
+const INSURANCE_BY_PATIENT_ID: Record<string, string> = {
+  'ipd-1': 'Star Health',
+  'ipd-2': 'HDFC Ergo',
+  'ipd-3': 'New India Assurance',
+  'ipd-4': 'No Insurance',
+};
+
+const TOTAL_BILL_BY_PATIENT_ID: Record<string, number> = {
+  'ipd-1': 67000,
+  'ipd-2': 52000,
+  'ipd-3': 182000,
+  'ipd-4': 48000,
+};
+
+const INR_CURRENCY = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+});
 
 const ORDER_BILLING_STORAGE_KEY = 'scanbo.hims.ipd.orders-billing.v1';
 const ROUNDS_MEDICATION_STORAGE_KEY = 'scanbo.hims.ipd.rounds-medications.v1';
@@ -1575,7 +1599,21 @@ export default function IpdRoundsPage() {
 
   if (!selectedPatient) {
     return (
-      <PageTemplate title="Clinical Care" currentPageTitle="Clinical Care Workspace">
+      <PageTemplate
+        title="Clinical Care"
+        header={
+          <IpdPatientTopBar
+            moduleTitle="IPD Clinical Care"
+            sectionLabel="IPD"
+            pageLabel="Clinical Care Workspace"
+            patient={null}
+            fields={[]}
+            patientOptions={[]}
+            onSelectPatient={() => {}}
+          />
+        }
+        currentPageTitle="Clinical Care Workspace"
+      >
         <Card elevation={0} sx={{ p: 2 }}>
           <Typography variant="body2" color="text.secondary">
             No inpatient records available.
@@ -1584,11 +1622,6 @@ export default function IpdRoundsPage() {
       </PageTemplate>
     );
   }
-
-  const seededPatient = getPatientByMrn(selectedPatient.mrn ?? mrnParam);
-  const displayName = selectedPatient.name || seededPatient?.name;
-  const displayMrn = selectedPatient.mrn || seededPatient?.mrn || mrnParam;
-  const pageSubtitle = formatPatientLabel(displayName, displayMrn);
 
   const replaceWorkspaceQuery = React.useCallback(
     (nextTab: ClinicalTab, nextMrn?: string) => {
@@ -1722,6 +1755,87 @@ export default function IpdRoundsPage() {
     setSelectedPatientId(patient.id);
     replaceWorkspaceQuery(activeTab, patient.mrn);
   };
+
+  const topBarPatientOptions = React.useMemo<IpdPatientOption[]>(() => {
+    return clinicalPatients.map((patient) => {
+      const status =
+        patient.status === 'Critical'
+          ? 'Critical'
+          : patient.status === 'Needs Review'
+          ? 'Discharge Due'
+          : patient.ward.toLowerCase().includes('icu')
+          ? 'ICU'
+          : 'Admitted';
+      const tags = ['Admitted'];
+      if (patient.status === 'Needs Review') tags.push('Discharge Due');
+      if (patient.status === 'Critical') tags.push('Critical');
+      if (patient.ward.toLowerCase().includes('icu') || patient.bed.toLowerCase().includes('icu')) tags.push('ICU');
+
+      return {
+        patientId: patient.id,
+        name: patient.name,
+        mrn: patient.mrn,
+        ageGender: `${patient.age} / ${patient.gender}`,
+        ward: patient.ward,
+        bed: patient.bed,
+        consultant: patient.consultant,
+        diagnosis: patient.diagnosis,
+        status,
+        statusTone:
+          status === 'Critical' ? 'error' : status === 'Discharge Due' ? 'warning' : status === 'ICU' ? 'info' : 'success',
+        insurance: INSURANCE_BY_PATIENT_ID[patient.id] ?? '--',
+        totalBill: TOTAL_BILL_BY_PATIENT_ID[patient.id] ?? 0,
+        tags,
+      };
+    });
+  }, [clinicalPatients]);
+
+  const selectedTopBarPatient = React.useMemo(
+    () => topBarPatientOptions.find((row) => row.patientId === selectedPatient.id) ?? null,
+    [selectedPatient.id, topBarPatientOptions]
+  );
+
+  const topBarFields = React.useMemo<IpdPatientTopBarField[]>(() => {
+    const status =
+      selectedPatient.status === 'Critical'
+        ? 'Critical'
+        : selectedPatient.status === 'Needs Review'
+        ? 'Discharge Due'
+        : selectedPatient.ward.toLowerCase().includes('icu')
+        ? 'ICU'
+        : 'Admitted';
+
+    return [
+      { id: 'age-sex', label: 'Age / Sex', value: `${selectedPatient.age} / ${selectedPatient.gender}` },
+      { id: 'ward-bed', label: 'Ward / Bed', value: `${selectedPatient.ward} · ${selectedPatient.bed}` },
+      { id: 'admitted', label: 'Admitted', value: selectedPatient.admissionDate || '--' },
+      { id: 'los', label: 'LOS', value: `Day ${selectedPatient.dayOfStay}` },
+      { id: 'diagnosis', label: 'Diagnosis', value: selectedPatient.diagnosis || '--' },
+      { id: 'consultant', label: 'Consultant', value: selectedPatient.consultant || '--' },
+      { id: 'blood-group', label: 'Blood Group', value: selectedPatient.bloodGroup || '--' },
+      { id: 'allergies', label: 'Allergies', value: selectedPatient.allergy || '--', tone: selectedPatient.allergy === 'No known allergies' ? 'success' : 'warning' },
+      { id: 'insurance', label: 'Insurance', value: INSURANCE_BY_PATIENT_ID[selectedPatient.id] ?? '--', tone: 'info' },
+      { id: 'status', label: 'Status', value: status, tone: status === 'Critical' ? 'error' : status === 'Discharge Due' ? 'warning' : 'success' },
+      {
+        id: 'total-bill',
+        label: 'Total Bill',
+        value: INR_CURRENCY.format(TOTAL_BILL_BY_PATIENT_ID[selectedPatient.id] ?? 0),
+        tone: 'info',
+      },
+    ];
+  }, [selectedPatient]);
+
+  const topBarHeader = (
+    <IpdPatientTopBar
+      moduleTitle="IPD Clinical Care"
+      sectionLabel="IPD"
+      pageLabel="Clinical Care"
+      patient={selectedTopBarPatient}
+      fields={topBarFields}
+      patientOptions={topBarPatientOptions}
+      onSelectPatient={onSelectPatient}
+    />
+  );
 
   const showSnack = React.useCallback((message: string, severity: SnackSeverity = 'info') => {
     setSnackbar({ open: true, message, severity });
@@ -2284,8 +2398,7 @@ export default function IpdRoundsPage() {
   return (
     <PageTemplate
       title="Clinical Care"
-      subtitle={pageSubtitle}
-      currentPageTitle="Clinical Care Workspace"
+      header={topBarHeader}
     >
       <Stack spacing={2}>
         <Stack spacing={0}>
@@ -2359,7 +2472,7 @@ export default function IpdRoundsPage() {
           <Box
             sx={{
               position: 'sticky',
-              top: 0,
+              top: IPD_PATIENT_TOP_BAR_STICKY_OFFSET,
               zIndex: 5,
               backgroundColor: alpha(theme.palette.background.default, 0.92),
               backdropFilter: 'blur(6px)',
@@ -2410,86 +2523,6 @@ export default function IpdRoundsPage() {
             </Card>
           </Box>
         </Stack>
-
-        <Card
-          elevation={0}
-          sx={{
-            p: { xs: 1.25, md: 1.5 },
-            borderRadius: 2,
-            border: '1px solid',
-            borderColor: alpha(theme.palette.primary.main, 0.2),
-            backgroundColor: alpha(theme.palette.primary.main, 0.03),
-          }}
-        >
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={1}
-            alignItems={{ xs: 'flex-start', md: 'center' }}
-            justifyContent="space-between"
-          >
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
-              <Avatar
-                sx={{
-                  width: 42,
-                  height: 42,
-                  bgcolor: 'primary.main',
-                  fontWeight: 800,
-                  fontSize: '0.95rem',
-                }}
-              >
-                {initials(selectedPatient.name)}
-              </Avatar>
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                    {selectedPatient.name}
-                  </Typography>
-                  <Chip
-                    size="small"
-                    color={patientStatusChipColor(selectedPatient.status)}
-                    label={selectedPatient.status}
-                  />
-                  <Chip size="small" label={selectedPatient.mrn} variant="outlined" />
-                </Stack>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                  {selectedPatient.age} / {selectedPatient.gender} · {selectedPatient.ward} /{' '}
-                  {selectedPatient.bed} · Day {selectedPatient.dayOfStay}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                  {selectedPatient.diagnosis} · Consultant: {selectedPatient.consultant} · Allergy:{' '}
-                  {selectedPatient.allergy}
-                </Typography>
-              </Box>
-            </Stack>
-
-            <Stack direction="row" spacing={0.5} flexWrap="wrap">
-              <Button
-                size="small"
-                variant="text"
-                disabled={!canNavigate('/clinical/vitals')}
-                onClick={openVitalsDialog}
-              >
-                Vitals
-              </Button>
-              <Button
-                size="small"
-                variant="text"
-                disabled={!canNavigate('/clinical/orders')}
-                onClick={openOrderDialog}
-              >
-                Orders
-              </Button>
-              <Button
-                size="small"
-                variant="outlined"
-                disabled={!canNavigate('/clinical/notes')}
-                onClick={openNoteDialog}
-              >
-                Notes
-              </Button>
-            </Stack>
-          </Stack>
-        </Card>
 
         <Box sx={{ pt: 0.5 }}>
             {activeTab === 'rounds' ? (

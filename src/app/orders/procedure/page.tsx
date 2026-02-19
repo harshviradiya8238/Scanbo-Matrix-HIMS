@@ -1,5 +1,13 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import { redirect } from 'next/navigation';
 
-export default function ProcedureOrdersPage() {
-  return <PageTemplate title="Procedure Orders" currentPageTitle="Procedure Orders" />;
+interface LegacyProcedureOrdersPageProps {
+  searchParams?: {
+    mrn?: string | string[];
+  };
+}
+
+export default function ProcedureOrdersPage({ searchParams }: LegacyProcedureOrdersPageProps) {
+  const mrnValue = searchParams?.mrn;
+  const mrn = Array.isArray(mrnValue) ? mrnValue[0] : mrnValue;
+  redirect(mrn ? `/ipd/orders-tests/orders?mrn=${encodeURIComponent(mrn)}` : '/ipd/orders-tests/orders');
 }
