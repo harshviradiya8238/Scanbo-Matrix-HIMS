@@ -647,26 +647,33 @@ export default function IpdBedManagementPage() {
           </Grid>
         </Grid>
 
-        <IpdSectionCard
-          title="Bed & Census Workspace"
-          subtitle="Manage bed board, waiting queue, inpatient list, transfers, and isolation workflow."
-          action={
-            <Stack direction="row" spacing={1}>
-              <Button size="small" variant="outlined" onClick={() => openClinicalCare(undefined, 'rounds')}>
-                Open Clinical Care
-              </Button>
-            </Stack>
-          }
-        >
-          <IpdModuleTabs
-            tabs={BED_CENSUS_TABS}
-            value={activeTab}
-            onChange={(value) => updateTabInRoute(value as BedCensusTab)}
-          />
-        </IpdSectionCard>
+        <Box sx={{ px: 1 }}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={1}
+            alignItems={{ xs: 'stretch', md: 'center' }}
+            justifyContent="space-between"
+          >
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <IpdModuleTabs
+                tabs={BED_CENSUS_TABS}
+                value={activeTab}
+                onChange={(value) => updateTabInRoute(value as BedCensusTab)}
+              />
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => openClinicalCare(undefined, 'rounds')}
+              sx={{ alignSelf: { xs: 'flex-end', md: 'center' }, flexShrink: 0, mb: { xs: 0.5, md: 0 } }}
+            >
+              Open Clinical Care
+            </Button>
+          </Stack>
+        </Box>
 
         {activeTab === 'bed-board' ? (
-          <Grid container spacing={2}>
+          <Grid container spacing={1}>
           <Grid item xs={12} lg={8}>
             <IpdSectionCard
               title="Bed Management"

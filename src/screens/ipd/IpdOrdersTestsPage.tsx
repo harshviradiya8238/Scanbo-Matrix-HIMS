@@ -12,18 +12,16 @@ import {
   MenuItem,
   Snackbar,
   Stack,
-  Tab,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
-  Tabs,
   TextField,
   Typography,
 } from '@/src/ui/components/atoms';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { Card, CommonDialog } from '@/src/ui/components/molecules';
+import { Card, CommonDialog, CommonTabs } from '@/src/ui/components/molecules';
 import { alpha, useTheme } from '@/src/ui/theme';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
@@ -875,6 +873,51 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
   };
 
   const moduleTitle = moduleTitleMap[defaultTab];
+  const workspaceTabsSx = React.useMemo(
+    () => ({
+      px: 0.15,
+      py: 0.35,
+      '& .MuiTab-root': {
+        minHeight: 42,
+      },
+    }),
+    []
+  );
+  const ordersTabItems = React.useMemo<Array<{ id: OrderManagementTab; label: React.ReactNode }>>(
+    () => [
+      { id: 'active', label: iconLabel(AssignmentTurnedInIcon, `Active Orders (${activeOrders.length})`) },
+      { id: 'sets', label: iconLabel(Inventory2Icon, `Order Sets (${ORDER_SET_TEMPLATES.length})`) },
+      { id: 'quick', label: iconLabel(BoltIcon, 'Quick Orders') },
+      { id: 'cosign', label: iconLabel(EditNoteIcon, `Pending Cosign (${PENDING_COSIGN_ROWS.length})`) },
+      { id: 'history', label: iconLabel(HistoryIcon, `History (${historyOrders.length})`) },
+    ],
+    [activeOrders.length, historyOrders.length]
+  );
+  const labTabItems = React.useMemo<Array<{ id: LabWorkspaceTab; label: React.ReactNode }>>(
+    () => [
+      { id: 'results', label: iconLabel(FactCheckIcon, `Results (${patientLabResults.length})`) },
+      { id: 'samples', label: iconLabel(ScienceIcon, `Sample Collection (${pendingSampleCount})`) },
+      { id: 'critical', label: iconLabel(WarningAmberIcon, `Critical (${criticalLabResults.length})`) },
+      { id: 'pending', label: iconLabel(HourglassEmptyIcon, `Pending (${pendingLabRows.length})`) },
+      { id: 'micro', label: iconLabel(BugReportIcon, 'Microbiology') },
+    ],
+    [criticalLabResults.length, patientLabResults.length, pendingLabRows.length, pendingSampleCount]
+  );
+  const radiologyTabItems = React.useMemo<Array<{ id: RadiologyWorkspaceTab; label: React.ReactNode }>>(
+    () => [
+      { id: 'reports', label: iconLabel(DescriptionIcon, `Reports (${patientRadiologyOrders.length})`) },
+      { id: 'worklist', label: iconLabel(ChecklistIcon, `Worklist (${worklistRowsWithStatus.length})`) },
+      { id: 'scheduled', label: iconLabel(EventIcon, `Scheduled (${scheduledRadiologyRows.length})`) },
+      { id: 'resulted', label: iconLabel(TaskAltIcon, `Resulted (${resultedRadiologyRows.length})`) },
+      { id: 'pacs', label: iconLabel(ViewInArIcon, 'PACS Viewer') },
+    ],
+    [
+      patientRadiologyOrders.length,
+      resultedRadiologyRows.length,
+      scheduledRadiologyRows.length,
+      worklistRowsWithStatus.length,
+    ]
+  );
   const topBarPatientOptions = React.useMemo<IpdPatientOption[]>(() => {
     return activeEncounters.map((encounter) => {
       const stay = INPATIENT_STAYS.find((row) => row.id === encounter.patientId || row.mrn === encounter.mrn);
@@ -922,7 +965,6 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
     const stay = INPATIENT_STAYS.find((row) => row.id === selectedEncounter.patientId || row.mrn === selectedEncounter.mrn);
     const discharge = DISCHARGE_CANDIDATES.find((row) => row.patientId === selectedEncounter.patientId);
     const globalPatient = getPatientByMrn(selectedEncounter.mrn);
-    const allergies = globalPatient?.tags?.join(', ') || 'No known';
     const status = selectedEncounter.dischargeReady
       ? 'Discharge Due'
       : selectedEncounter.clinicalStatus === 'critical'
@@ -939,7 +981,6 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
       { id: 'diagnosis', label: 'Diagnosis', value: selectedEncounter.diagnosis || '--' },
       { id: 'consultant', label: 'Consultant', value: selectedEncounter.consultant || '--' },
       { id: 'blood-group', label: 'Blood Group', value: '--' },
-      { id: 'allergies', label: 'Allergies', value: allergies, tone: 'warning' },
       { id: 'insurance', label: 'Insurance', value: '--' },
       { id: 'status', label: 'Status', value: status, tone: status === 'Critical' ? 'error' : status === 'Discharge Due' ? 'warning' : 'success' },
       { id: 'total-bill', label: 'Total Bill', value: '--' },
@@ -964,25 +1005,6 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
 
   const headerActions = (
     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
-      <TextField
-        select
-        size="small"
-        label="Patient"
-        value={selectedEncounter?.patientId ?? ''}
-        onChange={(event) => {
-          const nextPatientId = event.target.value;
-          const matched = activeEncounters.find((item) => item.patientId === nextPatientId);
-          if (!matched) return;
-          replaceMrnInRoute(matched.mrn);
-        }}
-        sx={{ minWidth: 240 }}
-      >
-        {activeEncounters.map((row) => (
-          <MenuItem key={row.patientId} value={row.patientId}>
-            {row.patientName} ({row.mrn})
-          </MenuItem>
-        ))}
-      </TextField>
 
       {defaultTab === 'orders' ? (
         <>
@@ -1082,53 +1104,63 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
           </Alert>
         ) : null}
 
-        {defaultTab === 'orders' ? (
-          <>
-            <Card
-              elevation={0}
-              sx={{
-                borderRadius: 2,
-                border: '1px solid',
-                borderColor: alpha(theme.palette.primary.main, 0.2),
-                overflow: 'hidden',
-              }}
+        <Stack spacing={0}>
+          <Card
+            elevation={0}
+            sx={{
+              p: { xs: 1.5, md: 2 },
+              borderRadius: '10px 10px 0 0',
+              borderBottom: 'none',
+              borderColor: alpha(theme.palette.primary.main, 0.16),
+              background: `linear-gradient(145deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha(
+                theme.palette.info.main,
+                0.06
+              )} 100%)`,
+            }}
+          >
+            <Stack
+              direction={{ xs: 'column', lg: 'row' }}
+              spacing={1.25}
+              justifyContent="space-between"
+              alignItems={{ xs: 'flex-start', lg: 'center' }}
             >
-              <Box
-                sx={{
-                  p: 2,
-                  borderBottom: '1px solid',
-                  borderColor: 'divider',
-                  background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha(theme.palette.info.main, 0.06)} 100%)`,
-                }}
-              >
-                <Stack
-                  direction={{ xs: 'column', md: 'row' }}
-                  spacing={1.5}
-                  justifyContent="space-between"
-                  alignItems={{ xs: 'flex-start', md: 'center' }}
-                >
-                  <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
-                      {moduleTitle.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {moduleTitle.subtitle}
-                    </Typography>
-                  </Box>
-                  {headerActions}
-                </Stack>
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', lineHeight: 1.1 }}>
+                  {moduleTitle.title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {moduleTitle.subtitle}
+                </Typography>
               </Box>
+              {headerActions}
+            </Stack>
+          </Card>
 
+          <Card
+            elevation={0}
+            sx={{
+              borderRadius: '0 0 10px 10px',
+              border: '1px solid',
+              borderTop: 'none',
+              borderColor: alpha(theme.palette.primary.main, 0.16),
+              overflow: 'hidden',
+            }}
+          >
+            {defaultTab === 'orders' ? (
               <Box
                 sx={{
                   px: 2,
-                  py: 1.5,
+                  py: 1.25,
                   borderBottom: '1px solid',
                   borderColor: 'divider',
                   backgroundColor: alpha(theme.palette.primary.main, 0.04),
                 }}
               >
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontWeight: 700, textTransform: 'uppercase' }}
+                >
                   Filter by order type:
                 </Typography>
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
@@ -1144,66 +1176,27 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
                     />
                   ))}
                 </Stack>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  Medication ordering is managed in Clinical Care (`/ipd/rounds`) for pharmacy and billing sync.
-                </Typography>
               </Box>
+            ) : null}
 
-              <Box sx={{ px: 1 }}>
-                <Tabs
-                  value={ordersTab}
-                  onChange={(_, nextValue: OrderManagementTab) => setOrdersTab(nextValue)}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                >
-                  <Tab value="active" label={iconLabel(AssignmentTurnedInIcon, `Active Orders (${activeOrders.length})`)} />
-                  <Tab value="sets" label={iconLabel(Inventory2Icon, `Order Sets (${ORDER_SET_TEMPLATES.length})`)} />
-                  <Tab value="quick" label={iconLabel(BoltIcon, 'Quick Orders')} />
-                  <Tab value="cosign" label={iconLabel(EditNoteIcon, `Pending Cosign (${PENDING_COSIGN_ROWS.length})`)} />
-                  <Tab value="history" label={iconLabel(HistoryIcon, `History (${historyOrders.length})`)} />
-                </Tabs>
-              </Box>
-            </Card>
-
-          </>
-        ) : (
-          <Card
-            elevation={0}
-            sx={{
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: alpha(theme.palette.primary.main, 0.2),
-              overflow: 'hidden',
-            }}
-          >
-            <Box
-              sx={{
-                p: 2,
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha(theme.palette.info.main, 0.06)} 100%)`,
-              }}
-            >
-              <Stack
-                direction={{ xs: 'column', md: 'row' }}
-                spacing={1.5}
-                justifyContent="space-between"
-                alignItems={{ xs: 'flex-start', md: 'center' }}
-              >
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
-                    {moduleTitle.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {moduleTitle.subtitle}
-                  </Typography>
-                </Box>
-                {headerActions}
-              </Stack>
+            <Box sx={{ px: 0.75, py: 0.45 }}>
+              {defaultTab === 'orders' ? (
+                <CommonTabs tabs={ordersTabItems} value={ordersTab} onChange={setOrdersTab} sx={workspaceTabsSx} />
+              ) : null}
+              {defaultTab === 'lab' ? (
+                <CommonTabs tabs={labTabItems} value={labTab} onChange={setLabTab} sx={workspaceTabsSx} />
+              ) : null}
+              {defaultTab === 'radiology' ? (
+                <CommonTabs
+                  tabs={radiologyTabItems}
+                  value={radiologyTab}
+                  onChange={setRadiologyTab}
+                  sx={workspaceTabsSx}
+                />
+              ) : null}
             </Box>
-
           </Card>
-        )}
+        </Stack>
 
         {defaultTab === 'orders' ? (
           <Stack spacing={2}>
@@ -1541,19 +1534,6 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
 
         {defaultTab === 'lab' ? (
           <Stack spacing={2}>
-            <Tabs
-              value={labTab}
-              onChange={(_, nextValue: LabWorkspaceTab) => setLabTab(nextValue)}
-              variant="scrollable"
-              scrollButtons="auto"
-            >
-              <Tab value="results" label={iconLabel(FactCheckIcon, `Results (${patientLabResults.length})`)} />
-              <Tab value="samples" label={iconLabel(ScienceIcon, `Sample Collection (${pendingSampleCount})`)} />
-              <Tab value="critical" label={iconLabel(WarningAmberIcon, `Critical (${criticalLabResults.length})`)} />
-              <Tab value="pending" label={iconLabel(HourglassEmptyIcon, `Pending (${pendingLabRows.length})`)} />
-              <Tab value="micro" label={iconLabel(BugReportIcon, 'Microbiology')} />
-            </Tabs>
-
             {labTab === 'results' ? (
               <Grid container spacing={2}>
                 <Grid xs={12} md={5}>
@@ -1987,19 +1967,6 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
 
         {defaultTab === 'radiology' ? (
           <Stack spacing={2}>
-            <Tabs
-              value={radiologyTab}
-              onChange={(_, nextValue: RadiologyWorkspaceTab) => setRadiologyTab(nextValue)}
-              variant="scrollable"
-              scrollButtons="auto"
-            >
-              <Tab value="reports" label={iconLabel(DescriptionIcon, `Reports (${patientRadiologyOrders.length})`)} />
-              <Tab value="worklist" label={iconLabel(ChecklistIcon, `Worklist (${worklistRowsWithStatus.length})`)} />
-              <Tab value="scheduled" label={iconLabel(EventIcon, `Scheduled (${scheduledRadiologyRows.length})`)} />
-              <Tab value="resulted" label={iconLabel(TaskAltIcon, `Resulted (${resultedRadiologyRows.length})`)} />
-              <Tab value="pacs" label={iconLabel(ViewInArIcon, 'PACS Viewer')} />
-            </Tabs>
-
             {radiologyTab === 'reports' ? (
               <Grid container spacing={2}>
                 <Grid xs={12} md={5}>

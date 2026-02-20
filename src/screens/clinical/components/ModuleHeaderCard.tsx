@@ -32,8 +32,8 @@ export default function ModuleHeaderCard({
       sx={{
         p: 1.75,
         borderRadius: 2.5,
-        border: '1px solid',
-        borderColor: 'divider',
+        border: 0,
+        boxShadow: 'none',
         backgroundColor: softSurface,
       }}
     >

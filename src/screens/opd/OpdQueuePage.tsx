@@ -199,7 +199,11 @@ export default function OpdQueuePage() {
   }, []);
 
   const withMrn = React.useCallback(
-    (route: string, mrn?: string) => (mrn ? `${route}?mrn=${encodeURIComponent(mrn)}` : route),
+    (route: string, mrn?: string) => {
+      if (!mrn) return route;
+      const joiner = route.includes('?') ? '&' : '?';
+      return `${route}${joiner}mrn=${encodeURIComponent(mrn)}`;
+    },
     []
   );
 
@@ -289,7 +293,7 @@ export default function OpdQueuePage() {
         });
         return;
       }
-      router.push(withMrn('/clinical/notes', item.mrn));
+      router.push(withMrn('/appointments/visit?tab=notes', item.mrn));
     },
     [canViewHistory, roleProfile.label, router, withMrn]
   );

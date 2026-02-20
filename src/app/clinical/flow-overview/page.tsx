@@ -1,5 +1,5 @@
-import FlowOverviewPage from '@/src/screens/clinical/FlowOverviewPage';
+import { redirect } from 'next/navigation';
 
 export default function ClinicalFlowOverviewPage() {
-  return <FlowOverviewPage />;
+  redirect('/clinical/encounters');
 }

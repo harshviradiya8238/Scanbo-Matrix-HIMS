@@ -1,5 +1,5 @@
-import ClinicalEpicModulesPage from '@/src/screens/clinical/ClinicalEpicModulesPage';
+import { redirect } from 'next/navigation';
 
 export default function ModuleReferencePage() {
-  return <ClinicalEpicModulesPage />;
+  redirect('/clinical/encounters');
 }

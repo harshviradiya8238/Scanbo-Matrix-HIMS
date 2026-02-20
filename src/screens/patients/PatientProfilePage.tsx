@@ -10,8 +10,6 @@ import {
   Chip,
   Divider,
   Stack,
-  Tab,
-  Tabs,
   Table,
   TableBody,
   TableCell,
@@ -20,7 +18,7 @@ import {
   TableRow,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card, CommonDialog, StatTile } from '@/src/ui/components/molecules';
+import { Card, CommonDialog, CommonTabs, StatTile } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { alpha, useTheme } from '@/src/ui/theme';
 import {
@@ -201,18 +199,17 @@ export default function PatientProfilePage() {
   const latestVital = vitalHistory.length ? vitalHistory[vitalHistory.length - 1] : undefined;
 
   const tabs = [
-    { value: 'history', label: 'Medical History' },
-    { value: 'medications', label: 'Medications' },
-    { value: 'labs', label: 'Lab Results' },
-    { value: 'imaging', label: 'Imaging' },
-    { value: 'documents', label: 'Documents' },
-    { value: 'appointments', label: 'Appointments' },
-    { value: 'immunizations', label: 'Immunizations' },
-    { value: 'problems', label: 'Problem List' },
-    
+    { id: 'history', label: 'Medical History' },
+    { id: 'medications', label: 'Medications' },
+    { id: 'labs', label: 'Lab Results' },
+    { id: 'imaging', label: 'Imaging' },
+    { id: 'documents', label: 'Documents' },
+    { id: 'appointments', label: 'Appointments' },
+    { id: 'immunizations', label: 'Immunizations' },
+    { id: 'problems', label: 'Problem List' },
   ];
 
-  const [activeTab, setActiveTab] = React.useState(tabs[0].value);
+  const [activeTab, setActiveTab] = React.useState(tabs[0].id);
 
   const payerType = latestAppointment?.payerType ?? 'General';
   const insuranceLabel =
@@ -748,34 +745,18 @@ export default function PatientProfilePage() {
               sx={{ p: 0, borderRadius: 2, boxShadow: cardShadow, backgroundColor: 'background.paper' }}
             >
               <Box sx={{ px: 0.5, py: 0.5, borderBottom: lightBorder }}>
-                <Tabs
+                <CommonTabs
+                  tabs={tabs}
                   value={activeTab}
-                  onChange={(_, value) => setActiveTab(value)}
-                  variant="scrollable"
-                  scrollButtons="auto"
+                  onChange={(value) => setActiveTab(value)}
                   sx={{
                     px: 0.5,
-                    '& .MuiTabs-flexContainer': { gap: 0.5 },
-                    '& .MuiTabs-indicator': { display: 'none' },
                     '& .MuiTab-root': {
-                      textTransform: 'none',
-                      fontWeight: 600,
                       minHeight: 40,
                       px: 2,
-                      borderRadius: 1.5,
-                      color: 'text.secondary',
-                    },
-                    '& .MuiTab-root.Mui-selected': {
-                      color: 'common.white',
-                      backgroundColor: theme.palette.primary.main,
-                      // boxShadow: `0 6px 12px ${alpha(theme.palette.primary.main, 0.24)}`,
                     },
                   }}
-                >
-                  {tabs.map((tab) => (
-                    <Tab key={tab.value} label={tab.label} value={tab.value} />
-                  ))}
-                </Tabs>
+                />
               </Box>
 
               <Box sx={{ p: 2 }}>

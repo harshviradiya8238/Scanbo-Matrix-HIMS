@@ -94,15 +94,15 @@ export default function ClinicalModulePlaceholderPage({
                 <Button
                   variant="contained"
                   component={Link}
-                  href="/clinical/module-reference"
+                  href="/clinical/encounters"
                   startIcon={<ArrowBackIcon />}
                 >
-                  Back to Module List
+                  Back to Clinical EMR
                 </Button>
                 <Button
                   variant="outlined"
                   component="a"
-                  href={moduleDefinition.videoUrl ?? '/clinical/module-reference'}
+                  href={moduleDefinition.videoUrl ?? '/clinical/encounters'}
                   target={moduleDefinition.videoUrl ? '_blank' : undefined}
                   rel={moduleDefinition.videoUrl ? 'noreferrer' : undefined}
                   endIcon={<OpenInNewIcon />}
@@ -113,7 +113,7 @@ export default function ClinicalModulePlaceholderPage({
                 <Button
                   variant="outlined"
                   component="a"
-                  href={moduleDefinition.referenceUrl ?? '/clinical/module-reference'}
+                  href={moduleDefinition.referenceUrl ?? '/clinical/encounters'}
                   target={moduleDefinition.referenceUrl ? '_blank' : undefined}
                   rel={moduleDefinition.referenceUrl ? 'noreferrer' : undefined}
                   endIcon={<OpenInNewIcon />}

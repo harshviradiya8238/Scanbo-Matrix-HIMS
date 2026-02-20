@@ -429,7 +429,11 @@ export default function EpicCareAmbulatoryPage() {
   const flowMrn = selectedPatient?.mrn ?? mrnParam;
   const pageSubtitle = formatPatientLabel(selectedPatient?.name, flowMrn);
   const withMrn = React.useCallback(
-    (route: string) => (flowMrn ? `${route}?mrn=${flowMrn}` : route),
+    (route: string) => {
+      if (!flowMrn) return route;
+      const joiner = route.includes('?') ? '&' : '?';
+      return `${route}${joiner}mrn=${flowMrn}`;
+    },
     [flowMrn]
   );
 
@@ -550,7 +554,7 @@ export default function EpicCareAmbulatoryPage() {
                   variant="outlined"
                   startIcon={<EditNoteIcon />}
                   disabled={!canWriteNotes}
-                  onClick={() => router.push(withMrn('/clinical/notes'))}
+                  onClick={() => router.push(withMrn('/appointments/visit?tab=notes'))}
                 >
                   Create Quick Note
                 </Button>
@@ -642,8 +646,8 @@ export default function EpicCareAmbulatoryPage() {
               <Button
                 size="small"
                 variant="outlined"
-                disabled={!canNavigate('/clinical/vitals')}
-                onClick={() => router.push(withMrn('/clinical/vitals'))}
+                disabled={!canNavigate('/appointments/visit')}
+                onClick={() => router.push(withMrn('/appointments/visit?tab=vitals'))}
               >
                 Vitals
               </Button>
@@ -651,7 +655,7 @@ export default function EpicCareAmbulatoryPage() {
                 size="small"
                 variant="outlined"
                 disabled={!canWriteNotes}
-                onClick={() => router.push(withMrn('/clinical/notes'))}
+                onClick={() => router.push(withMrn('/appointments/visit?tab=notes'))}
               >
                 Notes
               </Button>
@@ -849,7 +853,7 @@ export default function EpicCareAmbulatoryPage() {
                       variant="contained"
                       startIcon={<EditNoteIcon />}
                       disabled={!canWriteNotes}
-                      onClick={() => router.push(withMrn('/clinical/notes'))}
+                      onClick={() => router.push(withMrn('/appointments/visit?tab=notes'))}
                     >
                       Sign Note
                     </Button>

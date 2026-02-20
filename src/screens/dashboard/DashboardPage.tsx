@@ -473,8 +473,8 @@ export default function DashboardPage() {
                     <Chip size="small" color="info" label={`In Progress ${inProgressModules}`} />
                     <Chip size="small" variant="outlined" label={`Planned ${plannedModules}`} />
                   </Stack>
-                  <Button variant="text" onClick={() => router.push('/clinical/module-reference')}>
-                    Open Module Reference
+                  <Button variant="text" onClick={() => router.push('/clinical/encounters')}>
+                    Open Clinical EMR
                   </Button>
                 </Stack>
               </Card>

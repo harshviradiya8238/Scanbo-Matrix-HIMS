@@ -231,12 +231,12 @@ export default function FlowOverviewPage() {
 
   const handleSelectPatient = (patient: GlobalPatient | null) => {
     if (!patient) return;
-    router.push(`/clinical/flow-overview?mrn=${patient.mrn}`);
+    router.push(`/clinical/encounters?mrn=${patient.mrn}`);
     setSearchInput('');
   };
 
   const handleClearPatient = () => {
-    router.push('/clinical/flow-overview');
+    router.push('/clinical/encounters');
   };
 
   return (

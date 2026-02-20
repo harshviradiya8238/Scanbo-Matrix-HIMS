@@ -33,6 +33,7 @@ import { DISCHARGE_CANDIDATES, INPATIENT_STAYS } from './ipd-mock-data';
 import { IpdMetricCard } from './components/ipd-ui';
 import IpdModuleTabs from './components/IpdModuleTabs';
 import IpdPatientTopBar, { IpdPatientOption, IpdPatientTopBarField } from './components/IpdPatientTopBar';
+import IpdBillingSummaryFooter from './components/IpdBillingSummaryFooter';
 import { syncIpdEncounterDischargeChecks, useIpdEncounters } from './ipd-encounter-context';
 
 type ChargeStatus = 'Posted' | 'Pending' | 'Scheduled' | 'Cancelled';
@@ -2178,69 +2179,15 @@ export default function IpdChargeDrugPage({ defaultView = 'ipd-charges' }: IpdCh
             ) : null}
           </Box>
 
-        <Card
-          elevation={0}
-          sx={{
-            border: '1px solid',
-            borderColor: alpha(theme.palette.primary.main, 0.2),
-            borderRadius: 0,
-            position: 'sticky',
-            bottom: 0,
-            zIndex: 3,
-            backdropFilter: 'blur(4px)',
-            backgroundColor: alpha(theme.palette.background.paper, 0.96),
-            boxShadow: `0 6px 14px ${alpha(theme.palette.primary.main, 0.1)}`,
-            mx: { xs: -2, sm: -3 },
-            mb: -2,
-            borderLeft: 'none',
-            borderRight: 'none',
-          }}
-        >
-          <Box sx={{ px: 2, py: 1.2 }}>
-            <Stack
-              direction={{ xs: 'column', md: 'row' }}
-              spacing={1.25}
-              justifyContent="space-between"
-              alignItems={{ xs: 'flex-start', md: 'center' }}
-            >
-              <Stack direction="row" spacing={2.2} useFlexGap flexWrap="wrap">
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Total Charges
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                    {formatCurrency(grossChargeAmount)}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Insurance
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ color: 'success.main', fontWeight: 800 }}>
-                    {formatCurrency(insuranceCoverage)}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Outstanding
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ color: 'warning.main', fontWeight: 800 }}>
-                    {formatCurrency(outstanding)}
-                  </Typography>
-                </Box>
-              </Stack>
-
-              <Stack direction="row" spacing={1}>
-                <Button variant="outlined" onClick={() => generateInvoice()}>
-                  🧾 Generate Invoice
-                </Button>
-                <Button variant="contained" onClick={() => openPaymentDialog()}>
-                  💳 Process Payment
-                </Button>
-              </Stack>
-            </Stack>
-          </Box>
-        </Card>
+        <IpdBillingSummaryFooter
+          totalCharges={formatCurrency(grossChargeAmount)}
+          insuranceAmount={formatCurrency(insuranceCoverage)}
+          outstandingAmount={formatCurrency(outstanding)}
+          onGenerateInvoice={generateInvoice}
+          onProcessPayment={openPaymentDialog}
+          generateInvoiceLabel="🧾 Generate Invoice"
+          processPaymentLabel="💳 Process Payment"
+        />
       </Stack>
 
       <CommonDialog

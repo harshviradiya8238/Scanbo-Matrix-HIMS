@@ -1,21 +1,20 @@
 'use client';
 
 import { MenuItem, Box } from '@/src/ui/components/atoms';
-import Select, { SelectProps } from '@/src/ui/components/atoms/Select';
+import Input, { InputProps } from '@/src/ui/components/atoms/Input';
 import IconButton from '@/src/ui/components/atoms/IconButton';
 import { useField } from 'formik';
 import { Add as AddIcon } from '@mui/icons-material';
-import Field from '@/src/ui/components/molecules/Field';
 
 interface FormSelectProps
-  extends Omit<SelectProps, 'name' | 'value' | 'onChange' | 'onBlur' | 'error' | 'variant' | 'ref'> {
+  extends Omit<InputProps, 'name' | 'value' | 'onChange' | 'onBlur' | 'error' | 'select' | 'children'> {
   name: string;
   options: Array<{ value: string | number; label: string }>;
   required?: boolean;
   helperText?: React.ReactNode;
   showAddButton?: boolean;
   onAddClick?: () => void;
-  variant?: 'outlined';
+  onValueChange?: (value: string | number) => void;
 }
 
 export default function FormSelect({
@@ -26,6 +25,8 @@ export default function FormSelect({
   helperText,
   showAddButton,
   onAddClick,
+  onValueChange,
+  sx,
   ...props
 }: FormSelectProps) {
   const [field, meta, helpers] = useField(name);
@@ -33,39 +34,47 @@ export default function FormSelect({
   const ariaLabel = typeof label === 'string' ? label : undefined;
 
   return (
-    <Field
-      label={ariaLabel}
-      required={required}
-      error={hasError}
-      helperText={hasError ? meta.error : helperText}
-      fullWidth
-      id={name}
-    >
-      <Select
+    <Box>
+      <Input
         {...field}
         {...props}
+        select
+        name={name}
+        id={name}
+        label={label}
+        fullWidth
+        error={hasError}
+        helperText={hasError ? meta.error : helperText}
+        required={required}
         value={field.value || ''}
-        onChange={(e) => helpers.setValue(e.target.value)}
+        onChange={(e) => {
+          const nextValue = e.target.value as string | number;
+          helpers.setValue(nextValue);
+          onValueChange?.(nextValue);
+        }}
         onBlur={field.onBlur}
         inputProps={{
           ...props.inputProps,
           'aria-label': props.inputProps?.['aria-label'] ?? ariaLabel,
         }}
-        sx={{
-          '& .MuiOutlinedInput-notchedOutline': {
-            borderColor: hasError ? 'error.main' : undefined,
+        sx={[
+          {
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: hasError ? 'error.main' : undefined,
+            },
+            '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: hasError ? 'error.main' : 'primary.main',
+            },
           },
-          '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: hasError ? 'error.main' : 'primary.main',
-          },
-        }}
+          ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+        ]}
       >
         {options.map((option) => (
           <MenuItem key={option.value} value={option.value}>
             {option.label}
           </MenuItem>
         ))}
-      </Select>
+      </Input>
       {showAddButton && onAddClick && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>
           <IconButton
@@ -78,6 +87,6 @@ export default function FormSelect({
           </IconButton>
         </Box>
       )}
-    </Field>
+    </Box>
   );
 }

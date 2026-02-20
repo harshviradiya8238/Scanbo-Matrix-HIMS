@@ -604,6 +604,29 @@ export default function IpdAdmissionsPage() {
     />
   );
 
+  const selectedTopBarMrn = React.useMemo(
+    () => normalizeMrn(selectedTopBarPatient?.mrn ?? ''),
+    [selectedTopBarPatient?.mrn]
+  );
+
+  const shouldHideSelectedFromRecords = historyTab !== 'all';
+
+  const visibleAllPatients = React.useMemo(
+    () =>
+      shouldHideSelectedFromRecords && selectedTopBarMrn
+        ? allPatients.filter((patient) => normalizeMrn(patient.mrn) !== selectedTopBarMrn)
+        : allPatients,
+    [allPatients, selectedTopBarMrn, shouldHideSelectedFromRecords]
+  );
+
+  const visibleQueueRows = React.useMemo(
+    () =>
+      shouldHideSelectedFromRecords && selectedTopBarMrn
+        ? queueRows.filter((row) => normalizeMrn(row.mrn) !== selectedTopBarMrn)
+        : queueRows,
+    [queueRows, selectedTopBarMrn, shouldHideSelectedFromRecords]
+  );
+
   const allPatientColumns: CommonTableColumn<PatientRow>[] = [
     {
       id: 'mrn',
@@ -766,26 +789,26 @@ export default function IpdAdmissionsPage() {
   ];
 
   const allPatientStatusOptions = React.useMemo(
-    () => buildFilterOptions(allPatients.map((row) => row.status), 'All Status'),
-    [allPatients]
+    () => buildFilterOptions(visibleAllPatients.map((row) => row.status), 'All Status'),
+    [visibleAllPatients]
   );
   const allPatientWardOptions = React.useMemo(
-    () => buildFilterOptions(allPatients.map((row) => row.ward), 'All Wards'),
-    [allPatients]
+    () => buildFilterOptions(visibleAllPatients.map((row) => row.ward), 'All Wards'),
+    [visibleAllPatients]
   );
 
   const queuePriorityOptions = React.useMemo(
-    () => buildFilterOptions(queueRows.map((row) => row.priority), 'All Priority'),
-    [queueRows]
+    () => buildFilterOptions(visibleQueueRows.map((row) => row.priority), 'All Priority'),
+    [visibleQueueRows]
   );
   const queueSourceOptions = React.useMemo(
-    () => buildFilterOptions(queueRows.map((row) => row.source), 'All Source'),
-    [queueRows]
+    () => buildFilterOptions(visibleQueueRows.map((row) => row.source), 'All Source'),
+    [visibleQueueRows]
   );
 
   const filteredAllPatients = React.useMemo(() => {
     const query = allSearch.trim().toLowerCase();
-    return allPatients.filter((patient) => {
+    return visibleAllPatients.filter((patient) => {
       if (query) {
         const searchableText = [
           patient.mrn,
@@ -806,11 +829,11 @@ export default function IpdAdmissionsPage() {
       if (allWardFilter !== 'all' && patient.ward !== allWardFilter) return false;
       return true;
     });
-  }, [allPatients, allSearch, allStatusFilter, allWardFilter]);
+  }, [allSearch, allStatusFilter, allWardFilter, visibleAllPatients]);
 
   const filteredQueueRows = React.useMemo(() => {
     const query = queueSearch.trim().toLowerCase();
-    return queueRows.filter((lead) => {
+    return visibleQueueRows.filter((lead) => {
       if (query) {
         const searchableText = [
           lead.patientName,
@@ -829,7 +852,7 @@ export default function IpdAdmissionsPage() {
       if (queueSourceFilter !== 'all' && lead.source !== queueSourceFilter) return false;
       return true;
     });
-  }, [queueRows, queueSearch, queuePriorityFilter, queueSourceFilter]);
+  }, [queuePriorityFilter, queueSearch, queueSourceFilter, visibleQueueRows]);
 
   const updateFormField = <K extends keyof AdmissionDialogForm>(
     field: K,
@@ -1028,7 +1051,11 @@ export default function IpdAdmissionsPage() {
   };
 
   return (
-    <PageTemplate title="IPD Admissions" header={topBarHeader} currentPageTitle="Admissions">
+    <PageTemplate
+      title="IPD Admissions"
+      header={historyTab === 'all' ? undefined : topBarHeader}
+      currentPageTitle="Admissions"
+    >
       <Stack spacing={2}>
         {!canManageAdmissions ? (
           <Alert severity="warning">
@@ -1082,8 +1109,8 @@ export default function IpdAdmissionsPage() {
                   },
                 }}
               >
-                <Tab value="all" label={`All IPD Patients - Admitted (${allPatients.length})`} />
-                <Tab value="queue" label={`Admission Queue - Pending Bed (${queueRows.length})`} />
+                <Tab value="all" label={`All IPD Patients - Admitted (${visibleAllPatients.length})`} />
+                <Tab value="queue" label={`Admission Queue - Pending Bed (${visibleQueueRows.length})`} />
               </Tabs>
 
               {historyTab === 'all' ? (

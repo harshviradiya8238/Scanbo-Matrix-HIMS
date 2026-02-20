@@ -1,5 +1,5 @@
-import LegacyEncounterRedirect from '@/src/screens/opd/LegacyEncounterRedirect';
+import { redirect } from 'next/navigation';
 
 export default function NotesPage() {
-  return <LegacyEncounterRedirect target="visit" tab="notes" />;
+  redirect('/clinical/encounters');
 }

@@ -23,6 +23,7 @@ export default function LegacyEncounterRedirect({ target, tab }: LegacyEncounter
   const { encounters, status } = useOpdData();
   const mrn = searchParams.get('mrn');
   const queryEncounterId = searchParams.get('encounterId');
+  const queryTab = searchParams.get('tab');
 
   const encounter = React.useMemo(
     () =>
@@ -38,8 +39,9 @@ export default function LegacyEncounterRedirect({ target, tab }: LegacyEncounter
 
     const query = new URLSearchParams();
     query.set('mrn', encounter.mrn);
-    if (target === 'visit' && tab) {
-      query.set('tab', tab);
+    const resolvedTab = target === 'visit' ? tab ?? queryTab ?? undefined : undefined;
+    if (resolvedTab) {
+      query.set('tab', resolvedTab);
     }
 
     const mrnSuffix = `?${query.toString()}`;
@@ -51,7 +53,7 @@ export default function LegacyEncounterRedirect({ target, tab }: LegacyEncounter
           : `${buildEncounterPrescriptionsRoute(encounter.id)}${mrnSuffix}`;
 
     router.replace(destination);
-  }, [encounter, router, tab, target]);
+  }, [encounter, queryTab, router, tab, target]);
 
   return (
     <OpdLayout title="Redirecting" currentPageTitle="Redirect" subtitle={mrn ?? undefined}>

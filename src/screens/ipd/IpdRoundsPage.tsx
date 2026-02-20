@@ -2407,7 +2407,7 @@ export default function IpdRoundsPage() {
             sx={{
               p: { xs: 1.5, md: 2 },
               borderRadius: '10px 10px 0 0',
-              border: '1px solid',
+              // border: '1px solid',
               borderBottom: 'none',
               borderColor: alpha(theme.palette.primary.main, 0.16),
               background: `linear-gradient(145deg, ${alpha(
@@ -2443,7 +2443,7 @@ export default function IpdRoundsPage() {
                 <Button
                   size="small"
                   variant="outlined"
-                  disabled={!canNavigate('/clinical/vitals')}
+                  disabled={!canNavigate('/appointments/visit')}
                   onClick={openVitalsDialog}
                 >
                   Record Vitals

@@ -8,4 +8,5 @@ export { default as Pagination } from './Pagination';
 export { default as CommonDialog } from './CommonDialog';
 export { default as CommandCenterChips } from './CommandCenterChips';
 export { default as CommonTable } from './CommonTable';
+export { default as CommonTabs } from './CommonTabs';
 export { default as PatientGlobalHeader } from './PatientGlobalHeader';

@@ -16,12 +16,12 @@ import {
   Typography,
 } from '@/src/ui/components/atoms';
 import { alpha, useTheme } from '@/src/ui/theme';
-import type { Theme } from '@/src/ui/theme';
 import {
   CloseRounded as CloseRoundedIcon,
   Search as SearchIcon,
   SupervisedUserCircleRounded as SupervisedUserCircleRoundedIcon,
 } from '@mui/icons-material';
+import { getPatientByMrn } from '@/src/mocks/global-patients';
 
 type FieldTone = 'default' | 'success' | 'warning' | 'error' | 'info';
 
@@ -37,6 +37,7 @@ export interface IpdPatientOption {
   name: string;
   mrn: string;
   ageGender?: string;
+  phone?: string;
   ward?: string;
   bed?: string;
   consultant?: string;
@@ -63,20 +64,16 @@ interface IpdPatientTopBarProps {
 
 export const IPD_PATIENT_TOP_BAR_STICKY_OFFSET = 64;
 
-const COMPACT_FIELD_ORDER = [
+const SUMMARY_FIELD_ORDER = [
   'ward-bed',
   'admitted',
   'los',
-  'diagnosis',
   'consultant',
-  'blood-group',
-  'allergies',
-  'insurance',
   'status',
   'total-bill',
+  'diagnosis',
 ] as const;
-const HEADER_FIELD_LIMIT = 10;
-const HIDDEN_FIELD_IDS = new Set(['age-sex', 'age']);
+const SUMMARY_FIELD_LIMIT = 5;
 
 const INR_CURRENCY = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -91,14 +88,6 @@ const getInitials = (name: string) =>
     .slice(0, 2)
     .map((chunk) => chunk[0]?.toUpperCase() ?? '')
     .join('') || 'P';
-
-function toFieldToneColor(theme: Theme, tone: FieldTone | undefined) {
-  if (tone === 'success') return theme.palette.success.main;
-  if (tone === 'warning') return theme.palette.warning.main;
-  if (tone === 'error') return theme.palette.error.main;
-  if (tone === 'info') return theme.palette.info.main;
-  return theme.palette.text.primary;
-}
 
 function formatAmount(value?: number | string): string {
   if (value === undefined || value === null || value === '') return '--';
@@ -119,6 +108,32 @@ function collectTags(option: IpdPatientOption): string[] {
     if (tag.trim()) tags.add(tag.trim());
   });
   return Array.from(tags);
+}
+
+function parseAgeGender(ageGender?: string): { age: string; gender: string } {
+  const value = String(ageGender ?? '').trim();
+  if (!value) return { age: '', gender: '' };
+
+  const slashParts = value.split('/').map((part) => part.trim()).filter(Boolean);
+  if (slashParts.length >= 2) {
+    return {
+      age: slashParts[0].replace(/\s*yrs?$/i, '').trim(),
+      gender: slashParts[1],
+    };
+  }
+
+  const dotParts = value.split('·').map((part) => part.trim()).filter(Boolean);
+  if (dotParts.length >= 2) {
+    return {
+      age: dotParts[0].replace(/\s*yrs?$/i, '').trim(),
+      gender: dotParts[1],
+    };
+  }
+
+  return {
+    age: value.replace(/\s*yrs?$/i, '').trim(),
+    gender: '',
+  };
 }
 
 export default function IpdPatientTopBar({
@@ -151,26 +166,40 @@ export default function IpdPatientTopBar({
     }
   }, [filterOptions, statusFilter]);
 
-  const compactFields = React.useMemo(() => {
-    const visibleFields = fields.filter((field) => !HIDDEN_FIELD_IDS.has(field.id));
-    const byId = new Map(visibleFields.map((field) => [field.id, field] as const));
+  const patientPhone = React.useMemo(() => {
+    if (patient?.phone?.trim()) return patient.phone.trim();
+    return getPatientByMrn(patient?.mrn)?.phone ?? '';
+  }, [patient?.mrn, patient?.phone]);
+
+  const demographicItems = React.useMemo(() => {
+    const { age, gender } = parseAgeGender(patient?.ageGender);
+    const parts: string[] = [];
+    if (age) parts.push(`${age} yrs`);
+    if (gender) parts.push(gender);
+    if (patientPhone) parts.push(patientPhone);
+    return parts;
+  }, [patient?.ageGender, patientPhone]);
+
+  const summaryFields = React.useMemo(() => {
+    const byId = new Map(fields.map((field) => [field.id, field] as const));
     const selected: IpdPatientTopBarField[] = [];
 
-    COMPACT_FIELD_ORDER.forEach((fieldId) => {
+    SUMMARY_FIELD_ORDER.forEach((fieldId) => {
+      if (selected.length >= SUMMARY_FIELD_LIMIT) return;
       const match = byId.get(fieldId);
-      if (match && !selected.some((entry) => entry.id === match.id)) {
-        selected.push(match);
-      }
+      if (match) selected.push(match);
     });
 
-    visibleFields.forEach((field) => {
-      if (selected.length >= HEADER_FIELD_LIMIT) return;
-      if (!selected.some((entry) => entry.id === field.id)) {
-        selected.push(field);
-      }
-    });
+    if (selected.length < SUMMARY_FIELD_LIMIT) {
+      fields.forEach((field) => {
+        if (selected.length >= SUMMARY_FIELD_LIMIT) return;
+        if (!selected.some((item) => item.id === field.id)) {
+          selected.push(field);
+        }
+      });
+    }
 
-    return selected.slice(0, HEADER_FIELD_LIMIT);
+    return selected.slice(0, SUMMARY_FIELD_LIMIT);
   }, [fields]);
 
   const filteredPatients = React.useMemo(() => {
@@ -204,11 +233,9 @@ export default function IpdPatientTopBar({
           position: 'sticky',
           top: stickyTop,
           zIndex: 12,
-          border: '1px solid',
-          borderColor: alpha(theme.palette.primary.main, 0.18),
-          borderBottomWidth: 1,
-          borderBottomColor: theme.palette.primary.main,
-          // borderRadius: { xs: 1.25, md: 1.75 },
+          border: 0,
+          borderBottom: '1px solid',
+          borderBottomColor: alpha(theme.palette.primary.main, 0.28),
           overflow: 'hidden',
           marginBottom: 1.5,
           backgroundColor: theme.palette.background.paper,
@@ -218,153 +245,172 @@ export default function IpdPatientTopBar({
         <Box
           sx={{
             px: { xs: 1, md: 1.5 },
-            py: { xs: 0.95, md: 0.98 },
+            py: { xs: 1, md: 1.15 },
             color: theme.palette.text.primary,
           }}
         >
-          <Box
-            sx={{
-              display: 'grid',
-              gap: { xs: 0.9, md: 1 },
-              alignItems: 'center',
-              gridTemplateColumns: {
-                xs: '1fr',
-                lg: 'minmax(170px, 220px) minmax(0, 1fr) auto',
-              },
-            }}
-          >
-            <Stack direction="row" spacing={0.85} alignItems="center" sx={{ minWidth: 0 }}>
-              <Avatar
-                sx={{
-                  width: 36,
-                  height: 36,
-                  bgcolor: 'primary.main',
-                  color: theme.palette.primary.contrastText,
-                  fontWeight: 800,
-                  fontSize: 14,
-                  border: '1px solid',
-                  borderColor: alpha(theme.palette.primary.main, 0.35),
-                }}
-              >
-                {getInitials(patient?.name ?? 'Patient')}
-              </Avatar>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 800, lineHeight: 1.2, color: theme.palette.text.primary }}
-                  noWrap
-                >
-                  {patient?.name ?? 'No patient selected'}
-                </Typography>
-                <Stack direction="row" spacing={0.55} alignItems="center">
-                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                    {patient?.mrn ?? '--'}
-                    {patient?.ageGender ? ` · ${patient.ageGender}` : ''}
-                  </Typography>
-                </Stack>
-              </Box>
-            </Stack>
-
-            <Box
-              sx={{
-                minWidth: 0,
-                overflowX: 'auto',
-                overflowY: 'hidden',
-                '&::-webkit-scrollbar': {
-                  height: 4,
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  borderRadius: 999,
-                  backgroundColor: alpha(theme.palette.primary.main, 0.25),
-                },
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexWrap: 'nowrap',
-                  alignItems: 'center',
-                  width: 'max-content',
-                  minWidth: '100%',
-                }}
-              >
-                {compactFields.map((field, index) => (
-                  <Box
-                    key={field.id}
-                    sx={{
-                      flex: '0 0 auto',
-                      px: { xs: 0.65, md: 0.82 },
-                      py: 0.1,
-                      borderLeft: index === 0 ? 'none' : '1px solid',
-                      borderColor: alpha(theme.palette.primary.main, 0.14),
-                      minWidth: 0,
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        display: 'block',
-                        // textTransform: 'uppercase',
-                        letterSpacing: 0.5,
-                        fontWeight: 700,
-                        // lineHeight: 1.05,
-                        color: theme.palette.text.secondary,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {field.label}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        mt: 0.1,
-                        fontWeight: 500,
-                        lineHeight: 1.18,
-                        whiteSpace: 'nowrap',
-                        color: toFieldToneColor(theme, field.tone),
-                      }}
-                    >
-                      {field.value || '--'}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-
+          <Stack spacing={0}>
             <Stack
-              direction={{ xs: 'row', lg: 'column' }}
-              spacing={0.6}
-              justifyContent={{ xs: 'flex-start', lg: 'center' }}
-              alignItems={{ xs: 'stretch', lg: 'flex-end' }}
+              direction={{ xs: 'column', md: 'row' }}
+              spacing={1}
+              alignItems={{ xs: 'stretch', md: 'center' }}
+              justifyContent="space-between"
             >
-              {rightActions ? <Box>{rightActions}</Box> : null}
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() => setDialogOpen(true)}
-                disabled={patientOptions.length === 0}
-                sx={{
-                  flexShrink: 0,
-                  minWidth: 122,
-                  color: theme.palette.primary.main,
-                  borderColor: alpha(theme.palette.primary.main, 0.34),
-                  backgroundColor: alpha(theme.palette.primary.main, 0.06),
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  '&:hover': {
-                    borderColor: alpha(theme.palette.primary.main, 0.54),
-                    backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                  },
-                  '&.Mui-disabled': {
-                    color: theme.palette.text.disabled,
-                    borderColor: theme.palette.divider,
-                  },
-                }}
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                <Avatar
+                  sx={{
+                    width: 42,
+                    height: 42,
+                    bgcolor: 'primary.main',
+                    color: theme.palette.primary.contrastText,
+                    fontWeight: 600,
+                    fontSize: 15,
+                  }}
+                >
+                  {getInitials(patient?.name ?? 'Patient')}
+                </Avatar>
+                <Box sx={{ minWidth: 0 }}>
+                  <Stack direction="row" spacing={0.8} alignItems="center" useFlexGap flexWrap="wrap">
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ fontWeight: 700, lineHeight: 1.15, color: theme.palette.text.primary }}
+                      noWrap
+                    >
+                      {patient?.name ?? 'No patient selected'}
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={patient?.mrn ?? '--'}
+                      sx={{
+                        height: 21,
+                        border: 0,
+                        borderRadius: 1.2,
+                        backgroundColor: alpha(theme.palette.primary.main, 0.16),
+                        '& .MuiChip-label': {
+                          px: 0.85,
+                          fontWeight: 700,
+                          color: theme.palette.primary.main,
+                        },
+                      }}
+                    />
+                  </Stack>
+                  <Stack
+                    direction="row"
+                    spacing={0.6}
+                    alignItems="center"
+                    useFlexGap
+                    flexWrap="wrap"
+                    sx={{ mt: 0.25 }}
+                  >
+                    {demographicItems.map((item, index) => (
+                      <Stack key={`${item}-${index}`} direction="row" spacing={0.45} alignItems="center">
+                        <Typography variant="caption" sx={{ color: theme.palette.text.disabled }}>
+                          •
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
+                        >
+                          {item}
+                        </Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Box>
+              </Stack>
+
+              {summaryFields.length > 0 ? (
+                <Box
+                  sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    display: 'flex',
+                    justifyContent: { xs: 'flex-start', md: 'flex-end' },
+                    mr: { md: 1.25 },
+                    overflowX: 'auto',
+                    '&::-webkit-scrollbar': { height: 4 },
+                    '&::-webkit-scrollbar-thumb': {
+                      borderRadius: 999,
+                      backgroundColor: alpha(theme.palette.primary.main, 0.24),
+                    },
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={0.6}
+                    sx={{ minWidth: 'max-content', pr: 0.4, ml: { md: 'auto' } }}
+                  >
+                    {summaryFields.map((field) => (
+                      <Chip
+                        key={field.id}
+                        size="small"
+                        variant="outlined"
+                        label={
+                          <Box component="span">
+                            <Box component="span" sx={{ fontWeight: 700 }}>
+                              {field.label}:
+                            </Box>{' '}
+                            <Box
+                              component="span"
+                              sx={{ color: 'primary.main', fontWeight: 700 }}
+                            >
+                              {String(field.value ?? '--')}
+                            </Box>
+                          </Box>
+                        }
+                        sx={{
+                          borderColor: alpha(theme.palette.primary.main, 0.24),
+                          backgroundColor: alpha(theme.palette.primary.main, 0.03),
+                          maxWidth: 260,
+                          '& .MuiChip-label': {
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontWeight: 500,
+                          },
+                        }}
+                      />
+                    ))}
+                  </Stack>
+                </Box>
+              ) : null}
+
+              <Stack
+                direction="row"
+                spacing={0.6}
+                justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+                alignItems="center"
+                sx={{ flexShrink: 0 }}
               >
-                Change Patient
-              </Button>
+                {rightActions ? <Box>{rightActions}</Box> : null}
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setDialogOpen(true)}
+                  disabled={patientOptions.length === 0}
+                  sx={{
+                    flexShrink: 0,
+                    minWidth: 122,
+                    color: theme.palette.primary.main,
+                    borderColor: alpha(theme.palette.primary.main, 0.34),
+                    backgroundColor: alpha(theme.palette.primary.main, 0.06),
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    '&:hover': {
+                      borderColor: alpha(theme.palette.primary.main, 0.54),
+                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                    },
+                    '&.Mui-disabled': {
+                      color: theme.palette.text.disabled,
+                      borderColor: theme.palette.divider,
+                    },
+                  }}
+                >
+                  Change Patient
+                </Button>
+              </Stack>
             </Stack>
-          </Box>
+          </Stack>
         </Box>
       </Box>
 

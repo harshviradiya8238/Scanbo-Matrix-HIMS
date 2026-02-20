@@ -12,6 +12,18 @@ const ROUTE_PERMISSION_OVERRIDES: Array<{
   requiredPermissions: string[];
 }> = [
   {
+    pattern: /^\/clinical\/encounters$/,
+    requiredPermissions: ['clinical.encounters.read'],
+  },
+  {
+    pattern: /^\/clinical\/orders$/,
+    requiredPermissions: ['clinical.orders.read'],
+  },
+  {
+    pattern: /^\/clinical\/prescriptions$/,
+    requiredPermissions: ['clinical.prescriptions.write'],
+  },
+  {
     pattern: /^\/appointments\/visit$/,
     requiredPermissions: ['clinical.ambulatory.write'],
   },

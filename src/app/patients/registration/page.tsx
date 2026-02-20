@@ -1,18 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Alert, Box, Chip, Paper, Snackbar, Stack, Typography } from '@/src/ui/components/atoms';
-import { useTheme } from '@/src/ui/theme';
+import { Alert, Box, Snackbar } from '@/src/ui/components/atoms';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 
 import { PatientRegistrationFormData } from '@/src/screens/patients/types/patient-registration.types';
 import { useState } from 'react';
-import { getSoftSurface } from '@/src/core/theme/surfaces';
 import PatientRegistrationForm from '@/src/screens/patients/PatientRegistrationForm';
 
 export default function RegistrationPage() {
-  const theme = useTheme();
-  const softSurface = getSoftSurface(theme);
   const router = useRouter();
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
@@ -53,31 +49,6 @@ export default function RegistrationPage() {
 
   return (
     <PageTemplate title="Patient Registration" currentPageTitle="Registration">
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2.25,
-          mb: 2,
-          borderRadius: 2.5,
-          border: '1px solid',
-          borderColor: 'divider',
-          backgroundColor: softSurface,
-        }}
-      >
-        <Stack spacing={1}>
-          <Stack direction="row" spacing={1} flexWrap="wrap">
-            <Chip size="small" color="primary" label="Patient Onboarding" />
-            <Chip size="small" variant="outlined" color="success" label="Registration + Contact + NOK" />
-          </Stack>
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Create a Complete Patient Profile
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Fill mandatory demographics, contact, and next-of-kin details before saving the new patient.
-          </Typography>
-        </Stack>
-      </Paper>
-
       <Box sx={{ mx: 'auto' }}>
         <PatientRegistrationForm onSubmit={handleSubmit} onCancel={handleCancel} />
       </Box>

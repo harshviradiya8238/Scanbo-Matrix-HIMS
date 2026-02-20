@@ -1,5 +1,5 @@
-import LegacyEncounterRedirect from '@/src/screens/opd/LegacyEncounterRedirect';
+import { redirect } from 'next/navigation';
 
 export default function VitalsPage() {
-  return <LegacyEncounterRedirect target="visit" tab="vitals" />;
+  redirect('/clinical/encounters');
 }
