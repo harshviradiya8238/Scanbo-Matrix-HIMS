@@ -26,7 +26,7 @@ import {
   Typography,
 } from '@/src/ui/components/atoms';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { Card, CommonDialog } from '@/src/ui/components/molecules';
+import { Card, CommonDialog, WorkspaceHeaderCard } from '@/src/ui/components/molecules';
 import { alpha, useTheme } from '@/src/ui/theme';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { INPATIENT_STAYS } from './ipd-mock-data';
@@ -2402,18 +2402,11 @@ export default function IpdRoundsPage() {
     >
       <Stack spacing={2}>
         <Stack spacing={0}>
-          <Card
-            elevation={0}
+          <WorkspaceHeaderCard
             sx={{
               p: { xs: 1.5, md: 2 },
               borderRadius: '10px 10px 0 0',
-              // border: '1px solid',
               borderBottom: 'none',
-              borderColor: alpha(theme.palette.primary.main, 0.16),
-              background: `linear-gradient(145deg, ${alpha(
-                theme.palette.primary.main,
-                0.08,
-              )} 0%, ${alpha(theme.palette.info.main, 0.06)} 100%)`,
             }}
           >
             <Stack
@@ -2467,7 +2460,7 @@ export default function IpdRoundsPage() {
                 </Button>
               </Stack>
             </Stack>
-          </Card>
+          </WorkspaceHeaderCard>
 
           <Box
             sx={{

@@ -1,5 +1,5 @@
 import { alpha, createTheme } from '@mui/material/styles';
-import { palette, shadows, typography } from './tokens';
+import { palette, shadows, typography, cardShadow } from './tokens';
 
 const baseTheme = createTheme({
   palette,
@@ -41,9 +41,17 @@ const theme = createTheme(baseTheme, {
     MuiBackdrop: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(15, 23, 42, 0.25)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: `${baseTheme.palette.common.white} !important`,
+          backgroundImage: 'none',
+          boxShadow: cardShadow,
         },
       },
     },
@@ -54,6 +62,12 @@ const theme = createTheme(baseTheme, {
           borderRadius: 8,
           display: 'flex',
           flexDirection: 'column',
+          boxShadow: cardShadow,
+          border: 'none',
+          backgroundColor: 'transparent',
+          '&.MuiCard-outlined': {
+            border: 'none',
+          },
         },
       },
     },
@@ -61,7 +75,7 @@ const theme = createTheme(baseTheme, {
       styleOverrides: {
         root: {
           borderRadius: 8,
-          backgroundColor: baseTheme.palette.background.default,
+          backgroundColor: 'transparent',
         },
       },
     },
@@ -225,16 +239,45 @@ const theme = createTheme(baseTheme, {
       styleOverrides: {
         root: {
           borderRadius: 12,
-          boxShadow: baseTheme.shadows[1],
+          boxShadow: cardShadow,
+          border: 'none',
+          backgroundColor: 'transparent',
+          '&.MuiPaper-outlined': {
+            border: 'none',
+          },
         },
         elevation1: {
-          boxShadow: baseTheme.shadows[1],
+          boxShadow: cardShadow,
         },
         elevation2: {
-          boxShadow: baseTheme.shadows[2],
+          boxShadow: cardShadow,
         },
         elevation3: {
-          boxShadow: baseTheme.shadows[3],
+          boxShadow: cardShadow,
+        },
+      },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: `${baseTheme.palette.common.white} !important`,
+          backgroundImage: 'none',
+        },
+      },
+    },
+    MuiMenu: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: `${baseTheme.palette.common.white} !important`,
+          backgroundImage: 'none',
+        },
+      },
+    },
+    MuiPopover: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: `${baseTheme.palette.common.white} !important`,
+          backgroundImage: 'none',
         },
       },
     },

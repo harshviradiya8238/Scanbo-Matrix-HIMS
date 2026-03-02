@@ -39,6 +39,19 @@ const ROUTE_PERMISSION_OVERRIDES: Array<{
     pattern: /^\/encounters\/[^/]+\/prescriptions$/,
     requiredPermissions: ['clinical.prescriptions.write'],
   },
+  // Lab module: all sub-routes use lab permission (sidebar shows 5 items; sub-pages still protected)
+  { pattern: /^\/lab\/dashboard$/, requiredPermissions: ['diagnostics.lab.read'] },
+  { pattern: /^\/lab\/samples(?:\/|$)/, requiredPermissions: ['diagnostics.lab.read'] },
+  { pattern: /^\/lab\/worksheets(?:\/|$)/, requiredPermissions: ['diagnostics.lab.read'] },
+  { pattern: /^\/lab\/results(?:\/|$)/, requiredPermissions: ['diagnostics.lab.read'] },
+  { pattern: /^\/lab\/clients(?:\/|$)/, requiredPermissions: ['diagnostics.lab.read'] },
+  { pattern: /^\/lab\/tests(?:\/|$)/, requiredPermissions: ['diagnostics.lab.read'] },
+  { pattern: /^\/lab\/instruments(?:\/|$)/, requiredPermissions: ['diagnostics.lab.read'] },
+  { pattern: /^\/lab\/inventory(?:\/|$)/, requiredPermissions: ['diagnostics.lab.read'] },
+  { pattern: /^\/lab\/reports(?:\/|$)/, requiredPermissions: ['diagnostics.lab.read'] },
+  { pattern: /^\/lab\/quality-control(?:\/|$)/, requiredPermissions: ['diagnostics.lab.read'] },
+  { pattern: /^\/lab\/settings(?:\/|$)/, requiredPermissions: ['diagnostics.lab.read'] },
+  { pattern: /^\/patient-portal\//, requiredPermissions: ['patient-portal.read'] },
 ];
 
 function normalizePathname(pathname: string): string {

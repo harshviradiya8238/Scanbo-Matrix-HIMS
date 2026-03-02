@@ -2,9 +2,7 @@
 
 import * as React from 'react';
 import { Box, Chip, Stack, Typography } from '@/src/ui/components/atoms';
-import { Card } from '@/src/ui/components/molecules';
-import { useTheme } from '@/src/ui/theme';
-import { getSoftSurface } from '@/src/core/theme/surfaces';
+import { WorkspaceHeaderCard } from '@/src/ui/components/molecules';
 
 type ModuleChip = {
   label: string;
@@ -23,18 +21,11 @@ export default function ModuleHeaderCard({
   chips?: ModuleChip[];
   actions?: React.ReactNode;
 }) {
-  const theme = useTheme();
-  const softSurface = getSoftSurface(theme);
-
   return (
-    <Card
-      elevation={0}
+    <WorkspaceHeaderCard
       sx={{
         p: 1.75,
         borderRadius: 2.5,
-        border: 0,
-        boxShadow: 'none',
-        backgroundColor: softSurface,
       }}
     >
       <Stack spacing={1.25}>
@@ -68,6 +59,6 @@ export default function ModuleHeaderCard({
           {actions ? <Stack direction="row" spacing={1}>{actions}</Stack> : null}
         </Stack>
       </Stack>
-    </Card>
+    </WorkspaceHeaderCard>
   );
 }

@@ -32,8 +32,6 @@ export default function EncounterHeader({
       sx={{
         p: 2,
         borderRadius: 2.5,
-        border: '1px solid',
-        borderColor: 'divider',
         background: `linear-gradient(90deg, ${alpha(theme.palette.primary.light, 0.1)} 0%, ${theme.palette.background.paper} 34%)`,
       }}
     >

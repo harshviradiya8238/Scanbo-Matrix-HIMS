@@ -238,7 +238,6 @@ export default function IpdPatientTopBar({
           borderBottomColor: alpha(theme.palette.primary.main, 0.28),
           overflow: 'hidden',
           marginBottom: 1.5,
-          backgroundColor: theme.palette.background.paper,
           boxShadow: 'none',
         }}
       >

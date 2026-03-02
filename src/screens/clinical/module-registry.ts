@@ -73,20 +73,6 @@ export const CLINICAL_MODULES: ClinicalModuleDefinition[] = [
     referenceUrl: 'https://www.epic.com/software/acute-and-inpatient-care/',
   },
   {
-    id: 'welcome-kiosk',
-    slug: 'welcome-kiosk',
-    category: 'Clinical',
-    name: 'Epic Welcome Kiosk',
-    area: 'Front Office / Self Check-in',
-    description:
-      'Epic Welcome Kiosk is a user-friendly kiosk module that improves visitor check-in and reduces front-office workload.',
-    audience: ['Doctors', 'Nurses', 'Clinical Staff'],
-    appRoute: '/clinical/modules/welcome-kiosk',
-    status: 'Implemented',
-    requiredPermissions: buildPermissions('clinical', 'kiosk'),
-    referenceUrl: 'https://www.epic.com/software/',
-  },
-  {
     id: 'care-companion',
     slug: 'care-companion',
     category: 'Clinical',
@@ -319,8 +305,8 @@ export const CLINICAL_MODULES: ClinicalModuleDefinition[] = [
       'Laboratory system managing lab orders, specimen collection, test processing, validation, and reporting.',
     audience: ['Lab Technicians', 'Pathologists'],
     appRoute: '/clinical/modules/beaker',
-    status: 'Planned',
-    requiredPermissions: buildPermissions('laboratory', 'beaker'),
+    status: 'Implemented',
+    requiredPermissions: ['diagnostics.lab.read'],
     referenceUrl: 'https://www.epic.com/software/',
   },
   {

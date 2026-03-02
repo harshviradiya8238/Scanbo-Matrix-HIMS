@@ -44,40 +44,13 @@ export const NAV_GROUPS: NavGroup[] = [
             order: 1,
           },
           {
-            id: 'patients-welcome-kiosk',
-            label: 'Welcome Kiosk',
-            iconName: 'HowToReg',
-            route: '/clinical/modules/welcome-kiosk',
-            type: 'item',
-            requiredPermissions: ['clinical.kiosk.read', 'patients.create'],
-            order: 2,
-          },
-          {
             id: 'patients-list',
             label: 'Patient List',
             iconName: 'List',
             route: '/patients/list',
             type: 'item',
             requiredPermissions: ['patients.read'],
-            order: 3,
-          },
-          {
-            id: 'patients-profile',
-            label: 'Patient Profile',
-            iconName: 'Person',
-            route: '/patients/profile',
-            type: 'item',
-            requiredPermissions: ['patients.profile.read'],
-            order: 4,
-          },
-          {
-            id: 'patients-documents',
-            label: 'Documents',
-            iconName: 'Description',
-            route: '/patients/documents',
-            type: 'item',
-            requiredPermissions: ['patients.read'],
-            order: 5,
+            order: 2,
           },
         ],
       },
@@ -234,6 +207,21 @@ export const NAV_GROUPS: NavGroup[] = [
             requiredPermissions: ['diagnostics.read', 'diagnostics.radiology.read'],
             order: 3,
           },
+        ],
+      },
+      {
+        id: 'laboratory',
+        label: 'Laboratory',
+        iconName: 'Science',
+        type: 'group',
+        requiredPermissions: ['diagnostics.lab.read'],
+        order: 3,
+        children: [
+          { id: 'lab-dashboard', label: 'Dashboard', iconName: 'Dashboard', route: '/lab/dashboard', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 1 },
+          { id: 'lab-workflow', label: 'Workflow', iconName: 'Assignment', route: '/lab/samples', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 2 },
+          { id: 'lab-catalog', label: 'Catalog & Setup', iconName: 'Inventory2', route: '/lab/clients', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 3 },
+          { id: 'lab-reports-qc', label: 'Reports & QC', iconName: 'Description', route: '/lab/reports', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 4 },
+          { id: 'lab-settings', label: 'Settings', iconName: 'Settings', route: '/lab/settings', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 5 },
         ],
       },
     ],
@@ -535,6 +523,21 @@ export const NAV_GROUPS: NavGroup[] = [
       },
     ],
   },
+  {
+    id: 'patient-portal',
+    label: '',
+    items: [
+      { id: 'pp-home', label: 'Dashboard', iconName: 'Home', route: '/patient-portal/home', type: 'item', requiredPermissions: ['patient-portal.read'], order: 1 },
+      { id: 'pp-appointments', label: 'Calendar', iconName: 'Event', route: '/patient-portal/appointments', type: 'item', requiredPermissions: ['patient-portal.read'], order: 3 },
+      { id: 'pp-my-appointments', label: 'My Appointments', iconName: 'CalendarMonth', route: '/patient-portal/my-appointments', type: 'item', requiredPermissions: ['patient-portal.read'], order: 4 },
+      { id: 'pp-medications', label: 'Medications & Rx', iconName: 'Medication', route: '/patient-portal/medications', type: 'item', requiredPermissions: ['patient-portal.read'], order: 5 },
+      { id: 'pp-lab-reports', label: 'Lab Reports', iconName: 'Science', route: '/patient-portal/lab-reports', type: 'item', requiredPermissions: ['patient-portal.read'], order: 6 },
+      { id: 'pp-medical-records', label: 'Medical Records', iconName: 'FolderShared', route: '/patient-portal/medical-records', type: 'item', requiredPermissions: ['patient-portal.read'], order: 8 },
+      { id: 'pp-bills', label: 'Bills & Payments', iconName: 'CreditCard', route: '/patient-portal/bills', type: 'item', requiredPermissions: ['patient-portal.read'], order: 9 },
+      { id: 'pp-chat', label: 'Chat', iconName: 'Chat', route: '/patient-portal/chat', type: 'item', requiredPermissions: ['patient-portal.read'], order: 10 },
+      { id: 'pp-settings', label: 'Settings', iconName: 'Settings', route: '/patient-portal/settings', type: 'item', requiredPermissions: ['patient-portal.read'], order: 11 },
+    ],
+  },
 ];
 
 const ROUTE_ALIAS_PATTERNS: Array<{
@@ -573,15 +576,61 @@ export function getAllMenuItems(): MenuItem[] {
   return items;
 }
 
+/** Lab pathname → main nav route (sidebar shows 5 items; sub-pages map to section) */
+const LAB_PATH_TO_NAV_ROUTE: Record<string, string> = {
+  '/lab/dashboard': '/lab/dashboard',
+  '/lab/samples': '/lab/samples',
+  '/lab/worksheets': '/lab/samples',
+  '/lab/results': '/lab/samples',
+  '/lab/clients': '/lab/clients',
+  '/lab/tests': '/lab/clients',
+  '/lab/instruments': '/lab/clients',
+  '/lab/inventory': '/lab/clients',
+  '/lab/reports': '/lab/reports',
+  '/lab/quality-control': '/lab/reports',
+  '/lab/settings': '/lab/settings',
+};
+
+function getLabNavRoute(pathname: string): string | null {
+  const base = pathname.split('?')[0].replace(/\/+$/, '') || '';
+  if (!base.startsWith('/lab/')) return null;
+  const segment = base.split('/').slice(0, 3).join('/');
+  return LAB_PATH_TO_NAV_ROUTE[segment] ?? LAB_PATH_TO_NAV_ROUTE['/lab/dashboard'] ?? null;
+}
+
+const PP_PATH_TO_NAV_ROUTE: Record<string, string> = {
+  '/patient-portal/home': '/patient-portal/home',
+  '/patient-portal/profile': '/patient-portal/profile',
+  '/patient-portal/appointments': '/patient-portal/appointments',
+  '/patient-portal/my-appointments': '/patient-portal/my-appointments',
+  '/patient-portal/medications': '/patient-portal/medications',
+  '/patient-portal/prescriptions': '/patient-portal/medications',
+  '/patient-portal/lab-reports': '/patient-portal/lab-reports',
+  '/patient-portal/medical-records': '/patient-portal/medical-records',
+  '/patient-portal/bills': '/patient-portal/bills',
+  '/patient-portal/chat': '/patient-portal/chat',
+  '/patient-portal/settings': '/patient-portal/settings',
+};
+
+function getPatientPortalNavRoute(pathname: string): string | null {
+  const base = pathname.split('?')[0].replace(/\/+$/, '') || '';
+  if (!base.startsWith('/patient-portal/')) return null;
+  const segment = base.split('/').slice(0, 3).join('/');
+  return PP_PATH_TO_NAV_ROUTE[segment] ?? PP_PATH_TO_NAV_ROUTE['/patient-portal/home'] ?? null;
+}
+
 /**
  * Get menu item by route
  */
 export function getMenuItemByRoute(route: string): MenuItem | null {
   const canonicalRoute = resolveNavigationRoute(route);
+  const labRoute = getLabNavRoute(canonicalRoute);
+  const ppRoute = getPatientPortalNavRoute(canonicalRoute);
+  const routeToFind = labRoute ?? ppRoute ?? canonicalRoute;
 
   function searchItems(items: MenuItem[]): MenuItem | null {
     for (const item of items) {
-      if (item.route === canonicalRoute) {
+      if (item.route === routeToFind) {
         return item;
       }
       if (item.children) {

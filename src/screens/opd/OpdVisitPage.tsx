@@ -1636,7 +1636,6 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
               p: 0,
               borderRadius: 2,
               boxShadow: '0 12px 24px rgba(15, 23, 42, 0.06)',
-              backgroundColor: 'background.paper',
             }}
           >
             <Box

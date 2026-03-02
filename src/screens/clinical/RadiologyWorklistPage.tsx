@@ -350,7 +350,6 @@ export default function RadiologyWorklistPage() {
           BackdropProps: {
             sx: {
               backgroundColor: 'rgba(15, 23, 42, 0.25)',
-              backdropFilter: 'blur(4px)',
             },
           },
         }}

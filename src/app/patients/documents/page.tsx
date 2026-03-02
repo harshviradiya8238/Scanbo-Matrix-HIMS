@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import { redirect } from 'next/navigation';
 
 export default function DocumentsPage() {
-  return <PageTemplate title="Patient Documents" currentPageTitle="Documents" />;
+  redirect('/patients/list');
 }

@@ -49,7 +49,6 @@ export default function IpdBillingSummaryFooter({
           right: 0,
           bottom: 0,
           zIndex: theme.zIndex.appBar + 2,
-          backgroundColor: theme.palette.background.paper,
           boxShadow: `0 -8px 18px ${alpha(theme.palette.primary.main, 0.08)}`,
           transition: theme.transitions.create(['left'], {
             duration: 220,

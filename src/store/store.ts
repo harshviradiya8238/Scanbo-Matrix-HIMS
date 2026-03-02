@@ -3,6 +3,7 @@ import counterSlice from './slices/counterSlice';
 import opdSlice from './slices/opdSlice';
 import radiologySlice from './slices/radiologySlice';
 import labSlice from './slices/labSlice';
+import limsSlice from './slices/limsSlice';
 
 export const makeStore = () => {
   return configureStore({
@@ -11,6 +12,7 @@ export const makeStore = () => {
       opd: opdSlice,
       radiology: radiologySlice,
       lab: labSlice,
+      lims: limsSlice,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({

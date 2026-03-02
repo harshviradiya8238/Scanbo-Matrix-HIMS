@@ -2,13 +2,13 @@
 
 import ClinicalModulePlaceholderPage from '@/src/screens/clinical/ClinicalModulePlaceholderPage';
 import EpicCareAmbulatoryPage from '@/src/screens/clinical/EpicCareAmbulatoryPage';
-import WelcomeKioskPage from '@/src/screens/clinical/WelcomeKioskPage';
 import CareCompanionPage from '@/src/screens/clinical/CareCompanionPage';
 import InfectionControlPage from '@/src/screens/clinical/InfectionControlPage';
 import RegistrationAdtPage from '@/src/screens/clinical/RegistrationAdtPage';
 import OpdCalendarPage from '@/src/screens/opd/OpdCalendarPage';
 import RadiantImagingPage from '@/src/screens/clinical/RadiantImagingPage';
 import IpdRoundsPage from '@/src/screens/ipd/IpdRoundsPage';
+import LabDashboardPage from '@/src/screens/lab/dashboard/LabDashboardPage';
 import { ClinicalModuleDefinition } from '@/src/screens/clinical/module-registry';
 
 interface ClinicalModuleClientProps {
@@ -22,10 +22,6 @@ export default function ClinicalModuleClient({ moduleDefinition }: ClinicalModul
 
   if (moduleDefinition.slug === 'inpatient-documentation-clindoc') {
     return <IpdRoundsPage />;
-  }
-
-  if (moduleDefinition.slug === 'welcome-kiosk') {
-    return <WelcomeKioskPage />;
   }
 
   if (moduleDefinition.slug === 'care-companion') {
@@ -46,6 +42,10 @@ export default function ClinicalModuleClient({ moduleDefinition }: ClinicalModul
 
   if (moduleDefinition.slug === 'radiant') {
     return <RadiantImagingPage />;
+  }
+
+  if (moduleDefinition.slug === 'beaker') {
+    return <LabDashboardPage />;
   }
 
   return <ClinicalModulePlaceholderPage moduleDefinition={moduleDefinition} />;

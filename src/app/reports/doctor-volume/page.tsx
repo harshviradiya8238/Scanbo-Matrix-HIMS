@@ -21,6 +21,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from '@/src/ui/components/atoms';
+import { WorkspaceHeaderCard } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { useOpdData } from '@/src/store/opdHooks';
 import { ADMISSION_LEADS, INPATIENT_STAYS } from '@/src/screens/ipd/ipd-mock-data';
@@ -37,15 +38,11 @@ import {
   Science as ScienceIcon,
   LocalPharmacy as LocalPharmacyIcon,
 } from '@mui/icons-material';
-import { useTheme } from '@/src/ui/theme';
-import { getSoftSurface } from '@/src/core/theme/surfaces';
 import { DISCHARGE_CANDIDATES } from '@/src/screens/ipd/ipd-mock-data';
 
 const uniqueDates = (values: string[]) => Array.from(new Set(values)).sort();
 
 export default function DoctorVolumeReportPage() {
-  const theme = useTheme();
-  const softSurface = getSoftSurface(theme);
   const { appointments, encounters, status: opdStatus, error: opdError } = useOpdData();
 
   const dates = uniqueDates(appointments.map((a) => a.date));
@@ -156,10 +153,7 @@ export default function DoctorVolumeReportPage() {
           <Alert severity="warning">OPD JSON server unreachable. Showing fallback data. {opdError ?? ''}</Alert>
         ) : null}
 
-        <Card
-          elevation={0}
-          sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', backgroundColor: softSurface }}
-        >
+        <WorkspaceHeaderCard sx={{ p: 2, borderRadius: 2 }}>
           <Stack spacing={1.2}>
             <Stack
               direction={{ xs: 'column', md: 'row' }}
@@ -201,7 +195,7 @@ export default function DoctorVolumeReportPage() {
               ))}
             </Stack>
           </Stack>
-        </Card>
+        </WorkspaceHeaderCard>
 
         <Grid container spacing={2}>
           {[{

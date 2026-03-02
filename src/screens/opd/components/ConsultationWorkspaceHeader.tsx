@@ -51,7 +51,6 @@ export default function ConsultationWorkspaceHeader({
         p: 2,
         borderRadius: 2,
         boxShadow: '0 12px 24px rgba(15, 23, 42, 0.06)',
-        backgroundColor: surfaceColor,
       }}
     >
       <Stack
@@ -78,9 +77,6 @@ export default function ConsultationWorkspaceHeader({
               px: 1.2,
               py: 0.65,
               borderRadius: 999,
-              border: '1px solid',
-              borderColor: 'divider',
-              backgroundColor: 'background.paper',
             }}
           >
             <TimerIcon fontSize="small" color="primary" />

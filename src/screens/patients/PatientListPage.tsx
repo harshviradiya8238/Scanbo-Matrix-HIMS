@@ -339,9 +339,6 @@ export default function PatientListPage() {
         sx={{
           p: 2,
           borderRadius: 2.5,
-          border: '1px solid',
-          borderColor: 'divider',
-          backgroundColor: softSurface,
         }}
       >
         <Stack
@@ -411,9 +408,6 @@ export default function PatientListPage() {
         sx={{
           mt: 2,
           p: 2,
-          border: '1px solid',
-          borderColor: 'divider',
-          backgroundColor: subtleSurface,
         }}
       >
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>

@@ -40,6 +40,7 @@ import { useUser } from '@/src/core/auth/UserContext';
 import { getRoleLabel } from '@/src/core/navigation/permissions';
 import { UserRole } from '@/src/core/navigation/types';
 import { useStaffStore } from '@/src/core/staff/staffStore';
+import { PATIENT } from '@/src/screens/patient-portal/patient-portal-mock-data';
 import { getOpdRoleFlowProfile } from '@/src/screens/opd/opd-role-flow';
 
 interface HeaderProps {
@@ -161,6 +162,28 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
     },
   ];
 
+  const switchRoleIds: UserRole[] = [
+    'SUPER_ADMIN',
+    'HOSPITAL_ADMIN',
+    'DOCTOR',
+    // 'NURSE',
+    'RECEPTION',
+    // 'CARE_COORDINATOR',
+    // 'INFECTION_CONTROL',
+    // 'LAB_TECH',
+    // 'RADIOLOGY_TECH',
+    // 'PHARMACIST',
+    // 'BILLING',
+    // 'INVENTORY',
+    'PATIENT_PORTAL',
+    // 'AUDITOR',
+  ];
+  const switchRoleIdSet = React.useMemo(() => new Set(switchRoleIds), [switchRoleIds]);
+  const switchRoles = React.useMemo(
+    () => roles.filter((roleOption) => switchRoleIdSet.has(roleOption.id as UserRole)),
+    [roles, switchRoleIdSet]
+  );
+
   const tileSx = (color: string) => ({
     width: 38,
     height: 38,
@@ -232,7 +255,7 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
           </Text>
         </Box>
 
-        {/* Center */}
+        {/* Center — hide patient search for patient portal role */}
         <Box
           sx={{
             display: 'flex',
@@ -242,15 +265,17 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
             justifySelf: { xs: 'stretch', md: 'stretch' },
           }}
         >
-          <Box
-            sx={{
-              display: { xs: 'none', md: 'flex' },
-              width: '50%',
-              minWidth: 0,
-            }}
-          >
-            <GlobalPatientSearch fullWidth />
-          </Box>
+          {role !== 'PATIENT_PORTAL' && (
+            <Box
+              sx={{
+                display: { xs: 'none', md: 'flex' },
+                width: '50%',
+                minWidth: 0,
+              }}
+            >
+              <GlobalPatientSearch fullWidth />
+            </Box>
+          )}
         </Box>
 
         {/* Right */}
@@ -322,12 +347,12 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
             aria-label="User menu"
           >
             <AvatarWithName
-              name={userName}
-              subtitle={getRoleLabel(role).toLowerCase()}
+              name={role === 'PATIENT_PORTAL' ? PATIENT.name : userName}
+              subtitle={role === 'PATIENT_PORTAL' ? `PID: ${PATIENT.pid}` : getRoleLabel(role).toLowerCase()}
               avatarSrc={userAvatar}
               avatarProps={{
                 sx: {
-                  bgcolor: theme.palette.primary.main,
+                  bgcolor: role === 'PATIENT_PORTAL' ? PATIENT.avatarColor : theme.palette.primary.main,
                 },
               }}
               detailsSx={{
@@ -335,8 +360,8 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
                 flexDirection: 'column',
                 alignItems: 'flex-start',
               }}
-              nameProps={{ sx: { color: theme.palette.text.primary, maxWidth: 120 } }}
-              subtitleProps={{ sx: { fontSize: '0.8rem' } }}
+              nameProps={{ sx: { color: theme.palette.text.primary, maxWidth: 140 } }}
+              subtitleProps={{ sx: { fontSize: '0.75rem', color: theme.palette.text.secondary } }}
               trailing={
                 <ExpandMoreIcon
                   sx={{
@@ -373,34 +398,26 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
             },
           }}
         >
-        <MenuItem onClick={handleUserMenuClose} sx={{ gap: 1.25 }}>
-          <Box
-            sx={{
-              width: 28,
-              height: 28,
-              borderRadius: 1.5,
-              display: 'grid',
-              placeItems: 'center',
-              backgroundColor: alpha(theme.palette.primary.main, 0.12),
-              color: theme.palette.primary.main,
-            }}
-          >
+        <MenuItem
+          onClick={() => {
+            handleUserMenuClose();
+            router.push(role === 'PATIENT_PORTAL' ? '/patient-portal/profile' : '/profile');
+          }}
+          sx={{ gap: 1.25 }}
+        >
+          <Box sx={{ width: 28, height: 28, borderRadius: 1.5, display: 'grid', placeItems: 'center', backgroundColor: alpha(theme.palette.primary.main, 0.12), color: theme.palette.primary.main }}>
             <PersonIcon sx={{ fontSize: 18 }} />
           </Box>
           <Text sx={{ fontWeight: 600 }}>Profile</Text>
         </MenuItem>
-        <MenuItem onClick={handleUserMenuClose} sx={{ gap: 1.25 }}>
-          <Box
-            sx={{
-              width: 28,
-              height: 28,
-              borderRadius: 1.5,
-              display: 'grid',
-              placeItems: 'center',
-              backgroundColor: alpha(theme.palette.info.main, 0.12),
-              color: theme.palette.info.main,
-            }}
-          >
+        <MenuItem
+          onClick={() => {
+            handleUserMenuClose();
+            router.push(role === 'PATIENT_PORTAL' ? '/patient-portal/settings' : '/settings');
+          }}
+          sx={{ gap: 1.25 }}
+        >
+          <Box sx={{ width: 28, height: 28, borderRadius: 1.5, display: 'grid', placeItems: 'center', backgroundColor: alpha(theme.palette.info.main, 0.12), color: theme.palette.info.main }}>
             <SettingsIcon sx={{ fontSize: 18 }} />
           </Box>
           <Text sx={{ fontWeight: 600 }}>Settings</Text>
@@ -411,7 +428,7 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
             Switch Role
           </Text>
         </Box>
-        {roles.map((roleOption) => (
+        {switchRoles.map((roleOption) => (
           <MenuItem
             key={roleOption.id}
             onClick={() => handleRoleSelect(roleOption.id as UserRole)}

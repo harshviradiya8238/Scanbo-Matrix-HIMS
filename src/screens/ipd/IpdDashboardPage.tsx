@@ -16,7 +16,7 @@ import {
   TableRow,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card } from '@/src/ui/components/molecules';
+import { Card, WorkspaceHeaderCard } from '@/src/ui/components/molecules';
 import { alpha, useTheme, Theme } from '@/src/ui/theme';
 import {
   AssignmentTurnedIn as AssignmentTurnedInIcon,
@@ -388,60 +388,66 @@ export default function IpdDashboardPage() {
     },
   ];
 
-  const dashboardHeader = (
-    <Box
-      sx={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 11,
-        px: { xs: 1.75, sm: 2.5 },
-        py: 1.05,
-        borderBottom: '1px solid',
-        borderColor: alpha(theme.palette.primary.main, 0.18),
-        background: `linear-gradient(180deg, ${alpha(theme.palette.background.paper, 0.98)} 0%, ${alpha(
-          theme.palette.primary.light,
-          0.88
-        )} 100%)`,
-        backdropFilter: 'blur(8px)',
-      }}
-    >
-      <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', lineHeight: 1.05 }}>
-        IPD Dashboard
-      </Typography>
-      <Typography variant="body2" sx={{ mt: 0.25, color: 'text.secondary' }}>
-        Overview of all inpatients, bed status, and alerts.
-      </Typography>
-    </Box>
-  );
+  const ipdDashboardCard = (
+    <Stack spacing={2}>
 
-  return (
-    <PageTemplate title="IPD Dashboard" header={dashboardHeader} currentPageTitle="IPD Dashboard">
-      <Stack spacing={1.8}>
-        <Box
-          sx={{
-            display: 'grid',
-            gap: 1.2,
-            gridTemplateColumns: {
-              xs: 'repeat(1, minmax(0, 1fr))',
-              sm: 'repeat(2, minmax(0, 1fr))',
-              md: 'repeat(3, minmax(0, 1fr))',
-              xl: 'repeat(5, minmax(0, 1fr))',
-            },
-          }}
-        >
-          {metricCards.map((metric) => (
-            <IpdMetricCard
-              key={metric.id}
-              label={metric.label}
-              value={metric.value}
-              trend={metric.note}
-              tone={metric.tone}
-              icon={metric.icon}
-            />
-          ))}
+    <Stack spacing={0}>
+      {/* Title card – same pattern as Clinical Care Workspace / Laboratory */}
+      <WorkspaceHeaderCard
+         sx={{
+           p: { xs: 1.5, md: 2 },
+           borderRadius: '10px 10px 0 0',
+           borderBottom: 'none',
+         }}
+
+      >
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', lineHeight: 1.1 }}>
+            IPD Dashboard
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+            Overview of all inpatients, bed status, and alerts.
+          </Typography>
         </Box>
+      </WorkspaceHeaderCard>
 
-        <Box
+      {/* Content card – attached to title card */}
+      <Card
+        elevation={0}
+        sx={{
+          p: { xs: 1.5, sm: 2 },
+          borderRadius: '0 0 10px 10px',
+          border: '1px solid',
+          borderTop: 'none',
+          borderColor: alpha(theme.palette.primary.main, 0.16),
+        }}
+      >
+        <Stack spacing={1.8}>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 1.2,
+              gridTemplateColumns: {
+                xs: 'repeat(1, minmax(0, 1fr))',
+                sm: 'repeat(2, minmax(0, 1fr))',
+                md: 'repeat(3, minmax(0, 1fr))',
+                xl: 'repeat(5, minmax(0, 1fr))',
+              },
+            }}
+          >
+            {metricCards.map((metric) => (
+              <IpdMetricCard
+                key={metric.id}
+                label={metric.label}
+                value={metric.value}
+                trend={metric.note}
+                tone={metric.tone}
+                icon={metric.icon}
+              />
+            ))}
+          </Box>
+
+          <Box
           sx={{
             display: 'grid',
             gap: 1.3,
@@ -753,9 +759,15 @@ export default function IpdDashboardPage() {
             </Card>
           </Stack>
         </Box>
+        </Stack>
+      </Card>
+    </Stack>
+    </Stack>
+  );
 
-       
-      </Stack>
+  return (
+    <PageTemplate title="IPD Dashboard" header={ipdDashboardCard} currentPageTitle="IPD Dashboard">
+      {null}
     </PageTemplate>
   );
 }

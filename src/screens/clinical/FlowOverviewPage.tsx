@@ -38,7 +38,6 @@ import {
   Queue as QueueIcon,
   Science as ScienceIcon,
   Search as SearchIcon,
-  TouchApp as TouchAppIcon,
 } from '@mui/icons-material';
 
 interface FlowStep {
@@ -56,13 +55,6 @@ const INTAKE_STEPS: FlowStep[] = [
     description: 'Create patient profile and demographics.',
     route: '/patients/registration',
     icon: <PersonAddIcon fontSize="small" />,
-  },
-  {
-    id: 'kiosk',
-    title: 'Welcome Kiosk',
-    description: 'Self check-in, consent, and ID capture.',
-    route: '/clinical/modules/welcome-kiosk',
-    icon: <TouchAppIcon fontSize="small" />,
   },
   {
     id: 'calendar',
@@ -247,9 +239,6 @@ export default function FlowOverviewPage() {
           sx={{
             p: 2,
             borderRadius: 2.5,
-            border: '1px solid',
-            borderColor: 'divider',
-            backgroundColor: softSurface,
           }}
         >
           <Stack spacing={1.25}>
@@ -271,7 +260,7 @@ export default function FlowOverviewPage() {
                   Patient Journey Map
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Follow one patient from registration and kiosk check-in through OPD or IPD care,
+                  Follow one patient from registration through OPD or IPD care,
                   discharge, and follow-up programs.
                 </Typography>
               </Box>
@@ -282,13 +271,6 @@ export default function FlowOverviewPage() {
                   onClick={() => router.push('/patients/registration')}
                 >
                   Register Patient
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<TouchAppIcon />}
-                  onClick={() => router.push(withMrn('/clinical/modules/welcome-kiosk'))}
-                >
-                  Welcome Kiosk
                 </Button>
                 <Button
                   variant="contained"
@@ -309,8 +291,6 @@ export default function FlowOverviewPage() {
               sx={{
                 p: 2,
                 borderRadius: 2,
-                border: '1px solid',
-                borderColor: 'divider',
               }}
             >
               <Stack spacing={1.5}>
@@ -422,9 +402,6 @@ export default function FlowOverviewPage() {
                 sx={{
                   p: 2,
                   borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  backgroundColor: subtleSurface,
                 }}
               >
                 <Stack spacing={1.5}>
@@ -459,13 +436,6 @@ export default function FlowOverviewPage() {
                       onClick={() => router.push(withMrn('/clinical/modules/inpatient-documentation-clindoc'))}
                     >
                       Inpatient ClinDoc
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      startIcon={<TouchAppIcon />}
-                      onClick={() => router.push(withMrn('/clinical/modules/welcome-kiosk'))}
-                    >
-                      Welcome Kiosk
                     </Button>
                     <Button
                       variant="outlined"
@@ -532,8 +502,6 @@ export default function FlowOverviewPage() {
           sx={{
             p: 2,
             borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'divider',
           }}
         >
           <Stack spacing={1.5}>
@@ -568,8 +536,6 @@ export default function FlowOverviewPage() {
           sx={{
             p: 2,
             borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'divider',
           }}
         >
           <Stack spacing={1.5}>
@@ -604,8 +570,6 @@ export default function FlowOverviewPage() {
           sx={{
             p: 2,
             borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'divider',
           }}
         >
           <Stack spacing={1.5}>
@@ -640,8 +604,6 @@ export default function FlowOverviewPage() {
           sx={{
             p: 2,
             borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'divider',
           }}
         >
           <Stack spacing={1.5}>

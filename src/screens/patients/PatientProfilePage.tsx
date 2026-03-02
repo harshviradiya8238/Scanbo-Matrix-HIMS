@@ -18,7 +18,7 @@ import {
   TableRow,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card, CommonDialog, CommonTabs, StatTile } from '@/src/ui/components/molecules';
+import { Card, CommonDialog, CommonTabs, StatTile, WorkspaceHeaderCard } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { alpha, useTheme } from '@/src/ui/theme';
 import {
@@ -51,7 +51,6 @@ import {
 import GlobalPatientSearch from '@/src/ui/components/molecules/GlobalPatientSearch';
 import { GLOBAL_PATIENTS, getPatientByMrn } from '@/src/mocks/global-patients';
 import { useOpdData } from '@/src/store/opdHooks';
-import { getSoftSurface } from '@/src/core/theme/surfaces';
 import { AppointmentStatus, OpdAppointment } from '@/src/screens/opd/opd-mock-data';
 import { useAppDispatch } from '@/src/store/hooks';
 import { updateAppointment } from '@/src/store/slices/opdSlice';
@@ -129,14 +128,12 @@ const TabPanel = ({ value, tab, children }: TabPanelProps) =>
 
 export default function PatientProfilePage() {
   const theme = useTheme();
-  const softSurface = getSoftSurface(theme);
   const router = useRouter();
   const searchParams = useSearchParams();
   const mrn = searchParams.get('mrn')?.toUpperCase() ?? '';
   const dispatch = useAppDispatch();
   const { appointments, encounters, vitalTrends, medicationCatalog } = useOpdData();
   const patient = getPatientByMrn(mrn);
-  const cardShadow = '0 12px 24px rgba(15, 23, 42, 0.06)';
   const tileShadow = '0 8px 18px rgba(15, 23, 42, 0.05)';
   const lightBorder = `1px solid ${alpha(theme.palette.text.primary, 0.04)}`;
   const dividerSx = { my: 1.5, borderColor: alpha(theme.palette.text.primary, 0.08) };
@@ -393,7 +390,7 @@ export default function PatientProfilePage() {
   if (!patient) {
     return (
       <PageTemplate title="Patient Profile" currentPageTitle="Profile">
-        <Card elevation={0} sx={{ p: 3, borderRadius: 2, boxShadow: cardShadow, backgroundColor: 'background.paper' }}>
+        <Card elevation={0} sx={{ p: 3, borderRadius: 2 }}>
           <Stack spacing={2} alignItems="center">
             <Typography variant="h6">Find a patient</Typography>
             <Typography variant="body2" color="text.secondary">
@@ -421,13 +418,10 @@ export default function PatientProfilePage() {
   return (
     <PageTemplate title="Patient Profile" currentPageTitle="Profile">
       <Stack spacing={2.5}>
-        <Card
-          elevation={0}
+        <WorkspaceHeaderCard
           sx={{
             p: 2,
             borderRadius: 2,
-            boxShadow: cardShadow,
-            backgroundColor: softSurface,
           }}
         >
           <Stack
@@ -504,7 +498,7 @@ export default function PatientProfilePage() {
               </Button>
             </Stack>
           </Stack>
-        </Card>
+        </WorkspaceHeaderCard>
 
         <Box
           sx={{
@@ -519,7 +513,6 @@ export default function PatientProfilePage() {
             subtitle={latestAppointment ? `Last on ${formatDate(latestAppointment.date)}` : 'No visits yet'}
             icon={<CalendarMonthIcon fontSize="small" />}
             variant="soft"
-            sx={{ boxShadow: cardShadow }}
           />
           <StatTile
             label="Active Medications"
@@ -527,7 +520,6 @@ export default function PatientProfilePage() {
             subtitle={patientMedications.length ? 'On profile' : 'None listed'}
             icon={<LocalPharmacyIcon fontSize="small" />}
             variant="soft"
-            sx={{ boxShadow: cardShadow }}
           />
           <StatTile
             label="Vitals Captured"
@@ -535,7 +527,6 @@ export default function PatientProfilePage() {
             subtitle={latestVital ? `Latest ${latestVital.recordedAt}` : 'No vitals recorded'}
             icon={<MonitorHeartIcon fontSize="small" />}
             variant="soft"
-            sx={{ boxShadow: cardShadow }}
           />
           <StatTile
             label="Show Rate"
@@ -543,7 +534,6 @@ export default function PatientProfilePage() {
             subtitle={opdAppointments.length ? `${completedVisits} completed` : 'No visits yet'}
             icon={<EventAvailableIcon fontSize="small" />}
             variant="soft"
-            sx={{ boxShadow: cardShadow }}
           />
         </Box>
 
@@ -558,7 +548,7 @@ export default function PatientProfilePage() {
           <Stack spacing={1.5}>
             <Card
               elevation={0}
-              sx={{ p: 2, borderRadius: 2, boxShadow: cardShadow, backgroundColor: 'background.paper' }}
+              sx={{ p: 2, borderRadius: 2 }}
             >
               <Stack direction="row" spacing={1} alignItems="center">
                 <VerifiedUserIcon fontSize="small" color="primary" />
@@ -609,7 +599,7 @@ export default function PatientProfilePage() {
 
             <Card
               elevation={0}
-              sx={{ p: 2, borderRadius: 2, boxShadow: cardShadow, backgroundColor: 'background.paper' }}
+              sx={{ p: 2, borderRadius: 2 }}
             >
               <Stack direction="row" spacing={1} alignItems="center">
                 <PersonOutlineIcon fontSize="small" color="primary" />
@@ -629,7 +619,7 @@ export default function PatientProfilePage() {
 
             <Card
               elevation={0}
-              sx={{ p: 2, borderRadius: 2, boxShadow: cardShadow, backgroundColor: 'background.paper' }}
+              sx={{ p: 2, borderRadius: 2 }}
             >
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Stack direction="row" spacing={1} alignItems="center">
@@ -651,7 +641,6 @@ export default function PatientProfilePage() {
                         p: 1.75,
                         borderRadius: 1.5,
                         border: lightBorder,
-                        backgroundColor: 'background.paper',
                         boxShadow: tileShadow,
                         display: 'grid',
                         gap: 0.8,
@@ -700,7 +689,7 @@ export default function PatientProfilePage() {
 
             <Card
               elevation={0}
-              sx={{ p: 2, borderRadius: 2, boxShadow: cardShadow, backgroundColor: 'background.paper' }}
+              sx={{ p: 2, borderRadius: 2 }}
             >
               <Stack direction="row" spacing={1} alignItems="center">
                 <WarningAmberIcon fontSize="small" color="error" />
@@ -742,7 +731,7 @@ export default function PatientProfilePage() {
           <Stack spacing={1}>
             <Card
               elevation={0}
-              sx={{ p: 0, borderRadius: 2, boxShadow: cardShadow, backgroundColor: 'background.paper' }}
+              sx={{ p: 0, borderRadius: 2 }}
             >
               <Box sx={{ px: 0.5, py: 0.5, borderBottom: lightBorder }}>
                 <CommonTabs
@@ -1006,7 +995,6 @@ export default function PatientProfilePage() {
                               p: 1.2,
                               borderRadius: 1.5,
                               border: lightBorder,
-                              backgroundColor: 'background.paper',
                             }}
                           >
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -1106,7 +1094,6 @@ export default function PatientProfilePage() {
                           gap: 2,
                           p: 2,
                           borderRadius: 2,
-                          backgroundColor: theme.palette.background.paper,
                           border: lightBorder,
                           position: 'relative',
                           '&:before': {
@@ -1203,7 +1190,6 @@ export default function PatientProfilePage() {
                               color: theme.palette.error.main,
                               fontWeight: 600,
                               px: 2.2,
-                              bgcolor: theme.palette.background.paper,
                               '&:hover': {
                                 borderColor: theme.palette.error.main,
                                 bgcolor: alpha(theme.palette.error.main, 0.08),

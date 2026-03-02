@@ -144,7 +144,6 @@ export default function PatientDetailsStep({
         sx={{
           px: 2.5,
           py: 1.6,
-          backgroundColor: softSurface,
           color: 'text.primary',
         }}
       >

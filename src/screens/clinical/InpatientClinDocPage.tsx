@@ -353,9 +353,6 @@ export default function InpatientClinDocPage() {
           sx={{
             p: 2,
             borderRadius: 2.5,
-            border: '1px solid',
-            borderColor: 'divider',
-            backgroundColor: softSurface,
           }}
         >
           <Grid container spacing={2} alignItems="center">
@@ -438,8 +435,6 @@ export default function InpatientClinDocPage() {
           sx={{
             p: 2,
             borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'divider',
           }}
         >
           <Stack spacing={1.25}>
@@ -528,7 +523,7 @@ export default function InpatientClinDocPage() {
           <Grid item xs={12} lg={3}>
             <Card
               elevation={0}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', height: '100%' }}
+              sx={{ p: 2, borderRadius: 2, height: '100%' }}
             >
               <Stack spacing={1.5}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -556,8 +551,6 @@ export default function InpatientClinDocPage() {
                       sx={{
                         mb: 1,
                         borderRadius: 1.5,
-                        border: '1px solid',
-                        borderColor: patientCase.id === selectedCase.id ? 'primary.main' : 'divider',
                         alignItems: 'flex-start',
                         '&.Mui-selected': { backgroundColor: 'primary.light' },
                       }}
@@ -595,7 +588,7 @@ export default function InpatientClinDocPage() {
           <Grid item xs={12} lg={6}>
             <Card
               elevation={0}
-              sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', height: '100%' }}
+              sx={{ p: 2, borderRadius: 2, height: '100%' }}
             >
               <Stack spacing={1.5}>
                 <Stack
@@ -725,9 +718,6 @@ export default function InpatientClinDocPage() {
                 sx={{
                   p: 2,
                   borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  backgroundColor: subtleSurface,
                 }}
               >
                 <Stack spacing={1.25}>
@@ -759,7 +749,7 @@ export default function InpatientClinDocPage() {
                 </Stack>
               </Card>
 
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
                 <Stack spacing={1.25}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                     Vitals
@@ -773,7 +763,7 @@ export default function InpatientClinDocPage() {
                 </Stack>
               </Card>
 
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
                 <Stack spacing={1}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                     Medication Plan
@@ -791,7 +781,7 @@ export default function InpatientClinDocPage() {
                 </Stack>
               </Card>
 
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
                 <Stack spacing={1}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                     Round Checklist
@@ -812,7 +802,7 @@ export default function InpatientClinDocPage() {
           </Grid>
         </Grid>
 
-        <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+        <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
           <Stack spacing={1.2}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
               Daily Timeline

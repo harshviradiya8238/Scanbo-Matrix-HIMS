@@ -323,7 +323,7 @@ export default function RadiologyOrdersPage() {
 
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>
-            <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
               <Typography variant="caption" color="text.secondary">
                 Pending Validation
               </Typography>
@@ -333,7 +333,7 @@ export default function RadiologyOrdersPage() {
             </Card>
           </Grid>
           <Grid item xs={12} md={4}>
-            <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
               <Typography variant="caption" color="text.secondary">
                 Total Orders
               </Typography>
@@ -343,7 +343,7 @@ export default function RadiologyOrdersPage() {
             </Card>
           </Grid>
           <Grid item xs={12} md={4}>
-            <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
               <Typography variant="caption" color="text.secondary">
                 Selected Slot
               </Typography>

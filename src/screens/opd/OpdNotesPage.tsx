@@ -204,7 +204,7 @@ export default function OpdNotesPage() {
 
         <Grid container spacing={2}>
           <Grid item xs={12} lg={8}>
-            <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
               <Stack spacing={1.3}>
                 <Stack
                   direction={{ xs: 'column', md: 'row' }}
@@ -301,7 +301,7 @@ export default function OpdNotesPage() {
 
           <Grid item xs={12} lg={4}>
             <Stack spacing={2}>
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
                 <Stack spacing={1}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Patient Snapshot</Typography>
                   {selectedPatient ? (
@@ -317,7 +317,7 @@ export default function OpdNotesPage() {
                 </Stack>
               </Card>
 
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
                 <Stack spacing={1}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <HistoryIcon fontSize="small" />
@@ -344,7 +344,7 @@ export default function OpdNotesPage() {
                 </Stack>
               </Card>
 
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
                 <Stack spacing={1}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <DescriptionIcon fontSize="small" />
@@ -370,7 +370,7 @@ export default function OpdNotesPage() {
                 </Stack>
               </Card>
 
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
                 <Stack spacing={1}>
                   <Button
                     variant="outlined"

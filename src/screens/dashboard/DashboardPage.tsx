@@ -4,10 +4,10 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 import { Box, Button, Chip, Stack, Typography } from '@/src/ui/components/atoms';
-import { Card, CommandCenterChips } from '@/src/ui/components/molecules';
+import { Card, CommandCenterChips, WorkspaceHeaderCard } from '@/src/ui/components/molecules';
 import StatTile from '@/src/ui/components/molecules/StatTile';
 import { useTheme } from '@/src/ui/theme';
-import { getSoftSurface, getSubtleSurface } from '@/src/core/theme/surfaces';
+import { cardShadow } from '@/src/core/theme/tokens';
 import {
   ArrowForward as ArrowForwardIcon,
   AssignmentLate as AssignmentLateIcon,
@@ -39,8 +39,6 @@ interface WardSummary {
 
 export default function DashboardPage() {
   const theme = useTheme();
-  const softSurface = getSoftSurface(theme);
-  const subtleSurface = getSubtleSurface(theme);
   const router = useRouter();
   const { appointments, encounters } = useOpdData();
   const dashboardDate = '2026-02-04';
@@ -160,14 +158,10 @@ export default function DashboardPage() {
   return (
     <PageTemplate title="Dashboard" currentPageTitle="Dashboard">
       <Stack spacing={2}>
-        <Card
-          elevation={0}
+        <WorkspaceHeaderCard
           sx={{
             p: 2,
             borderRadius: 2.5,
-            border: '1px solid',
-            borderColor: 'divider',
-            backgroundColor: softSurface,
           }}
         >
           <Stack
@@ -211,7 +205,7 @@ export default function DashboardPage() {
               </Button>
             </Stack>
           </Stack>
-        </Card>
+        </WorkspaceHeaderCard>
 
         <Box
           sx={{
@@ -279,9 +273,6 @@ export default function DashboardPage() {
                 sx={{
                   p: 2,
                   borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  // backgroundColor: subtleSurface,
                 }}
               >
                 <Stack spacing={1}>
@@ -329,7 +320,7 @@ export default function DashboardPage() {
                 </Stack>
               </Card>
 
-              <Card elevation={0} sx={{ p: 1.6, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 1.6, borderRadius: 2 }}>
                 <Stack spacing={1.2}>
                   <Stack
                     direction={{ xs: 'column', sm: 'row' }}
@@ -360,9 +351,7 @@ export default function DashboardPage() {
                             alignItems: 'center',
                             p: 1.2,
                             borderRadius: 1.6,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            backgroundColor: 'background.paper',
+                            boxShadow: cardShadow,
                           }}
                         >
                           <Stack spacing={0.35}>
@@ -401,9 +390,6 @@ export default function DashboardPage() {
                 sx={{
                   p: 2,
                   borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  // backgroundColor: subtleSurface,
                 }}
               >
                 <Stack spacing={1}>
@@ -446,7 +432,7 @@ export default function DashboardPage() {
                 </Stack>
               </Card>
 
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
                 <Stack spacing={1}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                     Financial Snapshot
@@ -463,7 +449,7 @@ export default function DashboardPage() {
                 </Stack>
               </Card>
 
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
                 <Stack spacing={1}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                     Module Progress
@@ -479,7 +465,7 @@ export default function DashboardPage() {
                 </Stack>
               </Card>
 
-              <Card elevation={0} sx={{ p: 1.6, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 1.6, borderRadius: 2 }}>
                 <Stack spacing={1.2}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -501,9 +487,7 @@ export default function DashboardPage() {
                           alignItems: 'center',
                           p: 1.2,
                           borderRadius: 1.6,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          backgroundColor: 'background.paper',
+                          boxShadow: cardShadow,
                         }}
                       >
                         <Stack spacing={0.35}>

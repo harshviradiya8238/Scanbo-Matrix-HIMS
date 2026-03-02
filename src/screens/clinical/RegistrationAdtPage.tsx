@@ -376,7 +376,7 @@ export default function RegistrationAdtPage() {
 
         <Grid container spacing={2}>
           <Grid item xs={12} md={8}>
-            <Card elevation={0} sx={{ p: 0, borderRadius: 2.5, border: '1px solid', borderColor: 'divider' }}>
+            <Card elevation={0} sx={{ p: 0, borderRadius: 2.5 }}>
               <DataTable
                 tableId="registration-queue"
                 rows={REGISTRATION_QUEUE}
@@ -395,7 +395,7 @@ export default function RegistrationAdtPage() {
           </Grid>
           <Grid item xs={12} md={4}>
             <Stack spacing={2}>
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2.5, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2.5 }}>
                 <Stack spacing={1.5}>
                   <Stack direction="row" spacing={1.25} alignItems="center">
                     <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main' }}>
@@ -469,7 +469,7 @@ export default function RegistrationAdtPage() {
                 </Stack>
               </Card>
 
-              <Card elevation={0} sx={{ p: 2, borderRadius: 2.5, border: '1px solid', borderColor: 'divider' }}>
+              <Card elevation={0} sx={{ p: 2, borderRadius: 2.5 }}>
                 <Stack spacing={1.5}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <HotelIcon fontSize="small" color="primary" />
@@ -528,7 +528,7 @@ export default function RegistrationAdtPage() {
           </Grid>
         </Grid>
 
-        <Card elevation={0} sx={{ p: 2, borderRadius: 2.5, border: '1px solid', borderColor: 'divider' }}>
+        <Card elevation={0} sx={{ p: 2, borderRadius: 2.5 }}>
           <Stack spacing={1.5}>
             <Stack direction="row" spacing={1} alignItems="center">
               <VerifiedUserIcon fontSize="small" color="primary" />

@@ -233,12 +233,7 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'help.read',
   ],
   PATIENT_PORTAL: [
-    'dashboard.read',
-    'patients.profile.read',
-    'appointments.read',
-    'diagnostics.lab.results.read',
-    'billing.invoices.read',
-    'help.read',
+    'patient-portal.*',
   ],
   AUDITOR: [
     'dashboard.read',

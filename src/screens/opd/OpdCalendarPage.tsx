@@ -1335,7 +1335,6 @@ export default function OpdCalendarPage() {
                     position: 'sticky',
                     top: 0,
                     zIndex: 4,
-                    bgcolor: alpha(theme.palette.background.paper, 0.96),
                     backdropFilter: 'blur(6px)',
                     borderBottom: '1px solid',
                     borderColor: alpha(theme.palette.divider, 0.2),
@@ -1360,7 +1359,7 @@ export default function OpdCalendarPage() {
                         size="small"
                         onClick={handlePrev}
                         aria-label="Previous"
-                        sx={{ border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}
+                        sx={{ border: '1px solid', borderColor: 'divider' }}
                       >
                         <ChevronLeftIcon fontSize="small" />
                       </IconButton>
@@ -1368,7 +1367,7 @@ export default function OpdCalendarPage() {
                         size="small"
                         onClick={handleNext}
                         aria-label="Next"
-                        sx={{ border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}
+                        sx={{ border: '1px solid', borderColor: 'divider' }}
                       >
                         <ChevronRightIcon fontSize="small" />
                       </IconButton>
@@ -1495,7 +1494,6 @@ export default function OpdCalendarPage() {
                     ref={calendarContainerRef}
                     sx={{
                       borderTop: 'none',
-                      bgcolor: 'background.paper',
                       height: { xs: '70vh', md: '78vh' },
                       minWidth: 0,
                       '& .fc': {
@@ -1547,7 +1545,7 @@ export default function OpdCalendarPage() {
                         borderColor: 'transparent',
                       },
                       '& .fc-theme-standard td, & .fc-theme-standard th': {
-                        borderColor: alpha(theme.palette.divider, 0.2),
+                        borderColor: alpha(theme.palette.divider, 0.1),
                       },
                       '& .fc-col-header-cell': {
                         bgcolor: alpha(theme.palette.primary.main, 0.06),

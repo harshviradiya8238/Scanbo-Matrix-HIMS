@@ -520,7 +520,6 @@ export default function EpicCareAmbulatoryPage() {
             borderRadius: 2.5,
             border: '1px solid',
             borderColor: 'divider',
-            backgroundColor: softSurface,
           }}
         >
           <Grid container spacing={2} alignItems="center">
@@ -1055,7 +1054,6 @@ export default function EpicCareAmbulatoryPage() {
                   borderRadius: 2,
                   border: '1px solid',
                   borderColor: 'divider',
-                  backgroundColor: subtleSurface,
                 }}
               >
                 <Stack spacing={1.5}>

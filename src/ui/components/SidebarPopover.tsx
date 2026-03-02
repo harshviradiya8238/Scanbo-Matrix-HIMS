@@ -123,6 +123,8 @@ export default function SidebarPopover({
         borderRadius: 2,
         boxShadow: theme.shadows[8],
         border: `1px solid ${theme.palette.divider}`,
+        backgroundColor: theme.palette.common.white,
+        backgroundImage: 'none',
         pointerEvents: 'auto',
       }}
       onMouseEnter={() => {

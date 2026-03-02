@@ -83,7 +83,6 @@ export default function OpdFlowHeader({
         borderRadius: 2.5,
         border: '1px solid',
         borderColor: 'divider',
-        backgroundColor: softSurface,
       }}
     >
       <Stack spacing={1.5}>

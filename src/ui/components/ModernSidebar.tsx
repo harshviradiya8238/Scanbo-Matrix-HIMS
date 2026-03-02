@@ -23,6 +23,7 @@ import {
   Person,
   Description,
   CalendarToday,
+  CalendarMonth,
   Queue,
   MedicalServices,
   HowToReg,
@@ -53,6 +54,11 @@ import {
   ShoppingBag,
   Inventory,
   Timeline as TimelineIcon,
+  Home as HomeIcon,
+  AccountCircle as AccountCircleIcon,
+  FolderShared as FolderSharedIcon,
+  CreditCard as CreditCardIcon,
+  Chat as ChatIcon,
 } from '@mui/icons-material';
 import { NAV_GROUPS } from '@/src/core/navigation/nav-config';
 import { MenuItem } from '@/src/core/navigation/types';
@@ -83,6 +89,7 @@ const iconMap: Record<string, React.ComponentType> = {
   Person,
   Description,
   CalendarToday,
+  CalendarMonth,
   Queue,
   MedicalServices,
   HowToReg,
@@ -114,6 +121,11 @@ const iconMap: Record<string, React.ComponentType> = {
   ShoppingBag,
   Inventory,
   Radiology: Science,
+  Home: HomeIcon,
+  AccountCircle: AccountCircleIcon,
+  FolderShared: FolderSharedIcon,
+  CreditCard: CreditCardIcon,
+  Chat: ChatIcon,
 };
 
 interface ModernSidebarProps {
@@ -330,6 +342,7 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
       {/* Main Navigation Groups */}
       <Box
         ref={mainNavRef}
+        className="sidebar-nav-scroll"
         sx={{
           flexGrow: 1,
           overflow: 'auto',
@@ -346,7 +359,7 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
 
           return (
             <Box key={group.id} sx={{ mb: isExpanded ? 2 : 1 }}>
-              {isExpanded && (
+              {isExpanded && !!group.label && (
                 <Typography
                   variant="caption"
                   sx={{

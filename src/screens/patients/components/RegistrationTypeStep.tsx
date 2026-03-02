@@ -1339,7 +1339,6 @@ export default function RegistrationTypeStep({
           sx={{
             px: 2.5,
             py: 1.6,
-            backgroundColor: softSurface,
             color: 'text.primary',
           }}
         >

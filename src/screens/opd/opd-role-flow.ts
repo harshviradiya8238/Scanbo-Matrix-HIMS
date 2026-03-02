@@ -118,14 +118,34 @@ const DEFAULT_PROFILE: OpdRoleFlowProfile = {
   },
 };
 
+const PATIENT_PORTAL_PROFILE: OpdRoleFlowProfile = {
+  role: 'PATIENT_PORTAL',
+  label: 'Patient Portal',
+  landingRoute: '/patient-portal/home',
+  stage: 'Patient self-service',
+  allowedActions: ['View dashboard, appointments, reports, medications, and chat'],
+  capabilities: {
+    canManageCalendar: false,
+    canCheckInPatient: false,
+    canStartConsult: false,
+    canViewClinicalHistory: true,
+    canDocumentConsultation: false,
+    canPlaceOrders: false,
+    canPrescribe: false,
+    canCompleteVisit: false,
+    canTransferToIpd: false,
+  },
+};
+
 const OPD_ROLE_PROFILES: Record<string, OpdRoleFlowProfile> = {
   RECEPTION: FRONT_DESK_PROFILE,
   DOCTOR: DOCTOR_PROFILE,
   HOSPITAL_ADMIN: HOSPITAL_ADMIN_PROFILE,
   SUPER_ADMIN: SUPER_ADMIN_PROFILE,
+  PATIENT_PORTAL: PATIENT_PORTAL_PROFILE,
 };
 
-export const OPD_LOGIN_ROLES: UserRole[] = ['RECEPTION', 'HOSPITAL_ADMIN', 'DOCTOR'];
+export const OPD_LOGIN_ROLES: UserRole[] = ['RECEPTION', 'HOSPITAL_ADMIN', 'DOCTOR', 'PATIENT_PORTAL'];
 
 export function getOpdRoleFlowProfile(role: UserRole): OpdRoleFlowProfile {
   return OPD_ROLE_PROFILES[role] ?? DEFAULT_PROFILE;

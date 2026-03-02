@@ -60,6 +60,12 @@ export const palette = {
   },
 };
 
+/** Centralized card shadow for all cards in the app */
+// export const cardShadow = '0 16px 40px rgba(43, 123, 249, 0.15)';
+
+// export const cardShadow =  '0 4px 20px rgba(26, 47, 80, 0.11)'
+export const cardShadow = "rgba(15, 23, 42, 0.06) 0px 12px 24px";
+
 export const typography = {
   fontFamily: "nunito",
   h1: {

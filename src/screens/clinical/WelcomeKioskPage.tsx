@@ -13,10 +13,9 @@ import {
   Stack,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card, StatTile } from '@/src/ui/components/molecules';
+import { Card, StatTile, WorkspaceHeaderCard } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { alpha, useTheme } from '@/src/ui/theme';
-import { getSoftSurface } from '@/src/core/theme/surfaces';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
 import { useUser } from '@/src/core/auth/UserContext';
@@ -160,7 +159,6 @@ const STAFF_TASKS: StaffTask[] = [
 export default function WelcomeKioskPage() {
   const router = useRouter();
   const theme = useTheme();
-  const softSurface = getSoftSurface(theme);
   const mrnParam = useMrnParam();
   const { permissions } = useUser();
   const [selectedSessionId, setSelectedSessionId] = React.useState(SESSIONS[0]?.id ?? '');
@@ -194,14 +192,10 @@ export default function WelcomeKioskPage() {
   return (
     <PageTemplate title="Welcome Kiosk" subtitle={pageSubtitle} currentPageTitle="Welcome Kiosk">
       <Stack spacing={1.5}>
-        <Card
-          elevation={0}
+        <WorkspaceHeaderCard
           sx={{
             p: 1.75,
             borderRadius: 2.5,
-            border: '1px solid',
-            borderColor: 'divider',
-            backgroundColor: softSurface,
           }}
         >
           <Stack spacing={1.25}>
@@ -245,7 +239,7 @@ export default function WelcomeKioskPage() {
               </Stack>
             </Stack>
           </Stack>
-        </Card>
+        </WorkspaceHeaderCard>
 
         <Grid container spacing={1.5}>
           <Grid item xs={12} sm={6} md={3}>

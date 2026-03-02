@@ -352,7 +352,7 @@ export default function LabOrdersPage() {
 
         <Grid container spacing={2} alignItems="stretch">
           <Grid item xs={12} md={4}>
-            <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
               <Typography variant="caption" color="text.secondary">
                 Pending Collection
               </Typography>
@@ -362,7 +362,7 @@ export default function LabOrdersPage() {
             </Card>
           </Grid>
           <Grid item xs={12} md={4}>
-            <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
               <Typography variant="caption" color="text.secondary">
                 In Lab
               </Typography>
@@ -372,7 +372,7 @@ export default function LabOrdersPage() {
             </Card>
           </Grid>
           <Grid item xs={12} md={4}>
-            <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
               <Typography variant="caption" color="text.secondary">
                 Total Orders
               </Typography>
@@ -434,7 +434,6 @@ export default function LabOrdersPage() {
           BackdropProps: {
             sx: {
               backgroundColor: 'rgba(15, 23, 42, 0.25)',
-              backdropFilter: 'blur(4px)',
             },
           },
         }}

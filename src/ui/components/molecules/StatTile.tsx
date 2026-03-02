@@ -3,6 +3,7 @@ import { alpha, useTheme } from '@mui/material';
 import { Box, Stack } from '@/src/ui/components/atoms';
 import Paper from '@/src/ui/components/atoms/Paper';
 import Text from '@/src/ui/components/atoms/Text';
+import { cardShadow } from '@/src/core/theme/tokens';
 
 type Tone = 'primary' | 'secondary' | 'info' | 'success' | 'warning' | 'error';
 
@@ -27,10 +28,6 @@ export default function StatTile({
 }: StatTileProps) {
   const theme = useTheme();
   const palette = theme.palette.primary;
-  const background =
-    variant === 'outlined'
-      ? theme.palette.background.paper
-      : alpha(palette.main, 0.08);
 
   return (
     <Paper
@@ -38,9 +35,10 @@ export default function StatTile({
       sx={{
         p: 2,
         borderRadius: 2,
-        border: variant === 'outlined' ? '1px solid' : 'none',
-        borderColor: variant === 'outlined' ? 'divider' : undefined,
-        background,
+        border: 'none',
+        boxShadow: cardShadow,
+        // backgroundColor: 'transparent',
+        backgroundColor: "rgba(17, 114, 186, 0.08)",
         ...sx,
       }}
     >

@@ -242,7 +242,6 @@ export default function ClinicalEpicModulesPage() {
           sx={{
             p: 2,
             borderRadius: 2,
-            backgroundColor: subtleSurface,
           }}
         >
           <Stack spacing={1}>

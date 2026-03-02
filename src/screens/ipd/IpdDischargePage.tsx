@@ -1438,7 +1438,6 @@ export default function IpdDischargePage() {
               position: 'sticky',
               top: IPD_PATIENT_TOP_BAR_STICKY_OFFSET,
               zIndex: 5,
-              backgroundColor: alpha(theme.palette.background.default, 0.92),
               backdropFilter: 'blur(6px)',
             }}
           >
@@ -1447,7 +1446,6 @@ export default function IpdDischargePage() {
               sx={{
                 p: 0,
                 borderRadius: '0 0 10px 10px',
-                border: '1px solid',
                 borderTop: 'none',
                 borderColor: alpha(theme.palette.primary.main, 0.16),
               }}

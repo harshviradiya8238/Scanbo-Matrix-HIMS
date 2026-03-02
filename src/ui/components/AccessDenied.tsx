@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 import { Box, Button, Chip, Stack, Typography } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
-import { useTheme } from '@mui/material';
-import { getSoftSurface } from '@/src/core/theme/surfaces';
 import {
   getRoleLabel,
   getRolesForPermissions,
@@ -25,8 +23,6 @@ interface AccessDeniedProps {
 
 export default function AccessDenied({ requiredPermissions, currentRole }: AccessDeniedProps) {
   const router = useRouter();
-  const theme = useTheme();
-  const softSurface = getSoftSurface(theme);
   const allowedRoles = getRolesForPermissions(requiredPermissions);
 
   return (
@@ -39,7 +35,6 @@ export default function AccessDenied({ requiredPermissions, currentRole }: Acces
             borderRadius: 2.5,
             border: '1px solid',
             borderColor: 'divider',
-            backgroundColor: softSurface,
           }}
         >
           <Stack spacing={1.5}>
