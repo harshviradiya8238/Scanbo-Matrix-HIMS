@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { Box, Drawer, List, Typography } from '@/src/ui/components/atoms';
-import { useTheme, useMediaQuery, alpha } from '@mui/material';
+import * as React from "react";
+import { Box, Drawer, List, Typography } from "@/src/ui/components/atoms";
+import { useTheme, useMediaQuery, alpha } from "@mui/material";
 import {
   Dashboard as DashboardIcon,
   People as PeopleIcon,
@@ -59,13 +59,14 @@ import {
   FolderShared as FolderSharedIcon,
   CreditCard as CreditCardIcon,
   Chat as ChatIcon,
-} from '@mui/icons-material';
-import { NAV_GROUPS } from '@/src/core/navigation/nav-config';
-import { MenuItem } from '@/src/core/navigation/types';
-import { hasPermission } from '@/src/core/navigation/permissions';
-import { useSidebarState } from '@/src/core/navigation/useSidebarState';
-import { useNavigationState } from '@/src/core/navigation/hooks';
-import SidebarItem from './SidebarItem';
+  EventNote,
+} from "@mui/icons-material";
+import { NAV_GROUPS } from "@/src/core/navigation/nav-config";
+import { MenuItem } from "@/src/core/navigation/types";
+import { hasPermission } from "@/src/core/navigation/permissions";
+import { useSidebarState } from "@/src/core/navigation/useSidebarState";
+import { useNavigationState } from "@/src/core/navigation/hooks";
+import SidebarItem from "./SidebarItem";
 
 const DRAWER_WIDTH = 260;
 
@@ -126,6 +127,7 @@ const iconMap: Record<string, React.ComponentType> = {
   FolderShared: FolderSharedIcon,
   CreditCard: CreditCardIcon,
   Chat: ChatIcon,
+  EventNote,
 };
 
 interface ModernSidebarProps {
@@ -134,7 +136,7 @@ interface ModernSidebarProps {
 
 export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { isExpanded, toggle } = useSidebarState();
   const { favorites, toggleFavorite, recentItems } = useNavigationState();
   const [hoveredItemId, setHoveredItemId] = React.useState<string | null>(null);
@@ -144,11 +146,14 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
   const filterItems = (items: MenuItem[]): MenuItem[] => {
     return items
       .filter((item) => {
-        if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
+        if (
+          !item.requiredPermissions ||
+          item.requiredPermissions.length === 0
+        ) {
           return true;
         }
         const hasAccess = item.requiredPermissions.some((perm) =>
-          hasPermission(userPermissions, perm)
+          hasPermission(userPermissions, perm),
         );
         return hasAccess;
       })
@@ -176,7 +181,10 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
   // Get recent menu items - only show leaf items (items with routes, not parent groups)
   const recentMenuItems = React.useMemo(() => {
     const items: MenuItem[] = [];
-    const findItem = (groups: typeof NAV_GROUPS, id: string): MenuItem | null => {
+    const findItem = (
+      groups: typeof NAV_GROUPS,
+      id: string,
+    ): MenuItem | null => {
       for (const group of groups) {
         for (const item of group.items) {
           if (item.id === id) return item;
@@ -188,7 +196,10 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
       }
       return null;
     };
-    const findItemInChildren = (children: MenuItem[], id: string): MenuItem | null => {
+    const findItemInChildren = (
+      children: MenuItem[],
+      id: string,
+    ): MenuItem | null => {
       for (const child of children) {
         if (child.id === id) return child;
         if (child.children) {
@@ -204,7 +215,7 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
       if (item && item.route) {
         if (item.requiredPermissions) {
           const hasAccess = item.requiredPermissions.some((perm) =>
-            hasPermission(userPermissions, perm)
+            hasPermission(userPermissions, perm),
           );
           if (hasAccess) items.push(item);
         } else {
@@ -218,11 +229,11 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
   const drawerContent = (
     <Box
       sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
         backgroundColor: theme.palette.background.paper,
-        position: 'relative',
+        position: "relative",
         zIndex: theme.zIndex.drawer,
       }}
     >
@@ -231,11 +242,13 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
         sx={{
           px: isExpanded ? 1.5 : 1,
           py: isExpanded ? 0 : 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          borderBottom: isExpanded ? `1px solid ${theme.palette.divider}` : 'none',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          borderBottom: isExpanded
+            ? `1px solid ${theme.palette.divider}`
+            : "none",
           minHeight: { xs: 80, md: isExpanded ? 88 : 96 },
           height: { xs: 80, md: isExpanded ? 88 : 96 },
           backgroundColor: theme.palette.background.paper,
@@ -243,101 +256,104 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
       >
         <Box
           component="img"
-          src={'/scanbo.svg' }
+          src={"/scanbo.svg"}
           alt="Scanbo logo"
           sx={{
             height: isExpanded ? 60 : 54,
-            width: 'auto',
-            objectFit: 'contain',
-            objectPosition: 'center',
-            display: 'block',
-            filter: 'drop-shadow(0 2px 6px rgba(17,114,186,0.12))',
+            width: "auto",
+            objectFit: "contain",
+            objectPosition: "center",
+            display: "block",
+            filter: "drop-shadow(0 2px 6px rgba(17,114,186,0.12))",
           }}
         />
         {!isMobile && null}
       </Box>
 
       {/* Recent Items - Only show if not already visible in main menu */}
-      {isExpanded && recentMenuItems.length > 0 && (() => {
-        // Filter out items that are already visible in main menu
-        const allMainMenuIds = new Set<string>();
-        NAV_GROUPS.forEach((group) => {
-          const collectIds = (items: MenuItem[]) => {
-            items.forEach((item) => {
-              if (item.route) allMainMenuIds.add(item.id);
-              if (item.children) collectIds(item.children);
-            });
-          };
-          collectIds(filterItems(group.items));
-        });
-        
-        const uniqueRecentItems = recentMenuItems.filter(
-          (item) => !allMainMenuIds.has(item.id)
-        );
-        
-        if (uniqueRecentItems.length === 0) return null;
-        
-        return (
-          <>
-            <Box sx={{ px: 2, pb: 1 }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 600,
-                  color: theme.palette.primary.main,
-                  textTransform: 'uppercase',
-                  fontSize: '0.7rem',
-                  letterSpacing: '0.5px',
-                }}
-              >
-                Recent
-              </Typography>
-            </Box>
-            <List dense sx={{ px: 1, pb: 1 }}>
-              {uniqueRecentItems.map((item) => (
-                <SidebarItem
-                  key={item.id}
-                  item={item}
-                  userPermissions={userPermissions}
-                  isExpanded={isExpanded}
-                  iconMap={iconMap}
-                  favorites={favorites}
-                  onFavoriteToggle={toggleFavorite}
-                  onSubmenuHover={handleSubmenuHover}
-                  hoveredItemId={hoveredItemId}
-                />
-              ))}
-            </List>
-          </>
-        );
-      })()}
+      {isExpanded &&
+        recentMenuItems.length > 0 &&
+        (() => {
+          // Filter out items that are already visible in main menu
+          const allMainMenuIds = new Set<string>();
+          NAV_GROUPS.forEach((group) => {
+            const collectIds = (items: MenuItem[]) => {
+              items.forEach((item) => {
+                if (item.route) allMainMenuIds.add(item.id);
+                if (item.children) collectIds(item.children);
+              });
+            };
+            collectIds(filterItems(group.items));
+          });
 
-      {isExpanded && (() => {
-        // Check if we have unique recent items to show
-        const allMainMenuIds = new Set<string>();
-        NAV_GROUPS.forEach((group) => {
-          const collectIds = (items: MenuItem[]) => {
-            items.forEach((item) => {
-              if (item.route) allMainMenuIds.add(item.id);
-              if (item.children) collectIds(item.children);
-            });
-          };
-          collectIds(filterItems(group.items));
-        });
-        const uniqueRecentItems = recentMenuItems.filter(
-          (item) => !allMainMenuIds.has(item.id)
-        );
-        return uniqueRecentItems.length > 0 ? (
-          <Box
-            sx={{
-              height: 1,
-              backgroundColor: alpha(theme.palette.primary.main, 0.2),
-              my: 1,
-              mx: 2,
-            }}
-          />
-        ) : null;
-      })()}
+          const uniqueRecentItems = recentMenuItems.filter(
+            (item) => !allMainMenuIds.has(item.id),
+          );
+
+          if (uniqueRecentItems.length === 0) return null;
+
+          return (
+            <>
+              <Box sx={{ px: 2, pb: 1 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 600,
+                    color: theme.palette.primary.main,
+                    textTransform: "uppercase",
+                    fontSize: "0.7rem",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Recent
+                </Typography>
+              </Box>
+              <List dense sx={{ px: 1, pb: 1 }}>
+                {uniqueRecentItems.map((item) => (
+                  <SidebarItem
+                    key={item.id}
+                    item={item}
+                    userPermissions={userPermissions}
+                    isExpanded={isExpanded}
+                    iconMap={iconMap}
+                    favorites={favorites}
+                    onFavoriteToggle={toggleFavorite}
+                    onSubmenuHover={handleSubmenuHover}
+                    hoveredItemId={hoveredItemId}
+                  />
+                ))}
+              </List>
+            </>
+          );
+        })()}
+
+      {isExpanded &&
+        (() => {
+          // Check if we have unique recent items to show
+          const allMainMenuIds = new Set<string>();
+          NAV_GROUPS.forEach((group) => {
+            const collectIds = (items: MenuItem[]) => {
+              items.forEach((item) => {
+                if (item.route) allMainMenuIds.add(item.id);
+                if (item.children) collectIds(item.children);
+              });
+            };
+            collectIds(filterItems(group.items));
+          });
+          const uniqueRecentItems = recentMenuItems.filter(
+            (item) => !allMainMenuIds.has(item.id),
+          );
+          return uniqueRecentItems.length > 0 ? (
+            <Box
+              sx={{
+                height: 1,
+                backgroundColor: alpha(theme.palette.primary.main, 0.2),
+                my: 1,
+                mx: 2,
+              }}
+            />
+          ) : null;
+        })()}
 
       {/* Main Navigation Groups */}
       <Box
@@ -345,12 +361,12 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
         className="sidebar-nav-scroll"
         sx={{
           flexGrow: 1,
-          overflow: 'auto',
+          overflow: "auto",
           px: isExpanded ? 0.1 : 0.5,
           py: isExpanded ? 1 : 2,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: isExpanded ? 'stretch' : 'center',
+          display: "flex",
+          flexDirection: "column",
+          alignItems: isExpanded ? "stretch" : "center",
         }}
       >
         {NAV_GROUPS.map((group) => {
@@ -367,10 +383,10 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
                     py: 0.75,
                     fontWeight: 600,
                     color: theme.palette.primary.main,
-                    textTransform: 'uppercase',
-                    fontSize: '0.7rem',
-                    letterSpacing: '0.5px',
-                    display: 'block',
+                    textTransform: "uppercase",
+                    fontSize: "0.7rem",
+                    letterSpacing: "0.5px",
+                    display: "block",
                   }}
                 >
                   {group.label}
@@ -380,25 +396,25 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
                 dense
                 disablePadding
                 sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: isExpanded ? 'stretch' : 'center',
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: isExpanded ? "stretch" : "center",
                   gap: isExpanded ? 0 : 1.1,
-                  width: '100%',
+                  width: "100%",
                 }}
               >
                 {filteredItems.map((item) => (
                   <SidebarItem
                     key={item.id}
-                  item={item}
-                  userPermissions={userPermissions}
-                  isExpanded={isExpanded}
-                  iconMap={iconMap}
-                  favorites={favorites}
-                  onFavoriteToggle={toggleFavorite}
-                  onSubmenuHover={handleSubmenuHover}
-                  hoveredItemId={hoveredItemId}
-                />
+                    item={item}
+                    userPermissions={userPermissions}
+                    isExpanded={isExpanded}
+                    iconMap={iconMap}
+                    favorites={favorites}
+                    onFavoriteToggle={toggleFavorite}
+                    onSubmenuHover={handleSubmenuHover}
+                    hoveredItemId={hoveredItemId}
+                  />
                 ))}
               </List>
             </Box>
@@ -407,7 +423,7 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
       </Box>
 
       {!isExpanded && (
-        <Box sx={{ pt: 1, pb: 2, display: 'flex', justifyContent: 'center' }}>
+        <Box sx={{ pt: 1, pb: 2, display: "flex", justifyContent: "center" }}>
           <Box
             sx={{
               px: 1.4,
@@ -416,9 +432,9 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
               backgroundColor: alpha(theme.palette.warning.main, 0.2),
               color: theme.palette.warning.dark,
               fontWeight: 700,
-              fontSize: '0.75rem',
-              letterSpacing: '0.4px',
-              boxShadow: '0 6px 12px rgba(246, 177, 0, 0.2)',
+              fontSize: "0.75rem",
+              letterSpacing: "0.4px",
+              boxShadow: "0 6px 12px rgba(246, 177, 0, 0.2)",
             }}
           >
             Pro
@@ -444,10 +460,10 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
           keepMounted: true,
         }}
         sx={{
-          display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': {
+          display: { xs: "block", md: "none" },
+          "& .MuiDrawer-paper": {
             width: DRAWER_WIDTH,
-            boxSizing: 'border-box',
+            boxSizing: "border-box",
           },
         }}
       >
@@ -460,9 +476,9 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
   return (
     <Box
       sx={{
-        width: '100%',
-        height: '100%',
-        overflowX: 'hidden',
+        width: "100%",
+        height: "100%",
+        overflowX: "hidden",
         borderRight: `1px solid ${alpha(theme.palette.primary.main, 0.18)}`,
         backgroundColor: theme.palette.background.paper,
       }}
