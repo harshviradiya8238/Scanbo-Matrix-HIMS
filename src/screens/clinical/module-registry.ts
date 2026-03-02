@@ -73,6 +73,20 @@ export const CLINICAL_MODULES: ClinicalModuleDefinition[] = [
     referenceUrl: 'https://www.epic.com/software/acute-and-inpatient-care/',
   },
   {
+    id: 'welcome-kiosk',
+    slug: 'welcome-kiosk',
+    category: 'Clinical',
+    name: 'Epic Welcome Kiosk',
+    area: 'Self Check-in',
+    description:
+      'Patient self check-in workflow for appointment verification, guided intake, and front desk handoff.',
+    audience: ['Front Desk Staff', 'Patients', 'Admission Team'],
+    appRoute: '/clinical/modules/welcome-kiosk',
+    status: 'Implemented',
+    requiredPermissions: buildPermissions('clinical', 'kiosk'),
+    referenceUrl: 'https://www.epic.com/software/',
+  },
+  {
     id: 'care-companion',
     slug: 'care-companion',
     category: 'Clinical',
@@ -377,8 +391,8 @@ export const CLINICAL_MODULES: ClinicalModuleDefinition[] = [
     description:
       'Patient-facing portal for viewing results, appointments, messaging doctors, and online payments.',
     audience: ['Patients', 'Care Coordinators'],
-    appRoute: '/clinical/modules/mychart',
-    status: 'Planned',
+    appRoute: '/patient-portal/home',
+    status: 'Implemented',
     requiredPermissions: buildPermissions('patient_portal', 'mychart'),
     videoUrl: 'https://www.youtube.com/watch?v=5Tn-7QSTU1E',
     referenceUrl: 'https://www.epic.com/software/',

@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Box, Stack } from '@/src/ui/components/atoms';
 import { useTheme } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 import {
   Dashboard as DashboardIcon,
@@ -83,7 +84,7 @@ const SUB_TABS: Record<LabMainSectionId, Array<{ id: LabModuleTabId; label: stri
 
 function tabStyle(
   active: boolean,
-  theme: ReturnType<typeof useTheme>,
+  theme: Theme,
   soft: string,
   embedded: boolean
 ) {
