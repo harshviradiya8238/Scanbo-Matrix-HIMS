@@ -53,6 +53,7 @@ import {
   ShoppingBag,
   Inventory,
   Timeline as TimelineIcon,
+  EventNote,
 } from '@mui/icons-material';
 import { NAV_GROUPS } from '@/src/core/navigation/nav-config';
 import { MenuItem } from '@/src/core/navigation/types';
@@ -114,6 +115,7 @@ const iconMap: Record<string, React.ComponentType> = {
   ShoppingBag,
   Inventory,
   Radiology: Science,
+  EventNote,
 };
 
 interface ModernSidebarProps {

@@ -109,6 +109,7 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'billing.*',
     'inventory.*',
     'staff.*',
+    'doctors.*',
     'reports.*',
     'admin.*',
     'help.read',
@@ -118,6 +119,7 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'patients.read',
     'patients.profile.read',
     'appointments.*',
+    'doctors.read',
     'ipd.read',
     'ipd.admissions.read',
     'ipd.admissions.write',
@@ -176,6 +178,7 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'clinical.kiosk.*',
     'clinical.flow_overview.read',
     'billing.read',
+    'doctors.read',
     'help.read',
   ],
   CARE_COORDINATOR: [

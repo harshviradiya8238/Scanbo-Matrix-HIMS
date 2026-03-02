@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 import {
   Box,
   Button,
@@ -16,8 +16,8 @@ import {
   DialogTitle,
   Typography,
   Paper,
-} from '@/src/ui/components/atoms';
-import EmptyState from '@/src/ui/components/molecules/EmptyState';
+} from "@/src/ui/components/atoms";
+import EmptyState from "@/src/ui/components/molecules/EmptyState";
 import {
   DataGrid,
   GridColDef,
@@ -37,7 +37,7 @@ import {
   GridToolbarQuickFilter,
   GridValidRowModel,
   useGridApiRef,
-} from '@mui/x-data-grid';
+} from "@mui/x-data-grid";
 import {
   Add as AddIcon,
   Close as CloseIcon,
@@ -45,7 +45,7 @@ import {
   Replay as ReplayIcon,
   Save as SaveIcon,
   ViewList as ViewListIcon,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 
 const DataGridComponent = DataGrid;
 
@@ -142,19 +142,25 @@ const LoadingOverlay = () => (
   </Box>
 );
 
-const ErrorOverlay = ({ message, onRetry }: { message: string; onRetry?: () => void }) => (
+const ErrorOverlay = ({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry?: () => void;
+}) => (
   <EmptyState
     title="Something went wrong"
     description={message}
-    actionLabel={onRetry ? 'Retry' : undefined}
+    actionLabel={onRetry ? "Retry" : undefined}
     onAction={onRetry}
     icon={<ReplayIcon />}
   />
 );
 
 const EmptyOverlay = ({
-  title = 'No patients found',
-  description = 'Try adjusting filters or add a new patient.',
+  title = "No patients found",
+  description = "Try adjusting filters or add a new patient.",
   ctaLabel,
   onCta,
 }: {
@@ -173,7 +179,7 @@ const EmptyOverlay = ({
 );
 
 export default function CommonDataGrid<R extends GridValidRowModel>(
-  props: CommonDataGridProps<R>
+  props: CommonDataGridProps<R>,
 ) {
   const {
     tableId,
@@ -203,44 +209,48 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
 
   const storageKey = React.useMemo(
     () => getStorageKey(tableId, persistKey),
-    [tableId, persistKey]
+    [tableId, persistKey],
   );
   const viewsKey = React.useMemo(
     () => getViewsKey(tableId, persistKey),
-    [tableId, persistKey]
+    [tableId, persistKey],
   );
 
   const apiRef = useGridApiRef();
 
   const [hydrated, setHydrated] = React.useState(false);
   const emptySelection: GridRowSelectionModel = React.useMemo(
-    () => ({ type: 'include', ids: new Set() }),
-    []
+    () => ({ type: "include", ids: new Set() }),
+    [],
   );
-  const normalizeSelection = React.useCallback((model: any): GridRowSelectionModel => {
-    if (model?.ids instanceof Set) return model as GridRowSelectionModel;
-    if (Array.isArray(model)) {
-      return { type: 'include', ids: new Set(model) };
-    }
-    return { type: 'include', ids: new Set() };
-  }, []);
+  const normalizeSelection = React.useCallback(
+    (model: any): GridRowSelectionModel => {
+      if (model?.ids instanceof Set) return model as GridRowSelectionModel;
+      if (Array.isArray(model)) {
+        return { type: "include", ids: new Set(model) };
+      }
+      return { type: "include", ids: new Set() };
+    },
+    [],
+  );
 
-  const [rowSelectionModel, setRowSelectionModel] = React.useState<GridRowSelectionModel>(
-    emptySelection
-  );
+  const [rowSelectionModel, setRowSelectionModel] =
+    React.useState<GridRowSelectionModel>(emptySelection);
   const [savedViews, setSavedViews] = React.useState<
     Array<{ id: string; name: string; state: CommonDataGridState }>
   >([]);
-  const [viewsAnchor, setViewsAnchor] = React.useState<null | HTMLElement>(null);
+  const [viewsAnchor, setViewsAnchor] = React.useState<null | HTMLElement>(
+    null,
+  );
   const [saveDialogOpen, setSaveDialogOpen] = React.useState(false);
-  const [viewName, setViewName] = React.useState('');
+  const [viewName, setViewName] = React.useState("");
 
   const defaultState: CommonDataGridState = {
     paginationModel: { page: 0, pageSize: 25 },
     sortModel: [],
     filterModel: { items: [], quickFilterValues: [] },
     columnVisibilityModel: {},
-    density: 'standard',
+    density: "standard",
   };
 
   const [state, setState] = React.useState<CommonDataGridState>(() => ({
@@ -249,11 +259,13 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
   }));
 
   React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const persisted = safeParse<CommonDataGridState>(localStorage.getItem(storageKey));
-    const persistedViews = safeParse<Array<{ id: string; name: string; state: CommonDataGridState }>>(
-      localStorage.getItem(viewsKey)
+    if (typeof window === "undefined") return;
+    const persisted = safeParse<CommonDataGridState>(
+      localStorage.getItem(storageKey),
     );
+    const persistedViews = safeParse<
+      Array<{ id: string; name: string; state: CommonDataGridState }>
+    >(localStorage.getItem(viewsKey));
     if (persisted) {
       setState((prev) => ({ ...prev, ...persisted }));
     }
@@ -264,12 +276,12 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
   }, [storageKey, viewsKey]);
 
   React.useEffect(() => {
-    if (!hydrated || typeof window === 'undefined') return;
+    if (!hydrated || typeof window === "undefined") return;
     localStorage.setItem(storageKey, JSON.stringify(state));
   }, [hydrated, state, storageKey]);
 
   React.useEffect(() => {
-    if (!hydrated || typeof window === 'undefined') return;
+    if (!hydrated || typeof window === "undefined") return;
     localStorage.setItem(viewsKey, JSON.stringify(savedViews));
   }, [hydrated, savedViews, viewsKey]);
 
@@ -282,8 +294,11 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
     if (!state.columnOrder || state.columnOrder.length === 0) return;
     const api = apiRef.current;
     if (!api) return;
-    const setColumnIndex = (api as GridApi & { setColumnIndex?: (field: string, index: number) => void })
-      .setColumnIndex;
+    const setColumnIndex = (
+      api as GridApi & {
+        setColumnIndex?: (field: string, index: number) => void;
+      }
+    ).setColumnIndex;
     if (!setColumnIndex) return;
     state.columnOrder.forEach((field, index) => {
       try {
@@ -296,13 +311,14 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
 
   const resolvedFilterModel = React.useMemo(
     () => sanitizeFilterModel(filterModelProp ?? state.filterModel),
-    [filterModelProp, state.filterModel]
+    [filterModelProp, state.filterModel],
   );
 
-  const resolvedPaginationModel = state.paginationModel ?? defaultState.paginationModel!;
+  const resolvedPaginationModel =
+    state.paginationModel ?? defaultState.paginationModel!;
   const resolvedSortModel = state.sortModel ?? [];
   const resolvedColumnVisibilityModel = state.columnVisibilityModel ?? {};
-  const resolvedDensity = state.density ?? 'standard';
+  const resolvedDensity = state.density ?? "standard";
 
   React.useEffect(() => {
     if (!serverMode || !onQueryChange) return;
@@ -311,7 +327,7 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
         paginationModel: resolvedPaginationModel,
         sortModel: resolvedSortModel,
         filterModel: resolvedFilterModel,
-        quickFilter: (resolvedFilterModel.quickFilterValues || []).join(' '),
+        quickFilter: (resolvedFilterModel.quickFilterValues || []).join(" "),
       });
     }, 200);
     return () => clearTimeout(handle);
@@ -329,7 +345,7 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
       ...prev,
       { id: String(Date.now()), name: viewName.trim(), state },
     ]);
-    setViewName('');
+    setViewName("");
     setSaveDialogOpen(false);
   };
 
@@ -341,7 +357,12 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
 
   const CustomToolbar = () => (
     <GridToolbarContainer sx={{ gap: 1, px: 1.5, py: 1 }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1}
+        sx={{ flex: 1, minWidth: 0 }}
+      >
         {toolbarConfig?.title && (
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             {toolbarConfig.title}
@@ -351,9 +372,7 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
           <GridToolbarQuickFilter
             debounceMs={300}
             quickFilterParser={(input) =>
-              input
-                .split(/\s+/)
-                .filter((token) => token.length > 0)
+              input.split(/\s+/).filter((token) => token.length > 0)
             }
             aria-label="Search table"
           />
@@ -389,16 +408,16 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
   );
 
   return (
-    <Paper sx={{ width: '100%', borderRadius: 3, overflow: 'hidden' }}>
+    <Paper sx={{ width: "100%", borderRadius: 3, overflow: "hidden" }}>
       {rowSelectionModel?.ids?.size > 0 && (
         <Box
           sx={{
             px: 2,
             py: 1,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            display: 'flex',
-            alignItems: 'center',
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            display: "flex",
+            alignItems: "center",
             gap: 2,
           }}
           aria-label="Bulk actions"
@@ -407,14 +426,17 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
             {rowSelectionModel?.ids?.size ?? 0} selected
           </Typography>
           <Box sx={{ flex: 1 }} />
-          {renderBulkActions?.({ selection: rowSelectionModel, clearSelection })}
+          {renderBulkActions?.({
+            selection: rowSelectionModel,
+            clearSelection,
+          })}
           <IconButton onClick={clearSelection} aria-label="Clear selection">
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
       )}
 
-      <Box sx={{ height: tableHeight, width: '100%' }}>
+      <Box sx={{ height: tableHeight, width: "100%" }}>
         <DataGridComponent
           apiRef={apiRef}
           rows={rows}
@@ -422,16 +444,18 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
           rowHeight={rowHeight}
           getRowId={getRowId}
           loading={loading}
-          rowCount={serverMode ? totalRowCount ?? rows.length : undefined}
-          paginationMode={serverMode ? 'server' : 'client'}
-          sortingMode={serverMode ? 'server' : 'client'}
-          filterMode={serverMode ? 'server' : 'client'}
+          rowCount={serverMode ? (totalRowCount ?? rows.length) : undefined}
+          paginationMode={serverMode ? "server" : "client"}
+          sortingMode={serverMode ? "server" : "client"}
+          filterMode={serverMode ? "server" : "client"}
           paginationModel={resolvedPaginationModel}
           onPaginationModelChange={(model: GridPaginationModel) =>
             setState((prev) => ({ ...prev, paginationModel: model }))
           }
           sortModel={resolvedSortModel}
-          onSortModelChange={(model: GridSortModel) => setState((prev) => ({ ...prev, sortModel: model }))}
+          onSortModelChange={(model: GridSortModel) =>
+            setState((prev) => ({ ...prev, sortModel: model }))
+          }
           filterModel={resolvedFilterModel}
           onFilterModelChange={(model: GridFilterModel) => {
             const nextModel = sanitizeFilterModel(model);
@@ -474,7 +498,10 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
               />
             ),
             noResultsOverlay: () => (
-              <EmptyOverlay title="No results" description="Try refining your filters." />
+              <EmptyOverlay
+                title="No results"
+                description="Try refining your filters."
+              />
             ),
             ...slots,
           }}
@@ -482,7 +509,7 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
           initialState={undefined}
           sx={{
             border: 0,
-            '& .MuiDataGrid-row:hover': { cursor: 'pointer' },
+            "& .MuiDataGrid-row:hover": { cursor: "pointer" },
           }}
         />
       </Box>
@@ -533,7 +560,11 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setSaveDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveView} startIcon={<SaveIcon />}>
+          <Button
+            variant="contained"
+            onClick={handleSaveView}
+            startIcon={<SaveIcon />}
+          >
             Save
           </Button>
         </DialogActions>
