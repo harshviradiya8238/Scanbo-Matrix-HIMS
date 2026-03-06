@@ -37,7 +37,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <ReduxProvider>
             <ThemeRegistry>
-              <UserProvider defaultRole="HOSPITAL_ADMIN">
+              <UserProvider defaultRole="DOCTOR">
                 <AppLayout>{children}</AppLayout>
               </UserProvider>
             </ThemeRegistry>

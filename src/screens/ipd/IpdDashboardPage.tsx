@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import PageTemplate from "@/src/ui/components/PageTemplate";
 import {
   Box,
   Button,
@@ -15,9 +15,9 @@ import {
   TableHead,
   TableRow,
   Typography,
-} from '@/src/ui/components/atoms';
-import { Card, WorkspaceHeaderCard } from '@/src/ui/components/molecules';
-import { alpha, useTheme, Theme } from '@/src/ui/theme';
+} from "@/src/ui/components/atoms";
+import { Card, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
+import { alpha, useTheme, Theme } from "@/src/ui/theme";
 import {
   AssignmentTurnedIn as AssignmentTurnedInIcon,
   Bed as BedIcon,
@@ -29,18 +29,15 @@ import {
   Science as ScienceIcon,
   WarningAmber as WarningAmberIcon,
   Visibility as VisibilityIcon,
-} from '@mui/icons-material';
-import {
-  INITIAL_BED_BOARD,
-  INPATIENT_STAYS,
-} from './ipd-mock-data';
-import { useUser } from '@/src/core/auth/UserContext';
-import { canAccessRoute } from '@/src/core/navigation/route-access';
-import { IpdMetricCard } from './components/ipd-ui';
-import { useIpdEncounters } from './ipd-encounter-context';
+} from "@mui/icons-material";
+import { INITIAL_BED_BOARD, INPATIENT_STAYS } from "./ipd-mock-data";
+import { useUser } from "@/src/core/auth/UserContext";
+import { canAccessRoute } from "@/src/core/navigation/route-access";
+import { IpdMetricCard } from "./components/ipd-ui";
+import { useIpdEncounters } from "./ipd-encounter-context";
 
-type DashboardStatus = 'critical' | 'watch' | 'stable';
-type AlertTone = 'error' | 'warning' | 'info' | 'success';
+type DashboardStatus = "critical" | "watch" | "stable";
+type AlertTone = "error" | "warning" | "info" | "success";
 
 interface DashboardPatient {
   id: string;
@@ -72,42 +69,159 @@ interface DashboardAlert {
 }
 
 const DEFAULT_STATUS_BY_PATIENT_ID: Record<string, DashboardStatus> = {
-  'ipd-1': 'watch',
-  'ipd-2': 'stable',
-  'ipd-3': 'critical',
-  'ipd-4': 'stable',
+  "ipd-1": "watch",
+  "ipd-2": "stable",
+  "ipd-3": "critical",
+  "ipd-4": "stable",
 };
 
 const DAY_OF_STAY_BY_PATIENT_ID: Record<string, number> = {
-  'ipd-1': 3,
-  'ipd-2': 2,
-  'ipd-3': 4,
-  'ipd-4': 1,
+  "ipd-1": 3,
+  "ipd-2": 2,
+  "ipd-3": 4,
+  "ipd-4": 1,
 };
 
 const QUICK_MODULES: QuickModule[] = [
-  { id: 'orders', short: 'OR', label: 'Orders', route: '/ipd/orders-tests/orders' },
-  { id: 'lab', short: 'LB', label: 'Lab Results', route: '/ipd/orders-tests/lab' },
-  { id: 'radiology', short: 'RA', label: 'Radiology', route: '/ipd/orders-tests/radiology' },
-  { id: 'pharmacy', short: 'RX', label: 'Drug Review', route: '/ipd/charges', tab: 'drug' },
-  { id: 'careteam', short: 'CT', label: 'Care Team', route: '/ipd/rounds', tab: 'rounds' },
-  { id: 'flowsheet', short: 'FS', label: 'Flowsheets', route: '/ipd/rounds', tab: 'vitals' },
-  { id: 'problems', short: 'PL', label: 'Problem List', route: '/ipd/rounds', tab: 'rounds' },
-  { id: 'medrec', short: 'MR', label: 'Med Rec', route: '/ipd/rounds', tab: 'medications' },
-  { id: 'inbasket', short: 'IB', label: 'InBasket', route: '/ipd/rounds', tab: 'notes' },
-  { id: 'handoff', short: 'HF', label: 'I-PASS', route: '/ipd/rounds', tab: 'nursing' },
-  { id: 'risk', short: 'RS', label: 'Risk Scores', route: '/ipd/rounds', tab: 'rounds' },
-  { id: 'infection', short: 'IC', label: 'Infection', route: '/ipd/rounds', tab: 'nursing' },
-  { id: 'casemgmt', short: 'CM', label: 'Case Mgmt', route: '/ipd/discharge', tab: 'all' },
-  { id: 'patientedu', short: 'PE', label: 'Patient Edu', route: '/ipd/discharge', tab: 'avs' },
-  { id: 'codestatus', short: 'CS', label: 'Code Status', route: '/ipd/rounds', tab: 'rounds' },
-  { id: 'smartforms', short: 'SF', label: 'SmartForms', route: '/ipd/rounds', tab: 'notes' },
-  { id: 'billing', short: 'DR', label: 'Charges / DRG', route: '/ipd/charges', tab: 'charges' },
-  { id: 'discharge', short: 'DC', label: 'Discharge', route: '/ipd/discharge', tab: 'pending' },
-  { id: 'adt', short: 'AD', label: 'ADT', route: '/ipd/admissions' },
-  { id: 'bedmap', short: 'BM', label: 'Bed Map', route: '/ipd/beds' },
-  { id: 'clinical', short: 'CC', label: 'Clinical Care', route: '/ipd/rounds', tab: 'rounds' },
-  { id: 'avs', short: 'AV', label: 'AVS Preview', route: '/ipd/discharge', tab: 'avs' },
+  {
+    id: "orders",
+    short: "OR",
+    label: "Orders",
+    route: "/ipd/orders-tests/orders",
+  },
+  {
+    id: "lab",
+    short: "LB",
+    label: "Lab Results",
+    route: "/ipd/orders-tests/lab",
+  },
+  {
+    id: "radiology",
+    short: "RA",
+    label: "Radiology",
+    route: "/ipd/orders-tests/radiology",
+  },
+  {
+    id: "pharmacy",
+    short: "RX",
+    label: "Drug Review",
+    route: "/ipd/charges",
+    tab: "drug",
+  },
+  {
+    id: "careteam",
+    short: "CT",
+    label: "Care Team",
+    route: "/ipd/rounds",
+    tab: "rounds",
+  },
+  {
+    id: "flowsheet",
+    short: "FS",
+    label: "Flowsheets",
+    route: "/ipd/rounds",
+    tab: "vitals",
+  },
+  {
+    id: "problems",
+    short: "PL",
+    label: "Problem List",
+    route: "/ipd/rounds",
+    tab: "rounds",
+  },
+  {
+    id: "medrec",
+    short: "MR",
+    label: "Med Rec",
+    route: "/ipd/rounds",
+    tab: "medications",
+  },
+  {
+    id: "inbasket",
+    short: "IB",
+    label: "InBasket",
+    route: "/ipd/rounds",
+    tab: "notes",
+  },
+  {
+    id: "handoff",
+    short: "HF",
+    label: "I-PASS",
+    route: "/ipd/rounds",
+    tab: "nursing",
+  },
+  {
+    id: "risk",
+    short: "RS",
+    label: "Risk Scores",
+    route: "/ipd/rounds",
+    tab: "rounds",
+  },
+  {
+    id: "infection",
+    short: "IC",
+    label: "Infection",
+    route: "/ipd/rounds",
+    tab: "nursing",
+  },
+  {
+    id: "casemgmt",
+    short: "CM",
+    label: "Case Mgmt",
+    route: "/ipd/discharge",
+    tab: "all",
+  },
+  {
+    id: "patientedu",
+    short: "PE",
+    label: "Patient Edu",
+    route: "/ipd/discharge",
+    tab: "avs",
+  },
+  {
+    id: "codestatus",
+    short: "CS",
+    label: "Code Status",
+    route: "/ipd/rounds",
+    tab: "rounds",
+  },
+  {
+    id: "smartforms",
+    short: "SF",
+    label: "SmartForms",
+    route: "/ipd/rounds",
+    tab: "notes",
+  },
+  {
+    id: "billing",
+    short: "DR",
+    label: "Charges / DRG",
+    route: "/ipd/charges",
+    tab: "charges",
+  },
+  {
+    id: "discharge",
+    short: "DC",
+    label: "Discharge",
+    route: "/ipd/discharge",
+    tab: "pending",
+  },
+  { id: "adt", short: "AD", label: "ADT", route: "/ipd/admissions" },
+  { id: "bedmap", short: "BM", label: "Bed Map", route: "/ipd/beds" },
+  {
+    id: "clinical",
+    short: "CC",
+    label: "Clinical Care",
+    route: "/ipd/rounds",
+    tab: "rounds",
+  },
+  {
+    id: "avs",
+    short: "AV",
+    label: "AVS Preview",
+    route: "/ipd/discharge",
+    tab: "avs",
+  },
 ];
 
 export default function IpdDashboardPage() {
@@ -117,8 +231,9 @@ export default function IpdDashboardPage() {
   const { permissions } = useUser();
 
   const activeEncounterRows = React.useMemo(
-    () => encounterRows.filter((record) => record.workflowStatus !== 'discharged'),
-    [encounterRows]
+    () =>
+      encounterRows.filter((record) => record.workflowStatus !== "discharged"),
+    [encounterRows],
   );
 
   const inpatientRows = React.useMemo<DashboardPatient[]>(() => {
@@ -128,7 +243,7 @@ export default function IpdDashboardPage() {
         mrn: record.mrn,
         patientName: record.patientName,
         diagnosis: record.diagnosis,
-        bed: record.bed || '--',
+        bed: record.bed || "--",
         dayOfStay: DAY_OF_STAY_BY_PATIENT_ID[record.patientId] ?? 1,
         status: record.clinicalStatus,
       }));
@@ -141,28 +256,28 @@ export default function IpdDashboardPage() {
       diagnosis: stay.diagnosis,
       bed: stay.bed,
       dayOfStay: DAY_OF_STAY_BY_PATIENT_ID[stay.id] ?? 1,
-      status: DEFAULT_STATUS_BY_PATIENT_ID[stay.id] ?? 'stable',
+      status: DEFAULT_STATUS_BY_PATIENT_ID[stay.id] ?? "stable",
     }));
   }, [activeEncounterRows]);
 
   const canNavigate = React.useCallback(
     (route: string) => canAccessRoute(route, permissions),
-    [permissions]
+    [permissions],
   );
 
   const buildRoute = React.useCallback(
     (route: string, tab?: string, patientMrn?: string) => {
       const params = new URLSearchParams();
       if (tab) {
-        params.set('tab', tab);
+        params.set("tab", tab);
       }
       if (patientMrn) {
-        params.set('mrn', patientMrn);
+        params.set("mrn", patientMrn);
       }
       const query = params.toString();
       return query ? `${route}?${query}` : route;
     },
-    []
+    [],
   );
 
   const openRoute = React.useCallback(
@@ -170,17 +285,27 @@ export default function IpdDashboardPage() {
       if (!canNavigate(route)) return;
       router.push(buildRoute(route, tab, patientMrn));
     },
-    [buildRoute, canNavigate, router]
+    [buildRoute, canNavigate, router],
   );
 
-  const criticalCount = inpatientRows.filter((row) => row.status === 'critical').length;
-  const watchCount = inpatientRows.filter((row) => row.status === 'watch').length;
-  const stableCount = inpatientRows.filter((row) => row.status === 'stable').length;
+  const criticalCount = inpatientRows.filter(
+    (row) => row.status === "critical",
+  ).length;
+  const watchCount = inpatientRows.filter(
+    (row) => row.status === "watch",
+  ).length;
+  const stableCount = inpatientRows.filter(
+    (row) => row.status === "stable",
+  ).length;
 
-  const availableBeds = INITIAL_BED_BOARD.filter((bed) => bed.status === 'Available').length;
-  const occupiedBeds = INITIAL_BED_BOARD.filter((bed) => bed.status === 'Occupied').length;
+  const availableBeds = INITIAL_BED_BOARD.filter(
+    (bed) => bed.status === "Available",
+  ).length;
+  const occupiedBeds = INITIAL_BED_BOARD.filter(
+    (bed) => bed.status === "Occupied",
+  ).length;
   const cleaningOrBlockedBeds = INITIAL_BED_BOARD.filter(
-    (bed) => bed.status === 'Cleaning' || bed.status === 'Blocked'
+    (bed) => bed.status === "Cleaning" || bed.status === "Blocked",
   ).length;
   const clinicalStatusByPatientId = React.useMemo(() => {
     const map: Record<string, DashboardStatus> = {};
@@ -195,7 +320,9 @@ export default function IpdDashboardPage() {
 
   const criticalBeds = INITIAL_BED_BOARD.filter((bed) => {
     if (!bed.patientId) return false;
-    return (clinicalStatusByPatientId[bed.patientId] ?? 'stable') === 'critical';
+    return (
+      (clinicalStatusByPatientId[bed.patientId] ?? "stable") === "critical"
+    );
   }).length;
 
   const statusStyles: Record<
@@ -203,17 +330,17 @@ export default function IpdDashboardPage() {
     { label: string; color: string; bg: string }
   > = {
     critical: {
-      label: 'Critical',
+      label: "Critical",
       color: theme.palette.error.dark,
       bg: alpha(theme.palette.error.main, 0.16),
     },
     watch: {
-      label: 'Watch',
+      label: "Watch",
       color: theme.palette.warning.dark,
       bg: alpha(theme.palette.warning.main, 0.2),
     },
     stable: {
-      label: 'Stable',
+      label: "Stable",
       color: theme.palette.success.dark,
       bg: alpha(theme.palette.success.main, 0.22),
     },
@@ -249,216 +376,209 @@ export default function IpdDashboardPage() {
     },
   };
 
-  const criticalPatient = inpatientRows.find((row) => row.status === 'critical') ?? inpatientRows[0];
-  const watchPatient = inpatientRows.find((row) => row.status === 'watch') ?? inpatientRows[0];
+  const criticalPatient =
+    inpatientRows.find((row) => row.status === "critical") ?? inpatientRows[0];
+  const watchPatient =
+    inpatientRows.find((row) => row.status === "watch") ?? inpatientRows[0];
   const dischargeReadyPatientId =
-    activeEncounterRows.find((record) => record.dischargeReady)?.patientId ?? null;
+    activeEncounterRows.find((record) => record.dischargeReady)?.patientId ??
+    null;
   const dischargeReadyPatient = dischargeReadyPatientId
     ? inpatientRows.find((row) => row.id === dischargeReadyPatientId)
     : null;
 
   const alerts: DashboardAlert[] = [
     {
-      id: 'spo2-critical',
-      title: `SpO2 critical - ${criticalPatient?.patientName ?? 'Patient'}`,
-      detail: `Needs immediate review at Bed ${criticalPatient?.bed ?? '--'}`,
-      tone: 'error',
-      actionLabel: 'View',
-      route: '/ipd/rounds',
-      tab: 'vitals',
+      id: "spo2-critical",
+      title: `SpO2 critical - ${criticalPatient?.patientName ?? "Patient"}`,
+      detail: `Needs immediate review at Bed ${criticalPatient?.bed ?? "--"}`,
+      tone: "error",
+      actionLabel: "View",
+      route: "/ipd/rounds",
+      tab: "vitals",
       mrn: criticalPatient?.mrn,
     },
     {
-      id: 'medication-due',
-      title: 'Medication due this round',
-      detail: `${watchPatient?.patientName ?? 'Patient'} has active medication tasks`,
-      tone: 'warning',
-      actionLabel: 'Give',
-      route: '/ipd/rounds',
-      tab: 'medications',
+      id: "medication-due",
+      title: "Medication due this round",
+      detail: `${watchPatient?.patientName ?? "Patient"} has active medication tasks`,
+      tone: "warning",
+      actionLabel: "Give",
+      route: "/ipd/rounds",
+      tab: "medications",
       mrn: watchPatient?.mrn,
     },
     {
-      id: 'lab-ready',
-      title: 'Lab result available',
-      detail: `CBC report posted for ${watchPatient?.patientName ?? 'patient'}`,
-      tone: 'info',
-      actionLabel: 'Review',
-      route: '/ipd/rounds',
-      tab: 'orders',
+      id: "lab-ready",
+      title: "Lab result available",
+      detail: `CBC report posted for ${watchPatient?.patientName ?? "patient"}`,
+      tone: "info",
+      actionLabel: "Review",
+      route: "/ipd/rounds",
+      tab: "orders",
       mrn: watchPatient?.mrn,
     },
     {
-      id: 'discharge-ready',
+      id: "discharge-ready",
       title: dischargeReadyPatient
         ? `${dischargeReadyPatient.patientName} ready for discharge`
-        : 'Discharge checklist updates pending',
+        : "Discharge checklist updates pending",
       detail: dischargeReadyPatient
-        ? 'Checklist and billing are complete'
-        : 'Complete pending items in discharge workflow',
-      tone: dischargeReadyPatient ? 'success' : 'warning',
-      actionLabel: 'Process',
-      route: '/ipd/discharge',
-      tab: 'pending',
+        ? "Checklist and billing are complete"
+        : "Complete pending items in discharge workflow",
+      tone: dischargeReadyPatient ? "success" : "warning",
+      actionLabel: "Process",
+      route: "/ipd/discharge",
+      tab: "pending",
       mrn: dischargeReadyPatient?.mrn,
     },
     {
-      id: 'drug-interaction',
-      title: 'Drug interaction alert',
-      detail: `${criticalPatient?.patientName ?? 'Patient'} needs medication reconciliation`,
-      tone: 'warning',
-      actionLabel: 'Review',
-      route: '/ipd/charges',
-      tab: 'drug',
+      id: "drug-interaction",
+      title: "Drug interaction alert",
+      detail: `${criticalPatient?.patientName ?? "Patient"} needs medication reconciliation`,
+      tone: "warning",
+      actionLabel: "Review",
+      route: "/ipd/charges",
+      tab: "drug",
       mrn: criticalPatient?.mrn,
     },
   ];
 
   const metricCards = [
     {
-      id: 'total',
-      label: 'Total Inpatients',
+      id: "total",
+      label: "Total Inpatients",
       value: inpatientRows.length,
-      note: 'Current admitted census',
-      tone: 'primary' as const,
+      note: "Current admitted census",
+      tone: "primary" as const,
       icon: <LocalHospitalIcon sx={{ fontSize: 22 }} />,
     },
     {
-      id: 'critical',
-      label: 'Critical',
+      id: "critical",
+      label: "Critical",
       value: criticalCount,
-      note: 'Requires immediate review',
-      tone: 'danger' as const,
+      note: "Requires immediate review",
+      tone: "danger" as const,
       icon: <WarningAmberIcon sx={{ fontSize: 22 }} />,
     },
     {
-      id: 'watch',
-      label: 'Under Watch',
+      id: "watch",
+      label: "Under Watch",
       value: watchCount,
-      note: 'Close monitoring needed',
-      tone: 'warning' as const,
+      note: "Close monitoring needed",
+      tone: "warning" as const,
       icon: <VisibilityIcon sx={{ fontSize: 22 }} />,
     },
     {
-      id: 'stable',
-      label: 'Stable',
+      id: "stable",
+      label: "Stable",
       value: stableCount,
-      note: 'Clinically stable patients',
-      tone: 'success' as const,
+      note: "Clinically stable patients",
+      tone: "success" as const,
       icon: <CheckCircleIcon sx={{ fontSize: 22 }} />,
     },
     {
-      id: 'available',
-      label: 'Beds Available',
+      id: "available",
+      label: "Beds Available",
       value: availableBeds,
       note: `of ${INITIAL_BED_BOARD.length} total beds`,
-      tone: 'info' as const,
+      tone: "info" as const,
       icon: <BedIcon sx={{ fontSize: 22 }} />,
     },
   ];
 
   const bedSummary = [
     {
-      id: 'occupied',
-      label: 'Occupied',
+      id: "occupied",
+      label: "Occupied",
       value: occupiedBeds,
       color: theme.palette.primary.main,
       icon: <BedIcon sx={{ fontSize: 18 }} />,
     },
     {
-      id: 'available',
-      label: 'Free',
+      id: "available",
+      label: "Free",
       value: availableBeds,
       color: theme.palette.success.main,
       icon: <AssignmentTurnedInIcon sx={{ fontSize: 18 }} />,
     },
     {
-      id: 'critical',
-      label: 'Critical',
+      id: "critical",
+      label: "Critical",
       value: criticalBeds,
       color: theme.palette.error.main,
       icon: <WarningAmberIcon sx={{ fontSize: 18 }} />,
     },
     {
-      id: 'cleaning',
-      label: 'Cleaning / Blocked',
+      id: "cleaning",
+      label: "Cleaning / Blocked",
       value: cleaningOrBlockedBeds,
       color: theme.palette.warning.dark,
       icon: <MonitorHeartIcon sx={{ fontSize: 18 }} />,
     },
   ];
 
-  const ipdDashboardCard = (
-    <Stack spacing={2}>
+  const ipdHeader = <></>;
 
-    <Stack spacing={0}>
-      {/* Title card – same pattern as Clinical Care Workspace / Laboratory */}
-      <WorkspaceHeaderCard
-         sx={{
-           p: { xs: 1.5, md: 2 },
-           borderRadius: '10px 10px 0 0',
-           borderBottom: 'none',
-         }}
-
-      >
+  return (
+    <PageTemplate
+      // header={ipdHeader}
+      title="IPD Dashboard"
+      currentPageTitle="IPD Dashboard"
+    >
+      <WorkspaceHeaderCard>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', lineHeight: 1.1 }}>
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
+          >
             IPD Dashboard
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+          <Typography variant="body2" color="text.secondary">
             Overview of all inpatients, bed status, and alerts.
           </Typography>
         </Box>
       </WorkspaceHeaderCard>
-
-      {/* Content card – attached to title card */}
-      <Card
-        elevation={0}
-        sx={{
-          p: { xs: 1.5, sm: 2 },
-          borderRadius: '0 0 10px 10px',
-          border: '1px solid',
-          borderTop: 'none',
-          borderColor: alpha(theme.palette.primary.main, 0.16),
-        }}
-      >
-        <Stack spacing={1.8}>
-          <Box
-            sx={{
-              display: 'grid',
-              gap: 1.2,
-              gridTemplateColumns: {
-                xs: 'repeat(1, minmax(0, 1fr))',
-                sm: 'repeat(2, minmax(0, 1fr))',
-                md: 'repeat(3, minmax(0, 1fr))',
-                xl: 'repeat(5, minmax(0, 1fr))',
-              },
-            }}
-          >
-            {metricCards.map((metric) => (
-              <IpdMetricCard
-                key={metric.id}
-                label={metric.label}
-                value={metric.value}
-                trend={metric.note}
-                tone={metric.tone}
-                icon={metric.icon}
-              />
-            ))}
-          </Box>
-
-          <Box
+      <Stack spacing={1.8} sx={{ mt: 1.8 }}>
+        <Box
           sx={{
-            display: 'grid',
+            display: "grid",
+            gap: 1.2,
+            gridTemplateColumns: {
+              xs: "repeat(1, minmax(0, 1fr))",
+              sm: "repeat(2, minmax(0, 1fr))",
+              md: "repeat(3, minmax(0, 1fr))",
+              xl: "repeat(5, minmax(0, 1fr))",
+            },
+          }}
+        >
+          {metricCards.map((metric) => (
+            <IpdMetricCard
+              key={metric.id}
+              label={metric.label}
+              value={metric.value}
+              trend={metric.note}
+              tone={metric.tone}
+              icon={metric.icon}
+            />
+          ))}
+        </Box>
+
+        <Box
+          sx={{
+            display: "grid",
             gap: 1.3,
-            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.2fr) minmax(0, 1fr)' },
-            alignItems: 'start',
+            gridTemplateColumns: {
+              xs: "1fr",
+              lg: "minmax(0, 1.2fr) minmax(0, 1fr)",
+            },
+            alignItems: "start",
           }}
         >
           <Card
             elevation={0}
             sx={{
-              border: '1px solid',
+              border: "1px solid",
               borderColor: alpha(theme.palette.primary.main, 0.16),
               borderRadius: 2,
             }}
@@ -470,7 +590,7 @@ export default function IpdDashboardPage() {
               sx={{
                 px: 1.6,
                 py: 1.2,
-                borderBottom: '1px solid',
+                borderBottom: "1px solid",
                 borderColor: alpha(theme.palette.primary.main, 0.14),
               }}
             >
@@ -480,8 +600,8 @@ export default function IpdDashboardPage() {
                     width: 28,
                     height: 28,
                     borderRadius: 1,
-                    display: 'grid',
-                    placeItems: 'center',
+                    display: "grid",
+                    placeItems: "center",
                     color: theme.palette.primary.main,
                     backgroundColor: alpha(theme.palette.primary.main, 0.12),
                   }}
@@ -492,7 +612,6 @@ export default function IpdDashboardPage() {
                   Current Inpatients
                 </Typography>
               </Stack>
-             
             </Stack>
 
             <TableContainer>
@@ -515,31 +634,38 @@ export default function IpdDashboardPage() {
                         key={row.id}
                         hover
                         sx={{
-                          '&:last-child td': { borderBottom: 'none' },
+                          "&:last-child td": { borderBottom: "none" },
                         }}
                       >
                         <TableCell sx={{ py: 1.2 }}>
                           <Typography variant="body2" sx={{ fontWeight: 700 }}>
                             {row.patientName}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "text.secondary" }}
+                          >
                             {row.mrn}
                           </Typography>
                         </TableCell>
-                        <TableCell sx={{ py: 1.2, fontWeight: 700 }}>{row.bed}</TableCell>
+                        <TableCell sx={{ py: 1.2, fontWeight: 700 }}>
+                          {row.bed}
+                        </TableCell>
                         <TableCell
                           sx={{
                             py: 1.2,
                             maxWidth: 210,
-                            color: 'text.secondary',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
+                            color: "text.secondary",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
                           }}
                         >
                           {row.diagnosis}
                         </TableCell>
-                        <TableCell sx={{ py: 1.2, fontWeight: 700 }}>{`D${row.dayOfStay}`}</TableCell>
+                        <TableCell
+                          sx={{ py: 1.2, fontWeight: 700 }}
+                        >{`D${row.dayOfStay}`}</TableCell>
                         <TableCell sx={{ py: 1.2 }}>
                           <Chip
                             size="small"
@@ -550,7 +676,7 @@ export default function IpdDashboardPage() {
                               fontWeight: 700,
                               color: status.color,
                               backgroundColor: status.bg,
-                              '& .MuiChip-label': { px: 1 },
+                              "& .MuiChip-label": { px: 1 },
                             }}
                           />
                         </TableCell>
@@ -558,9 +684,15 @@ export default function IpdDashboardPage() {
                           <Button
                             variant="outlined"
                             size="small"
-                            disabled={!canNavigate('/ipd/rounds')}
-                            onClick={() => openRoute('/ipd/rounds', 'rounds', row.mrn)}
-                            sx={{ minHeight: 28, px: 1.05, textTransform: 'none' }}
+                            disabled={!canNavigate("/ipd/rounds")}
+                            onClick={() =>
+                              openRoute("/ipd/rounds", "rounds", row.mrn)
+                            }
+                            sx={{
+                              minHeight: 28,
+                              px: 1.05,
+                              textTransform: "none",
+                            }}
                           >
                             Open
                           </Button>
@@ -577,20 +709,25 @@ export default function IpdDashboardPage() {
             <Card
               elevation={0}
               sx={{
-                border: '1px solid',
+                border: "1px solid",
                 borderColor: alpha(theme.palette.primary.main, 0.16),
                 borderRadius: 2,
                 p: 1.5,
               }}
             >
-              <Stack direction="row" alignItems="center" spacing={0.8} sx={{ mb: 0.5 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={0.8}
+                sx={{ mb: 0.5 }}
+              >
                 <Box
                   sx={{
                     width: 28,
                     height: 28,
                     borderRadius: 1,
-                    display: 'grid',
-                    placeItems: 'center',
+                    display: "grid",
+                    placeItems: "center",
                     color: theme.palette.error.main,
                     backgroundColor: alpha(theme.palette.error.main, 0.12),
                   }}
@@ -612,9 +749,9 @@ export default function IpdDashboardPage() {
                     alignItems="center"
                     sx={{
                       py: 1,
-                      borderBottom: '1px solid',
+                      borderBottom: "1px solid",
                       borderColor: alpha(theme.palette.primary.main, 0.1),
-                      '&:last-of-type': { borderBottom: 'none', pb: 0.1 },
+                      "&:last-of-type": { borderBottom: "none", pb: 0.1 },
                     }}
                   >
                     <Box
@@ -622,27 +759,30 @@ export default function IpdDashboardPage() {
                         width: 30,
                         height: 30,
                         borderRadius: 1,
-                        display: 'grid',
-                        placeItems: 'center',
+                        display: "grid",
+                        placeItems: "center",
                         color: tone.color,
                         backgroundColor: tone.bg,
-                        border: '1px solid',
+                        border: "1px solid",
                         borderColor: tone.border,
                         flexShrink: 0,
                       }}
                     >
-                      {alert.id === 'medication-due' ? (
+                      {alert.id === "medication-due" ? (
                         <MedicationIcon sx={{ fontSize: 16 }} />
-                      ) : alert.id === 'lab-ready' ? (
+                      ) : alert.id === "lab-ready" ? (
                         <ScienceIcon sx={{ fontSize: 16 }} />
-                      ) : alert.id === 'discharge-ready' ? (
+                      ) : alert.id === "discharge-ready" ? (
                         <AssignmentTurnedInIcon sx={{ fontSize: 16 }} />
                       ) : (
                         <WarningAmberIcon sx={{ fontSize: 16 }} />
                       )}
                     </Box>
                     <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.25 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 700, lineHeight: 1.25 }}
+                      >
                         {alert.title}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
@@ -652,7 +792,9 @@ export default function IpdDashboardPage() {
                     <Button
                       variant="outlined"
                       size="small"
-                      onClick={() => openRoute(alert.route, alert.tab, alert.mrn)}
+                      onClick={() =>
+                        openRoute(alert.route, alert.tab, alert.mrn)
+                      }
                       disabled={!canNavigate(alert.route)}
                       sx={{
                         minHeight: 28,
@@ -660,7 +802,7 @@ export default function IpdDashboardPage() {
                         minWidth: 58,
                         borderColor: tone.border,
                         color: tone.buttonColor,
-                        textTransform: 'none',
+                        textTransform: "none",
                         fontWeight: 700,
                       }}
                     >
@@ -674,21 +816,26 @@ export default function IpdDashboardPage() {
             <Card
               elevation={0}
               sx={{
-                border: '1px solid',
+                border: "1px solid",
                 borderColor: alpha(theme.palette.primary.main, 0.16),
                 borderRadius: 2,
                 p: 1.5,
               }}
             >
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.1 }}>
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+                sx={{ mb: 1.1 }}
+              >
                 <Stack direction="row" alignItems="center" spacing={0.8}>
                   <Box
                     sx={{
                       width: 28,
                       height: 28,
                       borderRadius: 1,
-                      display: 'grid',
-                      placeItems: 'center',
+                      display: "grid",
+                      placeItems: "center",
                       color: theme.palette.info.main,
                       backgroundColor: alpha(theme.palette.info.main, 0.12),
                     }}
@@ -702,9 +849,9 @@ export default function IpdDashboardPage() {
                 <Button
                   variant="outlined"
                   size="small"
-                  disabled={!canNavigate('/ipd/beds')}
-                  onClick={() => openRoute('/ipd/beds')}
-                  sx={{ minHeight: 30, px: 1.1, textTransform: 'none' }}
+                  disabled={!canNavigate("/ipd/beds")}
+                  onClick={() => openRoute("/ipd/beds")}
+                  sx={{ minHeight: 30, px: 1.1, textTransform: "none" }}
                 >
                   Bed Map
                 </Button>
@@ -712,9 +859,9 @@ export default function IpdDashboardPage() {
 
               <Box
                 sx={{
-                  display: 'grid',
+                  display: "grid",
                   gap: 0.9,
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
                 }}
               >
                 {bedSummary.map((item) => (
@@ -723,11 +870,11 @@ export default function IpdDashboardPage() {
                     sx={{
                       p: 1,
                       borderRadius: 1.4,
-                      border: '1px solid',
+                      border: "1px solid",
                       borderColor: alpha(item.color, 0.3),
                       backgroundColor: alpha(item.color, 0.08),
-                      display: 'flex',
-                      alignItems: 'center',
+                      display: "flex",
+                      alignItems: "center",
                       gap: 0.9,
                     }}
                   >
@@ -736,8 +883,8 @@ export default function IpdDashboardPage() {
                         width: 26,
                         height: 26,
                         borderRadius: 1,
-                        display: 'grid',
-                        placeItems: 'center',
+                        display: "grid",
+                        placeItems: "center",
                         color: item.color,
                         backgroundColor: alpha(item.color, 0.18),
                         flexShrink: 0,
@@ -746,7 +893,14 @@ export default function IpdDashboardPage() {
                       {item.icon}
                     </Box>
                     <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 800, color: item.color, lineHeight: 1.1 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 800,
+                          color: item.color,
+                          lineHeight: 1.1,
+                        }}
+                      >
                         {item.value}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
@@ -759,15 +913,8 @@ export default function IpdDashboardPage() {
             </Card>
           </Stack>
         </Box>
-        </Stack>
-      </Card>
-    </Stack>
-    </Stack>
-  );
-
-  return (
-    <PageTemplate title="IPD Dashboard" header={ipdDashboardCard} currentPageTitle="IPD Dashboard">
-      {null}
+      </Stack>
+      {/* </Card> */}
     </PageTemplate>
   );
 }
@@ -778,9 +925,9 @@ function tableHeadCellSx(theme: Theme) {
     fontSize: 11,
     fontWeight: 800,
     letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    color: 'text.secondary',
-    borderBottom: '1px solid',
+    textTransform: "uppercase",
+    color: "text.secondary",
+    borderBottom: "1px solid",
     borderColor: alpha(theme.palette.primary.main, 0.16),
     backgroundColor: alpha(theme.palette.primary.main, 0.05),
   };

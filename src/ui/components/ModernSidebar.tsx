@@ -62,7 +62,7 @@ import {
   EventNote,
 } from "@mui/icons-material";
 import { NAV_GROUPS } from "@/src/core/navigation/nav-config";
-import { MenuItem } from "@/src/core/navigation/types";
+import { MenuItem, UserRole } from "@/src/core/navigation/types";
 import { hasPermission } from "@/src/core/navigation/permissions";
 import { useSidebarState } from "@/src/core/navigation/useSidebarState";
 import { useNavigationState } from "@/src/core/navigation/hooks";
@@ -132,9 +132,13 @@ const iconMap: Record<string, React.ComponentType> = {
 
 interface ModernSidebarProps {
   userPermissions: string[];
+  userRole: UserRole;
 }
 
-export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
+export default function ModernSidebar({
+  userPermissions,
+  userRole,
+}: ModernSidebarProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { isExpanded, toggle } = useSidebarState();
@@ -142,20 +146,27 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
   const [hoveredItemId, setHoveredItemId] = React.useState<string | null>(null);
   const mainNavRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Filter menu items by permissions
+  // Filter menu items by permissions and roles
   const filterItems = (items: MenuItem[]): MenuItem[] => {
     return items
       .filter((item) => {
-        if (
+        // Check permissions
+        const hasPerm =
           !item.requiredPermissions ||
-          item.requiredPermissions.length === 0
-        ) {
-          return true;
-        }
-        const hasAccess = item.requiredPermissions.some((perm) =>
-          hasPermission(userPermissions, perm),
-        );
-        return hasAccess;
+          item.requiredPermissions.length === 0 ||
+          item.requiredPermissions.some((perm) =>
+            hasPermission(userPermissions, perm),
+          );
+
+        if (!hasPerm) return false;
+
+        // Check roles
+        const hasRole =
+          !item.requiredRoles ||
+          item.requiredRoles.length === 0 ||
+          item.requiredRoles.includes(userRole);
+
+        return hasRole;
       })
       .map((item) => {
         if (item.children) {
@@ -213,12 +224,21 @@ export default function ModernSidebar({ userPermissions }: ModernSidebarProps) {
       const item = findItem(NAV_GROUPS, id);
       // Only include items that have a route (leaf items, not parent groups)
       if (item && item.route) {
-        if (item.requiredPermissions) {
-          const hasAccess = item.requiredPermissions.some((perm) =>
+        // Check permissions
+        const hasPerm =
+          !item.requiredPermissions ||
+          item.requiredPermissions.length === 0 ||
+          item.requiredPermissions.some((perm) =>
             hasPermission(userPermissions, perm),
           );
-          if (hasAccess) items.push(item);
-        } else {
+
+        // Check roles
+        const hasRole =
+          !item.requiredRoles ||
+          item.requiredRoles.length === 0 ||
+          item.requiredRoles.includes(userRole);
+
+        if (hasPerm && hasRole) {
           items.push(item);
         }
       }

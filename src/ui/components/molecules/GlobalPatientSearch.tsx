@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Autocomplete, Avatar, Box, Chip, InputAdornment, TextField, Typography } from '@/src/ui/components/atoms';
-import { useTheme, alpha } from '@mui/material';
+import { useTheme, alpha, Paper } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
 import { GlobalPatient, searchPatients, getPatientByMrn } from '@/src/mocks/global-patients';
 
@@ -63,6 +63,18 @@ export default function GlobalPatientSearch({
       filterOptions={(options) => options}
       noOptionsText={inputValue.trim().length < 2 ? 'Type at least 2 characters' : 'No matches found'}
       fullWidth={fullWidth}
+        PaperComponent={(props) => (
+        <Paper
+          {...props}
+          sx={{
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            mt: 1,
+            border: `1px solid ${theme.palette.divider}`,
+            boxShadow: 8,
+          }}
+        />
+      )}
       renderOption={(props, option) => (
         <Box
           component="li"

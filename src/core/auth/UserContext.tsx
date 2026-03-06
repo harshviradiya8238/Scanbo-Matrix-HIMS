@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { UserRole } from '@/src/core/navigation/types';
-import { getPermissionsForRole } from '@/src/core/navigation/permissions';
-import { useStaffStore } from '@/src/core/staff/staffStore';
+import * as React from "react";
+import { UserRole } from "@/src/core/navigation/types";
+import { getPermissionsForRole } from "@/src/core/navigation/permissions";
+import { useStaffStore } from "@/src/core/staff/staffStore";
 
 interface UserContextType {
   role: UserRole;
@@ -15,14 +15,32 @@ const UserContext = React.createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({
   children,
-  defaultRole = 'HOSPITAL_ADMIN',
+  defaultRole = "HOSPITAL_ADMIN",
 }: {
   children: React.ReactNode;
   defaultRole?: UserRole;
 }) {
   const { roles } = useStaffStore();
-  const [role, setRole] = React.useState<UserRole>(defaultRole);
-  const permissions = React.useMemo(() => getPermissionsForRole(role), [role, roles]);
+  const [role, setRole] = React.useState<UserRole>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("scanbo:current-role");
+      if (saved && roles.some((r) => r.id === saved)) {
+        return saved as UserRole;
+      }
+    }
+    return defaultRole;
+  });
+
+  const permissions = React.useMemo(
+    () => getPermissionsForRole(role),
+    [role, roles],
+  );
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("scanbo:current-role", role);
+    }
+  }, [role]);
 
   React.useEffect(() => {
     if (roles.length === 0) return;
@@ -42,7 +60,7 @@ export function UserProvider({
 export function useUser() {
   const context = React.useContext(UserContext);
   if (!context) {
-    throw new Error('useUser must be used within UserProvider');
+    throw new Error("useUser must be used within UserProvider");
   }
   return context;
 }

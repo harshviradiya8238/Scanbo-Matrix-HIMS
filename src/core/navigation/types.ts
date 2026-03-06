@@ -13,6 +13,7 @@ export interface MenuItem {
   type: MenuItemType;
   children?: MenuItem[];
   requiredPermissions?: string[];
+  requiredRoles?: UserRole[];
   badgeCount?: number;
   featureFlag?: string;
   order?: number;
