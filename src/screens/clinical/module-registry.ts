@@ -245,7 +245,7 @@ export const CLINICAL_MODULES: ClinicalModuleDefinition[] = [
       'Emergency Department module for triage, patient tracking, emergency documentation, urgent orders, and ED discharge.',
     audience: ['ED Doctors', 'ED Nurses', 'Emergency Staff'],
     appRoute: '/clinical/modules/asap',
-    status: 'Planned',
+    status: 'Implemented',
     requiredPermissions: buildPermissions('emergency', 'asap'),
     videoUrl: 'https://www.youtube.com/watch?v=qegkEGAVcAY',
     referenceUrl: 'https://www.epic.com/software/specialties/',

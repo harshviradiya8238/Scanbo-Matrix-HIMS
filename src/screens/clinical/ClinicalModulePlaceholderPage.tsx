@@ -93,15 +93,15 @@ export default function ClinicalModulePlaceholderPage({
                 <Button
                   variant="contained"
                   component={Link}
-                  href="/clinical/encounters"
+                  href="/appointments/queue"
                   startIcon={<ArrowBackIcon />}
                 >
-                  Back to Clinical EMR
+                  Back to OPD Queue
                 </Button>
                 <Button
                   variant="outlined"
                   component="a"
-                  href={moduleDefinition.videoUrl ?? '/clinical/encounters'}
+                  href={moduleDefinition.videoUrl ?? '/appointments/queue'}
                   target={moduleDefinition.videoUrl ? '_blank' : undefined}
                   rel={moduleDefinition.videoUrl ? 'noreferrer' : undefined}
                   endIcon={<OpenInNewIcon />}
@@ -112,7 +112,7 @@ export default function ClinicalModulePlaceholderPage({
                 <Button
                   variant="outlined"
                   component="a"
-                  href={moduleDefinition.referenceUrl ?? '/clinical/encounters'}
+                  href={moduleDefinition.referenceUrl ?? '/appointments/queue'}
                   target={moduleDefinition.referenceUrl ? '_blank' : undefined}
                   rel={moduleDefinition.referenceUrl ? 'noreferrer' : undefined}
                   endIcon={<OpenInNewIcon />}

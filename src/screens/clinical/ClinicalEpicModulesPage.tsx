@@ -166,7 +166,7 @@ export default function ClinicalEpicModulesPage() {
             size="small"
             variant="contained"
             component={Link}
-            href={params.value ?? '/clinical/encounters'}
+            href={params.value ?? '/appointments/queue'}
             endIcon={<ArrowForwardIcon fontSize="small" />}
           >
             Open

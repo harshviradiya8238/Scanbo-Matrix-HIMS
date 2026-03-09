@@ -1,13 +1,14 @@
 'use client';
 
 import ClinicalModulePlaceholderPage from '@/src/screens/clinical/ClinicalModulePlaceholderPage';
-import EpicCareAmbulatoryPage from '@/src/screens/clinical/EpicCareAmbulatoryPage';
 import CareCompanionPage from '@/src/screens/clinical/CareCompanionPage';
 import InfectionControlPage from '@/src/screens/clinical/InfectionControlPage';
 import RegistrationAdtPage from '@/src/screens/clinical/RegistrationAdtPage';
 import WelcomeKioskPage from '@/src/screens/clinical/WelcomeKioskPage';
 import OpdCalendarPage from '@/src/screens/opd/OpdCalendarPage';
+import OpdQueuePage from '@/src/screens/opd/OpdQueuePage';
 import RadiantImagingPage from '@/src/screens/clinical/RadiantImagingPage';
+import AsapEmergencyPage from '@/src/screens/clinical/AsapEmergencyPage';
 import IpdRoundsPage from '@/src/screens/ipd/IpdRoundsPage';
 import LabDashboardPage from '@/src/screens/lab/dashboard/LabDashboardPage';
 import PatientPortalHomePage from '@/src/screens/patient-portal/PatientPortalHomePage';
@@ -19,7 +20,7 @@ interface ClinicalModuleClientProps {
 
 export default function ClinicalModuleClient({ moduleDefinition }: ClinicalModuleClientProps) {
   if (moduleDefinition.slug === 'ambulatory-care-opd') {
-    return <EpicCareAmbulatoryPage />;
+    return <OpdQueuePage />;
   }
 
   if (moduleDefinition.slug === 'inpatient-documentation-clindoc') {
@@ -48,6 +49,10 @@ export default function ClinicalModuleClient({ moduleDefinition }: ClinicalModul
 
   if (moduleDefinition.slug === 'radiant') {
     return <RadiantImagingPage />;
+  }
+
+  if (moduleDefinition.slug === 'asap') {
+    return <AsapEmergencyPage />;
   }
 
   if (moduleDefinition.slug === 'beaker') {

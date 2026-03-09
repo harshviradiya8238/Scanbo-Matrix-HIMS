@@ -225,6 +225,15 @@ export const NAV_GROUPS: NavGroup[] = [
             requiredPermissions: ['clinical.infection_control.read'],
             order: 2,
           },
+          {
+            id: 'clinical-emergency-asap',
+            label: 'Emergency (ASAP)',
+            iconName: 'LocalHospital',
+            route: '/clinical/modules/asap',
+            type: 'item',
+            requiredPermissions: ['emergency.asap.read'],
+            order: 3,
+          },
         ],
       },
       {

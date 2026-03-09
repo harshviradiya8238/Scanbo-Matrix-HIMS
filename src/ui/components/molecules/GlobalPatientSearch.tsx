@@ -25,6 +25,7 @@ export default function GlobalPatientSearch({
 }: GlobalPatientSearchProps) {
   const theme = useTheme();
   const router = useRouter();
+  const [value, setValue] = React.useState<GlobalPatient | null>(null);
   const [inputValue, setInputValue] = React.useState('');
 
   const filteredOptions = React.useMemo(() => {
@@ -36,6 +37,7 @@ export default function GlobalPatientSearch({
 
   const handleSelect = (patient: GlobalPatient | null) => {
     if (!patient) return;
+    setValue(patient);
     router.push(`/patients/profile?mrn=${patient.mrn}`);
   };
 
@@ -44,6 +46,7 @@ export default function GlobalPatientSearch({
     const match = getPatientByMrn(inputValue) ?? searchPatients(inputValue, 1)[0];
     if (match) {
       event.preventDefault();
+      setValue(match);
       router.push(`/patients/profile?mrn=${match.mrn}`);
     }
   };
@@ -56,9 +59,15 @@ export default function GlobalPatientSearch({
       }
       popupIcon={null}
       forcePopupIcon={false}
-      value={null}
+      value={value}
       inputValue={inputValue}
-      onInputChange={(_, value) => setInputValue(value)}
+      isOptionEqualToValue={(option, selected) => option.mrn === selected.mrn}
+      onInputChange={(_, value, reason) => {
+        setInputValue(value);
+        if (reason === 'clear') {
+          setValue(null);
+        }
+      }}
       onChange={(_, value) => handleSelect(value)}
       filterOptions={(options) => options}
       noOptionsText={inputValue.trim().length < 2 ? 'Type at least 2 characters' : 'No matches found'}

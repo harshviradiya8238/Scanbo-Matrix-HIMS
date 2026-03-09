@@ -223,12 +223,12 @@ export default function FlowOverviewPage() {
 
   const handleSelectPatient = (patient: GlobalPatient | null) => {
     if (!patient) return;
-    router.push(`/clinical/encounters?mrn=${patient.mrn}`);
+    router.push(`/appointments/queue?mrn=${patient.mrn}`);
     setSearchInput('');
   };
 
   const handleClearPatient = () => {
-    router.push('/clinical/encounters');
+    router.push('/appointments/queue');
   };
 
   return (
@@ -275,9 +275,9 @@ export default function FlowOverviewPage() {
                 <Button
                   variant="contained"
                   startIcon={<MedicalServicesIcon />}
-                  onClick={() => router.push(withMrn('/clinical/modules/ambulatory-care-opd'))}
+                  onClick={() => router.push(withMrn('/appointments/queue'))}
                 >
-                  OPD Encounter
+                  OPD Queue
                 </Button>
               </Stack>
             </Stack>
@@ -426,9 +426,9 @@ export default function FlowOverviewPage() {
                     <Button
                       variant="outlined"
                       startIcon={<MedicalServicesIcon />}
-                      onClick={() => router.push(withMrn('/clinical/modules/ambulatory-care-opd'))}
+                      onClick={() => router.push(withMrn('/appointments/queue'))}
                     >
-                      EpicCare Ambulatory (OPD)
+                      OPD Queue & Consultation
                     </Button>
                     <Button
                       variant="outlined"

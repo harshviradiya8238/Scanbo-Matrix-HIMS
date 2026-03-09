@@ -47,11 +47,17 @@ import {
   CancelOutlined as CancelOutlinedIcon,
   AccessTime as AccessTimeIcon,
   LocationOn as LocationOnIcon,
+  ReceiptLong as ReceiptLongIcon,
 } from '@mui/icons-material';
 import GlobalPatientSearch from '@/src/ui/components/molecules/GlobalPatientSearch';
 import { GLOBAL_PATIENTS, getPatientByMrn } from '@/src/mocks/global-patients';
 import { useOpdData } from '@/src/store/opdHooks';
 import { AppointmentStatus, OpdAppointment } from '@/src/screens/opd/opd-mock-data';
+import {
+  buildEncounterOrdersRoute,
+  buildEncounterPrescriptionsRoute,
+  buildEncounterRoute,
+} from '@/src/screens/opd/opd-encounter';
 import { useAppDispatch } from '@/src/store/hooks';
 import { updateAppointment } from '@/src/store/slices/opdSlice';
 
@@ -70,6 +76,21 @@ const formatLongDate = (value?: string | null) =>
     : '—';
 
 const buildDateTime = (date: string, time: string) => new Date(`${date}T${time}:00`);
+
+const withMrnQuery = (
+  route: string,
+  mrn: string,
+  extra: Record<string, string | undefined> = {}
+) => {
+  const [baseRoute, queryString = ''] = route.split('?');
+  const params = new URLSearchParams(queryString);
+  params.set('mrn', mrn);
+  Object.entries(extra).forEach(([key, value]) => {
+    if (!value) return;
+    params.set(key, value);
+  });
+  return `${baseRoute}?${params.toString()}`;
+};
 
 const appointmentStatusTone: Record<AppointmentStatus, 'default' | 'info' | 'warning' | 'success' | 'error'> = {
   Scheduled: 'info',
@@ -134,7 +155,6 @@ export default function PatientProfilePage() {
   const dispatch = useAppDispatch();
   const { appointments, encounters, vitalTrends, medicationCatalog } = useOpdData();
   const patient = getPatientByMrn(mrn);
-  const tileShadow = '0 8px 18px rgba(15, 23, 42, 0.05)';
   const lightBorder = `1px solid ${alpha(theme.palette.text.primary, 0.04)}`;
   const dividerSx = { my: 1.5, borderColor: alpha(theme.palette.text.primary, 0.08) };
   const tabHeaderSx = { mb: 1.5 };
@@ -195,18 +215,33 @@ export default function PatientProfilePage() {
 
   const latestVital = vitalHistory.length ? vitalHistory[vitalHistory.length - 1] : undefined;
 
-  const tabs = [
-    { id: 'history', label: 'Medical History' },
-    { id: 'medications', label: 'Medications' },
-    { id: 'labs', label: 'Lab Results' },
-    { id: 'imaging', label: 'Imaging' },
-    { id: 'documents', label: 'Documents' },
-    { id: 'appointments', label: 'Appointments' },
-    { id: 'immunizations', label: 'Immunizations' },
-    { id: 'problems', label: 'Problem List' },
-  ];
+  const tabs = React.useMemo(
+    () => [
+      { id: 'vitals', label: 'Vitals' },
+      { id: 'medications', label: 'Medications' },
+      { id: 'prescriptions', label: 'Prescriptions' },
+      { id: 'labs', label: 'Lab Results' },
+      { id: 'imaging', label: 'Imaging' },
+      { id: 'documents', label: 'Documents' },
+      { id: 'appointments', label: 'Appointments' },
+      { id: 'history', label: 'Medical History' },
+      { id: 'billing', label: 'Billing' },
+      { id: 'immunizations', label: 'Immunizations' },
+      { id: 'problems', label: 'Problem List' },
+    ],
+    []
+  );
 
-  const [activeTab, setActiveTab] = React.useState(tabs[0].id);
+  const [activeTab, setActiveTab] = React.useState(() => {
+    const tabParam = searchParams.get('tab');
+    return tabParam && tabs.some((tab) => tab.id === tabParam) ? tabParam : tabs[0].id;
+  });
+
+  React.useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (!tabParam || !tabs.some((tab) => tab.id === tabParam)) return;
+    setActiveTab((previous) => (previous === tabParam ? previous : tabParam));
+  }, [searchParams, tabs]);
 
   const payerType = latestAppointment?.payerType ?? 'General';
   const insuranceLabel =
@@ -333,6 +368,11 @@ export default function PatientProfilePage() {
     { name: 'Imaging Order - Chest X-Ray', type: 'Order', date: '2025-12-18' },
   ];
 
+  const imagingStudies = [
+    { name: 'Chest X-Ray PA', date: '2026-01-18', impression: 'No active infiltrates', status: 'Final' },
+    { name: 'USG Abdomen', date: '2025-12-08', impression: 'Mild fatty liver changes', status: 'Final' },
+  ];
+
   const immunizations = [
     { name: 'Influenza', date: '2025-10-01', status: 'Completed' },
     { name: 'COVID-19 Booster', date: '2025-08-15', status: 'Completed' },
@@ -387,6 +427,55 @@ export default function PatientProfilePage() {
     },
   ];
 
+  const vitalsThroughDate = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  const vitalTimelineRows = React.useMemo(() => {
+    const timeline = [...vitalHistory].reverse();
+    const todaySnapshot = {
+      id: `vt-today-${patient?.mrn ?? 'unknown'}`,
+      patientId: opdEncounter?.id ?? patient?.mrn ?? '',
+      recordedAt: `Today · ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`,
+      bp: latestVital?.bp ?? opdEncounter?.vitals.bp ?? '—',
+      hr: latestVital?.hr ?? opdEncounter?.vitals.hr ?? '—',
+      rr: latestVital?.rr ?? opdEncounter?.vitals.rr ?? '—',
+      temp: latestVital?.temp ?? opdEncounter?.vitals.temp ?? '—',
+      spo2: latestVital?.spo2 ?? opdEncounter?.vitals.spo2 ?? '—',
+      painScore: latestVital?.painScore ?? 0,
+      nurse: latestVital?.nurse ?? 'Nurse on Duty',
+    };
+
+    const hasLatestSnapshot = timeline.some(
+      (row) =>
+        row.bp === todaySnapshot.bp &&
+        row.hr === todaySnapshot.hr &&
+        row.rr === todaySnapshot.rr &&
+        row.temp === todaySnapshot.temp &&
+        row.spo2 === todaySnapshot.spo2
+    );
+
+    return hasLatestSnapshot ? timeline : [todaySnapshot, ...timeline];
+  }, [
+    latestVital?.bp,
+    latestVital?.hr,
+    latestVital?.nurse,
+    latestVital?.painScore,
+    latestVital?.rr,
+    latestVital?.spo2,
+    latestVital?.temp,
+    opdEncounter?.id,
+    opdEncounter?.vitals.bp,
+    opdEncounter?.vitals.hr,
+    opdEncounter?.vitals.rr,
+    opdEncounter?.vitals.spo2,
+    opdEncounter?.vitals.temp,
+    patient?.mrn,
+    vitalHistory,
+  ]);
+
   if (!patient) {
     return (
       <PageTemplate title="Patient Profile" currentPageTitle="Profile">
@@ -414,6 +503,39 @@ export default function PatientProfilePage() {
       </PageTemplate>
     );
   }
+
+  const encounterRoute = opdEncounter
+    ? buildEncounterRoute(opdEncounter.id)
+    : withMrnQuery('/appointments/queue', patient.mrn);
+  const ordersRoute = opdEncounter
+    ? buildEncounterOrdersRoute(opdEncounter.id)
+    : withMrnQuery('/clinical/orders', patient.mrn);
+  const prescriptionsRoute = opdEncounter
+    ? buildEncounterPrescriptionsRoute(opdEncounter.id)
+    : withMrnQuery('/clinical/prescriptions', patient.mrn);
+  const vitalsRoute = withMrnQuery('/clinical/vitals', patient.mrn);
+  const labResultsRoute = withMrnQuery('/diagnostics/lab/results', patient.mrn);
+  const radiologyRoute = withMrnQuery('/diagnostics/radiology/reports', patient.mrn);
+  const billingRoute = withMrnQuery('/billing/invoices', patient.mrn);
+  const careCompanionRoute = withMrnQuery('/clinical/modules/care-companion', patient.mrn);
+
+  const billingEntries = [
+    {
+      id: 'bill-1',
+      invoiceNo: `${patient.mrn.replace('MRN-', 'INV-')}-01`,
+      date: latestAppointment?.date ?? patient.lastVisit,
+      amount: patient.status === 'Admitted' ? 'INR 3250' : 'INR 980',
+      status: patient.status === 'Billing Hold' ? 'Pending' : 'Ready for Payment',
+    },
+    {
+      id: 'bill-2',
+      invoiceNo: `${patient.mrn.replace('MRN-', 'INV-')}-02`,
+      date: patient.lastVisit,
+      amount: 'INR 450',
+      status: 'Paid',
+    },
+  ];
+
 
   return (
     <PageTemplate title="Patient Profile" currentPageTitle="Profile">
@@ -485,7 +607,9 @@ export default function PatientProfilePage() {
               >
                 New Appointment
               </Button>
-              <Button variant="outlined">Send Message</Button>
+              <Button variant="outlined" onClick={() => router.push(careCompanionRoute)}>
+                Send Message
+              </Button>
               <Button
                 variant="outlined"
                 onClick={() => {
@@ -621,76 +745,6 @@ export default function PatientProfilePage() {
               elevation={0}
               sx={{ p: 2, borderRadius: 2 }}
             >
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <MonitorHeartIcon fontSize="small" color="primary" />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Latest Vital Signs
-                  </Typography>
-                </Stack>
-                <Typography variant="caption" color="text.secondary">
-                  {latestVital ? `Recorded ${latestVital.recordedAt}` : 'No vitals yet'}
-                </Typography>
-              </Stack>
-              <Divider sx={dividerSx} />
-              <Grid container spacing={1.75}>
-                {vitalTiles.map((item) => (
-                  <Grid item xs={6} key={item.label}>
-                    <Box
-                      sx={{
-                        p: 1.75,
-                        borderRadius: 1.5,
-                        border: lightBorder,
-                        boxShadow: tileShadow,
-                        display: 'grid',
-                        gap: 0.8,
-                        minHeight: 96,
-                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                        '&:hover': {
-                          transform: 'translateY(-2px)',
-                          boxShadow: '0 12px 24px rgba(15, 23, 42, 0.08)',
-                        },
-                      }}
-                    >
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Box
-                          sx={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: 1,
-                            display: 'grid',
-                            placeItems: 'center',
-                            backgroundColor: alpha(theme.palette.primary.main, 0.12),
-                            color: theme.palette.primary.main,
-                          }}
-                        >
-                          {item.icon}
-                        </Box>
-                        <Typography variant="caption" color="text.secondary">
-                          {item.label}
-                        </Typography>
-                      </Stack>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: '1.15rem',
-                          lineHeight: 1.3,
-                          color: 'text.secondary',
-                        }}
-                      >
-                        {item.value}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-            </Card>
-
-            <Card
-              elevation={0}
-              sx={{ p: 2, borderRadius: 2 }}
-            >
               <Stack direction="row" spacing={1} alignItems="center">
                 <WarningAmberIcon fontSize="small" color="error" />
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -750,11 +804,21 @@ export default function PatientProfilePage() {
 
               <Box sx={{ p: 2 }}>
                 <TabPanel value={activeTab} tab="history">
-                <Stack direction="row" spacing={1} alignItems="center" sx={tabHeaderSx}>
-                  <HistoryIcon fontSize="small" color="primary" />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Encounter Timeline
-                  </Typography>
+                <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={tabHeaderSx}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <HistoryIcon fontSize="small" color="primary" />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      Encounter Timeline
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <Button size="small" variant="outlined" onClick={() => router.push(encounterRoute)}>
+                      Open Encounter
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => router.push(ordersRoute)}>
+                      Orders
+                    </Button>
+                  </Stack>
                 </Stack>
                 {timelineAppointments.length ? (
                   <Box
@@ -836,6 +900,99 @@ export default function PatientProfilePage() {
                     No encounters recorded for this patient yet.
                   </Typography>
                 )}
+                </TabPanel>
+
+                <TabPanel value={activeTab} tab="vitals">
+                <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={tabHeaderSx}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <MonitorHeartIcon fontSize="small" color="primary" />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      Vitals Timeline
+                    </Typography>
+                  </Stack>
+                  <Button size="small" variant="outlined" onClick={() => router.push(vitalsRoute)}>
+                    Open Vitals Workspace
+                  </Button>
+                </Stack>
+                <Stack spacing={2}>
+                  <Grid container spacing={1.5}>
+                    {vitalTiles.map((item) => (
+                      <Grid item xs={12} sm={6} md={4} key={`tab-vitals-${item.label}`}>
+                        <Box
+                          sx={{
+                            p: 1.5,
+                            borderRadius: 1.5,
+                            border: lightBorder,
+                            backgroundColor: alpha(theme.palette.text.primary, 0.02),
+                          }}
+                        >
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }}>
+                            <Box
+                              sx={{
+                                width: 26,
+                                height: 26,
+                                borderRadius: 1,
+                                display: 'grid',
+                                placeItems: 'center',
+                                backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                                color: theme.palette.primary.main,
+                              }}
+                            >
+                              {item.icon}
+                            </Box>
+                            <Typography variant="caption" color="text.secondary">
+                              {item.label}
+                            </Typography>
+                          </Stack>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                            {item.value}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    ))}
+                  </Grid>
+
+                  <Box sx={{ p: 1.5, borderRadius: 1.5, border: lightBorder, backgroundColor: alpha(theme.palette.text.primary, 0.015) }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        Vitals History
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Updated through {vitalsThroughDate}
+                      </Typography>
+                    </Stack>
+                    <TableContainer sx={{ borderRadius: 1.5, border: lightBorder }}>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Recorded</TableCell>
+                            <TableCell>BP</TableCell>
+                            <TableCell>HR</TableCell>
+                            <TableCell>RR</TableCell>
+                            <TableCell>Temp</TableCell>
+                            <TableCell>SpO2</TableCell>
+                            <TableCell>Pain</TableCell>
+                            <TableCell>Nurse</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {vitalTimelineRows.map((row) => (
+                            <TableRow key={row.id}>
+                              <TableCell>{row.recordedAt}</TableCell>
+                              <TableCell>{row.bp}</TableCell>
+                              <TableCell>{row.hr}</TableCell>
+                              <TableCell>{row.rr}</TableCell>
+                              <TableCell>{row.temp}</TableCell>
+                              <TableCell>{row.spo2}</TableCell>
+                              <TableCell>{`${row.painScore}/10`}</TableCell>
+                              <TableCell>{row.nurse}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                </Stack>
                 </TabPanel>
 
                 <TabPanel value={activeTab} tab="medications">
@@ -959,12 +1116,77 @@ export default function PatientProfilePage() {
                 )}
                 </TabPanel>
 
+                <TabPanel value={activeTab} tab="prescriptions">
+                <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={tabHeaderSx}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <LocalPharmacyIcon fontSize="small" color="primary" />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      Prescriptions
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <Button size="small" variant="outlined" onClick={() => router.push(prescriptionsRoute)}>
+                      Clinical Rx
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => router.push(withMrnQuery('/pharmacy/dispense', patient.mrn))}>
+                      Pharmacy
+                    </Button>
+                  </Stack>
+                </Stack>
+                <Stack spacing={1.25}>
+                  {medicationTableRows.length ? (
+                    medicationTableRows.map((rx) => (
+                      <Box
+                        key={`rx-${rx.name}`}
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 1.5,
+                          border: lightBorder,
+                          backgroundColor: alpha(theme.palette.text.primary, 0.02),
+                        }}
+                      >
+                        <Stack
+                          direction={{ xs: 'column', sm: 'row' }}
+                          spacing={1}
+                          justifyContent="space-between"
+                          alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        >
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                              {rx.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {rx.dosage}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label={rx.status}
+                            size="small"
+                            color={rx.status === 'Active' ? 'success' : 'default'}
+                            variant="outlined"
+                          />
+                        </Stack>
+                      </Box>
+                    ))
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No prescriptions available for this patient.
+                    </Typography>
+                  )}
+                </Stack>
+                </TabPanel>
+
                 <TabPanel value={activeTab} tab="labs">
-                <Stack direction="row" spacing={1} alignItems="center" sx={tabHeaderSx}>
-                  <ScienceIcon fontSize="small" color="primary" />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Lab Results
-                  </Typography>
+                <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={tabHeaderSx}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <ScienceIcon fontSize="small" color="primary" />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      Lab Results
+                    </Typography>
+                  </Stack>
+                  <Button size="small" variant="outlined" onClick={() => router.push(labResultsRoute)}>
+                    Open Lab Workspace
+                  </Button>
                 </Stack>
                 <Stack spacing={2}>
                   {labResults.map((category) => (
@@ -1019,15 +1241,43 @@ export default function PatientProfilePage() {
                 </TabPanel>
 
                 <TabPanel value={activeTab} tab="imaging">
-                <Stack direction="row" spacing={1} alignItems="center" sx={tabHeaderSx}>
-                  <ImageOutlinedIcon fontSize="small" color="primary" />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Imaging Studies
-                  </Typography>
+                <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={tabHeaderSx}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <ImageOutlinedIcon fontSize="small" color="primary" />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      Imaging Studies
+                    </Typography>
+                  </Stack>
+                  <Button size="small" variant="outlined" onClick={() => router.push(radiologyRoute)}>
+                    Open Radiology Workspace
+                  </Button>
                 </Stack>
-                <Typography variant="body2" color="text.secondary">
-                  No imaging studies available.
-                </Typography>
+                <Stack spacing={1.5}>
+                  {imagingStudies.map((study) => (
+                    <Box
+                      key={study.name}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 1.5,
+                        border: lightBorder,
+                        backgroundColor: alpha(theme.palette.text.primary, 0.02),
+                      }}
+                    >
+                      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          {study.name}
+                        </Typography>
+                        <Chip size="small" label={study.status} color="info" variant="outlined" />
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                        {formatLongDate(study.date)}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.75 }}>
+                        {study.impression}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
                 </TabPanel>
 
                 <TabPanel value={activeTab} tab="documents">
@@ -1157,6 +1407,20 @@ export default function PatientProfilePage() {
                           justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
                           sx={{ minWidth: 0, flexWrap: { xs: 'wrap', md: 'nowrap' } }}
                         >
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => router.push(encounterRoute)}
+                            sx={{
+                              minWidth: 120,
+                              height: 36,
+                              borderRadius: 999,
+                              fontWeight: 600,
+                              px: 2.2,
+                            }}
+                          >
+                            Open Chart
+                          </Button>
                          
                           <Button
                             size="small"
@@ -1226,6 +1490,63 @@ export default function PatientProfilePage() {
                   onConfirm={confirmCancelAppointment}
                 />
 
+                <TabPanel value={activeTab} tab="billing">
+                <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={tabHeaderSx}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <ReceiptLongIcon fontSize="small" color="primary" />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      Billing & Payments
+                    </Typography>
+                  </Stack>
+                  <Button size="small" variant="outlined" onClick={() => router.push(billingRoute)}>
+                    Open Billing Workspace
+                  </Button>
+                </Stack>
+                <Stack spacing={1.5}>
+                  {billingEntries.map((entry) => (
+                    <Box
+                      key={entry.id}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        border: lightBorder,
+                        backgroundColor: alpha(theme.palette.text.primary, 0.02),
+                      }}
+                    >
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1}
+                        justifyContent="space-between"
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                      >
+                        <Box>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            {entry.invoiceNo}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatLongDate(entry.date)}
+                          </Typography>
+                        </Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          {entry.amount}
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+                        <Chip
+                          size="small"
+                          label={entry.status}
+                          color={entry.status === 'Paid' ? 'success' : entry.status === 'Pending' ? 'warning' : 'info'}
+                          variant="outlined"
+                        />
+                        <Button size="small" variant="text" onClick={() => router.push(billingRoute)}>
+                          View invoice
+                        </Button>
+                      </Stack>
+                    </Box>
+                  ))}
+                </Stack>
+                </TabPanel>
+
                 <TabPanel value={activeTab} tab="immunizations">
                 <Stack direction="row" spacing={1} alignItems="center" sx={tabHeaderSx}>
                   <VaccinesIcon fontSize="small" color="primary" />
@@ -1282,6 +1603,7 @@ export default function PatientProfilePage() {
                   )}
                 </Stack>
                 </TabPanel>
+
               </Box>
             </Card>
           </Stack>
