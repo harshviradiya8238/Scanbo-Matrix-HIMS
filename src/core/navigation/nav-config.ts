@@ -98,6 +98,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/doctors/registration',
             type: 'item',
             requiredPermissions: ['doctors.create'],
+            excludedRoles: ['DOCTOR'],
             order: 1,
           },
           {
@@ -107,6 +108,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/doctors/list',
             type: 'item',
             requiredPermissions: ['doctors.read'],
+            excludedRoles: ['DOCTOR'],
             order: 2,
           },
           {
@@ -116,6 +118,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/doctors/profile',
             type: 'item',
             requiredPermissions: ['doctors.profile.read'],
+            excludedRoles: ['DOCTOR'],
             order: 3,
           },
           {
@@ -128,6 +131,16 @@ export const NAV_GROUPS: NavGroup[] = [
             order: 4,
           },
         ],
+      },
+      {
+        id: 'doctor-patient-cases',
+        label: 'Patient Cases',
+        iconName: 'FolderShared',
+        route: '/doctor/patient-cases',
+        type: 'item',
+        requiredPermissions: ['patients.read'],
+        requiredRoles: ['DOCTOR'],
+        order: 5,
       },
       {
         id: 'ipd',
@@ -153,6 +166,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/ipd/admissions',
             type: 'item',
             requiredPermissions: ['ipd.admissions.write'],
+            excludedRoles: ['DOCTOR'],
             order: 2,
           },
           {
@@ -162,6 +176,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/ipd/beds',
             type: 'item',
             requiredPermissions: ['ipd.beds.read'],
+            excludedRoles: ['DOCTOR'],
             order: 3,
           },
           {
@@ -180,6 +195,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/ipd/discharge',
             type: 'item',
             requiredPermissions: ['ipd.discharge.write'],
+            excludedRoles: ['DOCTOR'],
             order: 5,
           },
         ],

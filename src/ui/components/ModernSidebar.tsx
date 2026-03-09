@@ -166,14 +166,38 @@ export default function ModernSidebar({
           item.requiredRoles.length === 0 ||
           item.requiredRoles.includes(userRole);
 
-        return hasRole;
+        if (!hasRole) return false;
+
+        // Hide for excluded roles (e.g. doctor should not see Admission/Bed/Discharge menus)
+        const isExcluded =
+          item.excludedRoles?.some(
+            (r) => String(r).toUpperCase() === String(userRole ?? "").toUpperCase(),
+          ) ?? false;
+        if (isExcluded) return false;
+
+        return true;
       })
       .map((item) => {
+        if (item.id === "doctors" && userRole === "DOCTOR") {
+          return {
+            id: "doctors-schedule",
+            label: "My Schedule",
+            iconName: "CalendarToday",
+            route: "/doctors/schedule",
+            type: "item" as const,
+            requiredPermissions: ["doctors.read"],
+            order: 4,
+          };
+        }
+        const label =
+          item.id === "doctors-schedule" && userRole === "DOCTOR"
+            ? "My Schedule"
+            : item.label;
         if (item.children) {
           const filteredChildren = filterItems(item.children);
-          return { ...item, children: filteredChildren };
+          return { ...item, label, children: filteredChildren };
         }
-        return item;
+        return { ...item, label };
       })
       .filter((item) => {
         if (item.children) {
@@ -238,13 +262,19 @@ export default function ModernSidebar({
           item.requiredRoles.length === 0 ||
           item.requiredRoles.includes(userRole);
 
-        if (hasPerm && hasRole) {
+        // Hide for excluded roles (e.g. doctor should not see Admission & ADT in Recent)
+        const isExcluded =
+          item.excludedRoles?.some(
+            (r) => String(r).toUpperCase() === String(userRole ?? "").toUpperCase(),
+          ) ?? false;
+
+        if (hasPerm && hasRole && !isExcluded) {
           items.push(item);
         }
       }
     });
     return items.slice(0, 5);
-  }, [recentItems, userPermissions]);
+  }, [recentItems, userPermissions, userRole]);
 
   const drawerContent = (
     <Box

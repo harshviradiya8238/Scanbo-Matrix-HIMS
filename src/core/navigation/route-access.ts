@@ -4,6 +4,7 @@ import { getClinicalModuleBySlug } from '@/src/screens/clinical/module-registry'
 
 export interface RouteAccessInfo {
   requiredPermissions: string[];
+  excludedRoles?: string[];
   source: 'nav' | 'clinical-module' | 'fallback' | 'route-override';
 }
 
@@ -72,7 +73,11 @@ export function getRouteAccessInfo(pathname: string): RouteAccessInfo | null {
 
   const menuItem = getMenuItemByRoute(normalizedPathname);
   if (menuItem?.requiredPermissions && menuItem.requiredPermissions.length > 0) {
-    return { requiredPermissions: menuItem.requiredPermissions, source: 'nav' };
+    return {
+      requiredPermissions: menuItem.requiredPermissions,
+      excludedRoles: menuItem.excludedRoles,
+      source: 'nav',
+    };
   }
 
   if (normalizedPathname.startsWith('/clinical/modules/')) {

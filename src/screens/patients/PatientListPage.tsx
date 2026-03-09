@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useUser } from '@/src/core/auth/UserContext';
 import { Avatar, Box, Button, Chip, Drawer, FormControl, IconButton, InputLabel, Menu, MenuItem, Select, SelectChangeEvent, Slider, Stack, TextField, Typography, Snackbar, Alert, Divider, Autocomplete } from '@/src/ui/components/atoms';
 import { Card, CommonDialog, StatTile } from '@/src/ui/components/molecules';
 import { useTheme } from '@/src/ui/theme';
@@ -40,6 +41,8 @@ const defaultFilterModel: GridFilterModel = { items: [], quickFilterValues: [] }
 
 export default function PatientListPage() {
   const theme = useTheme();
+  const { role } = useUser();
+  const isDoctor = role === 'DOCTOR';
   const softSurface = getSoftSurface(theme);
   const subtleSurface = getSubtleSurface(theme);
   const [rows] = React.useState<PatientRow[]>(patientData);
@@ -348,24 +351,32 @@ export default function PatientListPage() {
           alignItems={{ xs: 'flex-start', md: 'center' }}
         >
           <Box>
-            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
-              <Chip size="small" color="primary" label="Patient Registry" />
-              <Chip size="small" color="info" variant="outlined" label="OPD + IPD Linked" />
-            </Stack>
+            {!isDoctor && (
+              <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
+                <Chip size="small" color="primary" label="Patient Registry" />
+                <Chip size="small" color="info" variant="outlined" label="OPD + IPD Linked" />
+              </Stack>
+            )}
             <Typography variant="h4" sx={{ fontWeight: 700 }}>
               Patients
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Manage patient demographics, visits, admissions, and billing status in one place.
-            </Typography>
+            {!isDoctor && (
+              <Typography variant="body2" color="text.secondary">
+                Manage patient demographics, visits, admissions, and billing status in one place.
+              </Typography>
+            )}
           </Box>
           <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
-            <Button variant="outlined" startIcon={<CloudUploadIcon />}>
-              Import
-            </Button>
-            <Button variant="outlined" startIcon={<FileDownloadIcon />}>
-              Export
-            </Button>
+            {!isDoctor && (
+              <>
+                <Button variant="outlined" startIcon={<CloudUploadIcon />}>
+                  Import
+                </Button>
+                <Button variant="outlined" startIcon={<FileDownloadIcon />}>
+                  Export
+                </Button>
+              </>
+            )}
             <Button
               variant="outlined"
               endIcon={<MoreVertIcon />}
@@ -373,9 +384,11 @@ export default function PatientListPage() {
             >
               Saved Views
             </Button>
-            <Button variant="contained" startIcon={<AddIcon />}>
-              Add Patient
-            </Button>
+            {!isDoctor && (
+              <Button variant="contained" startIcon={<AddIcon />}>
+                Add Patient
+              </Button>
+            )}
           </Stack>
         </Stack>
       </Card>
@@ -458,8 +471,8 @@ export default function PatientListPage() {
             title: 'Patients',
             showSavedViews: true,
             showPrint: true,
-            emptyCtaLabel: 'Add Patient',
-            onEmptyCtaClick: () => setSnackbar('Add patient (stub)'),
+            showExport: !isDoctor,
+            ...(isDoctor ? {} : { emptyCtaLabel: 'Add Patient', onEmptyCtaClick: () => setSnackbar('Add patient (stub)') }),
           }}
           onRowClick={(params) => {
             setSelectedPatient(params.row as PatientRow);
@@ -467,9 +480,11 @@ export default function PatientListPage() {
           }}
           renderBulkActions={() => (
             <Stack direction="row" spacing={1}>
-              <Button size="small" variant="outlined" onClick={() => handleBulkAction('Export selected (stub)')}>
-                Export selected
-              </Button>
+              {!isDoctor && (
+                <Button size="small" variant="outlined" onClick={() => handleBulkAction('Export selected (stub)')}>
+                  Export selected
+                </Button>
+              )}
               <Button
                 size="small"
                 variant="outlined"

@@ -48,6 +48,7 @@ import {
   LocalCafe as LocalCafeIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
+import { useUser } from "@/src/core/auth/UserContext";
 import {
   getAppointmentsForRange,
   getDepartments,
@@ -236,6 +237,9 @@ export default function DoctorSchedulePage() {
     start: Date;
     end: Date;
   } | null>(null);
+
+  const { role: userRole } = useUser();
+  const isDoctorView = userRole === "DOCTOR";
 
   // Sidebar state
   const [search, setSearch] = React.useState("");
@@ -622,7 +626,8 @@ export default function DoctorSchedulePage() {
           bgcolor: "background.paper",
         }}
       >
-        {/* ═══════════════ LEFT SIDEBAR ═══════════════ */}
+        {/* ═══════════════ LEFT SIDEBAR (hidden for doctor — they see only their schedule) ═══════════════ */}
+        {!isDoctorView && (
         <Box
           sx={{
             width: 272,
@@ -881,6 +886,7 @@ export default function DoctorSchedulePage() {
             )}
           </Box>
         </Box>
+        )}
 
         {/* ═══════════════ MAIN CALENDAR AREA ═══════════════ */}
         <Box
@@ -1575,23 +1581,25 @@ export default function DoctorSchedulePage() {
               })}
             </Stack>
 
-            {/* Doctor */}
-            <TextField
-              select
-              fullWidth
-              label="Doctor"
-              value={addFormDoctor}
-              onChange={(e) => setAddFormDoctor(e.target.value)}
-              size="small"
-              sx={{ mb: 2 }}
-            >
-              <MenuItem value="">Select doctor</MenuItem>
-              {filteredDoctors.map((d) => (
-                <MenuItem key={d.id} value={d.id}>
-                  {d.name} - {d.specialty}
-                </MenuItem>
-              ))}
-            </TextField>
+            {/* Doctor — hidden when logged in as doctor (they manage only their schedule) */}
+            {!isDoctorView && (
+              <TextField
+                select
+                fullWidth
+                label="Doctor"
+                value={addFormDoctor}
+                onChange={(e) => setAddFormDoctor(e.target.value)}
+                size="small"
+                sx={{ mb: 2 }}
+              >
+                <MenuItem value="">Select doctor</MenuItem>
+                {filteredDoctors.map((d) => (
+                  <MenuItem key={d.id} value={d.id}>
+                    {d.name} - {d.specialty}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
 
             {/* Break: Day (multiple), Start Time, End Time */}
             {scheduleType === "break" && (
@@ -1734,7 +1742,7 @@ export default function DoctorSchedulePage() {
                       {tz}
                     </MenuItem>
                   ))}
-                </TextField>
+                  </TextField>
               </Stack>
             )}
 

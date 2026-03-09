@@ -68,10 +68,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
   );
   const hasAccess = React.useMemo(() => {
     if (!accessInfo || accessInfo.requiredPermissions.length === 0) return true;
+    // Deny if user role is excluded (e.g. doctor should not access doctor list/registration/profile)
+    const isExcluded =
+      accessInfo.excludedRoles?.some(
+        (r) => String(r).toUpperCase() === String(role ?? "").toUpperCase(),
+      ) ?? false;
+    if (isExcluded) return false;
     return accessInfo.requiredPermissions.some((perm) =>
       hasPermission(permissions, perm),
     );
-  }, [accessInfo, permissions]);
+  }, [accessInfo, permissions, role]);
 
   return (
     <Box

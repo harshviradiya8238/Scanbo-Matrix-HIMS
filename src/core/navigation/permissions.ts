@@ -119,6 +119,7 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'patients.read',
     'patients.profile.read',
     'appointments.*',
+    'doctors.read',
     'ipd.read',
     'ipd.admissions.read',
     'ipd.admissions.write',
