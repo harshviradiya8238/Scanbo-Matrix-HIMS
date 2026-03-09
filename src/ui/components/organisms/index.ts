@@ -4,3 +4,4 @@ export { default as DataTable } from './DataTable';
 export { default as FiltersPanel } from './FiltersPanel';
 export { default as AuthForm } from './AuthForm';
 export { default as SettingsPanel } from './SettingsPanel';
+export { default as CommonChat } from './CommonChat';

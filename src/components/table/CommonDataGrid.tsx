@@ -289,25 +289,18 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
     if (!externalState) return;
     setState((prev) => ({ ...prev, ...externalState }));
   }, [externalState]);
-
-  React.useEffect(() => {
-    if (!state.columnOrder || state.columnOrder.length === 0) return;
-    const api = apiRef.current;
-    if (!api) return;
-    const setColumnIndex = (
-      api as GridApi & {
-        setColumnIndex?: (field: string, index: number) => void;
-      }
-    ).setColumnIndex;
-    if (!setColumnIndex) return;
-    state.columnOrder.forEach((field, index) => {
-      try {
-        setColumnIndex(field, index);
-      } catch {
-        // ignore invalid fields
-      }
+  const resolvedColumns = React.useMemo(() => {
+    if (!state.columnOrder || state.columnOrder.length === 0) return columns;
+    const ordered = [...columns].sort((a, b) => {
+      const aIndex = state.columnOrder!.indexOf(a.field);
+      const bIndex = state.columnOrder!.indexOf(b.field);
+      if (aIndex === -1 && bIndex === -1) return 0;
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
     });
-  }, [apiRef, state.columnOrder]);
+    return ordered;
+  }, [columns, state.columnOrder]);
 
   const resolvedFilterModel = React.useMemo(
     () => sanitizeFilterModel(filterModelProp ?? state.filterModel),
@@ -440,7 +433,7 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
         <DataGridComponent
           apiRef={apiRef}
           rows={rows}
-          columns={columns}
+          columns={resolvedColumns}
           rowHeight={rowHeight}
           getRowId={getRowId}
           loading={loading}

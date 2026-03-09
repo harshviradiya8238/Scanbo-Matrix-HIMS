@@ -13,6 +13,9 @@ export interface MenuItem {
   type: MenuItemType;
   children?: MenuItem[];
   requiredPermissions?: string[];
+  requiredRoles?: UserRole[];
+  /** When set, hide this item for these roles (e.g. hide IPD admin menus for doctor) */
+  excludedRoles?: UserRole[];
   badgeCount?: number;
   featureFlag?: string;
   order?: number;

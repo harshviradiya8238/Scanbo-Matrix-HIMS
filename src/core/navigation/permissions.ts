@@ -140,6 +140,7 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'clinical.orders.read',
     'clinical.orders.write',
     'clinical.prescriptions.write',
+    'doctors.chat.read',
     'orders.*',
     'diagnostics.read',
     'pharmacy.read',

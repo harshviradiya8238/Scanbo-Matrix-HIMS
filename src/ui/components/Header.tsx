@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import * as React from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   AppBar,
   Toolbar,
@@ -12,11 +12,11 @@ import {
   Divider,
   Badge,
   Tooltip,
-} from '@/src/ui/components/atoms';
-import Text from '@/src/ui/components/atoms/Text';
-import GlobalPatientSearch from '@/src/ui/components/molecules/GlobalPatientSearch';
-import AvatarWithName from '@/src/ui/components/molecules/AvatarWithName';
-import { useTheme, alpha } from '@mui/material';
+} from "@/src/ui/components/atoms";
+import Text from "@/src/ui/components/atoms/Text";
+import GlobalPatientSearch from "@/src/ui/components/molecules/GlobalPatientSearch";
+import AvatarWithName from "@/src/ui/components/molecules/AvatarWithName";
+import { useTheme, alpha } from "@mui/material";
 import {
   Notifications as NotificationsIcon,
   Person as PersonIcon,
@@ -32,36 +32,44 @@ import {
   Apps as AppsIcon,
   Menu as MenuIcon,
   Queue as QueueIcon,
-} from '@mui/icons-material';
-import { getMenuItemByRoute } from '@/src/core/navigation/nav-config';
-import MobileMenuButton from './MobileMenuButton';
-import { useSidebarState } from '@/src/core/navigation/useSidebarState';
-import { useUser } from '@/src/core/auth/UserContext';
-import { getRoleLabel } from '@/src/core/navigation/permissions';
-import { UserRole } from '@/src/core/navigation/types';
-import { useStaffStore } from '@/src/core/staff/staffStore';
-import { PATIENT } from '@/src/screens/patient-portal/patient-portal-mock-data';
-import { getOpdRoleFlowProfile } from '@/src/screens/opd/opd-role-flow';
+} from "@mui/icons-material";
+import { getMenuItemByRoute } from "@/src/core/navigation/nav-config";
+import MobileMenuButton from "./MobileMenuButton";
+import { useSidebarState } from "@/src/core/navigation/useSidebarState";
+import { useUser } from "@/src/core/auth/UserContext";
+import { getRoleLabel } from "@/src/core/navigation/permissions";
+import { UserRole } from "@/src/core/navigation/types";
+import { useStaffStore } from "@/src/core/staff/staffStore";
+import { PATIENT } from "@/src/screens/patient-portal/patient-portal-mock-data";
+import { getOpdRoleFlowProfile } from "@/src/screens/opd/opd-role-flow";
 
 interface HeaderProps {
   userName?: string;
   userAvatar?: string;
 }
 
-export default function Header({ userName = 'John Doe', userAvatar }: HeaderProps) {
+export default function Header({
+  userName = "John Doe",
+  userAvatar,
+}: HeaderProps) {
   const theme = useTheme();
   const router = useRouter();
-  const pathname = usePathname() ?? '';
+  const pathname = usePathname() ?? "";
   const { role, setRole } = useUser();
   const { roles } = useStaffStore();
   const roleFlow = React.useMemo(() => getOpdRoleFlowProfile(role), [role]);
-  const [userMenuAnchor, setUserMenuAnchor] = React.useState<null | HTMLElement>(null);
-  const [quickMenuAnchor, setQuickMenuAnchor] = React.useState<null | HTMLElement>(null);
+  const [userMenuAnchor, setUserMenuAnchor] =
+    React.useState<null | HTMLElement>(null);
+  const [quickMenuAnchor, setQuickMenuAnchor] =
+    React.useState<null | HTMLElement>(null);
   const { toggle: toggleSidebar, isExpanded } = useSidebarState();
 
   // Get current page title from route
-  const currentItem = React.useMemo(() => getMenuItemByRoute(pathname), [pathname]);
-  const pageTitle = currentItem?.label || 'Dashboard';
+  const currentItem = React.useMemo(
+    () => getMenuItemByRoute(pathname),
+    [pathname],
+  );
+  const pageTitle = currentItem?.label || "Dashboard";
 
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserMenuAnchor(event.currentTarget);
@@ -81,12 +89,19 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
 
   const handleLogout = () => {
     handleUserMenuClose();
-    router.push('/');
+    router.push("/");
   };
 
   const handleRoleSelect = (nextRole: UserRole) => {
     setRole(nextRole);
     handleUserMenuClose();
+
+    // Logic to redirect based on portal
+    if (nextRole === "PATIENT_PORTAL") {
+      router.push("/patient-portal/home");
+    } else {
+      router.push("/dashboard");
+    }
   };
 
   const handleNavigate = (route: string) => {
@@ -104,70 +119,74 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
 
     if (roleFlow.capabilities.canManageCalendar) {
       actions.push({
-        label: 'New Patient',
+        label: "New Patient",
         icon: <PersonAddIcon fontSize="small" />,
-        route: '/patients/registration',
+        route: "/patients/registration",
         color: theme.palette.primary.main,
       });
       actions.push({
-        label: 'Schedule Visit',
+        label: "Schedule Visit",
         icon: <EventIcon fontSize="small" />,
-        route: '/appointments/calendar',
+        route: "/appointments/calendar",
         color: theme.palette.success.main,
       });
     }
 
     if (roleFlow.capabilities.canStartConsult) {
       actions.push({
-        label: 'Open Queue',
+        label: "Open Queue",
         icon: <QueueIcon fontSize="small" />,
-        route: '/appointments/queue',
+        route: "/appointments/queue",
         color: theme.palette.info.main,
       });
     }
 
     return actions;
-  }, [roleFlow.capabilities.canManageCalendar, roleFlow.capabilities.canStartConsult, theme.palette]);
+  }, [
+    roleFlow.capabilities.canManageCalendar,
+    roleFlow.capabilities.canStartConsult,
+    theme.palette,
+  ]);
 
   const quickLinks = [
     {
-      label: 'Dashboard',
-      route: '/dashboard',
+      label: "Dashboard",
+      route: "/dashboard",
       color: theme.palette.primary.main,
       icon: <DashboardIcon fontSize="small" />,
     },
     {
-      label: 'Patient List',
-      route: '/patients/list',
-      color:  theme.palette.primary.main,
+      label: "Patient List",
+      route: "/patients/list",
+      color: theme.palette.primary.main,
       icon: <PeopleIcon fontSize="small" />,
     },
     {
-      label: 'Appointments',
-      route: '/appointments/calendar',
-      color:  theme.palette.primary.main,
+      label: "Appointments",
+      route: "/appointments/calendar",
+      color: theme.palette.primary.main,
       icon: <EventIcon fontSize="small" />,
     },
     {
-      label: 'Billing',
-      route: '/billing/invoices',
-      color:  theme.palette.primary.main,
+      label: "Billing",
+      route: "/billing/invoices",
+      color: theme.palette.primary.main,
       icon: <ReceiptLongIcon fontSize="small" />,
     },
     {
-      label: 'Reports',
-      route: '/reports/analytics',
-      color:  theme.palette.primary.main,
+      label: "Reports",
+      route: "/reports/analytics",
+      color: theme.palette.primary.main,
       icon: <BarChartIcon fontSize="small" />,
     },
   ];
 
   const switchRoleIds: UserRole[] = [
-    'SUPER_ADMIN',
-    'HOSPITAL_ADMIN',
-    'DOCTOR',
+    "SUPER_ADMIN",
+    "HOSPITAL_ADMIN",
+    "DOCTOR",
     // 'NURSE',
-    'RECEPTION',
+    "RECEPTION",
     // 'CARE_COORDINATOR',
     // 'INFECTION_CONTROL',
     // 'LAB_TECH',
@@ -175,13 +194,19 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
     // 'PHARMACIST',
     // 'BILLING',
     // 'INVENTORY',
-    'PATIENT_PORTAL',
+    "PATIENT_PORTAL",
     // 'AUDITOR',
   ];
-  const switchRoleIdSet = React.useMemo(() => new Set(switchRoleIds), [switchRoleIds]);
+  const switchRoleIdSet = React.useMemo(
+    () => new Set(switchRoleIds),
+    [switchRoleIds],
+  );
   const switchRoles = React.useMemo(
-    () => roles.filter((roleOption) => switchRoleIdSet.has(roleOption.id as UserRole)),
-    [roles, switchRoleIdSet]
+    () =>
+      roles.filter((roleOption) =>
+        switchRoleIdSet.has(roleOption.id as UserRole),
+      ),
+    [roles, switchRoleIdSet],
   );
 
   const tileSx = (color: string) => ({
@@ -191,7 +216,7 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
     backgroundColor: alpha(color, 0.12),
     color,
     border: `1px solid ${alpha(color, 0.22)}`,
-    '&:hover': {
+    "&:hover": {
       backgroundColor: alpha(color, 0.18),
     },
   });
@@ -203,37 +228,39 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
       sx={{
         backgroundColor: theme.palette.background.paper,
         borderBottom: `1px solid ${theme.palette.divider}`,
-        boxShadow: '0 8px 18px rgba(15, 23, 42, 0.06)',
+        boxShadow: "0 8px 18px rgba(15, 23, 42, 0.06)",
         zIndex: theme.zIndex.drawer + 1,
-        width: '100%',
+        width: "100%",
       }}
     >
       <Toolbar
         sx={{
           minHeight: { xs: 80, md: 88 },
           px: { xs: 2, sm: 3 },
-          display: 'grid',
+          display: "grid",
           gridTemplateColumns: {
-            xs: 'auto 1fr auto',
-            md: 'auto 1fr auto',
+            xs: "auto 1fr auto",
+            md: "auto 1fr auto",
           },
           columnGap: { xs: 1, md: 2 },
-          alignItems: 'center',
-          width: '100%',
+          alignItems: "center",
+          width: "100%",
         }}
       >
         {/* Left */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-          <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
+        <Box
+          sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}
+        >
+          <Box sx={{ display: { xs: "flex", md: "none" } }}>
             <MobileMenuButton onClick={toggleSidebar} />
           </Box>
-          <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
-            <Tooltip title={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}>
+          <Box sx={{ display: { xs: "none", md: "flex" } }}>
+            <Tooltip title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}>
               <IconButton
                 size="small"
                 onClick={toggleSidebar}
                 sx={tileSx(theme.palette.primary.main)}
-                aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+                aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
               >
                 <MenuIcon fontSize="small" />
               </IconButton>
@@ -243,12 +270,12 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
             variant="h6"
             component="div"
             sx={{
-              display: { xs: 'block', md: 'none' },
+              display: { xs: "block", md: "none" },
               fontWeight: 600,
               color: theme.palette.text.primary,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             {pageTitle}
@@ -258,18 +285,18 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
         {/* Center — hide patient search for patient portal role */}
         <Box
           sx={{
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
             minWidth: 0,
-            justifyContent: 'end',
-            justifySelf: { xs: 'stretch', md: 'stretch' },
+            justifyContent: "end",
+            justifySelf: { xs: "stretch", md: "stretch" },
           }}
         >
-          {role !== 'PATIENT_PORTAL' && (
+          {role !== "PATIENT_PORTAL" && (
             <Box
               sx={{
-                display: { xs: 'none', md: 'flex' },
-                width: '50%',
+                display: { xs: "none", md: "flex" },
+                width: "50%",
                 minWidth: 0,
               }}
             >
@@ -279,12 +306,12 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
         </Box>
 
         {/* Right */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <Box
             sx={{
-              display: { xs: 'none', sm: 'grid' },
-              alignItems: 'center',
-              gridAutoFlow: 'column',
+              display: { xs: "none", sm: "grid" },
+              alignItems: "center",
+              gridAutoFlow: "column",
               gap: 1.5,
             }}
           >
@@ -311,12 +338,16 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
               </Tooltip>
             ))}
             <Tooltip title="Notifications">
-              <IconButton size="small"  sx={tileSx(theme.palette.primary.main)}aria-label="Notifications">
+              <IconButton
+                size="small"
+                sx={tileSx(theme.palette.primary.main)}
+                aria-label="Notifications"
+              >
                 <Badge
                   badgeContent={3}
                   color="error"
                   sx={{
-                    '& .MuiBadge-badge': {
+                    "& .MuiBadge-badge": {
                       color: theme.palette.common.white,
                     },
                   }}
@@ -330,44 +361,58 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
           <Box
             onClick={handleUserMenuOpen}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
+              display: "flex",
+              alignItems: "center",
               gap: 1,
               px: 1,
               py: 0.5,
               borderRadius: 2,
-              cursor: 'pointer',
-              '&:hover': {
+              cursor: "pointer",
+              "&:hover": {
                 backgroundColor: theme.palette.action.hover,
               },
-              transition: theme.transitions.create('background-color', {
+              transition: theme.transitions.create("background-color", {
                 duration: theme.transitions.duration.short,
               }),
             }}
             aria-label="User menu"
           >
             <AvatarWithName
-              name={role === 'PATIENT_PORTAL' ? PATIENT.name : userName}
-              subtitle={role === 'PATIENT_PORTAL' ? `PID: ${PATIENT.pid}` : getRoleLabel(role).toLowerCase()}
+              name={role === "PATIENT_PORTAL" ? PATIENT.name : userName}
+              subtitle={
+                role === "PATIENT_PORTAL"
+                  ? `PID: ${PATIENT.pid}`
+                  : getRoleLabel(role).toLowerCase()
+              }
               avatarSrc={userAvatar}
               avatarProps={{
                 sx: {
-                  bgcolor: role === 'PATIENT_PORTAL' ? PATIENT.avatarColor : theme.palette.primary.main,
+                  bgcolor:
+                    role === "PATIENT_PORTAL"
+                      ? PATIENT.avatarColor
+                      : theme.palette.primary.main,
                 },
               }}
               detailsSx={{
-                display: { xs: 'none', sm: 'flex' },
-                flexDirection: 'column',
-                alignItems: 'flex-start',
+                display: { xs: "none", sm: "flex" },
+                flexDirection: "column",
+                alignItems: "flex-start",
               }}
-              nameProps={{ sx: { color: theme.palette.text.primary, maxWidth: 140 } }}
-              subtitleProps={{ sx: { fontSize: '0.75rem', color: theme.palette.text.secondary } }}
+              nameProps={{
+                sx: { color: theme.palette.text.primary, maxWidth: 140 },
+              }}
+              subtitleProps={{
+                sx: {
+                  fontSize: "0.75rem",
+                  color: theme.palette.text.secondary,
+                },
+              }}
               trailing={
                 <ExpandMoreIcon
                   sx={{
                     fontSize: 20,
                     color: theme.palette.text.secondary,
-                    display: { xs: 'none', sm: 'block' },
+                    display: { xs: "none", sm: "block" },
                   }}
                 />
               }
@@ -381,12 +426,12 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
           open={Boolean(userMenuAnchor)}
           onClose={handleUserMenuClose}
           anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'right',
+            vertical: "bottom",
+            horizontal: "right",
           }}
           transformOrigin={{
-            vertical: 'top',
-            horizontal: 'right',
+            vertical: "top",
+            horizontal: "right",
           }}
           PaperProps={{
             sx: {
@@ -398,41 +443,15 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
             },
           }}
         >
-        <MenuItem
-          onClick={() => {
-            handleUserMenuClose();
-            router.push(role === 'PATIENT_PORTAL' ? '/patient-portal/profile' : '/profile');
-          }}
-          sx={{ gap: 1.25 }}
-        >
-          <Box sx={{ width: 28, height: 28, borderRadius: 1.5, display: 'grid', placeItems: 'center', backgroundColor: alpha(theme.palette.primary.main, 0.12), color: theme.palette.primary.main }}>
-            <PersonIcon sx={{ fontSize: 18 }} />
-          </Box>
-          <Text sx={{ fontWeight: 600 }}>Profile</Text>
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleUserMenuClose();
-            router.push(role === 'PATIENT_PORTAL' ? '/patient-portal/settings' : '/settings');
-          }}
-          sx={{ gap: 1.25 }}
-        >
-          <Box sx={{ width: 28, height: 28, borderRadius: 1.5, display: 'grid', placeItems: 'center', backgroundColor: alpha(theme.palette.info.main, 0.12), color: theme.palette.info.main }}>
-            <SettingsIcon sx={{ fontSize: 18 }} />
-          </Box>
-          <Text sx={{ fontWeight: 600 }}>Settings</Text>
-        </MenuItem>
-        <Divider />
-        <Box sx={{ px: 1.5, py: 1 }}>
-          <Text variant="caption" sx={{ fontWeight: 600, color: theme.palette.text.secondary }}>
-            Switch Role
-          </Text>
-        </Box>
-        {switchRoles.map((roleOption) => (
           <MenuItem
-            key={roleOption.id}
-            onClick={() => handleRoleSelect(roleOption.id as UserRole)}
-            selected={roleOption.id === role}
+            onClick={() => {
+              handleUserMenuClose();
+              router.push(
+                role === "PATIENT_PORTAL"
+                  ? "/patient-portal/profile"
+                  : "/profile",
+              );
+            }}
             sx={{ gap: 1.25 }}
           >
             <Box
@@ -440,34 +459,93 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
                 width: 28,
                 height: 28,
                 borderRadius: 1.5,
-                display: 'grid',
-                placeItems: 'center',
+                display: "grid",
+                placeItems: "center",
                 backgroundColor: alpha(theme.palette.primary.main, 0.12),
                 color: theme.palette.primary.main,
               }}
             >
               <PersonIcon sx={{ fontSize: 18 }} />
             </Box>
-            <Text sx={{ fontWeight: 600 }}>{getRoleLabel(roleOption.id as UserRole)}</Text>
+            <Text sx={{ fontWeight: 600 }}>Profile</Text>
           </MenuItem>
-        ))}
-        <Divider />
-        <MenuItem onClick={handleLogout} sx={{ gap: 1.25 }}>
-          <Box
-            sx={{
-              width: 28,
-              height: 28,
-              borderRadius: 1.5,
-              display: 'grid',
-              placeItems: 'center',
-              backgroundColor: alpha(theme.palette.error.main, 0.12),
-              color: theme.palette.error.main,
+          <MenuItem
+            onClick={() => {
+              handleUserMenuClose();
+              router.push(
+                role === "PATIENT_PORTAL"
+                  ? "/patient-portal/settings"
+                  : "/settings",
+              );
             }}
+            sx={{ gap: 1.25 }}
           >
-            <LogoutIcon sx={{ fontSize: 18 }} />
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: 1.5,
+                display: "grid",
+                placeItems: "center",
+                backgroundColor: alpha(theme.palette.info.main, 0.12),
+                color: theme.palette.info.main,
+              }}
+            >
+              <SettingsIcon sx={{ fontSize: 18 }} />
+            </Box>
+            <Text sx={{ fontWeight: 600 }}>Settings</Text>
+          </MenuItem>
+          <Divider />
+          <Box sx={{ px: 1.5, py: 1 }}>
+            <Text
+              variant="caption"
+              sx={{ fontWeight: 600, color: theme.palette.text.secondary }}
+            >
+              Switch Role
+            </Text>
           </Box>
-          <Text sx={{ fontWeight: 600 }}>Logout</Text>
-        </MenuItem>
+          {switchRoles.map((roleOption) => (
+            <MenuItem
+              key={roleOption.id}
+              onClick={() => handleRoleSelect(roleOption.id as UserRole)}
+              selected={roleOption.id === role}
+              sx={{ gap: 1.25 }}
+            >
+              <Box
+                sx={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 1.5,
+                  display: "grid",
+                  placeItems: "center",
+                  backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                  color: theme.palette.primary.main,
+                }}
+              >
+                <PersonIcon sx={{ fontSize: 18 }} />
+              </Box>
+              <Text sx={{ fontWeight: 600 }}>
+                {getRoleLabel(roleOption.id as UserRole)}
+              </Text>
+            </MenuItem>
+          ))}
+          <Divider />
+          <MenuItem onClick={handleLogout} sx={{ gap: 1.25 }}>
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: 1.5,
+                display: "grid",
+                placeItems: "center",
+                backgroundColor: alpha(theme.palette.error.main, 0.12),
+                color: theme.palette.error.main,
+              }}
+            >
+              <LogoutIcon sx={{ fontSize: 18 }} />
+            </Box>
+            <Text sx={{ fontWeight: 600 }}>Logout</Text>
+          </MenuItem>
         </Menu>
 
         {/* Quick Links Menu */}
@@ -476,12 +554,12 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
           open={Boolean(quickMenuAnchor)}
           onClose={handleQuickMenuClose}
           anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'left',
+            vertical: "bottom",
+            horizontal: "left",
           }}
           transformOrigin={{
-            vertical: 'top',
-            horizontal: 'left',
+            vertical: "top",
+            horizontal: "left",
           }}
           PaperProps={{
             sx: {
@@ -504,9 +582,9 @@ export default function Header({ userName = 'John Doe', userAvatar }: HeaderProp
                   width: 32,
                   height: 32,
                   borderRadius: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   backgroundColor: alpha(link.color, 0.14),
                   color: link.color,
                 }}

@@ -1,11 +1,24 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import { Autocomplete, Avatar, Box, Chip, InputAdornment, TextField, Typography } from '@/src/ui/components/atoms';
-import { alpha, useTheme } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
-import { DoctorRow, getDoctorById, searchDoctors } from '@/src/mocks/doctorServer';
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import {
+  Autocomplete,
+  Avatar,
+  Box,
+  Chip,
+  InputAdornment,
+  Paper,
+  TextField,
+  Typography,
+} from "@/src/ui/components/atoms";
+import { alpha, useTheme } from "@mui/material";
+import { Search as SearchIcon } from "@mui/icons-material";
+import {
+  DoctorRow,
+  getDoctorById,
+  searchDoctors,
+} from "@/src/mocks/doctorServer";
 
 interface GlobalDoctorSearchProps {
   placeholder?: string;
@@ -13,28 +26,34 @@ interface GlobalDoctorSearchProps {
 }
 
 const AVATAR_COLORS = [
-  '#1172BA', '#0B84D0', '#2FA77A', '#2C8AD3',
-  '#7C3AED', '#059669', '#DC2626', '#9333EA',
+  "#1172BA",
+  "#0B84D0",
+  "#2FA77A",
+  "#2C8AD3",
+  "#7C3AED",
+  "#059669",
+  "#DC2626",
+  "#9333EA",
 ];
 
 const getAvatarColor = (name: string) =>
   AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 
 const statusColors: Record<string, string> = {
-  Active: 'success',
-  'On Leave': 'warning',
-  Inactive: 'default',
-  Suspended: 'error',
-  'Pending Verification': 'info',
+  Active: "success",
+  "On Leave": "warning",
+  Inactive: "default",
+  Suspended: "error",
+  "Pending Verification": "info",
 };
 
 export default function GlobalDoctorSearch({
-  placeholder = 'Search by Doctor ID, name, specialization...',
+  placeholder = "Search by Doctor ID, name, specialization...",
   fullWidth = true,
 }: GlobalDoctorSearchProps) {
   const theme = useTheme();
   const router = useRouter();
-  const [inputValue, setInputValue] = React.useState('');
+  const [inputValue, setInputValue] = React.useState("");
 
   const filteredOptions = React.useMemo(() => {
     if (inputValue.trim().length < 2) return [];
@@ -47,7 +66,7 @@ export default function GlobalDoctorSearch({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== 'Enter') return;
+    if (event.key !== "Enter") return;
     const match = getDoctorById(inputValue) ?? searchDoctors(inputValue, 1)[0];
     if (match) {
       event.preventDefault();
@@ -59,8 +78,22 @@ export default function GlobalDoctorSearch({
     <Autocomplete
       options={filteredOptions}
       getOptionLabel={(option) =>
-        typeof option === 'string' ? option : `${option.name} · ${option.doctorId}`
+        typeof option === "string"
+          ? option
+          : `${option.name} · ${option.doctorId}`
       }
+      PaperComponent={(props) => (
+        <Paper
+          {...props}
+          sx={{
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            mt: 1,
+            border: `1px solid ${theme.palette.divider}`,
+            boxShadow: 8,
+          }}
+        />
+      )}
       popupIcon={null}
       forcePopupIcon={false}
       value={null}
@@ -68,7 +101,11 @@ export default function GlobalDoctorSearch({
       onInputChange={(_, value) => setInputValue(value)}
       onChange={(_, value) => handleSelect(value as DoctorRow | null)}
       filterOptions={(options) => options}
-      noOptionsText={inputValue.trim().length < 2 ? 'Type at least 2 characters' : 'No matches found'}
+      noOptionsText={
+        inputValue.trim().length < 2
+          ? "Type at least 2 characters"
+          : "No matches found"
+      }
       fullWidth={fullWidth}
       renderOption={(props, option) => {
         const doctor = option as DoctorRow;
@@ -77,7 +114,7 @@ export default function GlobalDoctorSearch({
             component="li"
             {...props}
             key={doctor.id}
-            sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}
+            sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1 }}
           >
             <Avatar
               sx={{
@@ -88,20 +125,29 @@ export default function GlobalDoctorSearch({
                 fontWeight: 700,
               }}
             >
-              {doctor.firstName[0]}{doctor.lastName[0]}
+              {doctor.firstName[0]}
+              {doctor.lastName[0]}
             </Avatar>
             <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: "text.primary" }}
+              >
                 {doctor.name}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                {doctor.doctorId} · {doctor.primarySpecialization} · {doctor.department}
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block" }}
+              >
+                {doctor.doctorId} · {doctor.primarySpecialization} ·{" "}
+                {doctor.department}
               </Typography>
             </Box>
             <Chip
               size="small"
               label={doctor.status}
-              color={(statusColors[doctor.status] ?? 'default') as any}
+              color={(statusColors[doctor.status] ?? "default") as any}
               variant="outlined"
             />
           </Box>
@@ -116,22 +162,22 @@ export default function GlobalDoctorSearch({
             ...params.InputProps,
             startAdornment: (
               <InputAdornment position="start" sx={{ pl: 0.75 }}>
-                <SearchIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                <SearchIcon sx={{ fontSize: 20, color: "text.secondary" }} />
               </InputAdornment>
             ),
           }}
           sx={{
-            '& .MuiOutlinedInput-root': {
+            "& .MuiOutlinedInput-root": {
               minHeight: 50,
               borderRadius: 2.5,
               backgroundColor: alpha(theme.palette.primary.main, 0.04),
-              '&:hover': {
+              "&:hover": {
                 backgroundColor: alpha(theme.palette.primary.main, 0.06),
               },
-              '&.Mui-focused': {
-                backgroundColor: 'background.paper',
-                '& fieldset': {
-                  borderColor: 'primary.main',
+              "&.Mui-focused": {
+                backgroundColor: "background.paper",
+                "& fieldset": {
+                  borderColor: "primary.main",
                 },
               },
             },

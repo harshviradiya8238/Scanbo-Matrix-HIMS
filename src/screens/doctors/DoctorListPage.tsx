@@ -47,6 +47,7 @@ import {
   Phone as PhoneIcon,
   Email as EmailIcon,
   Badge as BadgeIcon,
+  DragHandle as DragHandleIcon,
 } from "@mui/icons-material";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import {
@@ -153,6 +154,8 @@ export default function DoctorListPage() {
     string,
     boolean
   > | null>(null);
+  const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
+  const [draggedIndex, setDraggedIndex] = React.useState<number | null>(null);
   const [confirmAction, setConfirmAction] = React.useState<{
     title: string;
     description: string;
@@ -322,51 +325,6 @@ export default function DoctorListPage() {
         ),
       },
       {
-        field: "availableDays",
-        headerName: "Available Days",
-        width: 230,
-        headerAlign: "center",
-        align: "center",
-        renderCell: (params) => (
-          <Box
-            sx={{
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "100%",
-            }}
-          >
-            <DaysBadge days={params.row.availableDays} />
-          </Box>
-        ),
-        sortable: false,
-      },
-      {
-        field: "consultationFee",
-        headerName: "Fee",
-        width: 100,
-        valueGetter: (_value, row) => `₹${row?.consultationFee ?? "—"}`,
-      },
-      {
-        field: "rating",
-        headerName: "Rating",
-        width: 90,
-        renderCell: (params) => (
-          <Box
-            sx={{
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "100%",
-            }}
-          >
-            <RatingBadge rating={params.row.rating} />
-          </Box>
-        ),
-      },
-      {
         field: "mobile",
         headerName: "Contact",
         width: 155,
@@ -505,8 +463,8 @@ export default function DoctorListPage() {
     applyFilters();
   }, [applyFilters]);
 
+  // 1. Initial load from localStorage (run only once on mount)
   React.useEffect(() => {
-    // initialize column visibility model from persisted state or externalState
     try {
       const key = `scanbo:grid:doctor-list`;
       const persisted =
@@ -515,34 +473,65 @@ export default function DoctorListPage() {
         const parsed = JSON.parse(persisted);
         if (parsed?.columnVisibilityModel) {
           setColumnVisModel(parsed.columnVisibilityModel);
-          return;
         }
+        if (parsed?.columnOrder) {
+          setColumnOrder(parsed.columnOrder);
+        }
+        if (parsed?.columnVisibilityModel || parsed?.columnOrder) return;
       }
     } catch (e) {
       // ignore
     }
-    if (externalState?.columnVisibilityModel)
-      setColumnVisModel(externalState.columnVisibilityModel);
-    else
-      setColumnVisModel(
-        columns.reduce(
-          (acc, c) => ({ ...acc, [c.field]: true }),
-          {} as Record<string, boolean>,
-        ),
-      );
-  }, [externalState, columns]);
 
-  const applyColumnVisModel = (model: Record<string, boolean>) => {
+    // Fallback if no persisted state
+    const defaultOrder = columns.map((c) => c.field);
+    setColumnOrder(defaultOrder);
+    setColumnVisModel(
+      defaultOrder.reduce(
+        (acc, field) => ({ ...acc, [field]: true }),
+        {} as Record<string, boolean>,
+      ),
+    );
+  }, []); // Mount only
+
+  // 2. Sync from externalState (e.g. Saved Views)
+  React.useEffect(() => {
+    if (externalState?.columnVisibilityModel) {
+      setColumnVisModel(
+        externalState.columnVisibilityModel as Record<string, boolean>,
+      );
+    }
+    if (externalState?.columnOrder) {
+      setColumnOrder(externalState.columnOrder);
+    }
+  }, [externalState?.columnVisibilityModel, externalState?.columnOrder]);
+
+  const applyColumnVisModel = (
+    model: Record<string, boolean>,
+    order?: string[],
+  ) => {
     setColumnVisModel(model);
+    if (order) setColumnOrder(order);
     setExternalState((prev) => ({
       ...(prev ?? {}),
       columnVisibilityModel: model,
+      columnOrder: order ?? columnOrder,
     }));
   };
 
   const toggleColumn = (field: string) => {
-    const next = { ...(columnVisModel ?? {}) };
-    next[field] = !next[field];
+    // If model is null, start with all columns visible except the one being toggled
+    const current =
+      columnVisModel ??
+      columnOrder.reduce(
+        (acc, f) => ({ ...acc, [f]: true }),
+        {} as Record<string, boolean>,
+      );
+    const next = { ...current };
+
+    // Toggle: if it's undefined or true, set to false. If it's explicitly false, set to true.
+    next[field] = current[field] === false ? true : false;
+
     applyColumnVisModel(next);
   };
 
@@ -551,7 +540,8 @@ export default function DoctorListPage() {
       (acc, c) => ({ ...acc, [c.field]: true }),
       {} as Record<string, boolean>,
     );
-    applyColumnVisModel(allVisible);
+    const defaultOrder = columns.map((c) => c.field);
+    applyColumnVisModel(allVisible, defaultOrder);
   };
 
   const savedViews = [
@@ -851,23 +841,67 @@ export default function DoctorListPage() {
           <DialogTitle>Choose columns</DialogTitle>
           <DialogContent>
             <Stack spacing={1} sx={{ mt: 1 }}>
-              {columns.map((col) => (
-                <FormControlLabel
-                  key={col.field}
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={
-                        columnVisModel
-                          ? Boolean(columnVisModel[col.field])
-                          : true
-                      }
-                      onChange={() => toggleColumn(col.field)}
+              {columnOrder.map((field, index) => {
+                const col = columns.find((c) => c.field === field);
+                if (!col) return null;
+                return (
+                  <Box
+                    key={field}
+                    draggable
+                    onDragStart={(e) => {
+                      setDraggedIndex(index);
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (draggedIndex === null || draggedIndex === index)
+                        return;
+                      const newOrder = [...columnOrder];
+                      const item = newOrder.splice(draggedIndex, 1)[0];
+                      newOrder.splice(index, 0, item);
+                      setColumnOrder(newOrder);
+                      setDraggedIndex(index);
+                    }}
+                    onDragEnd={() => setDraggedIndex(null)}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      p: 1,
+                      borderRadius: 1.5,
+                      border: "1px solid",
+                      borderColor:
+                        draggedIndex === index ? "primary.main" : "divider",
+                      bgcolor:
+                        draggedIndex === index
+                          ? alpha(theme.palette.primary.main, 0.05)
+                          : "transparent",
+                      cursor: "grab",
+                      "&:active": { cursor: "grabbing" },
+                      gap: 1,
+                    }}
+                  >
+                    <DragHandleIcon
+                      sx={{ color: "text.disabled", fontSize: 18 }}
                     />
-                  }
-                  label={col.headerName ?? col.field}
-                />
-              ))}
+                    <FormControlLabel
+                      sx={{ flex: 1, m: 0 }}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={columnVisModel?.[field] !== false}
+                          onChange={() => toggleColumn(field)}
+                          sx={{ p: 0.5 }}
+                        />
+                      }
+                      label={
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {col.headerName ?? field}
+                        </Typography>
+                      }
+                    />
+                  </Box>
+                );
+              })}
             </Stack>
           </DialogContent>
           <DialogActions>
@@ -879,7 +913,10 @@ export default function DoctorListPage() {
               Reset
             </Button>
             <Button
-              onClick={() => setColumnsDialogOpen(false)}
+              onClick={() => {
+                applyColumnVisModel(columnVisModel ?? {}, columnOrder);
+                setColumnsDialogOpen(false);
+              }}
               variant="contained"
             >
               Done

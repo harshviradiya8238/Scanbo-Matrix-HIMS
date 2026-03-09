@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 import {
   Avatar,
   Box,
@@ -14,16 +14,16 @@ import {
   Stack,
   TextField,
   Typography,
-} from '@/src/ui/components/atoms';
-import { alpha, useTheme } from '@/src/ui/theme';
+} from "@/src/ui/components/atoms";
+import { alpha, useTheme } from "@/src/ui/theme";
 import {
   CloseRounded as CloseRoundedIcon,
   Search as SearchIcon,
   SupervisedUserCircleRounded as SupervisedUserCircleRoundedIcon,
-} from '@mui/icons-material';
-import { getPatientByMrn } from '@/src/mocks/global-patients';
+} from "@mui/icons-material";
+import { getPatientByMrn } from "@/src/mocks/global-patients";
 
-type FieldTone = 'default' | 'success' | 'warning' | 'error' | 'info';
+type FieldTone = "default" | "success" | "warning" | "error" | "info";
 
 export interface IpdPatientTopBarField {
   id: string;
@@ -65,33 +65,33 @@ interface IpdPatientTopBarProps {
 export const IPD_PATIENT_TOP_BAR_STICKY_OFFSET = 64;
 
 const SUMMARY_FIELD_ORDER = [
-  'ward-bed',
-  'admitted',
-  'los',
-  'consultant',
-  'status',
-  'total-bill',
-  'diagnosis',
+  "ward-bed",
+  "admitted",
+  "los",
+  "consultant",
+  "status",
+  "total-bill",
+  "diagnosis",
 ] as const;
 const SUMMARY_FIELD_LIMIT = 5;
 
-const INR_CURRENCY = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
+const INR_CURRENCY = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
   maximumFractionDigits: 0,
 });
 
 const getInitials = (name: string) =>
   name
-    .split(' ')
+    .split(" ")
     .filter(Boolean)
     .slice(0, 2)
-    .map((chunk) => chunk[0]?.toUpperCase() ?? '')
-    .join('') || 'P';
+    .map((chunk) => chunk[0]?.toUpperCase() ?? "")
+    .join("") || "P";
 
 function formatAmount(value?: number | string): string {
-  if (value === undefined || value === null || value === '') return '--';
-  if (typeof value === 'number') return INR_CURRENCY.format(value);
+  if (value === undefined || value === null || value === "") return "--";
+  if (typeof value === "number") return INR_CURRENCY.format(value);
   const asNumber = Number(value);
   if (Number.isFinite(asNumber)) return INR_CURRENCY.format(asNumber);
   return String(value);
@@ -111,34 +111,40 @@ function collectTags(option: IpdPatientOption): string[] {
 }
 
 function parseAgeGender(ageGender?: string): { age: string; gender: string } {
-  const value = String(ageGender ?? '').trim();
-  if (!value) return { age: '', gender: '' };
+  const value = String(ageGender ?? "").trim();
+  if (!value) return { age: "", gender: "" };
 
-  const slashParts = value.split('/').map((part) => part.trim()).filter(Boolean);
+  const slashParts = value
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
   if (slashParts.length >= 2) {
     return {
-      age: slashParts[0].replace(/\s*yrs?$/i, '').trim(),
+      age: slashParts[0].replace(/\s*yrs?$/i, "").trim(),
       gender: slashParts[1],
     };
   }
 
-  const dotParts = value.split('·').map((part) => part.trim()).filter(Boolean);
+  const dotParts = value
+    .split("·")
+    .map((part) => part.trim())
+    .filter(Boolean);
   if (dotParts.length >= 2) {
     return {
-      age: dotParts[0].replace(/\s*yrs?$/i, '').trim(),
+      age: dotParts[0].replace(/\s*yrs?$/i, "").trim(),
       gender: dotParts[1],
     };
   }
 
   return {
-    age: value.replace(/\s*yrs?$/i, '').trim(),
-    gender: '',
+    age: value.replace(/\s*yrs?$/i, "").trim(),
+    gender: "",
   };
 }
 
 export default function IpdPatientTopBar({
   moduleTitle,
-  sectionLabel = 'IPD',
+  sectionLabel = "IPD",
   pageLabel,
   patient,
   fields,
@@ -149,26 +155,26 @@ export default function IpdPatientTopBar({
 }: IpdPatientTopBarProps) {
   const theme = useTheme();
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [search, setSearch] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState('All');
+  const [search, setSearch] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("All");
 
   const filterOptions = React.useMemo(() => {
     const tags = new Set<string>();
     patientOptions.forEach((option) => {
       collectTags(option).forEach((tag) => tags.add(tag));
     });
-    return ['All', ...Array.from(tags)];
+    return ["All", ...Array.from(tags)];
   }, [patientOptions]);
 
   React.useEffect(() => {
     if (!filterOptions.includes(statusFilter)) {
-      setStatusFilter('All');
+      setStatusFilter("All");
     }
   }, [filterOptions, statusFilter]);
 
   const patientPhone = React.useMemo(() => {
     if (patient?.phone?.trim()) return patient.phone.trim();
-    return getPatientByMrn(patient?.mrn)?.phone ?? '';
+    return getPatientByMrn(patient?.mrn)?.phone ?? "";
   }, [patient?.mrn, patient?.phone]);
 
   const demographicItems = React.useMemo(() => {
@@ -205,9 +211,10 @@ export default function IpdPatientTopBar({
   const filteredPatients = React.useMemo(() => {
     const query = normalized(search);
     return patientOptions.filter((option) => {
-      if (statusFilter !== 'All') {
+      if (statusFilter !== "All") {
         const tags = collectTags(option);
-        if (!tags.some((tag) => normalized(tag) === normalized(statusFilter))) return false;
+        if (!tags.some((tag) => normalized(tag) === normalized(statusFilter)))
+          return false;
       }
       if (!query) return true;
       const haystack = [
@@ -220,7 +227,7 @@ export default function IpdPatientTopBar({
         option.status,
         option.insurance,
       ]
-        .join(' ')
+        .join(" ")
         .toLowerCase();
       return haystack.includes(query);
     });
@@ -230,15 +237,16 @@ export default function IpdPatientTopBar({
     <>
       <Box
         sx={{
-          position: 'sticky',
+          position: "sticky",
           top: stickyTop,
           zIndex: 12,
+          bgcolor: "background.paper",
           border: 0,
-          borderBottom: '1px solid',
+          borderBottom: "1px solid",
           borderBottomColor: alpha(theme.palette.primary.main, 0.28),
-          overflow: 'hidden',
+          overflow: "hidden",
           marginBottom: 1.5,
-          boxShadow: 'none',
+          boxShadow: "none",
         }}
       >
         <Box
@@ -250,42 +258,60 @@ export default function IpdPatientTopBar({
         >
           <Stack spacing={0}>
             <Stack
-              direction={{ xs: 'column', md: 'row' }}
+              direction={{ xs: "column", md: "row" }}
               spacing={1}
-              alignItems={{ xs: 'stretch', md: 'center' }}
+              alignItems={{ xs: "stretch", md: "center" }}
               justifyContent="space-between"
             >
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                sx={{ minWidth: 0 }}
+              >
                 <Avatar
                   sx={{
                     width: 42,
                     height: 42,
-                    bgcolor: 'primary.main',
+                    bgcolor: "primary.main",
                     color: theme.palette.primary.contrastText,
                     fontWeight: 600,
                     fontSize: 15,
                   }}
                 >
-                  {getInitials(patient?.name ?? 'Patient')}
+                  {getInitials(patient?.name ?? "Patient")}
                 </Avatar>
                 <Box sx={{ minWidth: 0 }}>
-                  <Stack direction="row" spacing={0.8} alignItems="center" useFlexGap flexWrap="wrap">
+                  <Stack
+                    direction="row"
+                    spacing={0.8}
+                    alignItems="center"
+                    useFlexGap
+                    flexWrap="wrap"
+                  >
                     <Typography
                       variant="subtitle1"
-                      sx={{ fontWeight: 700, lineHeight: 1.15, color: theme.palette.text.primary }}
+                      sx={{
+                        fontWeight: 700,
+                        lineHeight: 1.15,
+                        color: theme.palette.text.primary,
+                      }}
                       noWrap
                     >
-                      {patient?.name ?? 'No patient selected'}
+                      {patient?.name ?? "No patient selected"}
                     </Typography>
                     <Chip
                       size="small"
-                      label={patient?.mrn ?? '--'}
+                      label={patient?.mrn ?? "--"}
                       sx={{
                         height: 21,
                         border: 0,
                         borderRadius: 1.2,
-                        backgroundColor: alpha(theme.palette.primary.main, 0.16),
-                        '& .MuiChip-label': {
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.16,
+                        ),
+                        "& .MuiChip-label": {
                           px: 0.85,
                           fontWeight: 700,
                           color: theme.palette.primary.main,
@@ -302,13 +328,24 @@ export default function IpdPatientTopBar({
                     sx={{ mt: 0.25 }}
                   >
                     {demographicItems.map((item, index) => (
-                      <Stack key={`${item}-${index}`} direction="row" spacing={0.45} alignItems="center">
-                        <Typography variant="caption" sx={{ color: theme.palette.text.disabled }}>
+                      <Stack
+                        key={`${item}-${index}`}
+                        direction="row"
+                        spacing={0.45}
+                        alignItems="center"
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{ color: theme.palette.text.disabled }}
+                        >
                           •
                         </Typography>
                         <Typography
                           variant="caption"
-                          sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
+                          sx={{
+                            color: theme.palette.text.secondary,
+                            fontWeight: 500,
+                          }}
                         >
                           {item}
                         </Typography>
@@ -323,12 +360,12 @@ export default function IpdPatientTopBar({
                   sx={{
                     flex: 1,
                     minWidth: 0,
-                    display: 'flex',
-                    justifyContent: { xs: 'flex-start', md: 'flex-end' },
+                    display: "flex",
+                    justifyContent: { xs: "flex-start", md: "flex-end" },
                     mr: { md: 1.25 },
-                    overflowX: 'auto',
-                    '&::-webkit-scrollbar': { height: 4 },
-                    '&::-webkit-scrollbar-thumb': {
+                    overflowX: "auto",
+                    "&::-webkit-scrollbar": { height: 4 },
+                    "&::-webkit-scrollbar-thumb": {
                       borderRadius: 999,
                       backgroundColor: alpha(theme.palette.primary.main, 0.24),
                     },
@@ -337,7 +374,11 @@ export default function IpdPatientTopBar({
                   <Stack
                     direction="row"
                     spacing={0.6}
-                    sx={{ minWidth: 'max-content', pr: 0.4, ml: { md: 'auto' } }}
+                    sx={{
+                      minWidth: "max-content",
+                      pr: 0.4,
+                      ml: { md: "auto" },
+                    }}
                   >
                     {summaryFields.map((field) => (
                       <Chip
@@ -348,23 +389,26 @@ export default function IpdPatientTopBar({
                           <Box component="span">
                             <Box component="span" sx={{ fontWeight: 700 }}>
                               {field.label}:
-                            </Box>{' '}
+                            </Box>{" "}
                             <Box
                               component="span"
-                              sx={{ color: 'primary.main', fontWeight: 700 }}
+                              sx={{ color: "primary.main", fontWeight: 700 }}
                             >
-                              {String(field.value ?? '--')}
+                              {String(field.value ?? "--")}
                             </Box>
                           </Box>
                         }
                         sx={{
                           borderColor: alpha(theme.palette.primary.main, 0.24),
-                          backgroundColor: alpha(theme.palette.primary.main, 0.03),
+                          backgroundColor: alpha(
+                            theme.palette.primary.main,
+                            0.03,
+                          ),
                           maxWidth: 260,
-                          '& .MuiChip-label': {
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
+                          "& .MuiChip-label": {
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
                             fontWeight: 500,
                           },
                         }}
@@ -377,7 +421,7 @@ export default function IpdPatientTopBar({
               <Stack
                 direction="row"
                 spacing={0.6}
-                justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+                justifyContent={{ xs: "flex-start", md: "flex-end" }}
                 alignItems="center"
                 sx={{ flexShrink: 0 }}
               >
@@ -393,13 +437,13 @@ export default function IpdPatientTopBar({
                     color: theme.palette.primary.main,
                     borderColor: alpha(theme.palette.primary.main, 0.34),
                     backgroundColor: alpha(theme.palette.primary.main, 0.06),
-                    textTransform: 'none',
+                    textTransform: "none",
                     fontWeight: 700,
-                    '&:hover': {
+                    "&:hover": {
                       borderColor: alpha(theme.palette.primary.main, 0.54),
                       backgroundColor: alpha(theme.palette.primary.main, 0.1),
                     },
-                    '&.Mui-disabled': {
+                    "&.Mui-disabled": {
                       color: theme.palette.text.disabled,
                       borderColor: theme.palette.divider,
                     },
@@ -413,11 +457,31 @@ export default function IpdPatientTopBar({
         </Box>
       </Box>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="md">
-        <DialogTitle sx={{ px: 2, py: 1.35, borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle
+          sx={{
+            px: 2,
+            py: 1.35,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            spacing={1}
+          >
             <Stack direction="row" spacing={0.7} alignItems="center">
-              <SupervisedUserCircleRoundedIcon fontSize="small" color="primary" />
+              <SupervisedUserCircleRoundedIcon
+                fontSize="small"
+                color="primary"
+              />
               <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
                 Select IPD Patient
               </Typography>
@@ -447,8 +511,8 @@ export default function IpdPatientTopBar({
                     <Button
                       size="small"
                       variant="text"
-                      onClick={() => setSearch('')}
-                      sx={{ minWidth: 0, textTransform: 'none' }}
+                      onClick={() => setSearch("")}
+                      sx={{ minWidth: 0, textTransform: "none" }}
                     >
                       Clear
                     </Button>
@@ -464,14 +528,14 @@ export default function IpdPatientTopBar({
                   size="small"
                   label={option}
                   onClick={() => setStatusFilter(option)}
-                  color={statusFilter === option ? 'primary' : 'default'}
-                  variant={statusFilter === option ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
+                  color={statusFilter === option ? "primary" : "default"}
+                  variant={statusFilter === option ? "filled" : "outlined"}
+                  sx={{ cursor: "pointer" }}
                 />
               ))}
             </Stack>
 
-            <Box sx={{ maxHeight: '55vh', overflowY: 'auto', pr: 0.5 }}>
+            <Box sx={{ maxHeight: "55vh", overflowY: "auto", pr: 0.5 }}>
               <Stack spacing={1}>
                 {filteredPatients.map((option) => {
                   const isCurrent = option.patientId === patient?.patientId;
@@ -486,26 +550,42 @@ export default function IpdPatientTopBar({
                       sx={{
                         p: 1.25,
                         borderRadius: 1.5,
-                        border: '1px solid',
-                        borderColor: isCurrent ? 'primary.main' : 'divider',
+                        border: "1px solid",
+                        borderColor: isCurrent ? "primary.main" : "divider",
                         backgroundColor: isCurrent
                           ? alpha(theme.palette.primary.main, 0.09)
                           : alpha(theme.palette.background.default, 0.5),
-                        cursor: 'pointer',
-                        transition: 'border-color 120ms ease, background-color 120ms ease',
-                        '&:hover': {
-                          borderColor: 'primary.main',
-                          backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                        cursor: "pointer",
+                        transition:
+                          "border-color 120ms ease, background-color 120ms ease",
+                        "&:hover": {
+                          borderColor: "primary.main",
+                          backgroundColor: alpha(
+                            theme.palette.primary.main,
+                            0.08,
+                          ),
                         },
                       }}
                     >
-                      <Stack direction="row" justifyContent="space-between" spacing={1} alignItems="center">
-                        <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        spacing={1}
+                        alignItems="center"
+                      >
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          sx={{ minWidth: 0 }}
+                        >
                           <Avatar
                             sx={{
                               width: 38,
                               height: 38,
-                              bgcolor: isCurrent ? 'primary.main' : 'secondary.main',
+                              bgcolor: isCurrent
+                                ? "primary.main"
+                                : "secondary.main",
                               fontWeight: 800,
                               fontSize: 14,
                             }}
@@ -513,48 +593,102 @@ export default function IpdPatientTopBar({
                             {getInitials(option.name)}
                           </Avatar>
                           <Box sx={{ minWidth: 0 }}>
-                            <Stack direction="row" spacing={0.65} alignItems="center" flexWrap="wrap">
-                              <Typography variant="subtitle2" sx={{ fontWeight: 800 }} noWrap>
+                            <Stack
+                              direction="row"
+                              spacing={0.65}
+                              alignItems="center"
+                              flexWrap="wrap"
+                            >
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ fontWeight: 800 }}
+                                noWrap
+                              >
                                 {option.name}
                               </Typography>
-                              {isCurrent ? <Chip size="small" label="Current" color="primary" /> : null}
+                              {isCurrent ? (
+                                <Chip
+                                  size="small"
+                                  label="Current"
+                                  color="primary"
+                                />
+                              ) : null}
                             </Stack>
-                            <Typography variant="caption" color="text.secondary" noWrap>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              noWrap
+                            >
                               {option.mrn}
-                              {option.ageGender ? ` · ${option.ageGender}` : ''}
-                              {option.consultant ? ` · ${option.consultant}` : ''}
+                              {option.ageGender ? ` · ${option.ageGender}` : ""}
+                              {option.consultant
+                                ? ` · ${option.consultant}`
+                                : ""}
                             </Typography>
-                            <Stack direction="row" spacing={0.6} useFlexGap flexWrap="wrap" sx={{ mt: 0.45 }}>
+                            <Stack
+                              direction="row"
+                              spacing={0.6}
+                              useFlexGap
+                              flexWrap="wrap"
+                              sx={{ mt: 0.45 }}
+                            >
                               <Chip
                                 size="small"
-                                label={`Ward ${option.ward || '--'} · Bed ${option.bed || '--'}`}
+                                label={`Ward ${option.ward || "--"} · Bed ${option.bed || "--"}`}
                                 variant="outlined"
                               />
                               {tags.slice(0, 2).map((tag) => (
-                                <Chip key={`${option.patientId}-${tag}`} size="small" label={tag} />
+                                <Chip
+                                  key={`${option.patientId}-${tag}`}
+                                  size="small"
+                                  label={tag}
+                                />
                               ))}
                               {option.insurance ? (
-                                <Chip size="small" label={option.insurance} variant="outlined" />
+                                <Chip
+                                  size="small"
+                                  label={option.insurance}
+                                  variant="outlined"
+                                />
                               ) : null}
                             </Stack>
                             {option.diagnosis ? (
-                              <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', mt: 0.45 }}>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                noWrap
+                                sx={{ display: "block", mt: 0.45 }}
+                              >
                                 Dx: {option.diagnosis}
                               </Typography>
                             ) : null}
                           </Box>
                         </Stack>
 
-                        {option.totalBill !== undefined || option.dueAmount !== undefined ? (
-                          <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'primary.main' }}>
+                        {option.totalBill !== undefined ||
+                        option.dueAmount !== undefined ? (
+                          <Box sx={{ textAlign: "right", flexShrink: 0 }}>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{ fontWeight: 900, color: "primary.main" }}
+                            >
                               {formatAmount(option.totalBill)}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               Total Bill
                             </Typography>
                             {option.dueAmount !== undefined ? (
-                              <Typography variant="body2" sx={{ mt: 0.2, fontWeight: 800, color: 'error.main' }}>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  mt: 0.2,
+                                  fontWeight: 800,
+                                  color: "error.main",
+                                }}
+                              >
                                 Due: {formatAmount(option.dueAmount)}
                               </Typography>
                             ) : null}
@@ -568,7 +702,8 @@ export default function IpdPatientTopBar({
             </Box>
 
             <Typography variant="caption" color="text.secondary">
-              Showing {filteredPatients.length} of {patientOptions.length} patients.
+              Showing {filteredPatients.length} of {patientOptions.length}{" "}
+              patients.
             </Typography>
           </Stack>
         </DialogContent>

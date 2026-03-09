@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/src/core/auth/UserContext';
 import { Avatar, Box, Button, Chip, Drawer, FormControl, IconButton, InputLabel, Menu, MenuItem, Select, SelectChangeEvent, Slider, Stack, TextField, Typography, Snackbar, Alert, Divider, Autocomplete } from '@/src/ui/components/atoms';
 import { Card, CommonDialog, StatTile } from '@/src/ui/components/molecules';
 import {
@@ -39,6 +40,8 @@ const defaultFilterModel: GridFilterModel = { items: [], quickFilterValues: [] }
 
 export default function PatientListPage() {
   const router = useRouter();
+  const { role } = useUser();
+  const isDoctor = role === 'DOCTOR';
   const [rows] = React.useState<PatientRow[]>(patientData);
 
   const [filterDrawerOpen, setFilterDrawerOpen] = React.useState(false);
@@ -181,46 +184,35 @@ export default function PatientListPage() {
           <GridActionsCellItem
             key="view"
             label="View profile"
-            onClick={() => router.push(`/patients/profile?mrn=${params.row.mrn}`)}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="preview"
-            label="Quick preview"
             onClick={() => {
               setSelectedPatient(params.row);
               setDetailsOpen(true);
             }}
             showInMenu
           />,
-          <GridActionsCellItem
-            key="edit"
-            label="Edit profile"
-            onClick={() => router.push(`/patients/registration?mrn=${params.row.mrn}`)}
-            showInMenu
-          />,
+          <GridActionsCellItem key="edit" label="Edit" onClick={() => setSnackbar('Edit patient (stub)')} showInMenu />,
           <GridActionsCellItem
             key="appointment"
             label="Create appointment"
-            onClick={() => router.push(`/appointments/calendar?mrn=${params.row.mrn}&booking=1`)}
+            onClick={() => setSnackbar('Create appointment (stub)')}
             showInMenu
           />,
           <GridActionsCellItem
             key="encounter"
             label="Start encounter"
-            onClick={() => router.push(`/appointments/queue?mrn=${params.row.mrn}`)}
+            onClick={() => setSnackbar('Start encounter (stub)')}
             showInMenu
           />,
           <GridActionsCellItem
             key="admit"
             label="Admit"
-            onClick={() => router.push(`/ipd/admissions?mrn=${params.row.mrn}`)}
+            onClick={() => setSnackbar('Admit patient (stub)')}
             showInMenu
           />,
           <GridActionsCellItem
             key="invoice"
             label="Generate invoice"
-            onClick={() => router.push(`/billing/invoices?mrn=${params.row.mrn}`)}
+            onClick={() => setSnackbar('Generate invoice (stub)')}
             showInMenu
           />,
           <GridActionsCellItem
@@ -238,7 +230,7 @@ export default function PatientListPage() {
         ],
       },
     ],
-    [router]
+    []
   );
 
   const applyFilterStateToModel = React.useCallback(() => {
@@ -356,24 +348,32 @@ export default function PatientListPage() {
           alignItems={{ xs: 'flex-start', md: 'center' }}
         >
           <Box>
-            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
-              <Chip size="small" color="primary" label="Patient Registry" />
-              <Chip size="small" color="info" variant="outlined" label="OPD + IPD Linked" />
-            </Stack>
+            {!isDoctor && (
+              <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
+                <Chip size="small" color="primary" label="Patient Registry" />
+                <Chip size="small" color="info" variant="outlined" label="OPD + IPD Linked" />
+              </Stack>
+            )}
             <Typography variant="h4" sx={{ fontWeight: 700 }}>
               Patients
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Manage patient demographics, visits, admissions, and billing status in one place.
-            </Typography>
+            {!isDoctor && (
+              <Typography variant="body2" color="text.secondary">
+                Manage patient demographics, visits, admissions, and billing status in one place.
+              </Typography>
+            )}
           </Box>
           <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
-            <Button variant="outlined" startIcon={<CloudUploadIcon />}>
-              Import
-            </Button>
-            <Button variant="outlined" startIcon={<FileDownloadIcon />}>
-              Export
-            </Button>
+            {!isDoctor && (
+              <>
+                <Button variant="outlined" startIcon={<CloudUploadIcon />}>
+                  Import
+                </Button>
+                <Button variant="outlined" startIcon={<FileDownloadIcon />}>
+                  Export
+                </Button>
+              </>
+            )}
             <Button
               variant="outlined"
               endIcon={<MoreVertIcon />}
@@ -381,13 +381,15 @@ export default function PatientListPage() {
             >
               Saved Views
             </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => router.push('/patients/registration')}
-            >
-              Add Patient
-            </Button>
+            {!isDoctor && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => router.push('/patients/registration')}
+              >
+                Add Patient
+              </Button>
+            )}
           </Stack>
         </Stack>
       </Card>
@@ -470,18 +472,31 @@ export default function PatientListPage() {
             title: 'Patients',
             showSavedViews: true,
             showPrint: true,
-            emptyCtaLabel: 'Add Patient',
-            onEmptyCtaClick: () => router.push('/patients/registration'),
+            showExport: !isDoctor,
+            ...(isDoctor
+              ? {}
+              : {
+                  emptyCtaLabel: 'Add Patient',
+                  onEmptyCtaClick: () => router.push('/patients/registration'),
+                }),
           }}
           onRowClick={(params) => {
+            if (isDoctor) {
+              setSelectedPatient(params.row as PatientRow);
+              setDetailsOpen(true);
+              return;
+            }
+
             const row = params.row as PatientRow;
             router.push(`/patients/profile?mrn=${row.mrn}`);
           }}
           renderBulkActions={() => (
             <Stack direction="row" spacing={1}>
-              <Button size="small" variant="outlined" onClick={() => handleBulkAction('Export selected (stub)')}>
-                Export selected
-              </Button>
+              {!isDoctor && (
+                <Button size="small" variant="outlined" onClick={() => handleBulkAction('Export selected (stub)')}>
+                  Export selected
+                </Button>
+              )}
               <Button
                 size="small"
                 variant="outlined"
@@ -723,16 +738,6 @@ export default function PatientListPage() {
                 <Typography variant="caption" color="text.secondary">Last Visit Note</Typography>
                 <Typography variant="body2">{selectedPatient.lastVisitNote}</Typography>
               </Box>
-
-              <Button
-                variant="contained"
-                onClick={() => {
-                  router.push(`/patients/profile?mrn=${selectedPatient.mrn}`);
-                  setDetailsOpen(false);
-                }}
-              >
-                Open Full Patient Chart
-              </Button>
             </Stack>
           ) : (
             <Typography variant="body2" color="text.secondary">

@@ -1,13 +1,25 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import PageTemplate from '@/src/ui/components/PageTemplate';
-import { Box, Button, Chip, Stack, Typography } from '@/src/ui/components/atoms';
-import { Card, CommandCenterChips, WorkspaceHeaderCard } from '@/src/ui/components/molecules';
-import StatTile from '@/src/ui/components/molecules/StatTile';
-import { useTheme } from '@/src/ui/theme';
-import { cardShadow } from '@/src/core/theme/tokens';
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import PageTemplate from "@/src/ui/components/PageTemplate";
+import { useUser } from "@/src/core/auth/UserContext";
+import DoctorDashboardPage from "@/src/screens/doctor/dashboard/DoctorDashboardPage";
+import {
+  Box,
+  Button,
+  Chip,
+  Stack,
+  Typography,
+} from "@/src/ui/components/atoms";
+import {
+  Card,
+  CommandCenterChips,
+  WorkspaceHeaderCard,
+} from "@/src/ui/components/molecules";
+import StatTile from "@/src/ui/components/molecules/StatTile";
+import { useTheme } from "@/src/ui/theme";
+import { cardShadow } from "@/src/core/theme/tokens";
 import {
   ArrowForward as ArrowForwardIcon,
   AssignmentLate as AssignmentLateIcon,
@@ -19,15 +31,15 @@ import {
   MonitorHeart as MonitorHeartIcon,
   PersonAdd as PersonAddIcon,
   WarningAmber as WarningAmberIcon,
-} from '@mui/icons-material';
-import { patientData, patientMetrics } from '@/src/mocks/patientServer';
+} from "@mui/icons-material";
+import { patientData, patientMetrics } from "@/src/mocks/patientServer";
 import {
   ADMISSION_LEADS,
   DISCHARGE_CANDIDATES,
   INITIAL_BED_BOARD,
-} from '@/src/screens/ipd/ipd-mock-data';
-import { useOpdData } from '@/src/store/opdHooks';
-import { CLINICAL_MODULES } from '@/src/screens/clinical/module-registry';
+} from "@/src/screens/ipd/ipd-mock-data";
+import { useOpdData } from "@/src/store/opdHooks";
+import { CLINICAL_MODULES } from "@/src/screens/clinical/module-registry";
 
 interface WardSummary {
   ward: string;
@@ -40,38 +52,46 @@ interface WardSummary {
 export default function DashboardPage() {
   const theme = useTheme();
   const router = useRouter();
+  const { role } = useUser();
   const { appointments, encounters } = useOpdData();
-  const dashboardDate = '2026-02-04';
+  const dashboardDate = "2026-02-04";
+
+  // Show specialised doctor dashboard when logged in as DOCTOR
+  if (role === "DOCTOR") {
+    return <DoctorDashboardPage />;
+  }
 
   const todaysAppointments = React.useMemo(
-    () => appointments.filter((appointment) => appointment.date === dashboardDate),
-    [appointments, dashboardDate]
+    () =>
+      appointments.filter((appointment) => appointment.date === dashboardDate),
+    [appointments, dashboardDate],
   );
 
   const liveQueueCount = React.useMemo(
     () =>
       encounters.filter(
         (encounter) =>
-          encounter.status === 'ARRIVED' ||
-          encounter.status === 'IN_QUEUE' ||
-          encounter.status === 'IN_PROGRESS'
+          encounter.status === "ARRIVED" ||
+          encounter.status === "IN_QUEUE" ||
+          encounter.status === "IN_PROGRESS",
       ).length,
-    [encounters]
+    [encounters],
   );
 
   const occupiedBeds = React.useMemo(
-    () => INITIAL_BED_BOARD.filter((bed) => bed.status === 'Occupied').length,
-    []
+    () => INITIAL_BED_BOARD.filter((bed) => bed.status === "Occupied").length,
+    [],
   );
   const availableBeds = React.useMemo(
-    () => INITIAL_BED_BOARD.filter((bed) => bed.status === 'Available').length,
-    []
+    () => INITIAL_BED_BOARD.filter((bed) => bed.status === "Available").length,
+    [],
   );
   const blockedBeds = React.useMemo(
     () =>
-      INITIAL_BED_BOARD.filter((bed) => bed.status === 'Blocked' || bed.status === 'Cleaning')
-        .length,
-    []
+      INITIAL_BED_BOARD.filter(
+        (bed) => bed.status === "Blocked" || bed.status === "Cleaning",
+      ).length,
+    [],
   );
   const bedOccupancy = React.useMemo(() => {
     if (INITIAL_BED_BOARD.length === 0) return 0;
@@ -79,17 +99,18 @@ export default function DashboardPage() {
   }, [occupiedBeds]);
 
   const urgentAdmissions = React.useMemo(
-    () => ADMISSION_LEADS.filter((lead) => lead.priority !== 'Routine').length,
-    []
+    () => ADMISSION_LEADS.filter((lead) => lead.priority !== "Routine").length,
+    [],
   );
 
   const dischargeReadyCount = React.useMemo(
     () =>
       DISCHARGE_CANDIDATES.filter(
         (candidate) =>
-          candidate.billingStatus === 'Cleared' && candidate.pharmacyStatus === 'Ready'
+          candidate.billingStatus === "Cleared" &&
+          candidate.pharmacyStatus === "Ready",
       ).length,
-    []
+    [],
   );
 
   const wardSummary = React.useMemo<WardSummary[]>(() => {
@@ -105,14 +126,17 @@ export default function DashboardPage() {
       };
 
       existing.total += 1;
-      if (bed.status === 'Occupied') existing.occupied += 1;
-      if (bed.status === 'Available') existing.available += 1;
-      if (bed.status === 'Blocked' || bed.status === 'Cleaning') existing.blocked += 1;
+      if (bed.status === "Occupied") existing.occupied += 1;
+      if (bed.status === "Available") existing.available += 1;
+      if (bed.status === "Blocked" || bed.status === "Cleaning")
+        existing.blocked += 1;
 
       map.set(bed.ward, existing);
     });
 
-    return Array.from(map.values()).sort((a, b) => a.ward.localeCompare(b.ward));
+    return Array.from(map.values()).sort((a, b) =>
+      a.ward.localeCompare(b.ward),
+    );
   }, []);
 
   const departmentLoad = React.useMemo(() => {
@@ -127,32 +151,44 @@ export default function DashboardPage() {
       .slice(0, 5);
 
     const max = sorted[0]?.count ?? 1;
-    return sorted.map((item) => ({ ...item, ratio: Math.round((item.count / max) * 100) }));
+    return sorted.map((item) => ({
+      ...item,
+      ratio: Math.round((item.count / max) * 100),
+    }));
   }, []);
 
   const totalOutstanding = React.useMemo(
     () => patientData.reduce((sum, row) => sum + row.outstandingBalance, 0),
-    []
+    [],
   );
 
   const billingHoldCount = React.useMemo(
-    () => patientData.filter((row) => row.status === 'Billing Hold').length,
-    []
+    () => patientData.filter((row) => row.status === "Billing Hold").length,
+    [],
   );
 
   const implementedModules = React.useMemo(
-    () => CLINICAL_MODULES.filter((moduleDefinition) => moduleDefinition.status === 'Implemented').length,
-    []
+    () =>
+      CLINICAL_MODULES.filter(
+        (moduleDefinition) => moduleDefinition.status === "Implemented",
+      ).length,
+    [],
   );
 
   const inProgressModules = React.useMemo(
-    () => CLINICAL_MODULES.filter((moduleDefinition) => moduleDefinition.status === 'In Progress').length,
-    []
+    () =>
+      CLINICAL_MODULES.filter(
+        (moduleDefinition) => moduleDefinition.status === "In Progress",
+      ).length,
+    [],
   );
 
   const plannedModules = React.useMemo(
-    () => CLINICAL_MODULES.filter((moduleDefinition) => moduleDefinition.status === 'Planned').length,
-    []
+    () =>
+      CLINICAL_MODULES.filter(
+        (moduleDefinition) => moduleDefinition.status === "Planned",
+      ).length,
+    [],
   );
 
   return (
@@ -165,10 +201,10 @@ export default function DashboardPage() {
           }}
         >
           <Stack
-            direction={{ xs: 'column', md: 'row' }}
+            direction={{ xs: "column", md: "row" }}
             spacing={1.5}
             justifyContent="space-between"
-            alignItems={{ xs: 'flex-start', md: 'center' }}
+            alignItems={{ xs: "flex-start", md: "center" }}
           >
             <Box>
               <Box sx={{ mb: 1 }}>
@@ -178,28 +214,29 @@ export default function DashboardPage() {
                 Hospital Operations Overview
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Monitor patient flow, bed utilization, appointments, and revenue signals in one dashboard.
+                Monitor patient flow, bed utilization, appointments, and revenue
+                signals in one dashboard.
               </Typography>
             </Box>
             <Stack direction="row" spacing={1} flexWrap="wrap">
               <Button
                 variant="outlined"
                 startIcon={<PersonAddIcon />}
-                onClick={() => router.push('/patients/registration')}
+                onClick={() => router.push("/patients/registration")}
               >
                 Register Patient
               </Button>
               <Button
                 variant="outlined"
                 startIcon={<CalendarMonthIcon />}
-                onClick={() => router.push('/appointments/calendar')}
+                onClick={() => router.push("/appointments/calendar")}
               >
                 OPD Calendar
               </Button>
               <Button
                 variant="contained"
                 endIcon={<ArrowForwardIcon />}
-                onClick={() => router.push('/ipd/admissions')}
+                onClick={() => router.push("/ipd/admissions")}
               >
                 IPD Admissions
               </Button>
@@ -209,12 +246,12 @@ export default function DashboardPage() {
 
         <Box
           sx={{
-            display: 'grid',
+            display: "grid",
             gap: 2,
             gridTemplateColumns: {
-              xs: '1fr',
-              sm: 'repeat(2, minmax(0, 1fr))',
-              lg: 'repeat(4, minmax(0, 1fr))',
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+              lg: "repeat(4, minmax(0, 1fr))",
             },
           }}
         >
@@ -258,11 +295,11 @@ export default function DashboardPage() {
 
         <Box
           sx={{
-            display: 'grid',
+            display: "grid",
             gap: 2,
             gridTemplateColumns: {
-              xs: '1fr',
-              lg: 'minmax(0, 5fr) minmax(0, 3fr)',
+              xs: "1fr",
+              lg: "minmax(0, 5fr) minmax(0, 3fr)",
             },
           }}
         >
@@ -286,31 +323,41 @@ export default function DashboardPage() {
                     .map((appointment) => (
                       <Stack
                         key={appointment.id}
-                        direction={{ xs: 'column', md: 'row' }}
+                        direction={{ xs: "column", md: "row" }}
                         spacing={1}
                         justifyContent="space-between"
-                        sx={{ py: 0.8, borderBottom: '1px dashed', borderColor: 'divider' }}
+                        sx={{
+                          py: 0.8,
+                          borderBottom: "1px dashed",
+                          borderColor: "divider",
+                        }}
                       >
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            {appointment.time} · {appointment.patientName} ({appointment.mrn})
+                            {appointment.time} · {appointment.patientName} (
+                            {appointment.mrn})
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {appointment.provider} · {appointment.department} · {appointment.chiefComplaint}
+                            {appointment.provider} · {appointment.department} ·{" "}
+                            {appointment.chiefComplaint}
                           </Typography>
                         </Box>
                         <Stack direction="row" spacing={0.75} flexWrap="wrap">
-                          <Chip size="small" variant="outlined" label={appointment.visitType} />
+                          <Chip
+                            size="small"
+                            variant="outlined"
+                            label={appointment.visitType}
+                          />
                           <Chip
                             size="small"
                             color={
-                              appointment.status === 'Completed'
-                                ? 'success'
-                                : appointment.status === 'No Show'
-                                ? 'error'
-                                : appointment.status === 'In Consultation'
-                                ? 'warning'
-                                : 'info'
+                              appointment.status === "Completed"
+                                ? "success"
+                                : appointment.status === "No Show"
+                                  ? "error"
+                                  : appointment.status === "In Consultation"
+                                    ? "warning"
+                                    : "info"
                             }
                             label={appointment.status}
                           />
@@ -323,9 +370,9 @@ export default function DashboardPage() {
               <Card elevation={0} sx={{ p: 1.6, borderRadius: 2 }}>
                 <Stack spacing={1.2}>
                   <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
+                    direction={{ xs: "column", sm: "row" }}
                     spacing={0.6}
-                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                    alignItems={{ xs: "flex-start", sm: "center" }}
                     justifyContent="space-between"
                   >
                     <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -338,40 +385,69 @@ export default function DashboardPage() {
 
                   <Stack spacing={1}>
                     {wardSummary.map((ward) => {
-                      const occupancy = ward.total > 0 ? Math.round((ward.occupied / ward.total) * 100) : 0;
-                      const blockedNote = ward.blocked > 0 ? ` · ${ward.blocked} blocked` : '';
+                      const occupancy =
+                        ward.total > 0
+                          ? Math.round((ward.occupied / ward.total) * 100)
+                          : 0;
+                      const blockedNote =
+                        ward.blocked > 0 ? ` · ${ward.blocked} blocked` : "";
 
                       return (
                         <Box
                           key={ward.ward}
                           sx={{
-                            display: 'grid',
-                            gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.2fr) minmax(0, 1fr)' },
+                            display: "grid",
+                            gridTemplateColumns: {
+                              xs: "1fr",
+                              md: "minmax(0, 1.2fr) minmax(0, 1fr)",
+                            },
                             gap: 1.5,
-                            alignItems: 'center',
+                            alignItems: "center",
                             p: 1.2,
                             borderRadius: 1.6,
                             boxShadow: cardShadow,
                           }}
                         >
                           <Stack spacing={0.35}>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 600 }}
+                            >
                               {ward.ward}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {ward.occupied}/{ward.total} occupied · {ward.available} available{blockedNote}
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {ward.occupied}/{ward.total} occupied ·{" "}
+                              {ward.available} available{blockedNote}
                             </Typography>
                           </Stack>
                           <Stack
                             direction="row"
                             spacing={0.75}
                             flexWrap="wrap"
-                            justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+                            justifyContent={{
+                              xs: "flex-start",
+                              md: "flex-end",
+                            }}
                           >
-                            <Chip size="small" color="primary" label={`${occupancy}% occupied`} />
-                            <Chip size="small" color="info" label={`${ward.available} available`} />
+                            <Chip
+                              size="small"
+                              color="primary"
+                              label={`${occupancy}% occupied`}
+                            />
+                            <Chip
+                              size="small"
+                              color="info"
+                              label={`${ward.available} available`}
+                            />
                             {ward.blocked > 0 ? (
-                              <Chip size="small" color="warning" label={`${ward.blocked} blocked`} />
+                              <Chip
+                                size="small"
+                                color="warning"
+                                label={`${ward.blocked} blocked`}
+                              />
                             ) : null}
                           </Stack>
                         </Box>
@@ -400,16 +476,20 @@ export default function DashboardPage() {
                   <Stack direction="row" spacing={1} alignItems="center">
                     <WarningAmberIcon color="warning" fontSize="small" />
                     <Typography variant="body2">
-                      {urgentAdmissions} urgent admissions require fast-track bed assignment.
+                      {urgentAdmissions} urgent admissions require fast-track
+                      bed assignment.
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <WarningAmberIcon color={blockedBeds > 0 ? 'error' : 'success'} fontSize="small" />
+                    <WarningAmberIcon
+                      color={blockedBeds > 0 ? "error" : "success"}
+                      fontSize="small"
+                    />
                     <Typography variant="body2">
                       {blockedBeds > 0
                         ? `${blockedBeds} beds are blocked/cleaning.`
-                        : 'No blocked beds right now.'}
+                        : "No blocked beds right now."}
                     </Typography>
                   </Stack>
 
@@ -417,16 +497,19 @@ export default function DashboardPage() {
                     <MonitorHeartIcon color="warning" fontSize="small" />
                     <Typography variant="body2">
                       {
-                        encounters.filter((encounter) => encounter.queuePriority === 'Urgent')
-                          .length
-                      } urgent OPD cases in triage/consult workflow.
+                        encounters.filter(
+                          (encounter) => encounter.queuePriority === "Urgent",
+                        ).length
+                      }{" "}
+                      urgent OPD cases in triage/consult workflow.
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" spacing={1} alignItems="center">
                     <CheckCircleIcon color="success" fontSize="small" />
                     <Typography variant="body2">
-                      {dischargeReadyCount} IPD candidates are discharge-ready today.
+                      {dischargeReadyCount} IPD candidates are discharge-ready
+                      today.
                     </Typography>
                   </Stack>
                 </Stack>
@@ -437,13 +520,19 @@ export default function DashboardPage() {
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                     Financial Snapshot
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                  <Typography
+                    variant="h4"
+                    sx={{ fontWeight: 700, color: "primary.main" }}
+                  >
                     ${totalOutstanding.toFixed(0)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Current outstanding balance across patient accounts.
                   </Typography>
-                  <Button variant="outlined" onClick={() => router.push('/billing/invoices')}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => router.push("/billing/invoices")}
+                  >
                     Open Billing Invoices
                   </Button>
                 </Stack>
@@ -455,24 +544,47 @@ export default function DashboardPage() {
                     Module Progress
                   </Typography>
                   <Stack direction="row" spacing={0.75} flexWrap="wrap">
-                    <Chip size="small" color="success" label={`Implemented ${implementedModules}`} />
-                    <Chip size="small" color="info" label={`In Progress ${inProgressModules}`} />
-                    <Chip size="small" variant="outlined" label={`Planned ${plannedModules}`} />
+                    <Chip
+                      size="small"
+                      color="success"
+                      label={`Implemented ${implementedModules}`}
+                    />
+                    <Chip
+                      size="small"
+                      color="info"
+                      label={`In Progress ${inProgressModules}`}
+                    />
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={`Planned ${plannedModules}`}
+                    />
                   </Stack>
-                  <Button variant="text" onClick={() => router.push('/appointments/queue')}>
-                    Open OPD Queue
+                  <Button
+                    variant="text"
+                    onClick={() => router.push("/clinical/encounters")}
+                  >
+                    Open Clinical EMR
                   </Button>
                 </Stack>
               </Card>
 
               <Card elevation={0} sx={{ p: 1.6, borderRadius: 2 }}>
                 <Stack spacing={1.2}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
                     <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                       Department Load
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {departmentLoad.reduce((sum, dept) => sum + dept.count, 0)} patients
+                      {departmentLoad.reduce(
+                        (sum, dept) => sum + dept.count,
+                        0,
+                      )}{" "}
+                      patients
                     </Typography>
                   </Stack>
 
@@ -481,10 +593,13 @@ export default function DashboardPage() {
                       <Box
                         key={department.department}
                         sx={{
-                          display: 'grid',
-                          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.2fr) minmax(0, 1fr)' },
+                          display: "grid",
+                          gridTemplateColumns: {
+                            xs: "1fr",
+                            md: "minmax(0, 1.2fr) minmax(0, 1fr)",
+                          },
                           gap: 1.5,
-                          alignItems: 'center',
+                          alignItems: "center",
                           p: 1.2,
                           borderRadius: 1.6,
                           boxShadow: cardShadow,
@@ -502,10 +617,18 @@ export default function DashboardPage() {
                           direction="row"
                           spacing={0.75}
                           flexWrap="wrap"
-                          justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+                          justifyContent={{ xs: "flex-start", md: "flex-end" }}
                         >
-                          <Chip size="small" color="primary" label={`${department.count} patients`} />
-                          <Chip size="small" color="info" label={`${department.ratio}% load`} />
+                          <Chip
+                            size="small"
+                            color="primary"
+                            label={`${department.count} patients`}
+                          />
+                          <Chip
+                            size="small"
+                            color="info"
+                            label={`${department.ratio}% load`}
+                          />
                         </Stack>
                       </Box>
                     ))}
