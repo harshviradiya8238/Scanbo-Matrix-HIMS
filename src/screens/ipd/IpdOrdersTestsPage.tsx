@@ -379,7 +379,8 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const mrnParam = useMrnParam();
-  const { permissions } = useUser();
+  const { permissions, role } = useUser();
+  const isDoctor = role === 'DOCTOR';
 
   const encounterRows = useIpdEncounters();
   const labOrders = useAppSelector((state) => state.lab.orders);
@@ -441,6 +442,18 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
       window.scrollTo({ top: 0, behavior: 'auto' });
     }
   }, [defaultTab, ordersTab, selectedMrn]);
+
+  React.useEffect(() => {
+    if (isDoctor && labTab === 'samples') {
+      setLabTab('results');
+    }
+  }, [isDoctor, labTab]);
+
+  React.useEffect(() => {
+    if (isDoctor && (orderTypeFilter === 'Nursing' || orderTypeFilter === 'Diet')) {
+      setOrderTypeFilter('All');
+    }
+  }, [isDoctor, orderTypeFilter]);
 
   const showSnack = React.useCallback((message: string, severity: SnackSeverity = 'success') => {
     setSnackbar({ open: true, message, severity });
@@ -863,8 +876,8 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
       subtitle: 'Unified ordering, order sets, quick orders, and order tracking.',
     },
     lab: {
-      title: 'Laboratory - Sample Collection & Results',
-      subtitle: 'Order to sample to result workflow with critical alerts.',
+      title: isDoctor ? 'Laboratory - Results' : 'Laboratory - Sample Collection & Results',
+      subtitle: isDoctor ? 'Lab results, critical alerts, and pending orders.' : 'Order to sample to result workflow with critical alerts.',
     },
     radiology: {
       title: 'Radiology - Orders, Worklist, Reports',
@@ -894,14 +907,17 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
     [activeOrders.length, historyOrders.length]
   );
   const labTabItems = React.useMemo<Array<{ id: LabWorkspaceTab; label: React.ReactNode }>>(
-    () => [
-      { id: 'results', label: iconLabel(FactCheckIcon, `Results (${patientLabResults.length})`) },
-      { id: 'samples', label: iconLabel(ScienceIcon, `Sample Collection (${pendingSampleCount})`) },
-      { id: 'critical', label: iconLabel(WarningAmberIcon, `Critical (${criticalLabResults.length})`) },
-      { id: 'pending', label: iconLabel(HourglassEmptyIcon, `Pending (${pendingLabRows.length})`) },
-      { id: 'micro', label: iconLabel(BugReportIcon, 'Microbiology') },
-    ],
-    [criticalLabResults.length, patientLabResults.length, pendingLabRows.length, pendingSampleCount]
+    () => {
+      const items = [
+        { id: 'results' as const, label: iconLabel(FactCheckIcon, `Results (${patientLabResults.length})`) },
+        { id: 'samples' as const, label: iconLabel(ScienceIcon, `Sample Collection (${pendingSampleCount})`) },
+        { id: 'critical' as const, label: iconLabel(WarningAmberIcon, `Critical (${criticalLabResults.length})`) },
+        { id: 'pending' as const, label: iconLabel(HourglassEmptyIcon, `Pending (${pendingLabRows.length})`) },
+        { id: 'micro' as const, label: iconLabel(BugReportIcon, 'Microbiology') },
+      ];
+      return isDoctor ? items.filter((t) => t.id !== 'samples') : items;
+    },
+    [criticalLabResults.length, isDoctor, patientLabResults.length, pendingLabRows.length, pendingSampleCount]
   );
   const radiologyTabItems = React.useMemo<Array<{ id: RadiologyWorkspaceTab; label: React.ReactNode }>>(
     () => [
@@ -1164,7 +1180,9 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
                   Filter by order type:
                 </Typography>
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
-                  {ORDER_FILTERS.map((option) => (
+                  {ORDER_FILTERS.filter(
+                    (opt) => !isDoctor || (opt.value !== 'Nursing' && opt.value !== 'Diet')
+                  ).map((option) => (
                     <Chip
                       key={option.value}
                       label={iconLabel(option.Icon, option.label)}
@@ -1662,14 +1680,16 @@ export default function IpdOrdersTestsPage({ defaultTab = 'orders' }: IpdOrdersT
                           >
                             View Trend
                           </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<ScienceIcon />}
-                            onClick={() => setLabTab('samples')}
-                          >
-                            Open Samples
-                          </Button>
+                          {!isDoctor && (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<ScienceIcon />}
+                              onClick={() => setLabTab('samples')}
+                            >
+                              Open Samples
+                            </Button>
+                          )}
                         </Stack>
                       </Stack>
                     ) : (

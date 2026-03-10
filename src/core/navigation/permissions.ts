@@ -134,6 +134,7 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'clinical.ambulatory.*',
     'clinical.clindoc.*',
     'clinical.care_companion.read',
+    'clinical.care_companion.write',
     'clinical.notes.write',
     'clinical.orders.read',
     'clinical.orders.write',

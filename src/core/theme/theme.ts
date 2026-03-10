@@ -23,6 +23,11 @@ const outlinedBorderColor = alpha(baseTheme.palette.primary.main, 0.18);
 
 const theme = createTheme(baseTheme, {
   components: {
+    MuiStack: {
+      defaultProps: {
+        useFlexGap: true,
+      },
+    },
     MuiCssBaseline: {
       styleOverrides: {
         html: {

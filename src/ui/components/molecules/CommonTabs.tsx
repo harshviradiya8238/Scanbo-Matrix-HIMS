@@ -15,6 +15,7 @@ interface CommonTabsProps<T extends string = string> {
   tabs: CommonTabItem<T>[];
   value: T;
   onChange: (value: T) => void;
+  variant?: 'standard' | 'scrollable' | 'fullWidth';
   sx?: any;
   tabSx?: any;
 }
@@ -23,6 +24,7 @@ export default function CommonTabs<T extends string = string>({
   tabs,
   value,
   onChange,
+  variant = 'scrollable',
   sx,
   tabSx,
 }: CommonTabsProps<T>) {
@@ -32,8 +34,8 @@ export default function CommonTabs<T extends string = string>({
     <Tabs
       value={value}
       onChange={(_, nextValue: T) => onChange(nextValue)}
-      variant="scrollable"
-      scrollButtons="auto"
+      variant={variant}
+      scrollButtons={variant === 'scrollable' ? 'auto' : false}
       sx={[
         {
           px: 0.5,

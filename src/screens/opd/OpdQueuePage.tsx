@@ -602,31 +602,33 @@ export default function OpdQueuePage() {
 
         <IpdSectionCard
           title="OPD Queue"
-          subtitle="Track, filter, and launch OPD consultations."
+          // subtitle="Track, filter, and launch OPD consultations."
           action={
-            <ActionBar>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                disabled={!canCreateRegistration}
-                onClick={() => router.push('/patients/registration')}
-              >
-                New Patient Registration
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<FileDownloadIcon />}
-                onClick={() =>
-                  setSnackbar({
-                    open: true,
-                    message: 'Report export started.',
-                    severity: 'info',
-                  })
-                }
-              >
-                Export Reports
-              </Button>
-            </ActionBar>
+            role !== 'DOCTOR' ? (
+              <ActionBar>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  disabled={!canCreateRegistration}
+                  onClick={() => router.push('/patients/registration')}
+                >
+                  New Patient Registration
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<FileDownloadIcon />}
+                  onClick={() =>
+                    setSnackbar({
+                      open: true,
+                      message: 'Report export started.',
+                      severity: 'info',
+                    })
+                  }
+                >
+                  Export Reports
+                </Button>
+              </ActionBar>
+            ) : null
           }
           bodySx={ipdFormStylesSx}
         >

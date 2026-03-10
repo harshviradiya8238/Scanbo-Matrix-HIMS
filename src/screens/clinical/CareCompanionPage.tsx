@@ -1,1051 +1,1229 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import * as React from "react";
+import PageTemplate from "@/src/ui/components/PageTemplate";
 import {
+  Avatar,
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton,
+  InputAdornment,
+  LinearProgress,
   MenuItem,
-  Snackbar,
-  Alert,
+  Paper,
+  Select,
   Stack,
-  Divider,
-  Tab,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
-  Tabs,
   TextField,
   Typography,
-} from '@/src/ui/components/atoms';
-import { Card, CommonDialog, StatTile } from '@/src/ui/components/molecules';
-import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { alpha, useTheme } from '@/src/ui/theme';
-import { useMrnParam } from '@/src/core/patients/useMrnParam';
-import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
-import { useUser } from '@/src/core/auth/UserContext';
-import { usePermission } from '@/src/core/auth/usePermission';
-import { canAccessRoute } from '@/src/core/navigation/route-access';
-import ModuleHeaderCard from '@/src/screens/clinical/components/ModuleHeaderCard';
+} from "@/src/ui/components/atoms";
+import { IpdMetricCard } from "@/src/screens/ipd/components/ipd-ui";
+import { WorkspaceHeaderCard } from "@/src/ui/components/molecules";
+import EnrollPatientDialog from "./components/EnrollPatientDialog";
+import PatientDetailDrawer from "./components/PatientDetailDrawer";
+import { alpha, useTheme } from "@/src/ui/theme";
+import type { Theme } from "@mui/material";
+import { usePermission } from "@/src/core/auth/usePermission";
 import {
-  AddCircle as AddCircleIcon,
-  Campaign as CampaignIcon,
+  CalendarToday as CalendarTodayIcon,
   CheckCircle as CheckCircleIcon,
-  FavoriteBorder as FavoriteBorderIcon,
-  Message as MessageIcon,
-  Schedule as ScheduleIcon,
-  TaskAlt as TaskAltIcon,
-} from '@mui/icons-material';
+  Close as CloseIcon,
+  Edit as EditIcon,
+  Group as GroupIcon,
+  Lock as LockIcon,
+  NavigateBefore as PrevIcon,
+  NavigateNext as NextIcon,
+  PersonAdd as PersonAddIcon,
+  Phone as PhoneIcon,
+  Search as SearchIcon,
+  Visibility as VisibilityIcon,
+  WarningAmber as WarningAmberIcon,
+} from "@mui/icons-material";
 
-type PlanStatus = 'Active' | 'Paused' | 'Completed';
-type CheckInStatus = 'Pending' | 'Sent' | 'Completed';
-type Channel = 'App' | 'SMS' | 'Call';
-type ResponseStatus = 'New' | 'Reviewed' | 'Escalated';
-type EscalationPriority = 'High' | 'Medium';
+type PatientStatus = "stable" | "high_risk" | "watch" | "closed";
 
-interface CarePlan {
+interface EnrolledPatient {
   id: string;
-  patientName: string;
-  mrn: string;
-  condition: string;
-  coach: string;
-  nextCheckIn: string;
-  completion: number;
-  status: PlanStatus;
+  patientId: string;
+  name: string;
+  program: string;
+  status: PatientStatus;
+  bp?: string;
+  glucose?: string;
+  bpAlert?: boolean;
+  glucoseAlert?: boolean;
+  adherence: number;
+  lastCheckIn: string;
+  language: string;
+  platforms: string[];
+  initials: string;
+  avatarColor: string;
+  isUrgent?: boolean;
 }
 
-interface CheckInItem {
-  id: string;
-  title: string;
-  channel: Channel;
-  due: string;
-  status: CheckInStatus;
-}
-
-interface ResponseItem {
-  id: string;
-  patientName: string;
-  mrn: string;
-  channel: Channel;
-  received: string;
-  summary: string;
-  status: ResponseStatus;
-}
-
-interface EscalationItem {
-  id: string;
-  patientName: string;
-  mrn: string;
-  reason: string;
-  priority: EscalationPriority;
-  owner: string;
-  due: string;
-}
-
-const FLOW_STEPS = [
-  'Enroll Patient',
-  'Configure Plan',
-  'Schedule Check-ins',
-  'Monitor Responses',
-  'Close Plan',
+const MOCK_PATIENTS: EnrolledPatient[] = [
+  {
+    id: "1",
+    patientId: "PT-865",
+    name: "Vikram Singh",
+    program: "Diabetes",
+    status: "stable",
+    adherence: 0,
+    lastCheckIn: "Just enrolled",
+    language: "Tamil",
+    platforms: ["Google Fit"],
+    initials: "VS",
+    avatarColor: "#1172BA",
+  },
+  {
+    id: "2",
+    patientId: "PT-892",
+    name: "Rajesh Kumar",
+    program: "Post-Cardiac",
+    status: "high_risk",
+    bp: "158/94",
+    bpAlert: true,
+    glucose: "108",
+    adherence: 48,
+    lastCheckIn: "2h ago",
+    language: "Hindi",
+    platforms: ["Apple Health"],
+    initials: "RK",
+    avatarColor: "#E77B7B",
+    isUrgent: true,
+  },
+  {
+    id: "3",
+    patientId: "PT-014",
+    name: "Mohammed Ali",
+    program: "Hypertension",
+    status: "watch",
+    bp: "142/88",
+    bpAlert: true,
+    glucose: "115",
+    adherence: 71,
+    lastCheckIn: "4h ago",
+    language: "English",
+    platforms: ["Fitbit"],
+    initials: "MA",
+    avatarColor: "#F3C44E",
+  },
+  {
+    id: "4",
+    patientId: "PT-059",
+    name: "Sunita Devi",
+    program: "Diabetes",
+    status: "watch",
+    bp: "12/454",
+    glucose: "4545",
+    glucoseAlert: true,
+    adherence: 67,
+    lastCheckIn: "Just now",
+    language: "Hindi",
+    platforms: ["Google Fit"],
+    initials: "SD",
+    avatarColor: "#2FA77A",
+  },
+  {
+    id: "5",
+    patientId: "PT-177",
+    name: "Priya Sharma",
+    program: "Post-Cardiac",
+    status: "stable",
+    bp: "118/76",
+    glucose: "92",
+    adherence: 96,
+    lastCheckIn: "3h ago",
+    language: "Tamil",
+    platforms: ["Apple Health"],
+    initials: "PS",
+    avatarColor: "#7C3AED",
+  },
+  {
+    id: "6",
+    patientId: "PT-203",
+    name: "Arjun Mehta",
+    program: "Hypertension",
+    status: "stable",
+    bp: "124/80",
+    glucose: "99",
+    adherence: 88,
+    lastCheckIn: "5h ago",
+    language: "English",
+    platforms: ["Apple Health"],
+    initials: "AM",
+    avatarColor: "#059669",
+  },
+  {
+    id: "7",
+    patientId: "PT-091",
+    name: "Fatima Begum",
+    program: "Post-Ortho",
+    status: "closed",
+    bp: "120/78",
+    glucose: "105",
+    adherence: 79,
+    lastCheckIn: "2d ago",
+    language: "Bengali",
+    platforms: [],
+    initials: "FB",
+    avatarColor: "#99abb4",
+  },
 ];
-const FLOW_STEP_DETAILS = [
-  'Register a patient into a care program and assign an owner.',
-  'Set goals, check-in frequency, and plan milestones.',
-  'Line up check-ins across app, SMS, or call channels.',
-  'Review incoming responses and escalate when needed.',
-  'Mark the plan complete when goals are achieved.',
+
+const STATUS_FILTER_OPTIONS: { value: PatientStatus | "all"; label: string }[] =
+  [
+    { value: "all", label: "All Status" },
+    { value: "high_risk", label: "High Risk" },
+    { value: "watch", label: "Watch" },
+    { value: "stable", label: "Stable" },
+    { value: "closed", label: "Closed" },
+  ];
+
+const PROGRAM_OPTIONS = [
+  "All Programs",
+  "Diabetes",
+  "Post-Cardiac",
+  "Hypertension",
+  "Post-Ortho",
 ];
 
-function FlowTabPanel({
-  value,
-  index,
-  children,
-}: {
-  value: number;
-  index: number;
-  children: React.ReactNode;
-}) {
-  if (value !== index) {
-    return null;
+function getStatusConfig(status: PatientStatus, theme: Theme) {
+  switch (status) {
+    case "high_risk":
+      return {
+        label: "High Risk",
+        color: theme.palette.error.main,
+        bg: alpha(theme.palette.error.main, 0.08),
+        border: alpha(theme.palette.error.main, 0.3),
+      };
+    case "watch":
+      return {
+        label: "Watch",
+        color: theme.palette.warning.dark,
+        bg: alpha(theme.palette.warning.main, 0.1),
+        border: alpha(theme.palette.warning.main, 0.35),
+      };
+    case "stable":
+      return {
+        label: "Stable",
+        color: theme.palette.success.dark,
+        bg: alpha(theme.palette.success.main, 0.08),
+        border: alpha(theme.palette.success.main, 0.35),
+      };
+    case "closed":
+      return {
+        label: "Closed",
+        color: theme.palette.text.secondary,
+        bg: alpha(theme.palette.text.secondary, 0.06),
+        border: alpha(theme.palette.text.secondary, 0.2),
+      };
+    default:
+      return {
+        label: status,
+        color: theme.palette.text.secondary,
+        bg: "transparent",
+        border: "transparent",
+      };
   }
-
-  return <Box sx={{ pt: 2 }}>{children}</Box>;
 }
 
-const INITIAL_PLANS: CarePlan[] = [
-  {
-    id: 'cp-1',
-    patientName: 'Aarav Nair',
-    mrn: 'MRN-245781',
-    condition: 'Diabetes Management',
-    coach: 'Nurse Priya',
-    nextCheckIn: 'Today, 4:30 PM',
-    completion: 78,
-    status: 'Active',
-  },
-  {
-    id: 'cp-2',
-    patientName: 'Meera Joshi',
-    mrn: 'MRN-245799',
-    condition: 'Post-surgery Recovery',
-    coach: 'Coach Anil',
-    nextCheckIn: 'Tomorrow, 9:00 AM',
-    completion: 52,
-    status: 'Active',
-  },
-  {
-    id: 'cp-3',
-    patientName: 'Ravi Iyer',
-    mrn: 'MRN-245802',
-    condition: 'Hypertension Follow-up',
-    coach: 'Nurse Kavya',
-    nextCheckIn: 'Friday, 11:00 AM',
-    completion: 100,
-    status: 'Completed',
-  },
-];
+function getAdherenceColor(adherence: number, theme: Theme) {
+  if (adherence >= 70) return theme.palette.success.main;
+  if (adherence >= 40) return theme.palette.warning.main;
+  return theme.palette.error.main;
+}
 
-const INITIAL_CHECKINS: CheckInItem[] = [
-  { id: 'ci-1', title: 'Medication adherence', channel: 'App', due: 'Today, 5:00 PM', status: 'Pending' },
-  { id: 'ci-2', title: 'Blood pressure log', channel: 'SMS', due: 'Tomorrow, 8:00 AM', status: 'Sent' },
-  { id: 'ci-3', title: 'Diet plan follow-up', channel: 'Call', due: 'Friday, 10:30 AM', status: 'Pending' },
-];
-
-const INITIAL_RESPONSES: ResponseItem[] = [
-  {
-    id: 'rs-1',
-    patientName: 'Aarav Nair',
-    mrn: 'MRN-245781',
-    channel: 'App',
-    received: '15 min ago',
-    summary: 'Logged glucose above target for last 2 days.',
-    status: 'New',
-  },
-  {
-    id: 'rs-2',
-    patientName: 'Meera Joshi',
-    mrn: 'MRN-245799',
-    channel: 'SMS',
-    received: '1 hr ago',
-    summary: 'Reports pain score 6/10 post-surgery.',
-    status: 'Escalated',
-  },
-  {
-    id: 'rs-3',
-    patientName: 'Ravi Iyer',
-    mrn: 'MRN-245802',
-    channel: 'Call',
-    received: 'Yesterday',
-    summary: 'Confirmed BP log and medication adherence.',
-    status: 'Reviewed',
-  },
-];
-
-const INITIAL_ESCALATIONS: EscalationItem[] = [
-  {
-    id: 'es-1',
-    patientName: 'Meera Joshi',
-    mrn: 'MRN-245799',
-    reason: 'Pain score high after discharge',
-    priority: 'High',
-    owner: 'Coach Anil',
-    due: 'Today, 5:00 PM',
-  },
-  {
-    id: 'es-2',
-    patientName: 'Aarav Nair',
-    mrn: 'MRN-245781',
-    reason: 'Glucose trend above target',
-    priority: 'Medium',
-    owner: 'Nurse Priya',
-    due: 'Tomorrow, 10:00 AM',
-  },
-];
+const HEADER_SX = {
+  fontWeight: 700,
+  textTransform: "uppercase" as const,
+  fontSize: "0.7rem",
+  letterSpacing: "0.06em",
+  color: "text.secondary",
+  py: 1.25,
+  borderBottom: "1px solid",
+  borderColor: "rgba(17, 114, 186, 0.12)",
+  bgcolor: "rgba(17, 114, 186, 0.03)",
+  whiteSpace: "nowrap" as const,
+};
 
 export default function CareCompanionPage() {
-  const router = useRouter();
   const theme = useTheme();
-  const mrnParam = useMrnParam();
-  const { permissions } = useUser();
-  const can = usePermission();
-  const [activeTab, setActiveTab] = React.useState(0);
-  const [plans, setPlans] = React.useState<CarePlan[]>(INITIAL_PLANS);
-  const [checkIns, setCheckIns] = React.useState<CheckInItem[]>(INITIAL_CHECKINS);
-  const [responses, setResponses] = React.useState<ResponseItem[]>(INITIAL_RESPONSES);
-  const [escalations, setEscalations] = React.useState<EscalationItem[]>(INITIAL_ESCALATIONS);
-  const [selectedPlanId, setSelectedPlanId] = React.useState<string>(INITIAL_PLANS[0]?.id ?? '');
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [mrnApplied, setMrnApplied] = React.useState(false);
-  const [snackbar, setSnackbar] = React.useState<{ open: boolean; message: string; severity: 'success' | 'info' }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-
-  const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? plans[0];
-  const completedPlans = plans.filter((plan) => plan.status === 'Completed');
-  const flowMrn = selectedPlan?.mrn ?? mrnParam;
-  const pageSubtitle = formatPatientLabel(selectedPlan?.patientName, flowMrn);
-  const withMrn = React.useCallback(
-    (route: string) => (flowMrn ? `${route}?mrn=${flowMrn}` : route),
-    [flowMrn]
+  const canWrite = usePermission()("clinical.care_companion.write");
+  const [search, setSearch] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<PatientStatus | "all">(
+    "all",
   );
+  const [programFilter, setProgramFilter] = React.useState("All Programs");
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [patients, setPatients] = React.useState<EnrolledPatient[]>(MOCK_PATIENTS);
+  const [isEnrollDialogOpen, setIsEnrollDialogOpen] = React.useState(false);
+  const [drawerPatient, setDrawerPatient] = React.useState<EnrolledPatient | null>(null);
+  const [closePlanDialogOpen, setClosePlanDialogOpen] = React.useState(false);
+  const [closePlanPatient, setClosePlanPatient] = React.useState<EnrolledPatient | null>(null);
+  const [closeReason, setCloseReason] = React.useState("completed");
+  const [closingNotes, setClosingNotes] = React.useState("");
 
-  React.useEffect(() => {
-    if (!mrnParam || mrnApplied) return;
-    const match = plans.find((plan) => plan.mrn === mrnParam);
-    if (match) {
-      setSelectedPlanId(match.id);
+  const activePatients = patients.filter((p) => p.status !== "closed");
+  const closedPatients = patients.filter((p) => p.status === "closed");
+
+  const filteredPatients = React.useMemo(() => {
+    let list = patients;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.patientId.toLowerCase().includes(q) ||
+          p.program.toLowerCase().includes(q),
+      );
     }
-    setMrnApplied(true);
-  }, [mrnParam, mrnApplied, plans]);
+    if (statusFilter !== "all")
+      list = list.filter((p) => p.status === statusFilter);
+    if (programFilter !== "All Programs")
+      list = list.filter((p) => p.program === programFilter);
+    return list;
+  }, [patients, search, statusFilter, programFilter]);
 
-  const handleTogglePlan = (planId: string) => {
-    setPlans((prev) =>
-      prev.map((plan) => {
-        if (plan.id !== planId || plan.status === 'Completed') return plan;
-        return { ...plan, status: plan.status === 'Active' ? 'Paused' : 'Active' };
-      })
-    );
-  };
-
-  const handleCompleteCheckIn = (checkInId: string) => {
-    setCheckIns((prev) =>
-      prev.map((checkIn) =>
-        checkIn.id === checkInId ? { ...checkIn, status: 'Completed' } : checkIn
-      )
-    );
-    setSnackbar({ open: true, message: 'Check-in marked as completed.', severity: 'success' });
-  };
-
-  const handleCreatePlan = () => {
-    setDialogOpen(false);
-    setSnackbar({ open: true, message: 'Care plan created and assigned.', severity: 'success' });
-  };
-
-  const handleSendReminder = () => {
-    setSnackbar({ open: true, message: 'Reminder sent to selected patients.', severity: 'info' });
-  };
-
-  const handleReviewResponse = (responseId: string) => {
-    setResponses((prev) =>
-      prev.map((response) =>
-        response.id === responseId ? { ...response, status: 'Reviewed' } : response
-      )
-    );
-    setSnackbar({ open: true, message: 'Response marked as reviewed.', severity: 'success' });
-  };
-
-  const handleEscalationResolved = (escalationId: string) => {
-    setEscalations((prev) => prev.filter((item) => item.id !== escalationId));
-    setSnackbar({ open: true, message: 'Escalation resolved.', severity: 'success' });
-  };
-
-  const handleClosePlan = (planId: string) => {
-    setPlans((prev) =>
-      prev.map((plan) =>
-        plan.id === planId ? { ...plan, status: 'Completed', completion: 100, nextCheckIn: 'Completed' } : plan
-      )
-    );
-    setSnackbar({ open: true, message: 'Plan marked as completed.', severity: 'success' });
-  };
-
-  const handlePrevTab = () => setActiveTab((prev) => Math.max(0, prev - 1));
-  const handleNextTab = () => setActiveTab((prev) => Math.min(prev + 1, FLOW_STEPS.length - 1));
-  const isFirstTab = activeTab === 0;
-  const isLastTab = activeTab === FLOW_STEPS.length - 1;
-
-  const canNavigate = React.useCallback(
-    (route: string) => canAccessRoute(route, permissions),
-    [permissions]
+  const paginatedPatients = filteredPatients.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage,
   );
-  const canWrite = can('clinical.care_companion.write');
+
+  const highRiskCount = patients.filter((p) => p.status === "high_risk").length;
+  const adherenceAvg = Math.round(
+    activePatients.reduce((a, p) => a + p.adherence, 0) /
+      Math.max(1, activePatients.length),
+  );
 
   return (
-    <PageTemplate title="Care Companion" subtitle={pageSubtitle} currentPageTitle="Care Companion">
-      <Stack spacing={1.5}>
-        <ModuleHeaderCard
-          title="Care Companion"
-          description="Automate patient check-ins, reminders, and follow-ups with guided care plans."
-          chips={[
-            { label: 'Clinical', color: 'primary' },
-            { label: 'Patient Engagement', variant: 'outlined' },
-            { label: 'Implemented', color: 'success', variant: 'filled' },
-          ]}
-          actions={
-            <>
-              <Button
-                variant="outlined"
-                startIcon={<CampaignIcon />}
-                disabled={!canWrite}
-                onClick={handleSendReminder}
+    <PageTemplate
+      title="Care Companion"
+      subtitle="Post-Discharge Patient Management"
+      currentPageTitle="Care Companion"
+    >
+      <Stack spacing={2}>
+        {/* Header Card */}
+        <WorkspaceHeaderCard>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            flexWrap="wrap"
+            gap={1.5}
+          >
+            <Box>
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
               >
-                Send Reminder
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<AddCircleIcon />}
-                disabled={!canWrite}
-                onClick={() => setDialogOpen(true)}
-              >
-                Create Care Plan
-              </Button>
-            </>
-          }
-        />
+                Care Companion
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Post-discharge patient monitoring, adherence tracking, and
+                remote health management.
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<PersonAddIcon />}
+              disabled={!canWrite}
+              onClick={() => setIsEnrollDialogOpen(true)}
+              sx={{ textTransform: "none", fontWeight: 600, flexShrink: 0 }}
+            >
+              Enroll Patient
+            </Button>
+          </Stack>
+        </WorkspaceHeaderCard>
 
-        <Card
-          elevation={0}
+        {/* Stat Cards */}
+        <Box
           sx={{
-            p: 1.75,
-            borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'divider',
+            display: "grid",
+            gap: 1.5,
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, 1fr)",
+              lg: "repeat(4, 1fr)",
+            },
           }}
         >
-          <Stack spacing={1.25}>
-            <Stack
-              direction={{ xs: 'column', md: 'row' }}
-              spacing={1.25}
-              justifyContent="space-between"
-              alignItems={{ xs: 'flex-start', md: 'center' }}
-            >
-              <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Care Companion Flow
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Step {activeTab + 1} of {FLOW_STEPS.length}: {FLOW_STEPS[activeTab]} · {FLOW_STEP_DETAILS[activeTab]}
-                </Typography>
-              </Box>
-              <Stack direction="row" spacing={1}>
-                <Button variant="text" onClick={() => setActiveTab(0)}>
-                  Start
-                </Button>
-                <Button variant="outlined" onClick={handlePrevTab} disabled={isFirstTab}>
-                  Previous
-                </Button>
-                <Button variant="contained" onClick={handleNextTab} disabled={isLastTab}>
-                  Next
-                </Button>
-              </Stack>
-            </Stack>
-            <Tabs
-              value={activeTab}
-              onChange={(_, value: number) => setActiveTab(value)}
-              variant="scrollable"
-              scrollButtons="auto"
-              sx={{
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-                minHeight: 44,
-                '& .MuiTab-root': {
-                  minHeight: 44,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                },
-              }}
-            >
-              <Tab icon={<AddCircleIcon fontSize="small" />} iconPosition="start" label="Enroll Patient" />
-              <Tab icon={<TaskAltIcon fontSize="small" />} iconPosition="start" label="Configure Plan" />
-              <Tab icon={<ScheduleIcon fontSize="small" />} iconPosition="start" label="Schedule Check-ins" />
-              <Tab icon={<MessageIcon fontSize="small" />} iconPosition="start" label="Monitor Responses" />
-              <Tab icon={<CheckCircleIcon fontSize="small" />} iconPosition="start" label="Close Plan" />
-            </Tabs>
-          </Stack>
-        </Card>
+          <IpdMetricCard
+            label="Total Enrolled"
+            value={patients.length.toString()}
+            trend="Active care plans · +12%"
+            tone="primary"
+            icon={<GroupIcon sx={{ fontSize: 22 }} />}
+          />
+          <IpdMetricCard
+            label="High-Risk Alerts"
+            value={highRiskCount}
+            trend="BP / Sugar out of range"
+            tone="danger"
+            icon={<WarningAmberIcon sx={{ fontSize: 22 }} />}
+          />
+          <IpdMetricCard
+            label="Adherence Rate"
+            value={`${adherenceAvg}%`}
+            trend="Medicines + check-ins · +4%"
+            tone="success"
+            icon={<CheckCircleIcon sx={{ fontSize: 22 }} />}
+          />
+          <IpdMetricCard
+            label="Upcoming Reviews"
+            value="9"
+            trend="Scheduled for today"
+            tone="warning"
+            icon={<CalendarTodayIcon sx={{ fontSize: 22 }} />}
+          />
+        </Box>
 
-        <Grid container spacing={1.5}>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatTile
-              label="Active Plans"
-              value={plans.filter((plan) => plan.status === 'Active').length}
-              subtitle="Patients enrolled"
-              icon={<FavoriteBorderIcon />}
-              tone="primary"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatTile
-              label="Pending Check-ins"
-              value={checkIns.filter((checkIn) => checkIn.status === 'Pending').length}
-              subtitle="Due in 24 hrs"
-              icon={<ScheduleIcon />}
-              tone="warning"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatTile
-              label="Engagement"
-              value="82%"
-              subtitle="Last 7 days"
-              icon={<MessageIcon />}
-              tone="info"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatTile
-              label="Completed Plans"
-              value={plans.filter((plan) => plan.status === 'Completed').length}
-              subtitle="Discharged"
-              icon={<CheckCircleIcon />}
-              tone="success"
-            />
-          </Grid>
-        </Grid>
-
-        <FlowTabPanel value={activeTab} index={0}>
-          <Card
-            elevation={0}
-            sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}
+        {/* Patient Table */}
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "rgba(17, 114, 186, 0.14)",
+            overflow: "hidden",
+            boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
+          }}
+        >
+          {/* Toolbar */}
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            justifyContent="space-between"
+            gap={1.5}
+            sx={{
+              px: 2,
+              py: 1.25,
+              borderBottom: "1px solid rgba(17, 114, 186, 0.10)",
+              bgcolor: "background.paper",
+            }}
           >
-            <Stack spacing={1.25}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Care Plans
-              </Typography>
-              <TableContainer
+            {/* Tab Buttons */}
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Button
+                variant="contained"
+                size="small"
                 sx={{
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1.5,
+                  textTransform: "none",
+                  fontWeight: 700,
+                  borderRadius: "20px",
+                  fontSize: "0.8rem",
+                  px: 1.5,
+                  boxShadow: "none",
+                  "&:hover": { boxShadow: "none" },
                 }}
               >
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Patient</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Condition</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Coach</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Next Check-in</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Progress</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Action
+                All Enrolled ({patients.length})
+              </Button>
+              <Button
+                variant="text"
+                size="small"
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 600,
+                  color: "text.secondary",
+                  borderRadius: "20px",
+                  fontSize: "0.8rem",
+                  px: 1.5,
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
+              >
+                Closed ({closedPatients.length})
+              </Button>
+            </Stack>
+
+            {/* Search + Filters */}
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexWrap="wrap"
+              useFlexGap
+            >
+              <TextField
+                placeholder="Search patient, ID, condition..."
+                size="small"
+                value={search}
+                onChange={(e) => setSearch(e.target.value as string)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon
+                        sx={{ color: "text.secondary", fontSize: "1.1rem" }}
+                      />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  width: 240,
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    bgcolor: "background.default",
+                    fontSize: "0.875rem",
+                  },
+                }}
+              />
+              <Select
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(e.target.value as PatientStatus | "all")
+                }
+                size="small"
+                sx={{
+                  minWidth: 130,
+                  fontSize: "0.875rem",
+                  borderRadius: 2,
+                  bgcolor: "background.default",
+                }}
+              >
+                {STATUS_FILTER_OPTIONS.map((opt) => (
+                  <MenuItem
+                    key={opt.value}
+                    value={opt.value}
+                    sx={{ fontSize: "0.875rem" }}
+                  >
+                    {opt.label}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Select
+                value={programFilter}
+                onChange={(e) => setProgramFilter(e.target.value as string)}
+                size="small"
+                sx={{
+                  minWidth: 140,
+                  fontSize: "0.875rem",
+                  borderRadius: 2,
+                  bgcolor: "background.default",
+                }}
+              >
+                {PROGRAM_OPTIONS.map((opt) => (
+                  <MenuItem key={opt} value={opt} sx={{ fontSize: "0.875rem" }}>
+                    {opt}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Stack>
+          </Stack>
+
+          {/* Table */}
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={HEADER_SX}>Patient</TableCell>
+                  <TableCell sx={HEADER_SX}>Program</TableCell>
+                  <TableCell sx={HEADER_SX}>Status</TableCell>
+                  <TableCell sx={HEADER_SX}>Vitals</TableCell>
+                  <TableCell sx={{ ...HEADER_SX, minWidth: 140 }}>
+                    Adherence
+                  </TableCell>
+                  <TableCell sx={HEADER_SX}>Last Check-In</TableCell>
+                  <TableCell sx={{ ...HEADER_SX }} align="right">
+                    Actions
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginatedPatients.map((p) => {
+                  const statusCfg = getStatusConfig(p.status, theme);
+                  return (
+                    <TableRow
+                      key={p.id}
+                      sx={{
+                        "&:hover": { bgcolor: "rgba(17, 114, 186, 0.03)" },
+                        "&:not(:last-child) td": {
+                          borderBottom: "1px solid rgba(17, 114, 186, 0.07)",
+                        },
+                        transition: "background 0.15s",
+                      }}
+                    >
+                      {/* Patient */}
+                      <TableCell sx={{ py: 1.5 }}>
+                        <Stack
+                          direction="row"
+                          spacing={1.5}
+                          alignItems="center"
+                        >
+                          <Avatar
+                            sx={{
+                              width: 36,
+                              height: 36,
+                              bgcolor: p.avatarColor,
+                              fontSize: "0.8rem",
+                              fontWeight: 700,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {p.initials}
+                          </Avatar>
+                          <Box>
+                            <Typography
+                              variant="body2"
+                              fontWeight={700}
+                              sx={{ color: "text.primary", lineHeight: 1.3 }}
+                            >
+                              {p.name}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {p.patientId} · {p.language}
+                            </Typography>
+                            {p.platforms.length > 0 && (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ display: "block", fontSize: "0.67rem" }}
+                              >
+                                {p.platforms.join(" · ")}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Stack>
                       </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {plans.map((plan) => (
-                      <TableRow
-                        key={plan.id}
-                        hover
-                        onClick={() => setSelectedPlanId(plan.id)}
-                        sx={{
-                          cursor: 'pointer',
-                          backgroundColor:
-                            plan.id === selectedPlanId ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-                        }}
-                      >
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {plan.patientName}
+
+                      {/* Program */}
+                      <TableCell sx={{ py: 1.5 }}>
+                        <Box
+                          sx={{
+                            display: "inline-flex",
+                            px: 1.25,
+                            py: 0.3,
+                            borderRadius: "20px",
+                            border: "1px solid",
+                            borderColor: "rgba(17, 114, 186, 0.2)",
+                            bgcolor: "rgba(17, 114, 186, 0.04)",
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              fontSize: "0.78rem",
+                              fontWeight: 600,
+                              color: "primary.main",
+                            }}
+                          >
+                            {p.program}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {plan.mrn}
+                        </Box>
+                      </TableCell>
+
+                      {/* Status Badge */}
+                      <TableCell sx={{ py: 1.5 }}>
+                        <Box
+                          sx={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                            px: 1.25,
+                            py: 0.35,
+                            borderRadius: "20px",
+                            bgcolor: statusCfg.bg,
+                            border: "1px solid",
+                            borderColor: statusCfg.border,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: "50%",
+                              bgcolor: statusCfg.color,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <Typography
+                            sx={{
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              color: statusCfg.color,
+                              lineHeight: 1,
+                            }}
+                          >
+                            {statusCfg.label}
                           </Typography>
-                        </TableCell>
-                        <TableCell>{plan.condition}</TableCell>
-                        <TableCell>{plan.coach}</TableCell>
-                        <TableCell>{plan.nextCheckIn}</TableCell>
-                        <TableCell>
-                          <Chip
-                            size="small"
-                            label={`${plan.completion}%`}
-                            variant="outlined"
-                            color={plan.completion > 70 ? 'success' : 'default'}
+                        </Box>
+                      </TableCell>
+
+                      {/* Vitals */}
+                      <TableCell sx={{ py: 1.5 }}>
+                        {p.bp || p.glucose ? (
+                          <Box>
+                            {p.bp && (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  display: "block",
+                                  fontWeight: 600,
+                                  color: p.bpAlert
+                                    ? "error.main"
+                                    : "text.primary",
+                                }}
+                              >
+                                BP: {p.bp}
+                              </Typography>
+                            )}
+                            {p.glucose && (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  display: "block",
+                                  fontWeight: 600,
+                                  color: p.glucoseAlert
+                                    ? "error.main"
+                                    : "text.secondary",
+                                }}
+                              >
+                                Glucose: {p.glucose}
+                              </Typography>
+                            )}
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" color="text.disabled">
+                            —
+                          </Typography>
+                        )}
+                      </TableCell>
+
+                      {/* Adherence */}
+                      <TableCell sx={{ py: 1.5, minWidth: 140 }}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <LinearProgress
+                            variant="determinate"
+                            value={p.adherence}
+                            sx={{
+                              flex: 1,
+                              height: 6,
+                              borderRadius: 4,
+                              bgcolor: alpha(
+                                getAdherenceColor(p.adherence, theme),
+                                0.12,
+                              ),
+                              "& .MuiLinearProgress-bar": {
+                                bgcolor: getAdherenceColor(p.adherence, theme),
+                                borderRadius: 4,
+                              },
+                            }}
                           />
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            size="small"
-                            label={plan.status}
-                            color={plan.status === 'Active' ? 'success' : plan.status === 'Paused' ? 'warning' : 'default'}
-                          />
-                        </TableCell>
-                        <TableCell align="right">
-                          {plan.status !== 'Completed' ? (
+                          <Typography
+                            variant="caption"
+                            fontWeight={700}
+                            sx={{
+                              minWidth: 30,
+                              color: getAdherenceColor(p.adherence, theme),
+                            }}
+                          >
+                            {p.adherence}%
+                          </Typography>
+                        </Stack>
+                      </TableCell>
+
+                      {/* Last Check-In */}
+                      <TableCell sx={{ py: 1.5 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {p.lastCheckIn}
+                        </Typography>
+                      </TableCell>
+
+                      {/* Actions */}
+                      <TableCell sx={{ py: 1.5 }} align="right">
+                        <Stack
+                          direction="row"
+                          spacing={0.25}
+                          justifyContent="flex-end"
+                          alignItems="center"
+                        >
+                          {p.status !== "closed" && p.isUrgent ? (
                             <Button
                               size="small"
-                              variant="text"
-                              disabled={!canWrite}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleTogglePlan(plan.id);
+                              variant="outlined"
+                              color="error"
+                              sx={{
+                                textTransform: "none",
+                                fontWeight: 700,
+                                borderRadius: "20px",
+                                fontSize: "0.75rem",
+                                py: 0.3,
+                                px: 1.25,
+                                minWidth: 0,
                               }}
                             >
-                              {plan.status === 'Active' ? 'Pause' : 'Resume'}
+                              Urgent
                             </Button>
-                          ) : (
-                            <Typography variant="caption" color="text.secondary">
-                              -
-                            </Typography>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Stack>
-          </Card>
-        </FlowTabPanel>
-
-        <FlowTabPanel value={activeTab} index={1}>
-          <Grid container spacing={1.5} alignItems="stretch">
-            <Grid item xs={12} md={7} sx={{ display: 'flex' }}>
-              <Card
-                elevation={0}
-                sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
-              >
-                <Stack spacing={1.25}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Plan Summary
-                  </Typography>
-                  {selectedPlan ? (
-                    <Box
-                      sx={{
-                        p: 1.25,
-                        borderRadius: 1.5,
-                        border: '1px dashed',
-                        borderColor: 'divider',
-                        backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {selectedPlan.condition}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                        {selectedPlan.patientName} · {selectedPlan.mrn}
-                      </Typography>
-                      <Stack direction="row" spacing={0.75} flexWrap="wrap" sx={{ mt: 0.75 }}>
-                        <Chip size="small" label={`Coach: ${selectedPlan.coach}`} variant="outlined" />
-                        <Chip size="small" label={`Next: ${selectedPlan.nextCheckIn}`} variant="outlined" />
-                        <Chip
-                          size="small"
-                          label={`${selectedPlan.completion}% complete`}
-                          color={selectedPlan.completion > 70 ? 'success' : 'default'}
-                        />
-                        <Chip
-                          size="small"
-                          label={selectedPlan.status}
-                          color={selectedPlan.status === 'Active' ? 'success' : selectedPlan.status === 'Paused' ? 'warning' : 'default'}
-                        />
-                      </Stack>
-                    </Box>
-                  ) : null}
-                </Stack>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={5} sx={{ display: 'flex' }}>
-              <Card
-                elevation={0}
-                sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
-              >
-                <Stack spacing={1.25}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Connected Care Actions
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Use the current plan MRN to continue care across OPD workflows and patient records.
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      disabled={!canNavigate('/patients/profile')}
-                      onClick={() => router.push(withMrn('/patients/profile'))}
-                    >
-                      Patient Profile
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      disabled={!canNavigate('/appointments/calendar')}
-                      onClick={() => router.push(withMrn('/appointments/calendar'))}
-                    >
-                      Schedule Follow-up
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      disabled={!canNavigate('/appointments/visit')}
-                      onClick={() => router.push(withMrn('/appointments/visit'))}
-                    >
-                      OPD Visit
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      disabled={!canNavigate('/clinical/prescriptions')}
-                      onClick={() => router.push(withMrn('/clinical/prescriptions'))}
-                    >
-                      Prescriptions
-                    </Button>
-                  </Box>
-                </Stack>
-              </Card>
-            </Grid>
-          </Grid>
-        </FlowTabPanel>
-
-        <FlowTabPanel value={activeTab} index={2}>
-          <Card
-            elevation={0}
-            sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}
-          >
-            <Stack spacing={1.25}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Upcoming Check-ins
-              </Typography>
-              <TableContainer
-                sx={{
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1.5,
-                }}
-              >
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Check-in</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Channel</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Due</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Action
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {checkIns.map((checkIn) => (
-                      <TableRow key={checkIn.id} hover>
-                        <TableCell>{checkIn.title}</TableCell>
-                        <TableCell>{checkIn.channel}</TableCell>
-                        <TableCell>{checkIn.due}</TableCell>
-                        <TableCell>
-                          <Chip
-                            size="small"
-                            label={checkIn.status}
-                            color={checkIn.status === 'Completed' ? 'success' : 'default'}
-                            variant={checkIn.status === 'Completed' ? 'filled' : 'outlined'}
-                          />
-                        </TableCell>
-                        <TableCell align="right">
-                          {checkIn.status !== 'Completed' ? (
+                          ) : p.status !== "closed" ? (
                             <Button
                               size="small"
-                              variant="text"
-                              disabled={!canWrite}
-                              onClick={() => handleCompleteCheckIn(checkIn.id)}
+                              variant="outlined"
+                              sx={{
+                                textTransform: "none",
+                                fontWeight: 700,
+                                borderRadius: "20px",
+                                fontSize: "0.75rem",
+                                py: 0.3,
+                                
+                                px: 1.25,
+                                minWidth: 0,
+                                borderColor: "rgba(17, 114, 186, 0.3)",
+                                color: "primary.main",
+                                "&:hover": {
+                                  bgcolor: "rgba(17, 114, 186, 0.05)",
+                                },
+                              }}
                             >
-                              Mark Done
+                              Call
                             </Button>
-                          ) : (
-                            <Typography variant="caption" color="text.secondary">
-                              -
-                            </Typography>
+                          ) : null}
+                          {p.status !== "closed" && (
+                            <IconButton
+                              size="small"
+                              sx={{
+                                color: "text.secondary",
+                                "&:hover": {
+                                  bgcolor: "rgba(17, 114, 186, 0.06)",
+                                  color: "primary.main",
+                                },
+                              }}
+                            >
+                              <EditIcon sx={{ fontSize: "0.95rem" }} />
+                            </IconButton>
                           )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                          <IconButton
+                            size="small"
+                            onClick={() => setDrawerPatient(p)}
+                            sx={{
+                              color: "text.secondary",
+                              "&:hover": {
+                                bgcolor: "rgba(17, 114, 186, 0.06)",
+                                color: "primary.main",
+                              },
+                            }}
+                          >
+                            <VisibilityIcon sx={{ fontSize: "0.95rem" }} />
+                          </IconButton>
+                          {p.status !== "closed" && (
+                            <IconButton
+                              onClick={() => {
+                                setClosePlanPatient(p);
+                                setClosePlanDialogOpen(true);
+                              }}
+                              size="small"
+                              sx={{
+                                color: "text.secondary",
+                                "&:hover": {
+                                  bgcolor: "rgba(17, 114, 186, 0.06)",
+                                  color: "warning.dark",
+                                },
+                              }}
+                            >
+                              <LockIcon sx={{ fontSize: "0.95rem" }} />
+                            </IconButton>
+                          )}
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {paginatedPatients.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} sx={{ py: 4, textAlign: "center" }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No patients match your filters.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* Pagination */}
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="flex-end"
+            spacing={2}
+            sx={{
+              px: 2,
+              py: 1.25,
+              borderTop: "1px solid rgba(17, 114, 186, 0.10)",
+              bgcolor: "background.paper",
+            }}
+          >
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="caption" color="text.secondary">
+                Rows per page:
+              </Typography>
+              <Select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setPage(0);
+                }}
+                size="small"
+                variant="standard"
+                disableUnderline
+                sx={{
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  color: "text.primary",
+                  "& .MuiSelect-select": { py: 0 },
+                }}
+              >
+                {[5, 10, 25, 50].map((n) => (
+                  <MenuItem key={n} value={n} sx={{ fontSize: "0.8rem" }}>
+                    {n}
+                  </MenuItem>
+                ))}
+              </Select>
             </Stack>
-          </Card>
-        </FlowTabPanel>
-
-        <FlowTabPanel value={activeTab} index={3}>
-          <Grid container spacing={1.5} alignItems="stretch">
-            <Grid item xs={12} md={7} sx={{ display: 'flex' }}>
-              <Card
-                elevation={0}
-                sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
+            <Typography variant="caption" color="text.secondary">
+              {filteredPatients.length === 0
+                ? "0"
+                : `${page * rowsPerPage + 1}–${Math.min((page + 1) * rowsPerPage, filteredPatients.length)}`}{" "}
+              of {filteredPatients.length}
+            </Typography>
+            <Stack direction="row" spacing={0.25}>
+              <IconButton
+                size="small"
+                disabled={page === 0}
+                onClick={() => setPage((p) => p - 1)}
+                sx={{
+                  color: page === 0 ? "action.disabled" : "text.secondary",
+                }}
               >
-                <Stack spacing={1.25}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Response Inbox
-                  </Typography>
-                  <TableContainer
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 1.5,
-                    }}
-                  >
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 700 }}>Patient</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Channel</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Received</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Summary</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }} align="right">
-                            Action
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {responses.map((response) => (
-                          <TableRow key={response.id} hover>
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {response.patientName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {response.mrn}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>{response.channel}</TableCell>
-                            <TableCell>{response.received}</TableCell>
-                            <TableCell>{response.summary}</TableCell>
-                            <TableCell>
-                              <Chip
-                                size="small"
-                                label={response.status}
-                                color={
-                                  response.status === 'Escalated'
-                                    ? 'error'
-                                    : response.status === 'New'
-                                    ? 'warning'
-                                    : 'success'
-                                }
-                                variant={response.status === 'Reviewed' ? 'outlined' : 'filled'}
-                              />
-                            </TableCell>
-                            <TableCell align="right">
-                              {response.status !== 'Reviewed' ? (
-                                <Button
-                                  size="small"
-                                  variant="text"
-                                  disabled={!canWrite}
-                                  onClick={() => handleReviewResponse(response.id)}
-                                >
-                                  Mark Reviewed
-                                </Button>
-                              ) : (
-                                <Typography variant="caption" color="text.secondary">
-                                  -
-                                </Typography>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                  <Divider />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Message Center
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Send a quick update or wellness reminder to the active plan.
-                  </Typography>
-                  <TextField multiline minRows={3} placeholder="Type a supportive message..." />
-                  <Stack direction="row" spacing={1}>
-                    <Button variant="outlined" startIcon={<MessageIcon />} disabled={!canWrite}>
-                      Save Draft
-                    </Button>
-                    <Button variant="contained" endIcon={<TaskAltIcon />} disabled={!canWrite} onClick={handleSendReminder}>
-                      Send Now
-                    </Button>
-                  </Stack>
-                </Stack>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={5} sx={{ display: 'flex' }}>
-              <Card
-                elevation={0}
-                sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
+                <PrevIcon sx={{ fontSize: "1.1rem" }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                disabled={(page + 1) * rowsPerPage >= filteredPatients.length}
+                onClick={() => setPage((p) => p + 1)}
+                sx={{
+                  color:
+                    (page + 1) * rowsPerPage >= filteredPatients.length
+                      ? "action.disabled"
+                      : "text.secondary",
+                }}
               >
-                <Stack spacing={1.25}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Escalations
-                  </Typography>
-                  <TableContainer
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 1.5,
-                    }}
-                  >
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 700 }}>Patient</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Reason</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Priority</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Owner</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Due</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }} align="right">
-                            Action
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {escalations.map((item) => (
-                          <TableRow key={item.id} hover>
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {item.patientName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {item.mrn}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>{item.reason}</TableCell>
-                            <TableCell>
-                              <Chip
-                                size="small"
-                                label={item.priority}
-                                color={item.priority === 'High' ? 'error' : 'warning'}
-                              />
-                            </TableCell>
-                            <TableCell>{item.owner}</TableCell>
-                            <TableCell>{item.due}</TableCell>
-                            <TableCell align="right">
-                              <Button
-                                size="small"
-                                variant="text"
-                                disabled={!canWrite}
-                                onClick={() => handleEscalationResolved(item.id)}
-                              >
-                                Resolve
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {escalations.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={6}>
-                              <Typography variant="caption" color="text.secondary">
-                                No active escalations.
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        ) : null}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Stack>
-              </Card>
-            </Grid>
-          </Grid>
-        </FlowTabPanel>
-
-        <FlowTabPanel value={activeTab} index={4}>
-          <Grid container spacing={1.5} alignItems="stretch">
-            <Grid item xs={12} md={5} sx={{ display: 'flex' }}>
-              <Card
-                elevation={0}
-                sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
-              >
-                <Stack spacing={1.25}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Close Plan
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Complete the plan once goals are met and check-ins are finished.
-                  </Typography>
-                  {selectedPlan ? (
-                    <Box
-                      sx={{
-                        p: 1.25,
-                        borderRadius: 1.5,
-                        border: '1px dashed',
-                        borderColor: 'divider',
-                        backgroundColor: alpha(theme.palette.success.main, 0.05),
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {selectedPlan.condition}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                        {selectedPlan.patientName} · {selectedPlan.mrn}
-                      </Typography>
-                      <Stack direction="row" spacing={0.75} flexWrap="wrap" sx={{ mt: 0.75 }}>
-                        <Chip size="small" label={`Coach: ${selectedPlan.coach}`} variant="outlined" />
-                        <Chip
-                          size="small"
-                          label={`${selectedPlan.completion}% complete`}
-                          color={selectedPlan.completion > 70 ? 'success' : 'default'}
-                        />
-                        <Chip
-                          size="small"
-                          label={selectedPlan.status}
-                          color={selectedPlan.status === 'Active' ? 'success' : selectedPlan.status === 'Paused' ? 'warning' : 'default'}
-                        />
-                      </Stack>
-                    </Box>
-                  ) : null}
-                  <Button
-                    variant="contained"
-                    disabled={!canWrite || !selectedPlan || selectedPlan.status === 'Completed'}
-                    onClick={() => {
-                      if (selectedPlan) {
-                        handleClosePlan(selectedPlan.id);
-                      }
-                    }}
-                  >
-                    Close Plan
-                  </Button>
-                </Stack>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={7} sx={{ display: 'flex' }}>
-              <Card
-                elevation={0}
-                sx={{ p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}
-              >
-                <Stack spacing={1.25}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Completed Plans
-                  </Typography>
-                  <TableContainer
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 1.5,
-                    }}
-                  >
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 700 }}>Patient</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Condition</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Coach</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Completion</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {completedPlans.map((plan) => (
-                          <TableRow key={plan.id} hover>
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {plan.patientName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {plan.mrn}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>{plan.condition}</TableCell>
-                            <TableCell>{plan.coach}</TableCell>
-                            <TableCell>
-                              <Chip size="small" label={`${plan.completion}%`} color="success" variant="outlined" />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {completedPlans.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4}>
-                              <Typography variant="caption" color="text.secondary">
-                                No completed plans yet.
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        ) : null}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Stack>
-              </Card>
-            </Grid>
-          </Grid>
-        </FlowTabPanel>
+                <NextIcon sx={{ fontSize: "1.1rem" }} />
+              </IconButton>
+            </Stack>
+          </Stack>
+        </Paper>
       </Stack>
 
-      <CommonDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        title="Create Care Plan"
-        maxWidth="sm"
-        content={
-          <Stack spacing={1.5} sx={{ mt: 1 }}>
-            <TextField label="Patient Name" placeholder="Enter patient name" />
-            <TextField label="Program" placeholder="e.g., Diabetes Support" />
-            <TextField select label="Channel" defaultValue="App">
-              {['App', 'SMS', 'Call'].map((channel) => (
-                <MenuItem key={channel} value={channel}>
-                  {channel}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField label="Start Date" placeholder="Select start date" />
-          </Stack>
-        }
-        actions={
-          <>
-            <Button variant="text" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="contained" disabled={!canWrite} onClick={handleCreatePlan}>
-              Create Plan
-            </Button>
-          </>
-        }
+      <EnrollPatientDialog
+        open={isEnrollDialogOpen}
+        onClose={() => setIsEnrollDialogOpen(false)}
       />
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      <PatientDetailDrawer
+        open={!!drawerPatient}
+        onClose={() => setDrawerPatient(null)}
+        patient={drawerPatient}
+      />
+
+      {/* Close Care Plan Dialog */}
+      <Dialog
+        open={closePlanDialogOpen}
+        onClose={() => {
+          setClosePlanDialogOpen(false);
+          setClosePlanPatient(null);
+          setCloseReason("completed");
+          setClosingNotes("");
+        }}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.12)",
+            overflow: "hidden",
+          },
+        }}
       >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
+        {/* ── HEADER ── */}
+        <Box
+          sx={{
+            px: 3,
+            pt: 2.5,
+            pb: 2,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 1,
+          }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          <Box>
+            <Stack direction="row" spacing={1} alignItems="center" mb={0.4}>
+              <Box
+                sx={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 1.25,
+                  bgcolor: alpha(theme.palette.error.main, 0.1),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <LockIcon sx={{ fontSize: 15, color: "error.main" }} />
+              </Box>
+              <Typography variant="h6" fontWeight={800} letterSpacing="-0.01em">
+                Close Care Plan
+              </Typography>
+            </Stack>
+            <Typography variant="body2" color="text.secondary">
+              {closePlanPatient
+                ? `${closePlanPatient.name} — ${closePlanPatient.program}`
+                : ""}
+            </Typography>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => {
+              setClosePlanDialogOpen(false);
+              setClosePlanPatient(null);
+            }}
+            sx={{
+              bgcolor: alpha(theme.palette.text.primary, 0.05),
+              "&:hover": { bgcolor: alpha(theme.palette.text.primary, 0.1) },
+              flexShrink: 0,
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
+
+        {/* ── CONTENT ── */}
+        <DialogContent sx={{ px: 3, py: 2.5 }}>
+          {closePlanPatient && (
+            <Stack spacing={2.5}>
+              {/* Warning Banner */}
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: alpha(theme.palette.error.main, 0.05),
+                  border: "1px solid",
+                  borderColor: alpha(theme.palette.error.main, 0.2),
+                  display: "flex",
+                  gap: 1.5,
+                  alignItems: "flex-start",
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 1.25,
+                    bgcolor: alpha(theme.palette.error.main, 0.12),
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <WarningAmberIcon sx={{ color: "error.main", fontSize: 18 }} />
+                </Box>
+                <Box>
+                  <Typography variant="body2" fontWeight={700} color="error.main" mb={0.4}>
+                    This will archive the patient's care plan.
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block" lineHeight={1.6}>
+                    Automated reminders and check-in requests will stop. All data will be archived
+                    and accessible for future reference. Re-enroll to restart.
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Program Summary */}
+              <Box>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: "0.65rem",
+                    letterSpacing: "0.1em",
+                    color: "text.disabled",
+                    display: "block",
+                    mb: 1,
+                  }}
+                >
+                  Program Summary
+                </Typography>
+                <Box
+                  sx={{
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    bgcolor: "background.paper",
+                    overflow: "hidden",
+                  }}
+                >
+                  {[
+                    { k: "Patient", v: `${closePlanPatient.name}, 58 yrs` },
+                    { k: "Program", v: closePlanPatient.program },
+                    { k: "Enrolled", v: "Jan 12, 2025" },
+                    { k: "Closing On", v: "10 Mar 2026" },
+                    { k: "Total Check-ins", v: "3 logged" },
+                    { k: "Overall Adherence", v: `${closePlanPatient.adherence}%`, alert: true },
+                  ].map(({ k, v, alert }, i, arr) => (
+                    <Stack
+                      key={k}
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      sx={{
+                        px: 2,
+                        py: 1.1,
+                        borderBottom: i < arr.length - 1 ? "1px solid" : "none",
+                        borderColor: "divider",
+                        bgcolor: alert ? alpha(theme.palette.error.main, 0.03) : "transparent",
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        {k}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        fontWeight={700}
+                        color={alert ? "error.main" : "text.primary"}
+                      >
+                        {v}
+                      </Typography>
+                    </Stack>
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Reason for Closing */}
+              <Box>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: "0.65rem",
+                    letterSpacing: "0.1em",
+                    color: "text.disabled",
+                    display: "block",
+                    mb: 1,
+                  }}
+                >
+                  Reason for Closing
+                </Typography>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  value={closeReason}
+                  onChange={(e) => setCloseReason(e.target.value)}
+                >
+                  <MenuItem value="completed">Program completed successfully</MenuItem>
+                  <MenuItem value="transferred">Patient transferred</MenuItem>
+                  <MenuItem value="withdrawn">Patient withdrew</MenuItem>
+                  <MenuItem value="other">Other</MenuItem>
+                </TextField>
+              </Box>
+
+              {/* Closing Notes */}
+              <Box>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: "0.65rem",
+                    letterSpacing: "0.1em",
+                    color: "text.disabled",
+                    display: "block",
+                    mb: 1,
+                  }}
+                >
+                  Closing Notes{" "}
+                  <Box component="span" sx={{ textTransform: "none", fontSize: "0.68rem", fontWeight: 400 }}>
+                    (Optional)
+                  </Box>
+                </Typography>
+                <TextField
+                  multiline
+                  rows={3}
+                  fullWidth
+                  size="small"
+                  placeholder="e.g. Patient recovered well. Follow-up in 6 months..."
+                  value={closingNotes}
+                  onChange={(e) => setClosingNotes(e.target.value)}
+                />
+              </Box>
+            </Stack>
+          )}
+        </DialogContent>
+
+        {/* ── FOOTER ── */}
+        <Box
+          sx={{
+            px: 3,
+            py: 2,
+            borderTop: "1px solid",
+            borderColor: "divider",
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 1,
+            bgcolor: alpha(theme.palette.background.default, 0.6),
+          }}
+        >
+          <Button
+            variant="outlined"
+            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1.5, px: 2.5 }}
+            onClick={() => {
+              setClosePlanDialogOpen(false);
+              setClosePlanPatient(null);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disableElevation
+            startIcon={<LockIcon sx={{ fontSize: 16 }} />}
+            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1.5, px: 2.5 }}
+            onClick={() => {
+              if (closePlanPatient) {
+                setPatients((prev) =>
+                  prev.map((pt) =>
+                    pt.id === closePlanPatient.id ? { ...pt, status: "closed" as PatientStatus } : pt,
+                  ),
+                );
+              }
+              setClosePlanDialogOpen(false);
+              setClosePlanPatient(null);
+              setCloseReason("completed");
+              setClosingNotes("");
+            }}
+          >
+            Close Care Plan
+          </Button>
+        </Box>
+      </Dialog>
     </PageTemplate>
   );
 }

@@ -60,6 +60,7 @@ import {
   type ScheduleBlock,
   type ScheduleBlockType,
 } from "@/src/mocks/doctor-schedule-mock";
+import CustomRepeatDialog, { type CustomRepeatConfig } from "./components/CustomRepeatDialog";
 
 // ─── Avatar colors ───────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
@@ -133,6 +134,86 @@ function getDateForDay(weekStart: Date, dayName: string): string {
   d.setDate(weekStart.getDate() + (idx >= 0 ? idx : 0));
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Generate dates from custom repeat config (Google Calendar–like). Max 730 occurrences. */
+function getDatesFromCustomRepeat(
+  config: CustomRepeatConfig,
+  startDateStr: string,
+): string[] {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const toStr = (d: Date) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  const start = new Date(startDateStr + "T12:00:00");
+  const out: string[] = [];
+  const maxOccurrences = 730;
+
+  const endDate =
+    config.endType === "end_date" && config.endDate
+      ? new Date(config.endDate + "T23:59:59")
+      : null;
+
+  const shouldStop = () => {
+    if (config.endType === "end_after" && out.length >= config.endAfter)
+      return true;
+    if (out.length >= maxOccurrences) return true;
+    return false;
+  };
+
+  if (config.frequency === "daily") {
+    let cursor = new Date(start);
+    while (!shouldStop()) {
+      if (endDate && cursor > endDate) break;
+      out.push(toStr(cursor));
+      cursor.setDate(cursor.getDate() + config.interval);
+    }
+  } else if (config.frequency === "weekly" && config.days.length > 0) {
+    // Week start = Monday
+    const getMonday = (d: Date) => {
+      const x = new Date(d);
+      const day = x.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      x.setDate(x.getDate() + diff);
+      x.setHours(0, 0, 0, 0);
+      return x;
+    };
+    let weekStart = getMonday(start);
+    while (!shouldStop()) {
+      for (const dayName of config.days) {
+        const idx = DAY_NAMES.indexOf(dayName as (typeof DAY_NAMES)[number]);
+        const d = new Date(weekStart);
+        d.setDate(weekStart.getDate() + idx);
+        if (d >= start) {
+          if (endDate && d > endDate) return out;
+          out.push(toStr(d));
+          if (shouldStop()) return out;
+        }
+      }
+      const next = new Date(weekStart);
+      next.setDate(next.getDate() + config.interval * 7);
+      weekStart = next;
+      if (endDate && weekStart > endDate) break;
+    }
+  } else if (config.frequency === "monthly") {
+    let cursor = new Date(start);
+    while (!shouldStop()) {
+      if (endDate && cursor > endDate) break;
+      out.push(toStr(cursor));
+      cursor.setMonth(cursor.getMonth() + config.interval);
+    }
+  } else if (config.frequency === "yearly") {
+    let cursor = new Date(start);
+    while (!shouldStop()) {
+      if (endDate && cursor > endDate) break;
+      out.push(toStr(cursor));
+      cursor.setFullYear(cursor.getFullYear() + config.interval);
+    }
+  }
+
+  return config.endType === "end_after"
+    ? out.slice(0, config.endAfter)
+    : out;
 }
 
 // ─── Block → FullCalendar event ──────────────────────────────────────────────
@@ -288,6 +369,10 @@ export default function DoctorSchedulePage() {
   const [addFormCustomStartDate, setAddFormCustomStartDate] =
     React.useState("");
   const [addFormCustomEndDate, setAddFormCustomEndDate] = React.useState("");
+  const [addFormCustomRepeatConfig, setAddFormCustomRepeatConfig] =
+    React.useState<CustomRepeatConfig | null>(null);
+  const [customRepeatDialogOpen, setCustomRepeatDialogOpen] =
+    React.useState(false);
   const [addFormTimezone, setAddFormTimezone] = React.useState("Asia/Kolkata");
   const [addFormNote, setAddFormNote] = React.useState("");
 
@@ -361,6 +446,7 @@ export default function DoctorSchedulePage() {
       setAddFormRepeatDays("Mon-Fri");
       setAddFormCustomStartDate("");
       setAddFormCustomEndDate("");
+      setAddFormCustomRepeatConfig(null);
       setAddFormTimezone("Asia/Kolkata");
       setAddFormNote("");
     }
@@ -532,20 +618,25 @@ export default function DoctorSchedulePage() {
         }));
       }
       if (addFormRepeatType === "custom") {
-        if (!addFormCustomStartDate || !addFormCustomEndDate)
-          return [
-            {
-              ...base,
-              date: getDateForDay(weekStart, defaultDay),
-            },
-          ];
-        const dates = getDatesBetween(
-          addFormCustomStartDate,
-          addFormCustomEndDate,
-        );
-        if (dates.length === 0)
-          return [{ ...base, date: getDateForDay(weekStart, defaultDay) }];
-        return dates.map((date) => ({ ...base, date }));
+        if (addFormCustomRepeatConfig?.startDate) {
+          const dates = getDatesFromCustomRepeat(
+            addFormCustomRepeatConfig,
+            addFormCustomRepeatConfig.startDate,
+          );
+          if (dates.length === 0)
+            return [{ ...base, date: getDateForDay(weekStart, defaultDay) }];
+          return dates.map((date) => ({ ...base, date }));
+        }
+        if (addFormCustomStartDate && addFormCustomEndDate) {
+          const dates = getDatesBetween(
+            addFormCustomStartDate,
+            addFormCustomEndDate,
+          );
+          if (dates.length === 0)
+            return [{ ...base, date: getDateForDay(weekStart, defaultDay) }];
+          return dates.map((date) => ({ ...base, date }));
+        }
+        return [{ ...base, date: getDateForDay(weekStart, defaultDay) }];
       }
       let days: string[] = [];
       const range = addFormRepeatDays;
@@ -572,6 +663,7 @@ export default function DoctorSchedulePage() {
     addFormRepeatDays,
     addFormCustomStartDate,
     addFormCustomEndDate,
+    addFormCustomRepeatConfig,
     addFormTimezone,
     addFormServiceType,
     addFormDuration,
@@ -1781,11 +1873,13 @@ export default function DoctorSchedulePage() {
                   label="Repeat"
                   size="small"
                   value={addFormRepeatType}
-                  onChange={(e) =>
-                    setAddFormRepeatType(
-                      e.target.value as "none" | "weekly" | "custom",
-                    )
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value as "none" | "weekly" | "custom";
+                    setAddFormRepeatType(v);
+                    if (v === "custom") {
+                      setCustomRepeatDialogOpen(true);
+                    }
+                  }}
                 >
                   <MenuItem value="none">None</MenuItem>
                   <MenuItem value="weekly">Weekly</MenuItem>
@@ -1807,34 +1901,97 @@ export default function DoctorSchedulePage() {
                 )}
                 {addFormRepeatType === "custom" && (
                   <Stack spacing={1.5}>
-                    <Stack direction="row" spacing={1.5}>
-                      <TextField
-                        fullWidth
-                        label="From date"
-                        type="date"
+                    {addFormCustomRepeatConfig ? (
+                      <Box
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 1.5,
+                          border: "1px solid",
+                          borderColor: (theme) => alpha(theme.palette.primary.main, 0.2),
+                          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                        }}
+                      >
+                        <Stack direction="row" flexWrap="wrap" alignItems="center" gap={0.75} sx={{ mb: 1.25 }}>
+                          <Typography variant="body2" fontWeight={600} color="text.primary">
+                            {addFormCustomRepeatConfig.interval === 1
+                              ? `Every ${addFormCustomRepeatConfig.frequency === "daily" ? "day" : addFormCustomRepeatConfig.frequency === "weekly" ? "week" : addFormCustomRepeatConfig.frequency === "monthly" ? "month" : "year"}`
+                              : `Every ${addFormCustomRepeatConfig.interval} ${addFormCustomRepeatConfig.frequency === "daily" ? "days" : addFormCustomRepeatConfig.frequency === "weekly" ? "weeks" : addFormCustomRepeatConfig.frequency === "monthly" ? "months" : "years"}`}
+                          </Typography>
+                          {addFormCustomRepeatConfig.frequency === "weekly" &&
+                            addFormCustomRepeatConfig.days.length > 0 && (
+                              <>
+                                <Typography variant="body2" color="text.secondary">
+                                  on
+                                </Typography>
+                                <Stack direction="row" flexWrap="wrap" gap={0.5}>
+                                  {addFormCustomRepeatConfig.days.map((d) => (
+                                    <Chip
+                                      key={d}
+                                      label={d}
+                                      size="small"
+                                      sx={{
+                                        height: 24,
+                                        fontWeight: 600,
+                                        fontSize: "0.75rem",
+                                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                                        color: "primary.main",
+                                        border: "1px solid",
+                                        borderColor: (theme) => alpha(theme.palette.primary.main, 0.3),
+                                        "& .MuiChip-label": { px: 1 },
+                                      }}
+                                    />
+                                  ))}
+                                </Stack>
+                              </>
+                            )}
+                          {addFormCustomRepeatConfig.endType === "end_date" &&
+                            addFormCustomRepeatConfig.endDate && (
+                              <Typography variant="body2" color="text.secondary">
+                                until {addFormCustomRepeatConfig.endDate}
+                              </Typography>
+                            )}
+                        </Stack>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => setCustomRepeatDialogOpen(true)}
+                          sx={{
+                            textTransform: "none",
+                            fontWeight: 600,
+                            fontSize: "0.8125rem",
+                            borderColor: "primary.main",
+                            color: "primary.main",
+                            py: 0.5,
+                            px: 1.5,
+                            "&:hover": {
+                              borderColor: "primary.dark",
+                              color: "primary.dark",
+                              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                            },
+                          }}
+                        >
+                          Customize
+                        </Button>
+                      </Box>
+                    ) : (
+                      <Button
+                        variant="outlined"
                         size="small"
-                        value={addFormCustomStartDate}
-                        onChange={(e) =>
-                          setAddFormCustomStartDate(e.target.value)
-                        }
-                        InputLabelProps={{ shrink: true }}
-                      />
-                      <TextField
-                        fullWidth
-                        label="To date"
-                        type="date"
-                        size="small"
-                        value={addFormCustomEndDate}
-                        onChange={(e) =>
-                          setAddFormCustomEndDate(e.target.value)
-                        }
-                        InputLabelProps={{ shrink: true }}
-                      />
-                    </Stack>
-                    {addFormCustomStartDate && addFormCustomEndDate && (
-                      <Typography variant="caption" color="text.secondary">
-                        Same time slot will repeat for every day in this range.
-                      </Typography>
+                        onClick={() => setCustomRepeatDialogOpen(true)}
+                        sx={{
+                          textTransform: "none",
+                          alignSelf: "flex-start",
+                          fontWeight: 600,
+                          borderColor: "primary.main",
+                          color: "primary.main",
+                          "&:hover": {
+                            borderColor: "primary.dark",
+                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                          },
+                        }}
+                      >
+                        Set custom repeat…
+                      </Button>
                     )}
                   </Stack>
                 )}
@@ -1885,6 +2042,20 @@ export default function DoctorSchedulePage() {
           </Stack>
         </Box>
       </Drawer>
+
+      <CustomRepeatDialog
+        open={customRepeatDialogOpen}
+        onClose={() => setCustomRepeatDialogOpen(false)}
+        onSave={(config) => {
+          setAddFormCustomRepeatConfig(config);
+          setCustomRepeatDialogOpen(false);
+        }}
+        initialConfig={addFormCustomRepeatConfig ?? undefined}
+        startDate={
+          addFormCustomRepeatConfig?.startDate ||
+          getDateForDay(weekStart, "Mon")
+        }
+      />
     </PageTemplate>
   );
 }

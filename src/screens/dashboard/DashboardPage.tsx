@@ -56,11 +56,6 @@ export default function DashboardPage() {
   const { appointments, encounters } = useOpdData();
   const dashboardDate = "2026-02-04";
 
-  // Show specialised doctor dashboard when logged in as DOCTOR
-  if (role === "DOCTOR") {
-    return <DoctorDashboardPage />;
-  }
-
   const todaysAppointments = React.useMemo(
     () =>
       appointments.filter((appointment) => appointment.date === dashboardDate),
@@ -190,6 +185,11 @@ export default function DashboardPage() {
       ).length,
     [],
   );
+
+  // Show specialised doctor dashboard when logged in as DOCTOR (after all hooks)
+  if (role === "DOCTOR") {
+    return <DoctorDashboardPage />;
+  }
 
   return (
     <PageTemplate title="Dashboard" currentPageTitle="Dashboard">
