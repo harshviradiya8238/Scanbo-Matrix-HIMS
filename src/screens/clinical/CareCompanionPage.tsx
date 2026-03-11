@@ -73,6 +73,22 @@ interface EnrolledPatient {
   isUrgent?: boolean;
 }
 
+const STATUS_FILTER_OPTIONS: { value: PatientStatus | "all"; label: string }[] = [
+  { value: "all", label: "All Status" },
+  { value: "high_risk", label: "High Risk" },
+  { value: "watch", label: "Watch" },
+  { value: "stable", label: "Stable" },
+  { value: "closed", label: "Closed" },
+];
+
+const PROGRAM_OPTIONS = [
+  "All Programs",
+  "Diabetes",
+  "Post-Cardiac",
+  "Hypertension",
+  "Post-Ortho",
+];
+
 const MOCK_PATIENTS: EnrolledPatient[] = [
   {
     id: "1",
@@ -101,7 +117,7 @@ const MOCK_PATIENTS: EnrolledPatient[] = [
     language: "Hindi",
     platforms: ["Apple Health"],
     initials: "RK",
-    avatarColor: "#E77B7B",
+    avatarColor: "#1172BA",
     isUrgent: true,
   },
   {
@@ -118,7 +134,7 @@ const MOCK_PATIENTS: EnrolledPatient[] = [
     language: "English",
     platforms: ["Fitbit"],
     initials: "MA",
-    avatarColor: "#F3C44E",
+    avatarColor: "#1172BA",
   },
   {
     id: "4",
@@ -134,7 +150,7 @@ const MOCK_PATIENTS: EnrolledPatient[] = [
     language: "Hindi",
     platforms: ["Google Fit"],
     initials: "SD",
-    avatarColor: "#2FA77A",
+    avatarColor: "#1172BA",
   },
   {
     id: "5",
@@ -149,7 +165,7 @@ const MOCK_PATIENTS: EnrolledPatient[] = [
     language: "Tamil",
     platforms: ["Apple Health"],
     initials: "PS",
-    avatarColor: "#7C3AED",
+    avatarColor: "#1172BA",
   },
   {
     id: "6",
@@ -164,7 +180,7 @@ const MOCK_PATIENTS: EnrolledPatient[] = [
     language: "English",
     platforms: ["Apple Health"],
     initials: "AM",
-    avatarColor: "#059669",
+    avatarColor: "#1172BA",
   },
   {
     id: "7",
@@ -179,25 +195,8 @@ const MOCK_PATIENTS: EnrolledPatient[] = [
     language: "Bengali",
     platforms: [],
     initials: "FB",
-    avatarColor: "#99abb4",
+    avatarColor: "#1172BA",
   },
-];
-
-const STATUS_FILTER_OPTIONS: { value: PatientStatus | "all"; label: string }[] =
-  [
-    { value: "all", label: "All Status" },
-    { value: "high_risk", label: "High Risk" },
-    { value: "watch", label: "Watch" },
-    { value: "stable", label: "Stable" },
-    { value: "closed", label: "Closed" },
-  ];
-
-const PROGRAM_OPTIONS = [
-  "All Programs",
-  "Diabetes",
-  "Post-Cardiac",
-  "Hypertension",
-  "Post-Ortho",
 ];
 
 function getStatusConfig(status: PatientStatus, theme: Theme) {
@@ -263,22 +262,20 @@ export default function CareCompanionPage() {
   const theme = useTheme();
   const canWrite = usePermission()("clinical.care_companion.write");
   const [search, setSearch] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState<PatientStatus | "all">(
-    "all",
-  );
-  const [programFilter, setProgramFilter] = React.useState("All Programs");
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [patients, setPatients] = React.useState<EnrolledPatient[]>(MOCK_PATIENTS);
   const [isEnrollDialogOpen, setIsEnrollDialogOpen] = React.useState(false);
   const [drawerPatient, setDrawerPatient] = React.useState<EnrolledPatient | null>(null);
+  const [drawerEditMode, setDrawerEditMode] = React.useState(false);
   const [closePlanDialogOpen, setClosePlanDialogOpen] = React.useState(false);
   const [closePlanPatient, setClosePlanPatient] = React.useState<EnrolledPatient | null>(null);
   const [closeReason, setCloseReason] = React.useState("completed");
   const [closingNotes, setClosingNotes] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<PatientStatus | "all">("all");
+  const [programFilter, setProgramFilter] = React.useState("All Programs");
 
   const activePatients = patients.filter((p) => p.status !== "closed");
-  const closedPatients = patients.filter((p) => p.status === "closed");
 
   const filteredPatients = React.useMemo(() => {
     let list = patients;
@@ -415,40 +412,6 @@ export default function CareCompanionPage() {
               bgcolor: "background.paper",
             }}
           >
-            {/* Tab Buttons */}
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Button
-                variant="contained"
-                size="small"
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 700,
-                  borderRadius: "20px",
-                  fontSize: "0.8rem",
-                  px: 1.5,
-                  boxShadow: "none",
-                  "&:hover": { boxShadow: "none" },
-                }}
-              >
-                All Enrolled ({patients.length})
-              </Button>
-              <Button
-                variant="text"
-                size="small"
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 600,
-                  color: "text.secondary",
-                  borderRadius: "20px",
-                  fontSize: "0.8rem",
-                  px: 1.5,
-                  "&:hover": { bgcolor: "action.hover" },
-                }}
-              >
-                Closed ({closedPatients.length})
-              </Button>
-            </Stack>
-
             {/* Search + Filters */}
             <Stack
               direction="row"
@@ -456,30 +419,41 @@ export default function CareCompanionPage() {
               alignItems="center"
               flexWrap="wrap"
               useFlexGap
+              sx={{ flex: 1, minWidth: 0 }}
             >
+              <Box sx={{ flex: 1, minWidth: 200 }}>
               <TextField
                 placeholder="Search patient, ID, condition..."
                 size="small"
+                fullWidth
                 value={search}
                 onChange={(e) => setSearch(e.target.value as string)}
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon
-                        sx={{ color: "text.secondary", fontSize: "1.1rem" }}
-                      />
+                    <InputAdornment position="start" sx={{ pl: 0.75 }}>
+                      <SearchIcon sx={{ fontSize: 20, color: "text.secondary" }} />
                     </InputAdornment>
                   ),
                 }}
                 sx={{
-                  width: 240,
                   "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    bgcolor: "background.default",
+                    minHeight: 44,
+                    borderRadius: 2.5,
                     fontSize: "0.875rem",
+                    backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                    "&:hover": {
+                      backgroundColor: alpha(theme.palette.primary.main, 0.06),
+                    },
+                    "&.Mui-focused": {
+                      backgroundColor: "background.paper",
+                      "& fieldset": {
+                        borderColor: "primary.main",
+                      },
+                    },
                   },
                 }}
               />
+              </Box>
               <Select
                 value={statusFilter}
                 onChange={(e) =>
@@ -535,8 +509,8 @@ export default function CareCompanionPage() {
                   <TableCell sx={{ ...HEADER_SX, minWidth: 140 }}>
                     Adherence
                   </TableCell>
-                  <TableCell sx={HEADER_SX}>Last Check-In</TableCell>
-                  <TableCell sx={{ ...HEADER_SX }} align="right">
+                  <TableCell align="center" sx={HEADER_SX}>Last Check-In</TableCell>
+                  <TableCell sx={{ ...HEADER_SX }} align="center">
                     Actions
                   </TableCell>
                 </TableRow>
@@ -737,18 +711,18 @@ export default function CareCompanionPage() {
                       </TableCell>
 
                       {/* Last Check-In */}
-                      <TableCell sx={{ py: 1.5 }}>
+                      <TableCell align="center" sx={{ py: 1.5 }}>
                         <Typography variant="body2" color="text.secondary">
                           {p.lastCheckIn}
                         </Typography>
                       </TableCell>
 
                       {/* Actions */}
-                      <TableCell sx={{ py: 1.5 }} align="right">
+                      <TableCell sx={{ py: 1.5 }} align="center">
                         <Stack
                           direction="row"
                           spacing={0.25}
-                          justifyContent="flex-end"
+                          justifyContent="center"
                           alignItems="center"
                         >
                           {p.status !== "closed" && p.isUrgent ? (
@@ -794,6 +768,10 @@ export default function CareCompanionPage() {
                           {p.status !== "closed" && (
                             <IconButton
                               size="small"
+                              onClick={() => {
+                                setDrawerPatient(p);
+                                setDrawerEditMode(true);
+                              }}
                               sx={{
                                 color: "text.secondary",
                                 "&:hover": {
@@ -807,7 +785,10 @@ export default function CareCompanionPage() {
                           )}
                           <IconButton
                             size="small"
-                            onClick={() => setDrawerPatient(p)}
+                            onClick={() => {
+                              setDrawerPatient(p);
+                              setDrawerEditMode(false);
+                            }}
                             sx={{
                               color: "text.secondary",
                               "&:hover": {
@@ -936,8 +917,16 @@ export default function CareCompanionPage() {
 
       <PatientDetailDrawer
         open={!!drawerPatient}
-        onClose={() => setDrawerPatient(null)}
+        onClose={() => {
+          setDrawerPatient(null);
+          setDrawerEditMode(false);
+        }}
         patient={drawerPatient}
+        editMode={drawerEditMode}
+        onClosePlanClick={(p) => {
+          setClosePlanPatient(p as EnrolledPatient);
+          setClosePlanDialogOpen(true);
+        }}
       />
 
       {/* Close Care Plan Dialog */}
@@ -1203,9 +1192,10 @@ export default function CareCompanionPage() {
           <Button
             variant="contained"
             color="error"
+
             disableElevation
-            startIcon={<LockIcon sx={{ fontSize: 16 }} />}
-            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1.5, px: 2.5 }}
+            startIcon={<LockIcon sx={{ fontSize: 16 , color: "common.white"}} />}
+            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1.5, px: 2.5,color: "common.white" }}
             onClick={() => {
               if (closePlanPatient) {
                 setPatients((prev) =>

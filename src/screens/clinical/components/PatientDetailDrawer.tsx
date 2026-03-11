@@ -6,15 +6,12 @@ import {
   Box,
   Button,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Drawer,
   Grid,
   IconButton,
   LinearProgress,
   MenuItem,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -81,6 +78,8 @@ interface PatientDetailDrawerProps {
   open: boolean;
   onClose: () => void;
   patient: PatientDetailPatient | null;
+  editMode?: boolean;
+  onClosePlanClick?: (patient: PatientDetailPatient) => void;
 }
 
 function getStatusConfig(status: string, theme: Theme) {
@@ -309,22 +308,52 @@ export default function PatientDetailDrawer({
   open,
   onClose,
   patient,
+  editMode = false,
+  onClosePlanClick,
 }: PatientDetailDrawerProps) {
   const theme = useTheme();
   const [activeTab, setActiveTab] = React.useState("overview");
   const [painLevel, setPainLevel] = React.useState<number | null>(null);
   const [mood, setMood] = React.useState<string | null>(null);
-  const [closePlanDialogOpen, setClosePlanDialogOpen] = React.useState(false);
-  const [closeReason, setCloseReason] = React.useState("completed");
-  const [closingNotes, setClosingNotes] = React.useState("");
+  const [medications, setMedications] = React.useState<
+    { id: string; value: string }[]
+  >([
+    { id: "1", value: "Tab. Aspirin 75mg — Once daily" },
+    { id: "2", value: "Tab. Atorvastatin 40mg — Night" },
+    { id: "3", value: "Tab. Metoprolol 25mg — Twice daily" },
+  ]);
+
+  const [scheduleStatus, setScheduleStatus] = React.useState<
+    Record<string, "pending" | "done" | "missed">
+  >({
+    "today-8am": "missed",
+    "today-10am": "done",
+    "today-2pm": "done",
+    "today-4pm": "pending",
+    "tomorrow-8am": "pending",
+    "tomorrow-11am": "pending",
+  });
 
   React.useEffect(() => {
     if (open) {
-      setActiveTab("overview");
+      setActiveTab(editMode ? "careplan" : "overview");
       setPainLevel(null);
       setMood(null);
+      setMedications([
+        { id: "1", value: "Tab. Aspirin 75mg — Once daily" },
+        { id: "2", value: "Tab. Atorvastatin 40mg — Night" },
+        { id: "3", value: "Tab. Metoprolol 25mg — Twice daily" },
+      ]);
+      setScheduleStatus({
+        "today-8am": "missed",
+        "today-10am": "done",
+        "today-2pm": "done",
+        "today-4pm": "pending",
+        "tomorrow-8am": "pending",
+        "tomorrow-11am": "pending",
+      });
     }
-  }, [open]);
+  }, [open, editMode]);
 
   if (!patient) return null;
 
@@ -345,8 +374,9 @@ export default function PatientDetailDrawer({
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: { xs: "100%", sm: 500 },
-          maxWidth: "100%",
+          width: { xs: "100%", sm: 560 },
+          // width: "26%",
+          // maxWidth: "100%",
           boxShadow: "-4px 0 40px rgba(0,0,0,0.1)",
           bgcolor: "background.default",
         },
@@ -821,17 +851,17 @@ export default function PatientDetailDrawer({
                 {
                   heading: "Today",
                   items: [
-                    { time: "8:00 AM", title: "Morning Medications", sub: "Aspirin + Metoprolol", icon: MedicationIcon, alert: true, done: false },
-                    { time: "10:00 AM", title: "BP Check", sub: "Target <130/85", icon: HeartOutlineIcon, done: true },
-                    { time: "2:00 PM", title: "PROM Survey", sub: "Weekly outcomes form", icon: AssignmentIcon, done: true },
-                    { time: "4:00 PM", title: "Evening Medication", sub: "Metoprolol 25mg", icon: MedicationIcon, done: true },
+                    { id: "today-8am", time: "8:00 AM", title: "Morning Medications", sub: "Aspirin + Metoprolol", icon: MedicationIcon },
+                    { id: "today-10am", time: "10:00 AM", title: "BP Check", sub: "Target <130/85", icon: HeartOutlineIcon },
+                    { id: "today-2pm", time: "2:00 PM", title: "PROM Survey", sub: "Weekly outcomes form", icon: AssignmentIcon },
+                    { id: "today-4pm", time: "4:00 PM", title: "Evening Medication", sub: "Metoprolol 25mg", icon: MedicationIcon },
                   ],
                 },
                 {
                   heading: "Tomorrow",
                   items: [
-                    { time: "8:00 AM", title: "Morning Medications", sub: "Aspirin + Metoprolol", icon: MedicationIcon, done: false },
-                    { time: "11:00 AM", title: "Tele-Consultation", sub: "Weekly review call", icon: PhoneIcon, done: false },
+                    { id: "tomorrow-8am", time: "8:00 AM", title: "Morning Medications", sub: "Aspirin + Metoprolol", icon: MedicationIcon },
+                    { id: "tomorrow-11am", time: "11:00 AM", title: "Tele-Consultation", sub: "Weekly review call", icon: PhoneIcon },
                   ],
                 },
               ].map((section) => (
@@ -839,16 +869,20 @@ export default function PatientDetailDrawer({
                 <Box>
                   <SectionLabel>{section.heading}</SectionLabel>
                   <Grid container direction="column" spacing={1} sx={{ mt: 1 }}>
-                    {section.items.map((s) => (
-                      <Grid item key={s.time + s.title}>
+                    {section.items.map((s) => {
+                      const status = scheduleStatus[s.id] ?? "pending";
+                      const isMissed = status === "missed";
+                      const isDone = status === "done";
+                      const isPending = status === "pending";
+                      return (
+                      <Grid item key={s.id}>
                       <Box
-                        key={s.time + s.title}
                         sx={{
                           p: 1.5,
                           borderRadius: 2,
                           border: "1px solid",
-                          borderColor: s.alert ? alpha(theme.palette.error.main, 0.25) : "divider",
-                          bgcolor: s.alert ? alpha(theme.palette.error.main, 0.04) : "background.paper",
+                          borderColor: isMissed ? alpha(theme.palette.error.main, 0.25) : isPending ? alpha(theme.palette.primary.main, 0.25) : "divider",
+                          bgcolor: isMissed ? alpha(theme.palette.error.main, 0.04) : isPending ? alpha(theme.palette.primary.main, 0.04) : "background.paper",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
@@ -860,7 +894,7 @@ export default function PatientDetailDrawer({
                           <Typography
                             variant="caption"
                             fontWeight={700}
-                            sx={{ minWidth: 68, color: s.alert ? "error.main" : "text.secondary" }}
+                            sx={{ minWidth: 68, color: isMissed ? "error.main" : "text.secondary" }}
                           >
                             {s.time}
                           </Typography>
@@ -870,12 +904,12 @@ export default function PatientDetailDrawer({
                             sx={{
                               p: 0.75,
                               borderRadius: 1.25,
-                              bgcolor: s.alert ? alpha(theme.palette.error.main, 0.1) : alpha(theme.palette.primary.main, 0.08),
+                              bgcolor: isMissed ? alpha(theme.palette.error.main, 0.1) : alpha(theme.palette.primary.main, 0.08),
                               display: "flex",
                               flexShrink: 0,
                             }}
                           >
-                            <s.icon sx={{ fontSize: 16, color: s.alert ? "error.main" : "primary.main" }} />
+                            <s.icon sx={{ fontSize: 16, color: isMissed ? "error.main" : "primary.main" }} />
                           </Box>
                           </Grid>
                           <Grid item xs>
@@ -889,85 +923,136 @@ export default function PatientDetailDrawer({
                           </Box>
                           </Grid>
                         </Grid>
-                        {s.done ? (
+                        {isDone ? (
                           <Chip
                             size="small"
-                            label="Done ✓"
+                            icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
+                            label="Done"
                             sx={{
                               height: 22,
                               fontSize: "0.68rem",
                               fontWeight: 700,
-                              bgcolor: alpha(theme.palette.success.main, 0.1),
+                              bgcolor: alpha(theme.palette.success.main, 0.15),
                               color: "success.dark",
                               flexShrink: 0,
+                              "& .MuiChip-icon": { color: "inherit" },
                             }}
                           />
-                        ) : s.alert ? (
-                          <Chip
+                        ) : isMissed ? (
+                          <IconButton
                             size="small"
-                            label="Missed"
                             sx={{
-                              height: 22,
-                              fontSize: "0.68rem",
-                              fontWeight: 700,
-                              bgcolor: alpha(theme.palette.error.main, 0.1),
                               color: "error.main",
-                              flexShrink: 0,
+                              bgcolor: alpha(theme.palette.error.main, 0.1),
+                              "&:hover": { bgcolor: alpha(theme.palette.error.main, 0.2) },
                             }}
-                          />
-                        ) : null}
+                          >
+                            <CloseIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        ) : (
+                          <Stack direction="row" spacing={0.5}>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              onClick={() => setScheduleStatus((prev) => ({ ...prev, [s.id]: "done" }))}
+                              sx={{
+                                textTransform: "none",
+                                fontWeight: 700,
+                                fontSize: "0.68rem",
+                                py: 0.3,
+                                px: 1,
+                                minHeight: 22,
+                                borderRadius: 1.5,
+                                bgcolor: "primary.main",
+                              }}
+                            >
+                              Done ✓
+                            </Button>
+                            <IconButton
+                              size="small"
+                              onClick={() => setScheduleStatus((prev) => ({ ...prev, [s.id]: "missed" }))}
+                              sx={{
+                                color: "error.main",
+                                bgcolor: alpha(theme.palette.error.main, 0.08),
+                                "&:hover": { bgcolor: alpha(theme.palette.error.main, 0.15) },
+                              }}
+                            >
+                              <CloseIcon sx={{ fontSize: 15 }} />
+                            </IconButton>
+                          </Stack>
+                        )}
                       </Box>
                       </Grid>
-                    ))}
+                    );})}
                   </Grid>
                 </Box>
                 </Grid>
               ))}
 
               <Grid item>
-              <Box>
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                }}
+              >
                 <SectionLabel>Add Schedule Item</SectionLabel>
-                <Grid container direction="row" spacing={1} wrap="wrap" sx={{ mt: 1 }}>
+                <Grid container direction="column" spacing={1.5} sx={{ mt: 1 }}>
                   <Grid item>
-                  <TextField
-                    size="small"
-                    label="Time"
-                    type="time"
-                    defaultValue="08:00"
-                    sx={{ width: 110 }}
-                    InputLabelProps={{ shrink: true }}
-                  />
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
+                      <TextField
+                        size="small"
+                        label="Time"
+                        type="time"
+                        defaultValue="08:00"
+                        sx={{ minWidth: 120, flex: "1 1 100px" }}
+                        InputLabelProps={{ shrink: true }}
+                      />
+                      <TextField
+                        size="small"
+                        select
+                        label="Day"
+                        defaultValue="Today"
+                        sx={{ minWidth: 120, flex: "1 1 100px" }}
+                      >
+                        <MenuItem value="Today">Today</MenuItem>
+                        <MenuItem value="Tomorrow">Tomorrow</MenuItem>
+                      </TextField>
+                      <TextField
+                        size="small"
+                        select
+                        label="Type"
+                        defaultValue="Medication"
+                        sx={{ minWidth: 140, flex: "1 1 120px" }}
+                      >
+                        <MenuItem value="Medication">Medication</MenuItem>
+                        <MenuItem value="BP Check">BP Check</MenuItem>
+                        <MenuItem value="Call">Call</MenuItem>
+                      </TextField>
+                    </Box>
                   </Grid>
                   <Grid item>
-                  <TextField size="small" select label="Day" defaultValue="Today" sx={{ minWidth: 100 }}>
-                    <MenuItem value="Today">Today</MenuItem>
-                    <MenuItem value="Tomorrow">Tomorrow</MenuItem>
-                  </TextField>
+                    <TextField
+                      size="small"
+                      label="Title"
+                      placeholder="e.g. Morning Medication"
+                      fullWidth
+                    />
                   </Grid>
                   <Grid item>
-                  <TextField size="small" select label="Type" defaultValue="Medication" sx={{ minWidth: 130 }}>
-                    <MenuItem value="Medication">Medication</MenuItem>
-                    <MenuItem value="BP Check">BP Check</MenuItem>
-                    <MenuItem value="Call">Call</MenuItem>
-                  </TextField>
-                  </Grid>
-                  <Grid item xs>
-                  <TextField
-                    size="small"
-                    label="Title"
-                    placeholder="e.g. Morning Medication"
-                    sx={{ flex: 1, minWidth: 160 }}
-                  />
+                    <Button
+                      variant="contained"
+                      size="small"
+                      disableElevation
+                      sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1.5 }}
+                    >
+                      + Add Item
+                    </Button>
                   </Grid>
                 </Grid>
-                <Button
-                  variant="contained"
-                  size="small"
-                  disableElevation
-                  sx={{ mt: 1.5, textTransform: "none", fontWeight: 700, borderRadius: 1.5 }}
-                >
-                  + Add Item
-                </Button>
               </Box>
               </Grid>
             </Grid>
@@ -1176,41 +1261,69 @@ export default function PatientDetailDrawer({
               <Box>
                 <SectionLabel>Medications</SectionLabel>
                 <Grid container direction="column" spacing={0.75} sx={{ mt: 1 }}>
-                  {[
-                    "Tab. Aspirin 75mg — Once daily",
-                    "Tab. Atorvastatin 40mg — Night",
-                    "Tab. Metoprolol 25mg — Twice daily",
-                  ].map((m) => (
-                    <Grid item key={m}>
-                    <Box
-                      sx={{
-                        px: 2,
-                        py: 1.1,
-                        borderRadius: 2,
-                        border: "1px solid",
-                        borderColor: "divider",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        bgcolor: "background.paper",
-                      }}
-                    >
-                      <Grid container direction="row" spacing={1.25} alignItems="center">
-                        <Grid item><MedicationIcon sx={{ fontSize: 16, color: "primary.main" }} /></Grid>
-                        <Grid item><Typography variant="body2" fontWeight={500}>
-                          {m}
-                        </Typography></Grid>
-                      </Grid>
-                      <IconButton size="small" sx={{ color: "error.light", p: 0.5 }}>
-                        <CloseIcon sx={{ fontSize: 15 }} />
-                      </IconButton>
-                    </Box>
+                  {medications.map((m) => (
+                    <Grid item key={m.id}>
+                      <Box
+                        sx={{
+                          px: 2,
+                          py: 1,
+                          borderRadius: 2,
+                          border: "1px solid",
+                          borderColor: "divider",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 1,
+                          bgcolor: "background.paper",
+                        }}
+                      >
+                        <MedicationIcon
+                          sx={{ fontSize: 16, color: "primary.main", flexShrink: 0 }}
+                        />
+                        <TextField
+                          size="small"
+                          value={m.value}
+                          onChange={(e) =>
+                            setMedications((prev) =>
+                              prev.map((x) =>
+                                x.id === m.id ? { ...x, value: e.target.value } : x,
+                              ),
+                            )
+                          }
+                          placeholder="e.g. Tab. Aspirin 75mg — Once daily"
+                          fullWidth
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              bgcolor: "transparent",
+                              "& fieldset": { border: "none" },
+                            },
+                          }}
+                        />
+                        <IconButton
+                          size="small"
+                          sx={{ color: "error.main", p: 0.5, flexShrink: 0 }}
+                          onClick={() =>
+                            setMedications((prev) => prev.filter((x) => x.id !== m.id))
+                          }
+                        >
+                          <CloseIcon sx={{ fontSize: 15 }} />
+                        </IconButton>
+                      </Box>
                     </Grid>
                   ))}
                 </Grid>
                 <Button
                   variant="outlined"
                   size="small"
+                  onClick={() =>
+                    setMedications((prev) => [
+                      ...prev,
+                      {
+                        id: `med-${Date.now()}`,
+                        value: "",
+                      },
+                    ])
+                  }
                   sx={{ mt: 1.25, textTransform: "none", fontWeight: 700, borderRadius: 1.5 }}
                 >
                   + Add Medication
@@ -1298,7 +1411,7 @@ export default function PatientDetailDrawer({
               size="small"
               disableElevation
               startIcon={<LockIcon sx={{ fontSize: 18 }} />}
-              onClick={() => setClosePlanDialogOpen(true)}
+              onClick={() => patient && onClosePlanClick?.(patient)}
               sx={{
                 flex: 1,
                 textTransform: "none",
@@ -1313,150 +1426,6 @@ export default function PatientDetailDrawer({
           </Box>
         )}
       </Box>
-
-      {/* Close Care Plan Dialog */}
-      <Dialog
-        open={closePlanDialogOpen}
-        onClose={() => setClosePlanDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 2 },
-        }}
-      >
-        <DialogTitle sx={{ pb: 0 }}>
-          <Grid container direction="row" alignItems="center" justifyContent="space-between">
-            <Box>
-              <Typography variant="h6" fontWeight={700}>
-                Close Care Plan
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {patient.name} — {patient.program}
-              </Typography>
-            </Box>
-            <IconButton size="small" onClick={() => setClosePlanDialogOpen(false)}>
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Grid>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          {/* Warning */}
-          <Box
-            sx={{
-              p: 1.5,
-              borderRadius: 2,
-              bgcolor: alpha(theme.palette.warning.main, 0.08),
-              border: "1px solid",
-              borderColor: alpha(theme.palette.warning.main, 0.3),
-              mb: 2,
-            }}
-          >
-            <Grid container direction="row" spacing={1.25} alignItems="flex-start">
-              <Grid item>
-                <WarningIcon sx={{ color: "warning.main", fontSize: 22, mt: 0.2 }} />
-              </Grid>
-              <Grid item xs>
-                <Typography variant="body2" fontWeight={700} color="error.main">
-                  This will archive the patient&apos;s care plan.
-                </Typography>
-                <Typography variant="caption" color="error.main" display="block" sx={{ mt: 0.5 }}>
-                  Automated reminders and check-in requests will stop. All data will be archived and
-                  accessible for future reference. Re-enroll to restart.
-                </Typography>
-              </Grid>
-            </Grid>
-          </Box>
-
-          {/* Program Summary */}
-          <SectionLabel>Program Summary</SectionLabel>
-          <Box
-            sx={{
-              mt: 1,
-              mb: 2,
-              p: 2,
-              borderRadius: 2,
-              border: "1px solid",
-              borderColor: "divider",
-              bgcolor: "background.paper",
-            }}
-          >
-            <Grid container direction="column" spacing={0.75}>
-              {[
-                { k: "Patient", v: `${patient.name}, ${age} yrs` },
-                { k: "Program", v: patient.program },
-                { k: "Enrolled", v: enrolledDate },
-                { k: "Closing On", v: "10 Mar 2026" },
-                { k: "Total Check-ins", v: "3 logged" },
-                { k: "Overall Adherence", v: `${patient.adherence}%` },
-              ].map(({ k, v }) => (
-                <Grid item key={k}>
-                  <Grid container direction="row" justifyContent="space-between" alignItems="center">
-                    <Grid item>
-                      <Typography variant="body2" color="text.secondary">
-                        {k}
-                      </Typography>
-                    </Grid>
-                    <Grid item>
-                      <Typography
-                        variant="body2"
-                        fontWeight={600}
-                        color={k === "Overall Adherence" ? "error.main" : "text.primary"}
-                      >
-                        {v}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-
-          {/* Reason for Closing */}
-          <SectionLabel>Reason for Closing</SectionLabel>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            value={closeReason}
-            onChange={(e) => setCloseReason(e.target.value)}
-            sx={{ mt: 1, mb: 2 }}
-          >
-            <MenuItem value="completed">Program completed successfully</MenuItem>
-            <MenuItem value="transferred">Patient transferred</MenuItem>
-            <MenuItem value="withdrawn">Patient withdrew</MenuItem>
-            <MenuItem value="other">Other</MenuItem>
-          </TextField>
-
-          {/* Closing Notes */}
-          <SectionLabel>Closing Notes (Optional)</SectionLabel>
-          <TextField
-            multiline
-            rows={3}
-            fullWidth
-            size="small"
-            placeholder="e.g. Patient recovered well. Follow-up in 6 months..."
-            value={closingNotes}
-            onChange={(e) => setClosingNotes(e.target.value)}
-            sx={{ mt: 1 }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-          <Button variant="outlined" onClick={() => setClosePlanDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            startIcon={<LockIcon sx={{ fontSize: 18 }} />}
-            onClick={() => {
-              setClosePlanDialogOpen(false);
-              onClose();
-            }}
-          >
-            Close Care Plan
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Drawer>
   );
 }

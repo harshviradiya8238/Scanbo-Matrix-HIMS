@@ -226,9 +226,11 @@ export default function EnrollPatientDialog({
   const [selectedWearable, setSelectedWearable] =
     React.useState("Apple Health");
   const [notes, setNotes] = React.useState("");
-  const [medications, setMedications] = React.useState([
-    "Tab. Aspirin 75mg — Once daily",
-    "Tab. Atorvastatin 40mg — Night",
+  const [medications, setMedications] = React.useState<
+    { id: string; value: string }[]
+  >([
+    { id: "1", value: "Tab. Aspirin 75mg — Once daily" },
+    { id: "2", value: "Tab. Atorvastatin 40mg — Night" },
   ]);
 
   const handleNext = () =>
@@ -453,25 +455,24 @@ export default function EnrollPatientDialog({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon
-                        sx={{ color: "text.disabled", fontSize: 18 }}
-                      />
+                    <InputAdornment position="start" sx={{ pl: 0.75 }}>
+                      <SearchIcon sx={{ fontSize: 20, color: "text.secondary" }} />
                     </InputAdornment>
                   ),
                 }}
                 sx={{
                   "& .MuiOutlinedInput-root": {
+                    minHeight: 50,
                     borderRadius: 2.5,
-                    bgcolor: alpha(theme.palette.text.primary, 0.03),
-                    "& fieldset": {
-                      borderColor: "divider",
-                      borderWidth: "1.5px",
+                    backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                    "&:hover": {
+                      backgroundColor: alpha(theme.palette.primary.main, 0.06),
                     },
-                    "&:hover fieldset": { borderColor: "primary.main" },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "primary.main",
-                      borderWidth: 2,
+                    "&.Mui-focused": {
+                      backgroundColor: "background.paper",
+                      "& fieldset": {
+                        borderColor: "primary.main",
+                      },
                     },
                   },
                 }}
@@ -784,26 +785,48 @@ export default function EnrollPatientDialog({
                   flexWrap="wrap"
                   useFlexGap
                 >
-                  {DURATIONS.map((d) => (
-                    <Chip
-                      key={d}
-                      label={d}
-                      onClick={() => {}}
-                      variant={selectedDuration === d ? "filled" : "outlined"}
-                      color={selectedDuration === d ? "primary" : "default"}
-                      size="small"
-                      sx={{
-                        fontWeight: 600,
-                        borderRadius: 2,
-                        cursor: "pointer",
-                        fontSize: "0.75rem",
-                        border:
-                          selectedDuration === d
+                  {DURATIONS.map((d) => {
+                    const isActive = selectedDuration === d;
+                    return (
+                      <Chip
+                        key={d}
+                        icon={
+                          <Box
+                            sx={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: "50%",
+                              bgcolor: isActive ? "white" : "primary.main",
+                            }}
+                          />
+                        }
+                        label={d}
+                        onClick={() => setSelectedDuration(d)}
+                        sx={{
+                          fontWeight: 600,
+                          borderRadius: "20px",
+                          cursor: "pointer",
+                          fontSize: "0.8rem",
+                          py: 0.75,
+                          px: 1.5,
+                          bgcolor: isActive
+                            ? "primary.main"
+                            : alpha(theme.palette.primary.main, 0.06),
+                          color: isActive ? "white" : "primary.main",
+                          border: isActive
                             ? "none"
-                            : `1.5px solid ${alpha(theme.palette.text.primary, 0.15)}`,
-                      }}
-                    />
-                  ))}
+                            : `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+                          "& .MuiChip-icon": { ml: 0.75, mr: -0.25 },
+                          // "&:hover": {
+                          //   bgcolor: isActive
+                          //     ? "primary.main"
+                          //     : alpha(theme.palette.primary.main, 0.06),
+                          //   color: isActive ? "white" : "primary.main",
+                          // },
+                        }}
+                      />
+                    );
+                  })}
                 </Stack>
               </Box>
 
@@ -811,12 +834,12 @@ export default function EnrollPatientDialog({
               <Box>
                 <SectionLabel>💊 Medications</SectionLabel>
                 <Stack spacing={0.75}>
-                  {medications.map((m, i) => (
+                  {medications.map((m) => (
                     <Paper
-                      key={i}
+                      key={m.id}
                       elevation={0}
                       sx={{
-                        p: 1.25,
+                        p: 1,
                         px: 1.5,
                         borderRadius: 2,
                         border: "1.5px solid",
@@ -825,23 +848,36 @@ export default function EnrollPatientDialog({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
+                        gap: 1,
                       }}
                     >
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 500, color: "text.primary" }}
-                      >
-                        💊 {m}
-                      </Typography>
+                      <TextField
+                        size="small"
+                        value={m.value}
+                        onChange={(e) =>
+                          setMedications((prev) =>
+                            prev.map((x) =>
+                              x.id === m.id ? { ...x, value: e.target.value } : x,
+                            ),
+                          )
+                        }
+                        placeholder="e.g. Tab. Aspirin 75mg — Once daily"
+                        fullWidth
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            bgcolor: "transparent",
+                            "& fieldset": { border: "none" },
+                          },
+                        }}
+                      />
                       <IconButton
                         size="small"
                         onClick={() =>
-                          setMedications(
-                            medications.filter((_, mi) => mi !== i),
-                          )
+                          setMedications((prev) => prev.filter((x) => x.id !== m.id))
                         }
                         sx={{
                           color: "error.main",
+                          flexShrink: 0,
                           "&:hover": {
                             bgcolor: alpha(theme.palette.error.main, 0.08),
                           },
@@ -855,7 +891,10 @@ export default function EnrollPatientDialog({
                     startIcon={<AddIcon sx={{ fontSize: 16 }} />}
                     size="small"
                     onClick={() =>
-                      setMedications([...medications, "New Medication"])
+                      setMedications((prev) => [
+                        ...prev,
+                        { id: `med-${Date.now()}`, value: "" },
+                      ])
                     }
                     sx={{
                       justifyContent: "center",
@@ -894,25 +933,36 @@ export default function EnrollPatientDialog({
                       <Chip
                         key={item.label}
                         icon={React.cloneElement(item.icon, {
-                          sx: {
-                            fontSize: 13,
-                            color: isActive ? "inherit" : "text.secondary",
-                          },
+                          sx: { fontSize: 16 },
                         })}
                         label={item.label}
                         onClick={() => setSelectedChannel(item.label)}
-                        variant={isActive ? "filled" : "outlined"}
-                        color={isActive ? "primary" : "default"}
-                        size="small"
                         sx={{
                           fontWeight: 600,
-                          borderRadius: 2,
+                          borderRadius: "20px",
                           cursor: "pointer",
-                          fontSize: "0.75rem",
+                          fontSize: "0.8rem",
+                          py: 0.75,
+                          px: 1.5,
+                          bgcolor: isActive
+                            ? "primary.main"
+                            : alpha(theme.palette.primary.main, 0.06),
+                          color: isActive ? "white" : "primary.main",
                           border: isActive
                             ? "none"
-                            : `1.5px solid ${alpha(theme.palette.text.primary, 0.15)}`,
-                          "& .MuiChip-icon": { ml: 0.5 },
+                            : `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+                          "& .MuiChip-icon": {
+                            ml: 0.75,
+                            mr: -0.25,
+                            color: "inherit",
+                          },
+                          // "&:hover": {
+                          //   bgcolor: isActive
+                          //     ? "primary.main"
+                          //     : alpha(theme.palette.primary.main, 0.06),
+                          //   color: isActive ? "white" : "primary.main",
+                          //   "& .MuiChip-icon": { color: "inherit" },
+                          // },
                         }}
                       />
                     );
@@ -1185,9 +1235,9 @@ export default function EnrollPatientDialog({
                   💊 Medications ({medications.length})
                 </Typography>
                 <Stack spacing={0.75}>
-                  {medications.map((m, i) => (
+                  {medications.map((m) => (
                     <Typography
-                      key={i}
+                      key={m.id}
                       variant="body2"
                       sx={{
                         color: "text.primary",
@@ -1196,7 +1246,7 @@ export default function EnrollPatientDialog({
                         gap: 0.75,
                       }}
                     >
-                      💊 {m}
+                      💊 {m.value}
                     </Typography>
                   ))}
                 </Stack>
@@ -1271,32 +1321,6 @@ export default function EnrollPatientDialog({
                   alignItems: "flex-start",
                 }}
               >
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  spacing={0.4}
-                  sx={{
-                    bgcolor: "primary.main",
-                    borderRadius: 1.5,
-                    px: 0.75,
-                    py: 0.4,
-                    flexShrink: 0,
-                  }}
-                >
-                  <AutoAwesomeIcon
-                    sx={{ fontSize: 11, color: "common.white" }}
-                  />
-                  <Typography
-                    sx={{
-                      fontSize: "0.6rem",
-                      fontWeight: 900,
-                      color: "common.white",
-                      letterSpacing: "0.3px",
-                    }}
-                  >
-                    AI
-                  </Typography>
-                </Stack>
                 <Typography
                   variant="caption"
                   sx={{

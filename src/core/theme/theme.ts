@@ -286,6 +286,23 @@ const theme = createTheme(baseTheme, {
         },
       },
     },
+    MuiAutocomplete: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: baseTheme.palette.common.white,
+          boxShadow: cardShadow,
+          borderRadius: 12,
+          border: `1px solid ${alpha(baseTheme.palette.primary.main, 0.1)}`,
+        },
+        listbox: {
+          padding: '4px',
+          '& .MuiAutocomplete-option': {
+            borderRadius: 8,
+            margin: '2px 0',
+          },
+        },
+      },
+    },
     MuiAppBar: {
       styleOverrides: {
         root: {
