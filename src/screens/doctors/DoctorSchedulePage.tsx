@@ -155,8 +155,6 @@ function getDatesFromCustomRepeat(
       : null;
 
   const shouldStop = () => {
-    if (config.endType === "end_after" && out.length >= config.endAfter)
-      return true;
     if (out.length >= maxOccurrences) return true;
     return false;
   };
@@ -211,9 +209,7 @@ function getDatesFromCustomRepeat(
     }
   }
 
-  return config.endType === "end_after"
-    ? out.slice(0, config.endAfter)
-    : out;
+  return out;
 }
 
 // ─── Block → FullCalendar event ──────────────────────────────────────────────
