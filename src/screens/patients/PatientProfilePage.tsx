@@ -1128,7 +1128,7 @@ export default function PatientProfilePage() {
                     <Button size="small" variant="outlined" onClick={() => router.push(prescriptionsRoute)}>
                       Clinical Rx
                     </Button>
-                    <Button size="small" variant="outlined" onClick={() => router.push(withMrnQuery('/pharmacy/dispense', patient.mrn))}>
+                    <Button size="small" variant="outlined" onClick={() => router.push(withMrnQuery('/clinical/modules/willow', patient.mrn))}>
                       Pharmacy
                     </Button>
                   </Stack>

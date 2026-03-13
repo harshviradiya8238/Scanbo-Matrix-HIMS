@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import InventoryGrnPage from '@/src/screens/inventory/InventoryGrnPage';
 
 export default function GRNPage() {
-  return <PageTemplate title="GRN (Goods Receipt Note)" currentPageTitle="GRN" />;
+  return <InventoryGrnPage />;
 }

@@ -12,6 +12,8 @@ import AsapEmergencyPage from '@/src/screens/clinical/AsapEmergencyPage';
 import IpdRoundsPage from '@/src/screens/ipd/IpdRoundsPage';
 import LabDashboardPage from '@/src/screens/lab/dashboard/LabDashboardPage';
 import PatientPortalHomePage from '@/src/screens/patient-portal/PatientPortalHomePage';
+import WillowPharmacyPage from '@/src/screens/pharmacy/WillowPharmacyPage';
+import ResoluteBillingPage from '@/src/screens/billing/ResoluteBillingPage';
 import { ClinicalModuleDefinition } from '@/src/screens/clinical/module-registry';
 
 interface ClinicalModuleClientProps {
@@ -61,6 +63,14 @@ export default function ClinicalModuleClient({ moduleDefinition }: ClinicalModul
 
   if (moduleDefinition.slug === 'mychart') {
     return <PatientPortalHomePage />;
+  }
+
+  if (moduleDefinition.slug === 'willow') {
+    return <WillowPharmacyPage />;
+  }
+
+  if (moduleDefinition.slug === 'resolute-billing') {
+    return <ResoluteBillingPage />;
   }
 
   return <ClinicalModulePlaceholderPage moduleDefinition={moduleDefinition} />;

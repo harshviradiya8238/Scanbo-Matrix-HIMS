@@ -38,6 +38,8 @@ export default function IpdBillingSummaryFooter({
       <Card
         elevation={0}
         sx={{
+          backgroundColor: theme.palette.background.paper,
+          backgroundImage: 'none',
           borderTop: '1px solid',
           borderBottom: 0,
           borderLeft: 0,
@@ -50,13 +52,21 @@ export default function IpdBillingSummaryFooter({
           bottom: 0,
           zIndex: theme.zIndex.appBar + 2,
           boxShadow: `0 -8px 18px ${alpha(theme.palette.primary.main, 0.08)}`,
+          isolation: 'isolate',
           transition: theme.transitions.create(['left'], {
             duration: 220,
             easing: theme.transitions.easing.sharp,
           }),
         }}
       >
-        <Box sx={{ px: 2, py: 1.2 }}>
+        <Box
+          sx={{
+            px: 2,
+            py: 1.2,
+            backgroundColor: theme.palette.background.paper,
+            backgroundImage: 'none',
+          }}
+        >
           <Stack
             direction={{ xs: 'column', md: 'row' }}
             spacing={1.25}

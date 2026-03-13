@@ -27,7 +27,8 @@ export default function StatTile({
   sx,
 }: StatTileProps) {
   const theme = useTheme();
-  const palette = theme.palette.primary;
+  const palette = theme.palette[tone];
+  const isOutlined = variant === 'outlined';
 
   return (
     <Paper
@@ -35,10 +36,10 @@ export default function StatTile({
       sx={{
         p: 2,
         borderRadius: 2,
-        border: 'none',
+        border: isOutlined ? '1px solid' : 'none',
+        borderColor: isOutlined ? alpha(palette.main, 0.2) : 'transparent',
         boxShadow: cardShadow,
-        // backgroundColor: 'transparent',
-        backgroundColor: "rgba(17, 114, 186, 0.08)",
+        backgroundColor: isOutlined ? theme.palette.background.paper : alpha(palette.main, 0.08),
         ...sx,
       }}
     >

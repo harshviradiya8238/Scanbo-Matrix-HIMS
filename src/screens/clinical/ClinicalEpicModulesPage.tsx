@@ -233,8 +233,8 @@ export default function ClinicalEpicModulesPage() {
 
   return (
     <PageTemplate
-      title="Epic Module Reference"
-      currentPageTitle="Module Reference"
+      title="Clinical Module Reference"
+      currentPageTitle="Clinical Modules"
     >
       <Stack spacing={2}>
         <Card

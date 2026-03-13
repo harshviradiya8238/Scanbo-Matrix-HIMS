@@ -205,11 +205,11 @@ const IPD_RX_STORAGE_KEY = 'scanbo.hims.ipd.prescriptions.module.v1';
 const BILLING_MODULE_STORAGE_KEY = 'scanbo.hims.ipd.billing-medication.module.v1';
 
 const CHARGE_CATEGORY_TABS = [
-  { id: 'Medication', label: '💊 Medications' },
-  { id: 'Procedure', label: '🩺 Procedures' },
-  { id: 'Consumable', label: '🧴 Consumables' },
-  { id: 'Room', label: '🛏 Room Charges' },
-  { id: 'Lab', label: '🔬 Lab / Radiology' },
+  { id: 'Medication', label: 'Medications' },
+  { id: 'Procedure', label: 'Procedures' },
+  { id: 'Consumable', label: 'Consumables' },
+  { id: 'Room', label: 'Room Charges' },
+  { id: 'Lab', label: 'Lab / Radiology' },
 ] as const;
 
 const CATEGORY_UNITS: Record<BillingChargeCategory, string> = {
@@ -220,13 +220,21 @@ const CATEGORY_UNITS: Record<BillingChargeCategory, string> = {
   Lab: 'tests',
 };
 
-const ROUTE_BY_VIEW: Record<BillingModuleView, string> = {
-  'ipd-charges': '/ipd/charges',
-  invoices: '/billing/invoices',
-  payments: '/billing/payments',
-  insurance: '/billing/insurance',
-  refunds: '/billing/refunds',
+const TAB_BY_VIEW: Record<BillingModuleView, string> = {
+  'ipd-charges': 'charges',
+  invoices: 'invoices',
+  payments: 'payments',
+  insurance: 'insurance',
+  refunds: 'refunds',
 };
+
+const BILLING_VIEW_TABS: Array<{ id: BillingModuleView; label: string }> = [
+  { id: 'ipd-charges', label: 'Charges' },
+  { id: 'invoices', label: 'Invoices' },
+  { id: 'payments', label: 'Payments' },
+  { id: 'insurance', label: 'Insurance' },
+  { id: 'refunds', label: 'Refunds' },
+];
 
 const DEFAULT_INSURANCE_BY_PATIENT_ID: Record<string, BillingInsuranceProfile> = {
   'ipd-1': {
@@ -715,9 +723,26 @@ export default function IpdChargeDrugPage({ defaultView = 'ipd-charges' }: IpdCh
 
   React.useEffect(() => {
     const tabParam = searchParams.get('tab');
+    if (tabParam === 'invoices') {
+      setActiveView('invoices');
+      return;
+    }
+    if (tabParam === 'payments') {
+      setActiveView('payments');
+      return;
+    }
+    if (tabParam === 'insurance') {
+      setActiveView('insurance');
+      return;
+    }
+    if (tabParam === 'refunds') {
+      setActiveView('refunds');
+      return;
+    }
     if (tabParam === 'drug') {
       setActiveView('ipd-charges');
       setActiveChargeCategory('Medication');
+      return;
     }
     if (tabParam === 'charges') {
       setActiveView((current) => (pathname.startsWith('/ipd/charges') ? 'ipd-charges' : current));
@@ -836,15 +861,9 @@ export default function IpdChargeDrugPage({ defaultView = 'ipd-charges' }: IpdCh
     []
   );
 
-  const moduleHeaderRoute = React.useCallback(
-    (view: BillingModuleView): string => {
-      if (view === 'ipd-charges') {
-        return '/ipd/charges?tab=charges';
-      }
-      return ROUTE_BY_VIEW[view];
-    },
-    []
-  );
+  const moduleHeaderRoute = React.useCallback((view: BillingModuleView): string => {
+    return `/ipd/charges?tab=${TAB_BY_VIEW[view]}`;
+  }, []);
 
   const goToView = React.useCallback(
     (view: BillingModuleView) => {
@@ -859,19 +878,19 @@ export default function IpdChargeDrugPage({ defaultView = 'ipd-charges' }: IpdCh
   if (!selectedEncounter) {
     return (
       <PageTemplate
-        title="💵 Billing & Medication Charges"
+        title="Patient Billing Desk"
         header={
           <IpdPatientTopBar
-            moduleTitle="IPD Charge / Drug"
+            moduleTitle="IPD Charge Capture"
             sectionLabel="IPD"
-            pageLabel="Charge / Drug"
+            pageLabel="Billing Workflow"
             patient={null}
             fields={[]}
             patientOptions={[]}
             onSelectPatient={() => {}}
           />
         }
-        currentPageTitle="💵 Billing & Medication Charges"
+        currentPageTitle="Patient Billing Desk"
       >
         <Card elevation={0} sx={{ p: 2 }}>
           <Typography variant="body2" color="text.secondary">
@@ -943,9 +962,7 @@ export default function IpdChargeDrugPage({ defaultView = 'ipd-charges' }: IpdCh
     const next = activeEncounters.find((record) => record.patientId === patientId);
     if (!next) return;
     setSelectedPatientId(next.patientId);
-    const currentRoute = ROUTE_BY_VIEW[activeView];
-    const route = activeView === 'ipd-charges' ? `${currentRoute}?tab=charges` : currentRoute;
-    router.replace(withMrn(route), { scroll: false });
+    router.replace(withMrn(moduleHeaderRoute(activeView)), { scroll: false });
   };
 
   const openAddChargeDialog = (category?: BillingChargeCategory) => {
@@ -1317,9 +1334,9 @@ export default function IpdChargeDrugPage({ defaultView = 'ipd-charges' }: IpdCh
 
   const topBarHeader = (
     <IpdPatientTopBar
-      moduleTitle="IPD Charge / Drug"
+      moduleTitle="IPD Charge Capture"
       sectionLabel="IPD"
-      pageLabel="Charge / Drug"
+      pageLabel="Billing Workflow"
       patient={selectedTopBarPatient}
       fields={selectedTopBarFields}
       patientOptions={topBarPatientOptions}
@@ -1337,13 +1354,43 @@ export default function IpdChargeDrugPage({ defaultView = 'ipd-charges' }: IpdCh
   };
 
   return (
-    <PageTemplate title="💵 Billing & Medication Charges" header={topBarHeader}>
+    <PageTemplate title="Patient Billing Desk" header={topBarHeader}>
       <Stack spacing={2}>
         {!canManageClearance ? (
           <Alert severity="info">
             You are in read-only mode for billing/pharmacy clearance. Request `ipd.discharge.write` for updates.
           </Alert>
         ) : null}
+
+        <Card elevation={0} sx={sectionCardSx}>
+          <Box sx={{ px: 2, py: 1.5 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+              Patient Billing Desk
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35 }}>
+              This screen is patient-wise. Select patient from top bar, then work in Charges / Invoices / Payments /
+              Insurance / Refunds.
+            </Typography>
+            <Box sx={{ mt: 1 }}>
+              <IpdModuleTabs
+                tabs={BILLING_VIEW_TABS}
+                value={activeView}
+                onChange={(value) => {
+                  if (
+                    value !== 'ipd-charges' &&
+                    value !== 'invoices' &&
+                    value !== 'payments' &&
+                    value !== 'insurance' &&
+                    value !== 'refunds'
+                  ) {
+                    return;
+                  }
+                  goToView(value);
+                }}
+              />
+            </Box>
+          </Box>
+        </Card>
 
         {activeView === 'ipd-charges' ? (
           <Card
@@ -1369,7 +1416,7 @@ export default function IpdChargeDrugPage({ defaultView = 'ipd-charges' }: IpdCh
             >
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', lineHeight: 1.1 }}>
-                  💊 IPD Charges & Drug Management
+                  IPD Charge Capture
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Track medication, procedures, consumables, room, and lab charges for this inpatient.
@@ -1378,10 +1425,10 @@ export default function IpdChargeDrugPage({ defaultView = 'ipd-charges' }: IpdCh
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                 <Button size="small" variant="outlined" onClick={() => openAddChargeDialog()}>
-                  ➕ Add Charge
+                  Add Charge
                 </Button>
                 <Button size="small" variant="contained" onClick={() => generateInvoice()}>
-                  🧾 Generate Invoice
+                  Generate Invoice
                 </Button>
               </Stack>
             </Stack>
@@ -1394,34 +1441,30 @@ export default function IpdChargeDrugPage({ defaultView = 'ipd-charges' }: IpdCh
                 <Grid container spacing={1.5}>
                   <Grid xs={12} sm={6} lg={3}>
                     <IpdMetricCard
-                      label="💊 Medication Charges"
+                      label="Medication Charges"
                       value={formatCurrency(categoryTotals.medication)}
                       tone="primary"
-                      icon={<span>💊</span>}
                     />
                   </Grid>
                   <Grid xs={12} sm={6} lg={3}>
                     <IpdMetricCard
-                      label="🩺 Procedure Charges"
+                      label="Procedure Charges"
                       value={formatCurrency(categoryTotals.procedure)}
                       tone="info"
-                      icon={<span>🩺</span>}
                     />
                   </Grid>
                   <Grid xs={12} sm={6} lg={3}>
                     <IpdMetricCard
-                      label="🛏 Room & Nursing"
+                      label="Room & Nursing"
                       value={formatCurrency(categoryTotals.room)}
                       tone="success"
-                      icon={<span>🛏</span>}
                     />
                   </Grid>
                   <Grid xs={12} sm={6} lg={3}>
                     <IpdMetricCard
-                      label="🔬 Lab & Diagnostics"
+                      label="Lab & Diagnostics"
                       value={formatCurrency(categoryTotals.lab)}
                       tone="warning"
-                      icon={<span>🔬</span>}
                     />
                   </Grid>
                 </Grid>

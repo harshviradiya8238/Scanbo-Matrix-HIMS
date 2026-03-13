@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import InventoryItemsPage from '@/src/screens/inventory/InventoryItemsPage';
 
 export default function ItemsPage() {
-  return <PageTemplate title="Inventory Items" currentPageTitle="Items" />;
+  return <InventoryItemsPage />;
 }

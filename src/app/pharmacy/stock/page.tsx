@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import PharmacyStockPage from '@/src/screens/pharmacy/PharmacyStockPage';
 
 export default function StockPage() {
-  return <PageTemplate title="Pharmacy Stock" currentPageTitle="Stock" />;
+  return <PharmacyStockPage />;
 }
