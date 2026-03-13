@@ -23,6 +23,11 @@ const outlinedBorderColor = alpha(baseTheme.palette.primary.main, 0.18);
 
 const theme = createTheme(baseTheme, {
   components: {
+    MuiStack: {
+      defaultProps: {
+        useFlexGap: true,
+      },
+    },
     MuiCssBaseline: {
       styleOverrides: {
         html: {
@@ -278,6 +283,23 @@ const theme = createTheme(baseTheme, {
         paper: {
           backgroundColor: `${baseTheme.palette.common.white} !important`,
           backgroundImage: 'none',
+        },
+      },
+    },
+    MuiAutocomplete: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: baseTheme.palette.common.white,
+          boxShadow: cardShadow,
+          borderRadius: 12,
+          border: `1px solid ${alpha(baseTheme.palette.primary.main, 0.1)}`,
+        },
+        listbox: {
+          padding: '4px',
+          '& .MuiAutocomplete-option': {
+            borderRadius: 8,
+            margin: '2px 0',
+          },
         },
       },
     },

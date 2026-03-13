@@ -255,7 +255,7 @@ export default function PatientCasesPage() {
             >
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  My Cases
+                  Patient Cases
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   {rows.length} cases

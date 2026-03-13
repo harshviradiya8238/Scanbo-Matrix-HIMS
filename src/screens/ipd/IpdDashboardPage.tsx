@@ -228,7 +228,8 @@ export default function IpdDashboardPage() {
   const theme = useTheme();
   const router = useRouter();
   const encounterRows = useIpdEncounters();
-  const { permissions } = useUser();
+  const { permissions, role } = useUser();
+  const isDoctor = role === "DOCTOR";
 
   const activeEncounterRows = React.useMemo(
     () =>
@@ -535,7 +536,9 @@ export default function IpdDashboardPage() {
             IPD Dashboard
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Overview of all inpatients, bed status, and alerts.
+            {isDoctor
+              ? "Overview of your inpatients and clinical alerts."
+              : "Overview of all inpatients, bed status, and alerts."}
           </Typography>
         </Box>
       </WorkspaceHeaderCard>
@@ -547,12 +550,14 @@ export default function IpdDashboardPage() {
             gridTemplateColumns: {
               xs: "repeat(1, minmax(0, 1fr))",
               sm: "repeat(2, minmax(0, 1fr))",
-              md: "repeat(3, minmax(0, 1fr))",
-              xl: "repeat(5, minmax(0, 1fr))",
+              md: isDoctor ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+              xl: isDoctor ? "repeat(4, minmax(0, 1fr))" : "repeat(5, minmax(0, 1fr))",
             },
           }}
         >
-          {metricCards.map((metric) => (
+          {metricCards
+            .filter((m) => !isDoctor || m.id !== "available")
+            .map((metric) => (
             <IpdMetricCard
               key={metric.id}
               label={metric.label}
@@ -570,7 +575,7 @@ export default function IpdDashboardPage() {
             gap: 1.3,
             gridTemplateColumns: {
               xs: "1fr",
-              lg: "minmax(0, 1.2fr) minmax(0, 1fr)",
+              lg: isDoctor ? "1fr" : "minmax(0, 1.2fr) minmax(0, 1fr)",
             },
             alignItems: "start",
           }}
@@ -813,6 +818,7 @@ export default function IpdDashboardPage() {
               })}
             </Card>
 
+            {!isDoctor && (
             <Card
               elevation={0}
               sx={{
@@ -911,6 +917,7 @@ export default function IpdDashboardPage() {
                 ))}
               </Box>
             </Card>
+            )}
           </Stack>
         </Box>
       </Stack>

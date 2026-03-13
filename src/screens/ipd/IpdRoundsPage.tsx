@@ -1308,7 +1308,8 @@ export default function IpdRoundsPage() {
   const mrnParam = useMrnParam();
   const theme = useTheme();
   const encounterRows = useIpdEncounters();
-  const { permissions } = useUser();
+  const { permissions, role } = useUser();
+  const isDoctor = role === 'DOCTOR';
 
   const clinicalPatients = React.useMemo<ClinicalPatient[]>(() => {
     return encounterRows
@@ -1492,8 +1493,17 @@ export default function IpdRoundsPage() {
   React.useEffect(() => {
     const tabParam = searchParams.get('tab');
     if (!isClinicalTab(tabParam)) return;
+    if (isDoctor && (tabParam === 'nursing' || tabParam === 'billing')) {
+      setActiveTab('rounds');
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('tab', 'rounds');
+      router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname, {
+        scroll: false,
+      });
+      return;
+    }
     setActiveTab((currentTab) => (currentTab === tabParam ? currentTab : tabParam));
-  }, [searchParams]);
+  }, [searchParams, isDoctor, pathname, router]);
 
   React.useEffect(() => {
     writePersistedOrderBillingState({
@@ -1721,7 +1731,15 @@ export default function IpdRoundsPage() {
     { label: 'Discharge', route: '/ipd/discharge?tab=pending' },
   ];
 
-  const tabItems = CLINICAL_TABS.map((tab) => ({
+  const visibleTabs = React.useMemo(
+    () =>
+      isDoctor
+        ? CLINICAL_TABS.filter((t) => t.id !== 'nursing' && t.id !== 'billing')
+        : CLINICAL_TABS,
+    [isDoctor]
+  );
+
+  const tabItems = visibleTabs.map((tab) => ({
     ...tab,
     count:
       tab.id === 'orders'

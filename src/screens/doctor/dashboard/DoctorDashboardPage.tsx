@@ -37,7 +37,6 @@ import {
   PersonSearch as PersonSearchIcon,
   Receipt as ReceiptIcon,
   Schedule as ScheduleIcon,
-  Star as StarIcon,
   Warning as WarningIcon,
 } from "@mui/icons-material";
 import { useOpdData } from "@/src/store/opdHooks";
@@ -362,8 +361,7 @@ export default function DoctorDashboardPage() {
               </Avatar>
               <Box>
                 <Box sx={{ display: "flex", flexDirection: "row", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>{greeting}, Doctor 👋</Typography>
-                  <Chip icon={<StarIcon sx={{ fontSize: "14px !important" }} />} size="small" label="4.7 Rating" color="warning" variant="outlined" />
+                  <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>{greeting}, Doctor</Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.3 }}>
                   {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })} · General Medicine · MBBS, MD
