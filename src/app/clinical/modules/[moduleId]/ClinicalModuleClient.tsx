@@ -2,6 +2,7 @@
 
 import ClinicalModulePlaceholderPage from '@/src/screens/clinical/ClinicalModulePlaceholderPage';
 import EpicCareAmbulatoryPage from '@/src/screens/clinical/EpicCareAmbulatoryPage';
+import AsapEmergencyPage from '@/src/screens/clinical/AsapEmergencyPage';
 import CareCompanionPage from '@/src/screens/clinical/CareCompanionPage';
 import InfectionControlPage from '@/src/screens/clinical/InfectionControlPage';
 import RegistrationAdtPage from '@/src/screens/clinical/RegistrationAdtPage';
@@ -32,6 +33,9 @@ export default function ClinicalModuleClient({ moduleDefinition }: ClinicalModul
 
   if (moduleDefinition.slug === 'welcome-kiosk') {
     return <WelcomeKioskPage />;
+  }
+   if (moduleDefinition.slug === 'asap') {
+    return <AsapEmergencyPage />;
   }
 
   if (moduleDefinition.slug === 'bugsy-infection-control') {

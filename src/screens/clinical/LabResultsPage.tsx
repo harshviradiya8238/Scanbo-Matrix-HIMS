@@ -34,6 +34,7 @@ import ModuleHeaderCard from '@/src/screens/clinical/components/ModuleHeaderCard
 import WorkflowSectionCard from '@/src/screens/clinical/components/WorkflowSectionCard';
 import { useMrnParam } from '@/src/core/patients/useMrnParam';
 import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
+import { getPatientByMrn } from '@/src/mocks/global-patients';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { setResultState, updateResult } from '@/src/store/slices/labSlice';
 import { LabResult, ResultFlag, ResultState } from '@/src/core/laboratory/types';
@@ -92,7 +93,6 @@ export default function LabResultsPage() {
     reportedAt: '',
     verifiedBy: '',
   });
-  const [mrnApplied, setMrnApplied] = React.useState(false);
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
@@ -103,10 +103,26 @@ export default function LabResultsPage() {
     severity: 'success',
   });
 
-  const selectedResult = React.useMemo(
-    () => results.find((result) => result.id === selectedResultId) ?? results[0],
-    [results, selectedResultId]
+  const filteredResults = React.useMemo(
+    () => (mrnParam ? results.filter((r) => r.mrn === mrnParam) : results),
+    [mrnParam, results]
   );
+
+  const selectedResult = React.useMemo(
+    () =>
+      filteredResults.find((result) => result.id === selectedResultId) ??
+      filteredResults[0],
+    [filteredResults, selectedResultId]
+  );
+
+  const patientFromMrn = React.useMemo(
+    () => (mrnParam ? getPatientByMrn(mrnParam) : null),
+    [mrnParam]
+  );
+
+  const pageSubtitleResolved = mrnParam
+    ? formatPatientLabel(patientFromMrn?.name ?? selectedResult?.patientName, mrnParam)
+    : formatPatientLabel(selectedResult?.patientName, selectedResult?.mrn);
 
   React.useEffect(() => {
     if (results.length === 0) {
@@ -119,13 +135,14 @@ export default function LabResultsPage() {
   }, [results, selectedResultId]);
 
   React.useEffect(() => {
-    if (!mrnParam || mrnApplied) return;
+    if (!mrnParam) return;
     const match = results.find((result) => result.mrn === mrnParam);
     if (match) {
       setSelectedResultId(match.id);
+    } else {
+      setSelectedResultId('');
     }
-    setMrnApplied(true);
-  }, [mrnApplied, mrnParam, results]);
+  }, [mrnParam, results]);
 
   React.useEffect(() => {
     if (!selectedResult) return;
@@ -143,15 +160,17 @@ export default function LabResultsPage() {
     setSelectedTemplate(selectedResult.testName);
   }, [selectedResult]);
 
-  const pageSubtitle = formatPatientLabel(selectedResult?.patientName, selectedResult?.mrn);
   const withMrn = React.useCallback(
-    (route: string) => (selectedResult?.mrn ? `${route}?mrn=${selectedResult.mrn}` : route),
-    [selectedResult]
+    (route: string) => {
+      const mrn = mrnParam ?? selectedResult?.mrn;
+      return mrn ? `${route}?mrn=${mrn}` : route;
+    },
+    [mrnParam, selectedResult?.mrn]
   );
 
-  const pendingCount = results.filter((result) => result.state !== 'Released').length;
-  const criticalCount = results.filter((result) => result.flag === 'Critical').length;
-  const totalCount = results.length;
+  const pendingCount = filteredResults.filter((result) => result.state !== 'Released').length;
+  const criticalCount = filteredResults.filter((result) => result.flag === 'Critical').length;
+  const totalCount = filteredResults.length;
 
   const handleReviewResult = React.useCallback((resultId: string) => {
     setSelectedResultId(resultId);
@@ -273,7 +292,7 @@ export default function LabResultsPage() {
   };
 
   return (
-    <PageTemplate title="Lab Results" subtitle={pageSubtitle} currentPageTitle="Results">
+    <PageTemplate title="Lab Results" subtitle={pageSubtitleResolved} currentPageTitle="Results">
       <Stack spacing={2}>
         <ModuleHeaderCard
           title="Results Validation"
@@ -328,12 +347,31 @@ export default function LabResultsPage() {
           <Grid item xs={12} sx={{ display: 'flex' }}>
             <WorkflowSectionCard
               title="Result Queue"
-              subtitle="Click Review to open the details drawer."
+              subtitle={
+                mrnParam && filteredResults.length === 0
+                  ? `No lab results for this patient.`
+                  : 'Click Review to open the details drawer.'
+              }
               sx={{ flex: 1 }}
             >
+              {mrnParam && filteredResults.length === 0 ? (
+                <Box sx={{ py: 6, textAlign: 'center' }}>
+                  <Typography color="text.secondary" variant="body2">
+                    No lab results found for {patientFromMrn?.name ?? mrnParam}.
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    sx={{ mt: 2 }}
+                    onClick={() => router.push(withMrn('/patients/profile'))}
+                  >
+                    View Patient Profile
+                  </Button>
+                </Box>
+              ) : (
               <DataTable
                 tableId="lab-results-console"
-                rows={results}
+                rows={filteredResults}
                 columns={resultColumns}
                 rowHeight={80}
                 tableHeight={430}
@@ -346,6 +384,7 @@ export default function LabResultsPage() {
                   showQuickFilter: true,
                 }}
               />
+              )}
             </WorkflowSectionCard>
           </Grid>
         </Grid>

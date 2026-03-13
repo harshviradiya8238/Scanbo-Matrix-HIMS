@@ -31,6 +31,10 @@ import {
 } from "@/src/ui/components/atoms";
 import { IpdMetricCard } from "@/src/screens/ipd/components/ipd-ui";
 import { WorkspaceHeaderCard } from "@/src/ui/components/molecules";
+import {
+  CARE_COMPANION_ENROLLED,
+  type CareCompanionEnrolled,
+} from "@/src/mocks/care-companion";
 import EnrollPatientDialog from "./components/EnrollPatientDialog";
 import PatientDetailDrawer from "./components/PatientDetailDrawer";
 import { alpha, useTheme } from "@/src/ui/theme";
@@ -57,6 +61,7 @@ type PatientStatus = "stable" | "high_risk" | "watch" | "closed";
 interface EnrolledPatient {
   id: string;
   patientId: string;
+  mrn?: string;
   name: string;
   program: string;
   status: PatientStatus;
@@ -89,115 +94,37 @@ const PROGRAM_OPTIONS = [
   "Post-Ortho",
 ];
 
-const MOCK_PATIENTS: EnrolledPatient[] = [
-  {
-    id: "1",
-    patientId: "PT-865",
-    name: "Vikram Singh",
-    program: "Diabetes",
-    status: "stable",
-    adherence: 0,
-    lastCheckIn: "Just enrolled",
-    language: "Tamil",
-    platforms: ["Google Fit"],
-    initials: "VS",
+/** Map CARE_COMPANION_ENROLLED to EnrolledPatient for table */
+function mapToEnrolledPatient(p: CareCompanionEnrolled): EnrolledPatient {
+  const initials = p.name
+    .split(" ")
+    .map((part) => part.charAt(0))
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  return {
+    id: p.id,
+    patientId: p.mrn,
+    mrn: p.mrn,
+    name: p.name,
+    program: p.program,
+    status: p.status,
+    bp: p.bp,
+    glucose: p.glucose,
+    bpAlert: p.bpAlert,
+    glucoseAlert: p.glucoseAlert,
+    adherence: p.adherence,
+    lastCheckIn: p.lastCheckIn,
+    language: p.language,
+    platforms: p.platforms ?? [],
+    initials,
     avatarColor: "#1172BA",
-  },
-  {
-    id: "2",
-    patientId: "PT-892",
-    name: "Rajesh Kumar",
-    program: "Post-Cardiac",
-    status: "high_risk",
-    bp: "158/94",
-    bpAlert: true,
-    glucose: "108",
-    adherence: 48,
-    lastCheckIn: "2h ago",
-    language: "Hindi",
-    platforms: ["Apple Health"],
-    initials: "RK",
-    avatarColor: "#1172BA",
-    isUrgent: true,
-  },
-  {
-    id: "3",
-    patientId: "PT-014",
-    name: "Mohammed Ali",
-    program: "Hypertension",
-    status: "watch",
-    bp: "142/88",
-    bpAlert: true,
-    glucose: "115",
-    adherence: 71,
-    lastCheckIn: "4h ago",
-    language: "English",
-    platforms: ["Fitbit"],
-    initials: "MA",
-    avatarColor: "#1172BA",
-  },
-  {
-    id: "4",
-    patientId: "PT-059",
-    name: "Sunita Devi",
-    program: "Diabetes",
-    status: "watch",
-    bp: "12/454",
-    glucose: "4545",
-    glucoseAlert: true,
-    adherence: 67,
-    lastCheckIn: "Just now",
-    language: "Hindi",
-    platforms: ["Google Fit"],
-    initials: "SD",
-    avatarColor: "#1172BA",
-  },
-  {
-    id: "5",
-    patientId: "PT-177",
-    name: "Priya Sharma",
-    program: "Post-Cardiac",
-    status: "stable",
-    bp: "118/76",
-    glucose: "92",
-    adherence: 96,
-    lastCheckIn: "3h ago",
-    language: "Tamil",
-    platforms: ["Apple Health"],
-    initials: "PS",
-    avatarColor: "#1172BA",
-  },
-  {
-    id: "6",
-    patientId: "PT-203",
-    name: "Arjun Mehta",
-    program: "Hypertension",
-    status: "stable",
-    bp: "124/80",
-    glucose: "99",
-    adherence: 88,
-    lastCheckIn: "5h ago",
-    language: "English",
-    platforms: ["Apple Health"],
-    initials: "AM",
-    avatarColor: "#1172BA",
-  },
-  {
-    id: "7",
-    patientId: "PT-091",
-    name: "Fatima Begum",
-    program: "Post-Ortho",
-    status: "closed",
-    bp: "120/78",
-    glucose: "105",
-    adherence: 79,
-    lastCheckIn: "2d ago",
-    language: "Bengali",
-    platforms: [],
-    initials: "FB",
-    avatarColor: "#1172BA",
-  },
-];
+    isUrgent: p.status === "high_risk",
+  };
+}
+
+const MOCK_PATIENTS: EnrolledPatient[] =
+  CARE_COMPANION_ENROLLED.map(mapToEnrolledPatient);
 
 function getStatusConfig(status: PatientStatus, theme: Theme) {
   switch (status) {
