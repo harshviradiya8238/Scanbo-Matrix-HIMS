@@ -30,6 +30,10 @@ import { addTest } from "@/src/store/slices/limsSlice";
 import AddTestModal from "../modals/AddTestModal";
 import { useLabTheme } from "../lab-theme";
 import LabWorkspaceCard from "../components/LabWorkspaceCard";
+import CommonDataGrid, {
+  type CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
+import type { LabTestCatalogItem } from "../lab-types";
 
 export default function LabTestCatalogPage() {
   const theme = useTheme();
@@ -45,6 +49,87 @@ export default function LabTestCatalogPage() {
   }>({ open: false, message: "" });
   const selectedCode = searchParams.get("id");
   const selectedTest = tests.find((t) => t.code === selectedCode);
+
+  const testColumns = React.useMemo<CommonColumn<LabTestCatalogItem>[]>(
+    () => [
+      {
+        headerName: "Code",
+        field: "code",
+        width: 100,
+        renderCell: (row) => (
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 700, color: "primary.main" }}
+          >
+            {row.code}
+          </Typography>
+        ),
+      },
+      {
+        headerName: "Test Name",
+        field: "name",
+        width: 250,
+        renderCell: (row) => (
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            {row.name}
+          </Typography>
+        ),
+      },
+      {
+        headerName: "Department",
+        field: "dept",
+        width: 150,
+        renderCell: (row) => (
+          <Chip
+            size="small"
+            label={row.dept}
+            sx={lab.chipSx(theme.palette.secondary.main)}
+          />
+        ),
+      },
+      {
+        headerName: "Method",
+        field: "method",
+        width: 150,
+      },
+      {
+        headerName: "TAT",
+        field: "tat",
+        width: 100,
+      },
+      {
+        headerName: "Price",
+        field: "price",
+        width: 100,
+        renderCell: (row) => (
+          <Typography variant="body2" sx={{ color: "success.main" }}>
+            ₹{row.price}
+          </Typography>
+        ),
+      },
+      {
+        headerName: "Actions",
+        field: "code",
+        width: 120,
+        align: "right",
+        headerAlign: "right",
+        renderCell: (row) => (
+          <Button
+            size="small"
+            variant="outlined"
+            color="info"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/lab/tests?id=${row.code}`);
+            }}
+          >
+            View
+          </Button>
+        ),
+      },
+    ],
+    [theme, lab, router],
+  );
 
   if (selectedTest) {
     return (
@@ -104,62 +189,13 @@ export default function LabTestCatalogPage() {
         }
       >
         <Stack spacing={2}>
-          <Box sx={lab.cardSx}>
-            <TableContainer sx={lab.tableContainerSx}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Code</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Test Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Method</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>TAT</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Price</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {tests.map((t) => (
-                    <TableRow
-                      key={t.code}
-                      hover
-                      sx={{ cursor: "pointer" }}
-                      onClick={() => router.push(`/lab/tests?id=${t.code}`)}
-                    >
-                      <TableCell
-                        sx={{ fontWeight: 700, color: "primary.main" }}
-                      >
-                        {t.code}
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>{t.name}</TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={t.dept}
-                          sx={lab.chipSx(theme.palette.secondary.main)}
-                        />
-                      </TableCell>
-                      <TableCell>{t.method}</TableCell>
-                      <TableCell>{t.tat}</TableCell>
-                      <TableCell sx={{ color: "success.main" }}>
-                        ₹{t.price}
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="info"
-                          onClick={() => router.push(`/lab/tests?id=${t.code}`)}
-                        >
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
+          <CommonDataGrid<LabTestCatalogItem>
+            rows={tests}
+            columns={testColumns}
+            getRowId={(row) => row.code}
+            searchPlaceholder="Search tests..."
+            onRowClick={(row) => router.push(`/lab/tests?id=${row.code}`)}
+          />
         </Stack>
       </LabWorkspaceCard>
       <AddTestModal

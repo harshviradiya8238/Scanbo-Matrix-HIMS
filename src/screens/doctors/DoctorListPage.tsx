@@ -1,6 +1,6 @@
 "use client";
-
 import * as React from "react";
+import { alpha, useTheme } from "@/src/ui/theme";
 import {
   Alert,
   Avatar,
@@ -13,24 +13,20 @@ import {
   FormControlLabel,
   IconButton,
   InputLabel,
-  Menu,
   MenuItem,
   Select,
   SelectChangeEvent,
   Snackbar,
   Stack,
   TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Checkbox,
   Typography,
 } from "@/src/ui/components/atoms";
-import { Card, CommonDialog, StatTile } from "@/src/ui/components/molecules";
-import { useTheme } from "@/src/ui/theme";
-import { getSoftSurface, getSubtleSurface } from "@/src/core/theme/surfaces";
-import { alpha } from "@mui/material";
+import {
+  Card,
+  CommonDialog,
+  StatTile,
+  WorkspaceHeaderCard,
+} from "@/src/ui/components/molecules";
 import {
   Add as AddIcon,
   Close as CloseIcon,
@@ -40,27 +36,29 @@ import {
   FilterList as FilterListIcon,
   LocalHospital as LocalHospitalIcon,
   MedicalServices as MedicalServicesIcon,
-  MoreVert as MoreVertIcon,
   People as PeopleIcon,
   Videocam as VideocamIcon,
   Star as StarIcon,
   Phone as PhoneIcon,
   Email as EmailIcon,
   Badge as BadgeIcon,
-  DragHandle as DragHandleIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  CalendarMonth as CalendarMonthIcon,
+  MoreVert as MoreVertIcon,
+  DeleteOutline as DeleteOutlineIcon,
 } from "@mui/icons-material";
-import ViewColumnIcon from "@mui/icons-material/ViewColumn";
-import {
-  GridActionsCellItem,
-  GridColDef,
-  GridFilterModel,
-  GridRenderCellParams,
-} from "@mui/x-data-grid";
-import DataTable, {
-  CommonDataGridState,
-} from "@/src/ui/components/organisms/DataTable";
+import { getSoftSurface, getSubtleSurface } from "@/src/core/theme/surfaces";
+import { Menu, ListItemIcon, ListItemText } from "@mui/material";
+import SimpleDataGrid, {
+  CommonColumn,
+  FilterDropdown,
+} from "@/src/components/table/CommonDataGrid";
 import { doctorData, doctorMetrics, DoctorRow } from "@/src/mocks/doctorServer";
+import { CARE_COMPANION_ENROLLED } from "@/src/mocks/care-companion";
 import { useRouter } from "next/navigation";
+
+/* ─── Helpers ────────────────────────────────────────────────────────────── */
 
 const statusColors: Record<
   string,
@@ -71,11 +69,6 @@ const statusColors: Record<
   Inactive: "default",
   Suspended: "error",
   "Pending Verification": "info",
-};
-
-const defaultFilterModel: GridFilterModel = {
-  items: [],
-  quickFilterValues: [],
 };
 
 const AVATAR_COLORS = [
@@ -95,7 +88,6 @@ const getAvatarColor = (name: string) =>
   AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 
 const DaysBadge = ({ days }: { days: string }) => {
-  const theme = useTheme();
   const active = days ? days.split(",").filter(Boolean) : [];
   return (
     <Stack direction="row" spacing={0.35} flexWrap="wrap" useFlexGap>
@@ -110,9 +102,9 @@ const DaysBadge = ({ days }: { days: string }) => {
             fontWeight: 700,
             lineHeight: 1.6,
             backgroundColor: active.includes(d)
-              ? alpha(theme.palette.primary.main, 0.15)
-              : alpha(theme.palette.text.disabled, 0.08),
-            color: active.includes(d) ? "primary.main" : "text.disabled",
+              ? alpha("#1172BA", 0.15)
+              : alpha("#6b7280", 0.08),
+            color: active.includes(d) ? "#1172BA" : "#9ca3af",
           }}
         >
           {d}
@@ -131,6 +123,8 @@ const RatingBadge = ({ rating }: { rating: number }) => (
   </Stack>
 );
 
+/* ─── Page Component ─────────────────────────────────────────────────────── */
+
 export default function DoctorListPage() {
   const theme = useTheme();
   const softSurface = getSoftSurface(theme);
@@ -144,27 +138,29 @@ export default function DoctorListPage() {
     null,
   );
   const [snackbar, setSnackbar] = React.useState<string | null>(null);
-  const [viewsAnchor, setViewsAnchor] = React.useState<null | HTMLElement>(
-    null,
-  );
-  const [externalState, setExternalState] =
-    React.useState<CommonDataGridState | null>(null);
-  const [columnsDialogOpen, setColumnsDialogOpen] = React.useState(false);
-  const [columnVisModel, setColumnVisModel] = React.useState<Record<
-    string,
-    boolean
-  > | null>(null);
-  const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
-  const [draggedIndex, setDraggedIndex] = React.useState<number | null>(null);
   const [confirmAction, setConfirmAction] = React.useState<{
     title: string;
     description: string;
     onConfirm: () => void;
   } | null>(null);
 
+  /* ── toolbar filter state ── */
+  const [statusFilter, setStatusFilter] = React.useState("All Status");
+  const [typeFilter, setTypeFilter] = React.useState("All Types");
+
+  /* ── row action menu ── */
+  const [actionMenu, setActionMenu] = React.useState<{
+    anchor: HTMLElement;
+    row: DoctorRow;
+  } | null>(null);
+  const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, row: DoctorRow) => {
+    e.stopPropagation();
+    setActionMenu({ anchor: e.currentTarget, row });
+  };
+  const handleMenuClose = () => setActionMenu(null);
+
+  /* ── advanced filter drawer state ── */
   const [filters, setFilters] = React.useState({
-    status: "All",
-    doctorType: "All",
     department: "All",
     specialization: "All",
     gender: "All",
@@ -172,69 +168,84 @@ export default function DoctorListPage() {
     regDateTo: "",
   });
 
-  const [filterModel, setFilterModel] =
-    React.useState<GridFilterModel>(defaultFilterModel);
+  /* ── filtered rows (toolbar + drawer combined) ── */
+  const filteredRows = React.useMemo(() => {
+    return rows.filter((row) => {
+      if (statusFilter !== "All Status" && row.status !== statusFilter)
+        return false;
+      if (typeFilter !== "All Types" && row.doctorType !== typeFilter)
+        return false;
+      if (filters.department !== "All" && row.department !== filters.department)
+        return false;
+      if (
+        filters.specialization !== "All" &&
+        row.primarySpecialization !== filters.specialization
+      )
+        return false;
+      if (filters.gender !== "All" && row.gender !== filters.gender)
+        return false;
+      if (
+        filters.regDateFrom &&
+        new Date(row.joinedDate) < new Date(filters.regDateFrom)
+      )
+        return false;
+      if (
+        filters.regDateTo &&
+        new Date(row.joinedDate) > new Date(filters.regDateTo)
+      )
+        return false;
+      return true;
+    });
+  }, [rows, statusFilter, typeFilter, filters]);
 
-  const columns = React.useMemo<GridColDef<DoctorRow>[]>(
+  const resetFilters = () => {
+    setStatusFilter("All Status");
+    setTypeFilter("All Types");
+    setFilters({
+      department: "All",
+      specialization: "All",
+      gender: "All",
+      regDateFrom: "",
+      regDateTo: "",
+    });
+  };
+
+  /* ── columns ── */
+  const columns = React.useMemo<CommonColumn<DoctorRow>[]>(
     () => [
-      {
-        field: "doctorId",
-        headerName: "Doctor ID",
-        width: 120,
-      },
       {
         field: "name",
         headerName: "Doctor",
         flex: 1,
-        minWidth: 260,
-        renderCell: (params) => (
-          <Stack
-            direction="row"
-            spacing={1.2}
-            alignItems="center"
-            justifyContent="center"
-            sx={{ height: "100%", width: "100%" }}
-          >
+        headerAlign: "center",
+        renderCell: (row: DoctorRow) => (
+          <Stack direction="row" spacing={1.5} alignItems="center">
             <Avatar
               sx={{
                 width: 36,
                 height: 36,
                 fontSize: 13,
                 fontWeight: 700,
-                bgcolor: getAvatarColor(params.row.firstName),
+                bgcolor: getAvatarColor(row.firstName),
                 flexShrink: 0,
               }}
             >
-              {params.row.firstName?.[0]}
-              {params.row.lastName?.[0]}
+              {row.firstName?.[0]}
+              {row.lastName?.[0]}
             </Avatar>
-
-            <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Box sx={{ minWidth: 0 }}>
               <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 700,
-                  lineHeight: 1.3,
-                  whiteSpace: "normal",
-                }}
+                sx={{ fontSize: "0.875rem", fontWeight: 700, lineHeight: 1.3 }}
               >
-                {params.row.name}
+                {row.name}
               </Typography>
-
               <Typography
                 variant="caption"
                 color="text.secondary"
                 sx={{ display: "block", lineHeight: 1.2 }}
               >
-                {params.row.primarySpecialization}
+                {row.primarySpecialization}
               </Typography>
-
-              {/* <Typography
-          variant="caption"
-          sx={{ color: 'primary.main', fontWeight: 600, fontSize: '0.68rem' }}
-        >
-          {params.row.qualifications}
-        </Typography> */}
             </Box>
           </Stack>
         ),
@@ -252,15 +263,15 @@ export default function DoctorListPage() {
       {
         field: "doctorType",
         headerName: "Type",
-        width: 120,
-        renderCell: (params) => (
+        align: "center",
+        headerAlign: "center",
+        width: 130,
+        renderCell: (row: DoctorRow) => (
           <Chip
-            label={params.row.doctorType}
+            label={row.doctorType}
             size="small"
             variant="outlined"
-            color={
-              params.row.doctorType === "Consultant" ? "primary" : "default"
-            }
+            color={row.doctorType === "Consultant" ? "primary" : "default"}
           />
         ),
       },
@@ -268,22 +279,17 @@ export default function DoctorListPage() {
         field: "status",
         headerName: "Status",
         width: 160,
-        headerAlign: "center",
         align: "center",
-        renderCell: (params) => (
-          <Stack
-            spacing={0.5}
-            alignItems="center"
-            justifyContent="center"
-            sx={{ width: "100%", height: "100%" }}
-          >
+        headerAlign: "center",
+        renderCell: (row: DoctorRow) => (
+          <Stack spacing={0.4} alignItems="center">
             <Chip
-              label={params.row.status}
+              label={row.status}
               size="small"
-              color={statusColors[params.row.status]}
-              variant={params.row.status === "Inactive" ? "outlined" : "filled"}
+              color={statusColors[row.status]}
+              variant={row.status === "Inactive" ? "outlined" : "filled"}
             />
-            {params.row.telemedicine && (
+            {row.telemedicine && (
               <Stack direction="row" spacing={0.4} alignItems="center">
                 <VideocamIcon sx={{ fontSize: 11, color: "info.main" }} />
                 <Typography
@@ -302,286 +308,74 @@ export default function DoctorListPage() {
         ),
       },
       {
+        field: "availableDays",
+        headerName: "Schedule",
+        width: 210,
+        renderCell: (row: DoctorRow) => <DaysBadge days={row.availableDays} />,
+      },
+      {
         field: "todayAppointments",
         headerName: "Today",
-        width: 100,
-        renderCell: (params) => (
-          <Box
-            sx={{
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "100%",
-            }}
+        width: 80,
+        align: "center",
+        renderCell: (row: DoctorRow) => (
+          <Stack
+            direction="row"
+            spacing={0.5}
+            alignItems="center"
+            justifyContent="center"
           >
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <EventNoteIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {params.row.todayAppointments}
-              </Typography>
-            </Stack>
-          </Box>
+            <EventNoteIcon sx={{ fontSize: 13, color: "text.secondary" }} />
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {row.todayAppointments}
+            </Typography>
+          </Stack>
         ),
+      },
+      {
+        field: "rating",
+        headerName: "Rating",
+        width: 80,
+        align: "center",
+        renderCell: (row: DoctorRow) => <RatingBadge rating={row.rating} />,
       },
       {
         field: "mobile",
         headerName: "Contact",
-        width: 155,
+        width: 148,
       },
       {
         field: "joinedDate",
         headerName: "Joined",
-        width: 120,
-        valueGetter: (_value, row) =>
-          row?.joinedDate
+        width: 110,
+        valueGetter: (row) =>
+          row.joinedDate
             ? new Date(row.joinedDate).toLocaleDateString("en-IN")
             : "—",
       },
       {
         field: "actions",
         headerName: "Actions",
-        type: "actions",
-        width: 100,
-        getActions: (params) => [
-          <GridActionsCellItem
-            key="view"
-            label="View profile"
-            onClick={() => {
-              setSelectedDoctor(params.row);
-              setDetailsOpen(true);
+        width: 60,
+        align: "center",
+        renderCell: (row: DoctorRow) => (
+          <IconButton
+            size="small"
+            onClick={(e: React.MouseEvent<HTMLElement>) =>
+              handleMenuOpen(e, row)
+            }
+            sx={{
+              color: "text.secondary",
+              "&:hover": { color: "primary.main" },
             }}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="edit"
-            label="Edit doctor"
-            onClick={() => setSnackbar("Edit doctor (stub)")}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="schedule"
-            label="View schedule"
-            onClick={() => setSnackbar("View schedule (stub)")}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="assign"
-            label="Assign patients"
-            onClick={() => setSnackbar("Assign patients (stub)")}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="leave"
-            label="Mark on leave"
-            onClick={() =>
-              setConfirmAction({
-                title: "Mark doctor on leave?",
-                description: `${params.row.name} will be marked as On Leave and unavailable for appointments.`,
-                onConfirm: () => setSnackbar("Marked on leave (stub)"),
-              })
-            }
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="deactivate"
-            label="Deactivate"
-            onClick={() =>
-              setConfirmAction({
-                title: "Deactivate doctor account?",
-                description: `This will deactivate ${params.row.name}'s account and prevent login.`,
-                onConfirm: () => setSnackbar("Deactivated (stub)"),
-              })
-            }
-            showInMenu
-          />,
-        ],
+          >
+            <MoreVertIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        ),
       },
     ],
     [],
   );
-
-  const applyFilters = React.useCallback(() => {
-    const items: GridFilterModel["items"] = [];
-    if (filters.status !== "All")
-      items.push({
-        id: 1,
-        field: "status",
-        operator: "equals",
-        value: filters.status,
-      });
-    if (filters.doctorType !== "All")
-      items.push({
-        id: 2,
-        field: "doctorType",
-        operator: "equals",
-        value: filters.doctorType,
-      });
-    if (filters.department !== "All")
-      items.push({
-        id: 3,
-        field: "department",
-        operator: "equals",
-        value: filters.department,
-      });
-    if (filters.specialization !== "All")
-      items.push({
-        id: 4,
-        field: "primarySpecialization",
-        operator: "equals",
-        value: filters.specialization,
-      });
-    if (filters.gender !== "All")
-      items.push({
-        id: 5,
-        field: "gender",
-        operator: "equals",
-        value: filters.gender,
-      });
-    if (filters.regDateFrom)
-      items.push({
-        id: 6,
-        field: "joinedDate",
-        operator: "after",
-        value: filters.regDateFrom,
-      });
-    if (filters.regDateTo)
-      items.push({
-        id: 7,
-        field: "joinedDate",
-        operator: "before",
-        value: filters.regDateTo,
-      });
-
-    setFilterModel({
-      items,
-      quickFilterValues: filterModel.quickFilterValues ?? [],
-    });
-  }, [filters, filterModel.quickFilterValues]);
-
-  React.useEffect(() => {
-    applyFilters();
-  }, [applyFilters]);
-
-  // 1. Initial load from localStorage (run only once on mount)
-  React.useEffect(() => {
-    try {
-      const key = `scanbo:grid:doctor-list`;
-      const persisted =
-        typeof window !== "undefined" ? localStorage.getItem(key) : null;
-      if (persisted) {
-        const parsed = JSON.parse(persisted);
-        if (parsed?.columnVisibilityModel) {
-          setColumnVisModel(parsed.columnVisibilityModel);
-        }
-        if (parsed?.columnOrder) {
-          setColumnOrder(parsed.columnOrder);
-        }
-        if (parsed?.columnVisibilityModel || parsed?.columnOrder) return;
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    // Fallback if no persisted state
-    const defaultOrder = columns.map((c) => c.field);
-    setColumnOrder(defaultOrder);
-    setColumnVisModel(
-      defaultOrder.reduce(
-        (acc, field) => ({ ...acc, [field]: true }),
-        {} as Record<string, boolean>,
-      ),
-    );
-  }, []); // Mount only
-
-  // 2. Sync from externalState (e.g. Saved Views)
-  React.useEffect(() => {
-    if (externalState?.columnVisibilityModel) {
-      setColumnVisModel(
-        externalState.columnVisibilityModel as Record<string, boolean>,
-      );
-    }
-    if (externalState?.columnOrder) {
-      setColumnOrder(externalState.columnOrder);
-    }
-  }, [externalState?.columnVisibilityModel, externalState?.columnOrder]);
-
-  const applyColumnVisModel = (
-    model: Record<string, boolean>,
-    order?: string[],
-  ) => {
-    setColumnVisModel(model);
-    if (order) setColumnOrder(order);
-    setExternalState((prev) => ({
-      ...(prev ?? {}),
-      columnVisibilityModel: model,
-      columnOrder: order ?? columnOrder,
-    }));
-  };
-
-  const toggleColumn = (field: string) => {
-    // If model is null, start with all columns visible except the one being toggled
-    const current =
-      columnVisModel ??
-      columnOrder.reduce(
-        (acc, f) => ({ ...acc, [f]: true }),
-        {} as Record<string, boolean>,
-      );
-    const next = { ...current };
-
-    // Toggle: if it's undefined or true, set to false. If it's explicitly false, set to true.
-    next[field] = current[field] === false ? true : false;
-
-    applyColumnVisModel(next);
-  };
-
-  const resetColumnVisibility = () => {
-    const allVisible = columns.reduce(
-      (acc, c) => ({ ...acc, [c.field]: true }),
-      {} as Record<string, boolean>,
-    );
-    const defaultOrder = columns.map((c) => c.field);
-    applyColumnVisModel(allVisible, defaultOrder);
-  };
-
-  const savedViews = [
-    { label: "All Doctors", state: null },
-    {
-      label: "Active Consultants",
-      state: {
-        filterModel: {
-          items: [
-            { id: 1, field: "status", operator: "equals", value: "Active" },
-            {
-              id: 2,
-              field: "doctorType",
-              operator: "equals",
-              value: "Consultant",
-            },
-          ],
-        },
-        sortModel: [{ field: "rating", sort: "desc" }],
-      } satisfies CommonDataGridState,
-    },
-    {
-      label: "Telemedicine Doctors",
-      state: {
-        filterModel: {
-          items: [
-            { id: 1, field: "telemedicine", operator: "is", value: "true" },
-          ],
-        },
-        sortModel: [{ field: "todayAppointments", sort: "desc" }],
-      } satisfies CommonDataGridState,
-    },
-    {
-      label: "Busiest Today",
-      state: {
-        filterModel: { items: [] },
-        sortModel: [{ field: "todayAppointments", sort: "desc" }],
-      } satisfies CommonDataGridState,
-    },
-  ];
 
   const statCards = [
     {
@@ -610,32 +404,11 @@ export default function DoctorListPage() {
     },
   ] as const;
 
-  const resetFilters = () => {
-    setFilters({
-      status: "All",
-      doctorType: "All",
-      department: "All",
-      specialization: "All",
-      gender: "All",
-      regDateFrom: "",
-      regDateTo: "",
-    });
-    setFilterModel(defaultFilterModel);
-  };
-
+  /* ── render ── */
   return (
     <Box sx={{ px: 3, py: 3 }}>
       {/* Page Header */}
-      <Card
-        elevation={0}
-        sx={{
-          p: 2,
-          borderRadius: 2.5,
-          border: "1px solid",
-          borderColor: "divider",
-          backgroundColor: softSurface,
-        }}
-      >
+      <WorkspaceHeaderCard sx={{ mb: 2 }}>
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={2}
@@ -644,57 +417,73 @@ export default function DoctorListPage() {
         >
           <Box>
             <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
-              <Chip size="small" color="primary" label="Doctor Registry" />
               <Chip
                 size="small"
-                color="info"
+                color="primary"
+                label="Medical Staff"
+                sx={{ fontWeight: 600 }}
+              />
+              <Chip
+                size="small"
                 variant="outlined"
                 label="OPD + Telemedicine"
-              />
-              <Chip
-                size="small"
-                color="success"
-                variant="outlined"
-                label="India & International"
+                sx={{
+                  bgcolor: alpha(theme.palette.background.paper, 0.45),
+                  fontWeight: 600,
+                }}
               />
             </Stack>
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              Doctors
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 800,
+                color: "primary.main",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Doctor List
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Manage doctor profiles, specializations, schedules, and
-              credentialing across all departments.
+              Comprehensive registry of active consultants, specialists, and
+              telehealth practitioners.
             </Typography>
           </Box>
           <Stack
             direction="row"
-            spacing={1.5}
+            spacing={1.25}
             flexWrap="wrap"
             alignItems="center"
           >
-            <Button variant="outlined" startIcon={<CloudUploadIcon />}>
+            <Button
+              variant="outlined"
+              startIcon={<CloudUploadIcon />}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
               Import
-            </Button>
-            <Button variant="outlined" startIcon={<FileDownloadIcon />}>
-              Export
             </Button>
             <Button
               variant="outlined"
-              endIcon={<MoreVertIcon />}
-              onClick={(e) => setViewsAnchor(e.currentTarget)}
+              startIcon={<FileDownloadIcon />}
+              sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              Saved Views
+              Export
             </Button>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => router.push("/doctors/registration")}
+              sx={{
+                textTransform: "none",
+                fontWeight: 700,
+                boxShadow:
+                  "0 4px 12px " + alpha(theme.palette.primary.main, 0.25),
+              }}
             >
               Add Doctor
             </Button>
           </Stack>
         </Stack>
-      </Card>
+      </WorkspaceHeaderCard>
 
       {/* Stat Cards */}
       <Box
@@ -704,8 +493,8 @@ export default function DoctorListPage() {
           mt: 2,
           gridTemplateColumns: {
             xs: "1fr",
-            sm: "repeat(2, minmax(0, 1fr))",
-            lg: "repeat(4, minmax(0, 1fr))",
+            sm: "repeat(2, 1fr)",
+            lg: "repeat(4, 1fr)",
           },
         }}
       >
@@ -720,212 +509,49 @@ export default function DoctorListPage() {
         ))}
       </Box>
 
-      {/* Data Table Card */}
-      <Card
-        sx={{
-          mt: 2,
-          p: 2,
-          border: "1px solid",
-          borderColor: "divider",
-          backgroundColor: subtleSurface,
-        }}
-      >
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ mb: 2 }}
-        >
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              Doctor Registry
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {rows.length} doctors
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              startIcon={<FilterListIcon />}
-              onClick={() => setFilterDrawerOpen(true)}
-            >
-              Filters
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<ViewColumnIcon />}
-              onClick={() => setColumnsDialogOpen(true)}
-            >
-              Columns
-            </Button>
-            <Button variant="text" onClick={resetFilters}>
-              Clear filters
-            </Button>
-          </Stack>
-        </Stack>
-
-        <DataTable
-          tableId="doctor-list"
+      {/* Doctor Registry Table */}
+      <Box sx={{ mt: 2 }}>
+        <SimpleDataGrid<DoctorRow>
           columns={columns}
-          rows={rows}
-          rowHeight={76}
-          filterModel={filterModel}
-          onFilterModelChange={setFilterModel}
-          externalState={externalState}
-          toolbarConfig={{
-            title: "Doctors",
-            showSavedViews: true,
-            showPrint: true,
-            emptyCtaLabel: "Add Doctor",
-            onEmptyCtaClick: () => router.push("/doctors/registration"),
-          }}
-          onRowClick={(params) => {
-            setSelectedDoctor(params.row as DoctorRow);
+          rows={filteredRows}
+          getRowId={(row) => row.id}
+          showSerialNo={true}
+          searchPlaceholder="Search doctor, specialization, ID…"
+          searchFields={[
+            "name",
+            "doctorId",
+            "primarySpecialization",
+            "department",
+            "mobile",
+            "email",
+          ]}
+          filterDropdowns={[]}
+          defaultRowsPerPage={10}
+          onRowClick={(row) => {
+            setSelectedDoctor(row);
             setDetailsOpen(true);
           }}
-          renderBulkActions={() => (
+          emptyTitle="No doctors found"
+          emptyDescription="Try adjusting your filters or search term."
+          toolbarRight={
             <Stack direction="row" spacing={1}>
               <Button
-                size="small"
                 variant="outlined"
-                onClick={() => setSnackbar("Export selected (stub)")}
+                size="small"
+                startIcon={<FilterListIcon />}
+                onClick={() => setFilterDrawerOpen(true)}
               >
-                Export selected
+                Filters
               </Button>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() => setSnackbar("Send notification (stub)")}
-              >
-                Send notification
-              </Button>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() =>
-                  setConfirmAction({
-                    title: "Mark selected on leave?",
-                    description: "Selected doctors will be marked as On Leave.",
-                    onConfirm: () => setSnackbar("Marked on leave (stub)"),
-                  })
-                }
-              >
-                Mark on leave
-              </Button>
-              <Button
-                size="small"
-                color="error"
-                variant="outlined"
-                onClick={() =>
-                  setConfirmAction({
-                    title: "Deactivate selected doctors?",
-                    description:
-                      "This will deactivate all selected doctor accounts.",
-                    onConfirm: () => setSnackbar("Deactivated (stub)"),
-                  })
-                }
-              >
-                Deactivate
+              <Button variant="text" size="small" onClick={resetFilters}>
+                Clear
               </Button>
             </Stack>
-          )}
+          }
         />
+      </Box>
 
-        <Dialog
-          open={columnsDialogOpen}
-          onClose={() => setColumnsDialogOpen(false)}
-          fullWidth
-          maxWidth="xs"
-        >
-          <DialogTitle>Choose columns</DialogTitle>
-          <DialogContent>
-            <Stack spacing={1} sx={{ mt: 1 }}>
-              {columnOrder.map((field, index) => {
-                const col = columns.find((c) => c.field === field);
-                if (!col) return null;
-                return (
-                  <Box
-                    key={field}
-                    draggable
-                    onDragStart={(e) => {
-                      setDraggedIndex(index);
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      if (draggedIndex === null || draggedIndex === index)
-                        return;
-                      const newOrder = [...columnOrder];
-                      const item = newOrder.splice(draggedIndex, 1)[0];
-                      newOrder.splice(index, 0, item);
-                      setColumnOrder(newOrder);
-                      setDraggedIndex(index);
-                    }}
-                    onDragEnd={() => setDraggedIndex(null)}
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      p: 1,
-                      borderRadius: 1.5,
-                      border: "1px solid",
-                      borderColor:
-                        draggedIndex === index ? "primary.main" : "divider",
-                      bgcolor:
-                        draggedIndex === index
-                          ? alpha(theme.palette.primary.main, 0.05)
-                          : "transparent",
-                      cursor: "grab",
-                      "&:active": { cursor: "grabbing" },
-                      gap: 1,
-                    }}
-                  >
-                    <DragHandleIcon
-                      sx={{ color: "text.disabled", fontSize: 18 }}
-                    />
-                    <FormControlLabel
-                      sx={{ flex: 1, m: 0 }}
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={columnVisModel?.[field] !== false}
-                          onChange={() => toggleColumn(field)}
-                          sx={{ p: 0.5 }}
-                        />
-                      }
-                      label={
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {col.headerName ?? field}
-                        </Typography>
-                      }
-                    />
-                  </Box>
-                );
-              })}
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() => {
-                resetColumnVisibility();
-              }}
-            >
-              Reset
-            </Button>
-            <Button
-              onClick={() => {
-                applyColumnVisModel(columnVisModel ?? {}, columnOrder);
-                setColumnsDialogOpen(false);
-              }}
-              variant="contained"
-            >
-              Done
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Card>
-
-      {/* Filter Drawer */}
+      {/* ── Filter Drawer ── */}
       <Drawer
         anchor="right"
         open={filterDrawerOpen}
@@ -952,20 +578,18 @@ export default function DoctorListPage() {
           </Stack>
 
           <Stack spacing={2}>
+            {/* Status */}
             <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
               <Select
                 label="Status"
-                value={filters.status}
+                value={statusFilter}
                 onChange={(e: SelectChangeEvent<unknown>) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    status: e.target.value as string,
-                  }))
+                  setStatusFilter(e.target.value as string)
                 }
               >
                 {[
-                  "All",
+                  "All Status",
                   "Active",
                   "On Leave",
                   "Inactive",
@@ -979,20 +603,18 @@ export default function DoctorListPage() {
               </Select>
             </FormControl>
 
+            {/* Doctor Type */}
             <FormControl fullWidth size="small">
               <InputLabel>Doctor Type</InputLabel>
               <Select
                 label="Doctor Type"
-                value={filters.doctorType}
+                value={typeFilter}
                 onChange={(e: SelectChangeEvent<unknown>) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    doctorType: e.target.value as string,
-                  }))
+                  setTypeFilter(e.target.value as string)
                 }
               >
                 {[
-                  "All",
+                  "All Types",
                   "Consultant",
                   "Visiting",
                   "Resident",
@@ -1006,6 +628,7 @@ export default function DoctorListPage() {
               </Select>
             </FormControl>
 
+            {/* Department */}
             <FormControl fullWidth size="small">
               <InputLabel>Department</InputLabel>
               <Select
@@ -1143,7 +766,7 @@ export default function DoctorListPage() {
         </Box>
       </Drawer>
 
-      {/* Doctor Detail Drawer */}
+      {/* ── Doctor Detail Drawer ── */}
       <Drawer
         anchor="right"
         open={detailsOpen}
@@ -1158,12 +781,12 @@ export default function DoctorListPage() {
             flexDirection: "column",
           }}
         >
-          {/* Drawer Header */}
+          {/* Header */}
           <Box
             sx={{
               px: 2.5,
               py: 2,
-              background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+              background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary?.main ?? theme.palette.primary.dark})`,
               color: "#fff",
             }}
           >
@@ -1270,11 +893,11 @@ export default function DoctorListPage() {
             )}
           </Box>
 
-          {/* Drawer Body */}
+          {/* Body */}
           <Box sx={{ flex: 1, overflow: "auto", p: 2.5 }}>
             {selectedDoctor ? (
               <Stack spacing={2}>
-                {/* ID & License */}
+                {/* Identity */}
                 <Box>
                   <Typography
                     variant="caption"
@@ -1342,15 +965,15 @@ export default function DoctorListPage() {
                   <Stack spacing={0.6} sx={{ mt: 0.8 }}>
                     <Typography variant="body2">
                       <Box component="span" sx={{ fontWeight: 600 }}>
-                        Qualification:
-                      </Box>{" "}
-                      {selectedDoctor.qualifications}
-                    </Typography>
-                    <Typography variant="body2">
-                      <Box component="span" sx={{ fontWeight: 600 }}>
                         Designation:
                       </Box>{" "}
                       {selectedDoctor.designation}
+                    </Typography>
+                    <Typography variant="body2">
+                      <Box component="span" sx={{ fontWeight: 600 }}>
+                        Qualifications:
+                      </Box>{" "}
+                      {selectedDoctor.qualifications}
                     </Typography>
                     <Typography variant="body2">
                       <Box component="span" sx={{ fontWeight: 600 }}>
@@ -1362,7 +985,7 @@ export default function DoctorListPage() {
                       <Box component="span" sx={{ fontWeight: 600 }}>
                         Languages:
                       </Box>{" "}
-                      {selectedDoctor.languages}
+                      {selectedDoctor.languages ?? "—"}
                     </Typography>
                   </Stack>
                 </Box>
@@ -1404,62 +1027,39 @@ export default function DoctorListPage() {
 
                 <Divider />
 
-                {/* Availability */}
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    Availability
-                  </Typography>
-                  <Box sx={{ mt: 0.8 }}>
-                    <DaysBadge days={selectedDoctor.availableDays} />
-                    <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
-                      <Typography variant="body2">
-                        <Box component="span" sx={{ fontWeight: 600 }}>
-                          OPD Fee:
-                        </Box>{" "}
-                        ₹{selectedDoctor.consultationFee}
-                      </Typography>
-                      <Typography variant="body2">
-                        <Box component="span" sx={{ fontWeight: 600 }}>
-                          Today:
-                        </Box>{" "}
-                        {selectedDoctor.todayAppointments} appts
-                      </Typography>
-                    </Stack>
-                  </Box>
-                </Box>
-
-                <Divider />
-
-                {/* Stats */}
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    Statistics
-                  </Typography>
-                  <Stack
-                    direction="row"
-                    spacing={2}
-                    sx={{ mt: 0.8 }}
-                    flexWrap="wrap"
-                  >
+                {/* Metrics */}
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  {[
+                    {
+                      label: "Total Patients",
+                      value: selectedDoctor.totalPatients,
+                    },
+                    {
+                      label: "Today's Appts",
+                      value: selectedDoctor.todayAppointments,
+                    },
+                    {
+                      label: "Rating",
+                      value: `${selectedDoctor.rating.toFixed(1)} ⭐`,
+                    },
+                    {
+                      label: "Fee",
+                      value: `₹${selectedDoctor.consultationFee.toLocaleString("en-IN")}`,
+                    },
+                    {
+                      label: "Joined",
+                      value: new Date(
+                        selectedDoctor.joinedDate,
+                      ).toLocaleDateString("en-IN", {
+                        month: "short",
+                        year: "numeric",
+                      }),
+                    },
+                  ].map((item) => (
                     <Box
+                      key={item.label}
                       sx={{
-                        p: 1.2,
+                        p: 1,
                         borderRadius: 1.5,
                         border: "1px solid",
                         borderColor: "divider",
@@ -1468,58 +1068,18 @@ export default function DoctorListPage() {
                       }}
                     >
                       <Typography variant="caption" color="text.secondary">
-                        Total Patients
-                      </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                        {selectedDoctor.totalPatients}
-                      </Typography>
-                    </Box>
-                    <Box
-                      sx={{
-                        p: 1.2,
-                        borderRadius: 1.5,
-                        border: "1px solid",
-                        borderColor: "divider",
-                        flex: 1,
-                        minWidth: 80,
-                      }}
-                    >
-                      <Typography variant="caption" color="text.secondary">
-                        Rating
-                      </Typography>
-                      <Stack direction="row" spacing={0.4} alignItems="center">
-                        <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                          {selectedDoctor.rating}
-                        </Typography>
-                        <StarIcon sx={{ fontSize: 16, color: "#F3C44E" }} />
-                      </Stack>
-                    </Box>
-                    <Box
-                      sx={{
-                        p: 1.2,
-                        borderRadius: 1.5,
-                        border: "1px solid",
-                        borderColor: "divider",
-                        flex: 1,
-                        minWidth: 80,
-                      }}
-                    >
-                      <Typography variant="caption" color="text.secondary">
-                        Joined
+                        {item.label}
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {new Date(selectedDoctor.joinedDate).toLocaleDateString(
-                          "en-IN",
-                          { month: "short", year: "numeric" },
-                        )}
+                        {item.value}
                       </Typography>
                     </Box>
-                  </Stack>
-                </Box>
+                  ))}
+                </Stack>
 
                 <Divider />
 
-                {/* Action Buttons */}
+                {/* Actions */}
                 <Stack spacing={1}>
                   <Button
                     variant="contained"
@@ -1556,33 +1116,95 @@ export default function DoctorListPage() {
         </Box>
       </Drawer>
 
-      {/* Saved Views Menu */}
+      {/* ── Row Action Menu ── */}
       <Menu
-        anchorEl={viewsAnchor}
-        open={Boolean(viewsAnchor)}
-        onClose={() => setViewsAnchor(null)}
+        anchorEl={actionMenu?.anchor}
+        open={Boolean(actionMenu)}
+        onClose={handleMenuClose}
+        transformOrigin={{ horizontal: "right", vertical: "top" }}
+        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+        PaperProps={{
+          elevation: 3,
+          sx: {
+            minWidth: 190,
+            borderRadius: 2,
+            mt: 0.5,
+            "& .MuiMenuItem-root": {
+              py: 1,
+              px: 1.5,
+              fontSize: "0.875rem",
+              gap: 1.25,
+              borderRadius: 1,
+              mx: 0.5,
+              mb: 0.25,
+            },
+          },
+        }}
       >
-        {savedViews.map((view) => (
-          <MenuItem
-            key={view.label}
-            onClick={() => {
-              if (view.state?.filterModel)
-                setFilterModel(view.state.filterModel as GridFilterModel);
-              if (!view.state) setFilterModel(defaultFilterModel);
-              setExternalState(
-                view.state ?? {
-                  filterModel: defaultFilterModel,
-                  sortModel: [],
-                },
-              );
-              setViewsAnchor(null);
-            }}
-          >
-            {view.label}
-          </MenuItem>
-        ))}
+        <MenuItem
+          onClick={() => {
+            if (actionMenu) {
+              setSelectedDoctor(actionMenu.row);
+              setDetailsOpen(true);
+            }
+            handleMenuClose();
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 0 }}>
+            <VisibilityIcon sx={{ fontSize: 17, color: "primary.main" }} />
+          </ListItemIcon>
+          <ListItemText primary="View Profile" />
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (actionMenu)
+              setSnackbar(`Edit doctor ${actionMenu.row.name} (stub)`);
+            handleMenuClose();
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 0 }}>
+            <EditIcon sx={{ fontSize: 17, color: "text.secondary" }} />
+          </ListItemIcon>
+          <ListItemText primary="Edit Doctor" />
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            if (actionMenu)
+              setSnackbar(`View schedule for ${actionMenu.row.name} (stub)`);
+            handleMenuClose();
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 0 }}>
+            <CalendarMonthIcon sx={{ fontSize: 17, color: "text.secondary" }} />
+          </ListItemIcon>
+          <ListItemText primary="View Schedule" />
+        </MenuItem>
+
+        <Divider sx={{ my: 0.5 }} />
+
+        <MenuItem
+          onClick={() => {
+            if (actionMenu)
+              setConfirmAction({
+                title: "Delete Doctor",
+                description: `Are you sure you want to delete ${actionMenu.row.name}? This action cannot be undone.`,
+                onConfirm: () =>
+                  setSnackbar(`Deleted ${actionMenu.row.name} (stub)`),
+              });
+            handleMenuClose();
+          }}
+          sx={{ color: "error.main" }}
+        >
+          <ListItemIcon sx={{ minWidth: 0 }}>
+            <DeleteOutlineIcon sx={{ fontSize: 17, color: "error.main" }} />
+          </ListItemIcon>
+          <ListItemText primary="Delete" />
+        </MenuItem>
       </Menu>
 
+      {/* Snackbar */}
       <Snackbar
         open={Boolean(snackbar)}
         autoHideDuration={3000}
@@ -1594,6 +1216,7 @@ export default function DoctorListPage() {
         </Alert>
       </Snackbar>
 
+      {/* Confirm Dialog */}
       <CommonDialog
         open={Boolean(confirmAction)}
         onClose={() => setConfirmAction(null)}

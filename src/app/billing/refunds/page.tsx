@@ -1,5 +1,5 @@
-import IpdChargeDrugPage from '@/src/screens/ipd/IpdChargeDrugPage';
+import RefundsPage from "@/src/screens/billing/RefundsPage";
 
-export default function RefundsPage() {
-  return <IpdChargeDrugPage defaultView="refunds" />;
+export default function RefundsRoute() {
+  return <RefundsPage />;
 }

@@ -1,5 +1,5 @@
-import IpdChargeDrugPage from '@/src/screens/ipd/IpdChargeDrugPage';
+import InsurancePage from "@/src/screens/billing/InsurancePage";
 
-export default function InsurancePage() {
-  return <IpdChargeDrugPage defaultView="insurance" />;
+export default function InsuranceRoute() {
+  return <InsurancePage />;
 }

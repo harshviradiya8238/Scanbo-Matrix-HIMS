@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import * as React from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import PageTemplate from "@/src/ui/components/PageTemplate";
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Chip,
@@ -22,10 +23,10 @@ import {
   Tabs,
   TextField,
   Typography,
-} from '@/src/ui/components/atoms';
-import { Card, CommonDialog } from '@/src/ui/components/molecules';
-import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { alpha, useTheme } from '@/src/ui/theme';
+} from "@/src/ui/components/atoms";
+import { Card, CommonDialog } from "@/src/ui/components/molecules";
+import Grid from "@/src/ui/components/layout/AlignedGrid";
+import { alpha, useTheme } from "@/src/ui/theme";
 import {
   AssignmentTurnedIn as AssignmentTurnedInIcon,
   CalendarMonth as CalendarMonthIcon,
@@ -33,33 +34,40 @@ import {
   CloseRounded as CloseRoundedIcon,
   LocalPharmacy as LocalPharmacyIcon,
   Print as PrintIcon,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
+import CommonDataGrid, {
+  type CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
 import {
   DISCHARGE_CANDIDATES,
   DISCHARGE_CHECKLIST,
   INPATIENT_STAYS,
-} from './ipd-mock-data';
-import { useMrnParam } from '@/src/core/patients/useMrnParam';
-import { getPatientByMrn } from '@/src/mocks/global-patients';
-import { usePermission } from '@/src/core/auth/usePermission';
-import { ipdFormStylesSx } from './components/ipd-ui';
+} from "./ipd-mock-data";
+import { useMrnParam } from "@/src/core/patients/useMrnParam";
+import { getPatientByMrn } from "@/src/mocks/global-patients";
+import { usePermission } from "@/src/core/auth/usePermission";
+import { ipdFormStylesSx } from "./components/ipd-ui";
 import IpdPatientTopBar, {
   IPD_PATIENT_TOP_BAR_STICKY_OFFSET,
   IpdPatientOption,
   IpdPatientTopBarField,
-} from './components/IpdPatientTopBar';
+} from "./components/IpdPatientTopBar";
 import {
   markIpdEncounterDischarged,
   IpdEncounterRecord,
   syncIpdEncounterDischargeChecks,
   useIpdEncounterState,
-} from './ipd-encounter-context';
+} from "./ipd-encounter-context";
 
-type DischargeType = 'Regular' | 'Transfer' | 'AMA' | 'DAMA';
-type DischargeCondition = 'Stable' | 'Improved' | 'Recovered';
-type DischargeFlowTab = 'pending' | 'all' | 'avs' | 'discharged';
-type DischargeMedicationStatus = 'Prescribed' | 'Dispensed' | 'Administered' | 'Stopped';
-type BillingStatus = 'Pending' | 'Ready for Billing' | 'Cancelled';
+type DischargeType = "Regular" | "Transfer" | "AMA" | "DAMA";
+type DischargeCondition = "Stable" | "Improved" | "Recovered";
+type DischargeFlowTab = "pending" | "all" | "avs" | "discharged";
+type DischargeMedicationStatus =
+  | "Prescribed"
+  | "Dispensed"
+  | "Administered"
+  | "Stopped";
+type BillingStatus = "Pending" | "Ready for Billing" | "Cancelled";
 
 interface SharedPrescriptionRow {
   id: string;
@@ -104,13 +112,13 @@ interface BillingEntry {
   patientName: string;
   admissionId: string;
   encounterId: string;
-  category: 'Medication';
+  category: "Medication";
   serviceCode: string;
   serviceName: string;
   quantity: number;
   unitPrice: number;
   amount: number;
-  currency: 'INR';
+  currency: "INR";
   status: BillingStatus;
   orderedBy: string;
   orderedAt: string;
@@ -152,35 +160,35 @@ interface PersistedOrderBillingState {
   billingByPatient: Record<string, BillingEntry[]>;
 }
 
-const IPD_PRESCRIPTION_STORAGE_KEY = 'scanbo.hims.ipd.prescriptions.module.v1';
-const ORDER_BILLING_STORAGE_KEY = 'scanbo.hims.ipd.orders-billing.v1';
-const DISCHARGE_MEDICATION_BILLING_PREFIX = 'bill-rx-discharge-';
-const DISCHARGE_MEDICATION_RX_PREFIX = 'dc-rx-';
+const IPD_PRESCRIPTION_STORAGE_KEY = "scanbo.hims.ipd.prescriptions.module.v1";
+const ORDER_BILLING_STORAGE_KEY = "scanbo.hims.ipd.orders-billing.v1";
+const DISCHARGE_MEDICATION_BILLING_PREFIX = "bill-rx-discharge-";
+const DISCHARGE_MEDICATION_RX_PREFIX = "dc-rx-";
 
 const INSURANCE_BY_PATIENT_ID: Record<string, string> = {
-  'ipd-1': 'Star Health',
-  'ipd-2': 'HDFC Ergo',
-  'ipd-3': 'New India Assurance',
-  'ipd-4': 'No Insurance',
+  "ipd-1": "Star Health",
+  "ipd-2": "HDFC Ergo",
+  "ipd-3": "New India Assurance",
+  "ipd-4": "No Insurance",
 };
 
 const TOTAL_BILL_BY_PATIENT_ID: Record<string, number> = {
-  'ipd-1': 67000,
-  'ipd-2': 52000,
-  'ipd-3': 182000,
-  'ipd-4': 48000,
+  "ipd-1": 67000,
+  "ipd-2": 52000,
+  "ipd-3": 182000,
+  "ipd-4": 48000,
 };
 
 const DUE_BILL_BY_PATIENT_ID: Record<string, number> = {
-  'ipd-1': 16750,
-  'ipd-2': 8000,
-  'ipd-3': 32000,
-  'ipd-4': 27000,
+  "ipd-1": 16750,
+  "ipd-2": 8000,
+  "ipd-3": 32000,
+  "ipd-4": 27000,
 };
 
-const INR_CURRENCY = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
+const INR_CURRENCY = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
   maximumFractionDigits: 0,
 });
 
@@ -196,35 +204,39 @@ function buildInitialDraft(patientId: string): DischargeDraft {
   return {
     dischargeDate: defaultIsoDate(1),
     followUpDate: defaultIsoDate(14),
-    dischargeType: 'Regular',
-    conditionAtDischarge: 'Stable',
-    finalDiagnosis: patient?.diagnosis ?? '',
-    diagnosisAtDischarge: patient?.diagnosis ?? '',
-    hospitalCourse: '',
-    procedures: '',
+    dischargeType: "Regular",
+    conditionAtDischarge: "Stable",
+    finalDiagnosis: patient?.diagnosis ?? "",
+    diagnosisAtDischarge: patient?.diagnosis ?? "",
+    hospitalCourse: "",
+    procedures: "",
     dischargeMedicationRows: [],
     patientInstructions:
-      'Continue prescribed medications, maintain recommended diet, and report warning signs immediately.',
-    warningSigns: '',
-    followUpDepartment: patient?.consultant.includes('Surgery') ? 'Surgery OPD' : 'Medicine OPD',
-    followUpDoctor: patient?.consultant ?? '',
+      "Continue prescribed medications, maintain recommended diet, and report warning signs immediately.",
+    warningSigns: "",
+    followUpDepartment: patient?.consultant.includes("Surgery")
+      ? "Surgery OPD"
+      : "Medicine OPD",
+    followUpDoctor: patient?.consultant ?? "",
   };
 }
 
 function buildInitialDischargeMedicationDraft(): DischargeMedicationDraft {
   return {
-    medicationName: '',
-    dose: '',
-    route: 'Oral',
-    frequency: 'OD',
-    duration: '',
-    instructions: '',
+    medicationName: "",
+    dose: "",
+    route: "Oral",
+    frequency: "OD",
+    duration: "",
+    instructions: "",
     dispenseAtDischarge: true,
   };
 }
 
 function buildInitialChecklistState(patientId: string): ChecklistState {
-  const candidate = DISCHARGE_CANDIDATES.find((item) => item.patientId === patientId);
+  const candidate = DISCHARGE_CANDIDATES.find(
+    (item) => item.patientId === patientId,
+  );
 
   const baseState = DISCHARGE_CHECKLIST.reduce<ChecklistState>((acc, item) => {
     acc[item.id] = false;
@@ -235,15 +247,15 @@ function buildInitialChecklistState(patientId: string): ChecklistState {
     return baseState;
   }
 
-  if (candidate.billingStatus === 'Cleared') {
-    baseState['bill-clearance'] = true;
+  if (candidate.billingStatus === "Cleared") {
+    baseState["bill-clearance"] = true;
   }
 
-  if (candidate.pharmacyStatus === 'Ready') {
+  if (candidate.pharmacyStatus === "Ready") {
     baseState.pharmacy = true;
   }
 
-  if (candidate.transportStatus === 'Arranged') {
+  if (candidate.transportStatus === "Arranged") {
     baseState.transport = true;
   }
 
@@ -252,41 +264,44 @@ function buildInitialChecklistState(patientId: string): ChecklistState {
 
 function isRequiredChecklistComplete(checklistState: ChecklistState): boolean {
   return DISCHARGE_CHECKLIST.filter((item) => item.required).every(
-    (item) => checklistState[item.id]
+    (item) => checklistState[item.id],
   );
 }
 
 function readSharedPrescriptionStore(): SharedPrescriptionStore {
-  if (typeof window === 'undefined') return {};
+  if (typeof window === "undefined") return {};
   try {
     const raw = window.sessionStorage.getItem(IPD_PRESCRIPTION_STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as SharedPrescriptionStore;
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
   }
 }
 
 function writeSharedPrescriptionStore(state: SharedPrescriptionStore): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(IPD_PRESCRIPTION_STORAGE_KEY, JSON.stringify(state));
+    window.sessionStorage.setItem(
+      IPD_PRESCRIPTION_STORAGE_KEY,
+      JSON.stringify(state),
+    );
   } catch {
     // best effort rx sync
   }
 }
 
 function rxStatusRank(status: DischargeMedicationStatus): number {
-  if (status === 'Stopped') return 4;
-  if (status === 'Administered') return 3;
-  if (status === 'Dispensed') return 2;
+  if (status === "Stopped") return 4;
+  if (status === "Administered") return 3;
+  if (status === "Dispensed") return 2;
   return 1;
 }
 
 function mergeDischargeRxStatus(
   mappedStatus: DischargeMedicationStatus,
-  existingStatus?: DischargeMedicationStatus
+  existingStatus?: DischargeMedicationStatus,
 ): DischargeMedicationStatus {
   if (!existingStatus) return mappedStatus;
   return rxStatusRank(existingStatus) > rxStatusRank(mappedStatus)
@@ -295,9 +310,9 @@ function mergeDischargeRxStatus(
 }
 
 function syncDischargeMedicationPrescriptionStore(
-  drafts: Record<string, DischargeDraft>
+  drafts: Record<string, DischargeDraft>,
 ): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
     const currentStore = readSharedPrescriptionStore();
@@ -307,7 +322,10 @@ function syncDischargeMedicationPrescriptionStore(
       const existingRows = nextStore[patientId] ?? [];
       const existingById = new Map(existingRows.map((row) => [row.id, row]));
       const preservedRows = existingRows.filter(
-        (row) => !String(row.id).startsWith(`${DISCHARGE_MEDICATION_RX_PREFIX}${patientId}-`)
+        (row) =>
+          !String(row.id).startsWith(
+            `${DISCHARGE_MEDICATION_RX_PREFIX}${patientId}-`,
+          ),
       );
       const stay = INPATIENT_STAYS.find((item) => item.id === patientId);
 
@@ -316,11 +334,17 @@ function syncDischargeMedicationPrescriptionStore(
         .map((row) => {
           const rxId = `${DISCHARGE_MEDICATION_RX_PREFIX}${patientId}-${row.id}`;
           const existing = existingById.get(rxId);
-          const mergedStatus = mergeDischargeRxStatus('Prescribed', existing?.status);
-          const currentStamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const mergedStatus = mergeDischargeRxStatus(
+            "Prescribed",
+            existing?.status,
+          );
+          const currentStamp = new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
           const notes = row.instructions
             ? `Discharge medication. Instructions: ${row.instructions}`
-            : 'Discharge medication.';
+            : "Discharge medication.";
           const changed =
             !existing ||
             existing.medicationName !== row.medicationName ||
@@ -336,11 +360,14 @@ function syncDischargeMedicationPrescriptionStore(
             dose: row.dose,
             route: row.route,
             frequency: row.frequency,
-            duration: '',
+            duration: "",
             notes,
             status: mergedStatus,
-            prescribedBy: stay?.consultant ?? existing?.prescribedBy ?? 'Discharge Team',
-            updatedAt: changed ? currentStamp : existing?.updatedAt ?? currentStamp,
+            prescribedBy:
+              stay?.consultant ?? existing?.prescribedBy ?? "Discharge Team",
+            updatedAt: changed
+              ? currentStamp
+              : (existing?.updatedAt ?? currentStamp),
           };
         });
 
@@ -354,43 +381,57 @@ function syncDischargeMedicationPrescriptionStore(
 }
 
 function medicationRowSignature(
-  row: Pick<DischargeMedicationRow, 'medicationName' | 'dose' | 'route' | 'frequency'>
+  row: Pick<
+    DischargeMedicationRow,
+    "medicationName" | "dose" | "route" | "frequency"
+  >,
 ): string {
   return `${row.medicationName}|${row.dose}|${row.route}|${row.frequency}`.toLowerCase();
 }
 
-function mapSharedPrescriptionToDischargeRow(row: SharedPrescriptionRow): DischargeMedicationRow {
+function mapSharedPrescriptionToDischargeRow(
+  row: SharedPrescriptionRow,
+): DischargeMedicationRow {
   return {
     id: `dc-med-import-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     medicationName: row.medicationName,
-    dose: row.dose || '--',
-    route: row.route || '--',
-    frequency: row.duration ? `${row.frequency} | ${row.duration}` : row.frequency || '--',
-    instructions: '',
+    dose: row.dose || "--",
+    route: row.route || "--",
+    frequency: row.duration
+      ? `${row.frequency} | ${row.duration}`
+      : row.frequency || "--",
+    instructions: "",
     dispenseAtDischarge: true,
   };
 }
 
 function syncDischargeMedicationBilling(
   drafts: Record<string, DischargeDraft>,
-  encounterState: Record<string, IpdEncounterRecord>
+  encounterState: Record<string, IpdEncounterRecord>,
 ): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
     const raw = window.sessionStorage.getItem(ORDER_BILLING_STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Partial<PersistedOrderBillingState>) : {};
+    const parsed = raw
+      ? (JSON.parse(raw) as Partial<PersistedOrderBillingState>)
+      : {};
     const ordersByPatient =
-      parsed.ordersByPatient && typeof parsed.ordersByPatient === 'object'
+      parsed.ordersByPatient && typeof parsed.ordersByPatient === "object"
         ? parsed.ordersByPatient
         : {};
     const existingBillingByPatient = parsed.billingByPatient ?? {};
-    const nextBillingByPatient: Record<string, BillingEntry[]> = { ...existingBillingByPatient };
+    const nextBillingByPatient: Record<string, BillingEntry[]> = {
+      ...existingBillingByPatient,
+    };
 
     Object.entries(drafts).forEach(([patientId, draft]) => {
       const existingRows = nextBillingByPatient[patientId] ?? [];
       const preservedRows = existingRows.filter(
-        (row) => !String(row.id).startsWith(`${DISCHARGE_MEDICATION_BILLING_PREFIX}${patientId}-`)
+        (row) =>
+          !String(row.id).startsWith(
+            `${DISCHARGE_MEDICATION_BILLING_PREFIX}${patientId}-`,
+          ),
       );
       const encounter = encounterState[patientId];
       const stay = INPATIENT_STAYS.find((item) => item.id === patientId);
@@ -398,27 +439,30 @@ function syncDischargeMedicationBilling(
       const dischargeRows = draft.dischargeMedicationRows
         .filter((row) => row.dispenseAtDischarge)
         .map((row) => {
-          const nowStamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const nowStamp = new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
           return {
             id: `${DISCHARGE_MEDICATION_BILLING_PREFIX}${patientId}-${row.id}`,
             orderId: `rx-discharge-${patientId}-${row.id}`,
             patientId,
-            patientMrn: encounter?.mrn ?? stay?.mrn ?? '',
-            patientName: encounter?.patientName ?? stay?.patientName ?? '',
+            patientMrn: encounter?.mrn ?? stay?.mrn ?? "",
+            patientName: encounter?.patientName ?? stay?.patientName ?? "",
             admissionId: encounter?.admissionId ?? `adm-${patientId}`,
             encounterId: encounter?.encounterId ?? `enc-${patientId}`,
-            category: 'Medication' as const,
-            serviceCode: 'MED-DC',
+            category: "Medication" as const,
+            serviceCode: "MED-DC",
             serviceName: `${row.medicationName} (${row.dose})`,
             quantity: 1,
             unitPrice: 300,
             amount: 300,
-            currency: 'INR' as const,
-            status: 'Ready for Billing' as BillingStatus,
-            orderedBy: stay?.consultant ?? 'Discharge Team',
+            currency: "INR" as const,
+            status: "Ready for Billing" as BillingStatus,
+            orderedBy: stay?.consultant ?? "Discharge Team",
             orderedAt: nowStamp,
             statusUpdatedAt: nowStamp,
-            statusUpdatedBy: 'Discharge Team',
+            statusUpdatedBy: "Discharge Team",
           };
         });
 
@@ -431,7 +475,7 @@ function syncDischargeMedicationBilling(
         version: 1,
         ordersByPatient,
         billingByPatient: nextBillingByPatient,
-      })
+      }),
     );
   } catch {
     // best effort billing sync
@@ -445,59 +489,81 @@ export default function IpdDischargePage() {
   const searchParams = useSearchParams();
   const mrnParam = useMrnParam();
   const permissionGate = usePermission();
-  const canManageDischarge = permissionGate('ipd.discharge.write');
+  const canManageDischarge = permissionGate("ipd.discharge.write");
   const encounterState = useIpdEncounterState();
-  const initialPatientId = DISCHARGE_CANDIDATES[0]?.patientId ?? '';
+  const initialPatientId = DISCHARGE_CANDIDATES[0]?.patientId ?? "";
 
-  const [flowTab, setFlowTab] = React.useState<DischargeFlowTab>('pending');
-  const [selectedPatientId, setSelectedPatientId] = React.useState(initialPatientId);
-  const [saveStamp, setSaveStamp] = React.useState('');
-  const [completedPatientIds, setCompletedPatientIds] = React.useState<string[]>([]);
+  const [flowTab, setFlowTab] = React.useState<DischargeFlowTab>("pending");
+  const [selectedPatientId, setSelectedPatientId] =
+    React.useState(initialPatientId);
+  const [saveStamp, setSaveStamp] = React.useState("");
+  const [completedPatientIds, setCompletedPatientIds] = React.useState<
+    string[]
+  >([]);
   const [mrnApplied, setMrnApplied] = React.useState(false);
 
-  const [drafts, setDrafts] = React.useState<Record<string, DischargeDraft>>(() =>
-    DISCHARGE_CANDIDATES.reduce<Record<string, DischargeDraft>>((acc, candidate) => {
-      acc[candidate.patientId] = buildInitialDraft(candidate.patientId);
-      return acc;
-    }, {})
+  const [drafts, setDrafts] = React.useState<Record<string, DischargeDraft>>(
+    () =>
+      DISCHARGE_CANDIDATES.reduce<Record<string, DischargeDraft>>(
+        (acc, candidate) => {
+          acc[candidate.patientId] = buildInitialDraft(candidate.patientId);
+          return acc;
+        },
+        {},
+      ),
   );
 
-  const [checklists, setChecklists] = React.useState<Record<string, ChecklistState>>(() =>
-    DISCHARGE_CANDIDATES.reduce<Record<string, ChecklistState>>((acc, candidate) => {
-      acc[candidate.patientId] = buildInitialChecklistState(candidate.patientId);
-      return acc;
-    }, {})
+  const [checklists, setChecklists] = React.useState<
+    Record<string, ChecklistState>
+  >(() =>
+    DISCHARGE_CANDIDATES.reduce<Record<string, ChecklistState>>(
+      (acc, candidate) => {
+        acc[candidate.patientId] = buildInitialChecklistState(
+          candidate.patientId,
+        );
+        return acc;
+      },
+      {},
+    ),
   );
 
   const [errors, setErrors] = React.useState<DraftErrors>({});
-  const [completedEntries, setCompletedEntries] = React.useState<CompletedDischargeEntry[]>([]);
+  const [completedEntries, setCompletedEntries] = React.useState<
+    CompletedDischargeEntry[]
+  >([]);
 
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
-    severity: 'success' | 'error' | 'info';
+    severity: "success" | "error" | "info";
   }>({
     open: false,
-    message: '',
-    severity: 'success',
+    message: "",
+    severity: "success",
   });
 
   const [confirmDischargeOpen, setConfirmDischargeOpen] = React.useState(false);
-  const [confirmPatientId, setConfirmPatientId] = React.useState<string | null>(null);
+  const [confirmPatientId, setConfirmPatientId] = React.useState<string | null>(
+    null,
+  );
   const [confirmDischargeDraft, setConfirmDischargeDraft] = React.useState<{
     condition: DischargeCondition;
     followUpDate: string;
     instructions: string;
   }>({
-    condition: 'Stable',
+    condition: "Stable",
     followUpDate: defaultIsoDate(14),
-    instructions: '',
+    instructions: "",
   });
-  const [confirmDischargeError, setConfirmDischargeError] = React.useState('');
+  const [confirmDischargeError, setConfirmDischargeError] = React.useState("");
   const [dischargeMedicationDraft, setDischargeMedicationDraft] =
-    React.useState<DischargeMedicationDraft>(buildInitialDischargeMedicationDraft);
-  const [dischargeMedicationDialogOpen, setDischargeMedicationDialogOpen] = React.useState(false);
-  const [dischargeMedicationDialogError, setDischargeMedicationDialogError] = React.useState('');
+    React.useState<DischargeMedicationDraft>(
+      buildInitialDischargeMedicationDraft,
+    );
+  const [dischargeMedicationDialogOpen, setDischargeMedicationDialogOpen] =
+    React.useState(false);
+  const [dischargeMedicationDialogError, setDischargeMedicationDialogError] =
+    React.useState("");
 
   const guardDischargeWrite = React.useCallback(
     (actionLabel: string) => {
@@ -505,16 +571,19 @@ export default function IpdDischargePage() {
       setSnackbar({
         open: true,
         message: `You do not have permission to ${actionLabel}.`,
-        severity: 'error',
+        severity: "error",
       });
       return false;
     },
-    [canManageDischarge]
+    [canManageDischarge],
   );
 
   const activeCandidates = React.useMemo(
-    () => DISCHARGE_CANDIDATES.filter((candidate) => !completedPatientIds.includes(candidate.patientId)),
-    [completedPatientIds]
+    () =>
+      DISCHARGE_CANDIDATES.filter(
+        (candidate) => !completedPatientIds.includes(candidate.patientId),
+      ),
+    [completedPatientIds],
   );
 
   React.useEffect(() => {
@@ -522,7 +591,7 @@ export default function IpdDischargePage() {
     const match = INPATIENT_STAYS.find((patient) => patient.mrn === mrnParam);
     if (match) {
       setSelectedPatientId(match.id);
-      setFlowTab('avs');
+      setFlowTab("avs");
     }
     setMrnApplied(true);
   }, [mrnParam, mrnApplied]);
@@ -539,7 +608,7 @@ export default function IpdDischargePage() {
 
   React.useEffect(() => {
     const dischargedFromContext = Object.values(encounterState)
-      .filter((record) => record.workflowStatus === 'discharged')
+      .filter((record) => record.workflowStatus === "discharged")
       .map((record) => record.patientId);
 
     if (dischargedFromContext.length === 0) return;
@@ -559,9 +628,9 @@ export default function IpdDischargePage() {
             id: `discharge-sync-${patientId}`,
             patientId,
             patientName: patient?.patientName ?? patientId,
-            mrn: patient?.mrn ?? '--',
-            completedAt: '--',
-            preparedBy: 'System Sync',
+            mrn: patient?.mrn ?? "--",
+            completedAt: "--",
+            preparedBy: "System Sync",
           };
         });
 
@@ -576,32 +645,38 @@ export default function IpdDischargePage() {
 
   const selectedPatient = React.useMemo(
     () => INPATIENT_STAYS.find((patient) => patient.id === selectedPatientId),
-    [selectedPatientId]
+    [selectedPatientId],
   );
 
   const selectedCandidate = React.useMemo(
-    () => DISCHARGE_CANDIDATES.find((candidate) => candidate.patientId === selectedPatientId),
-    [selectedPatientId]
+    () =>
+      DISCHARGE_CANDIDATES.find(
+        (candidate) => candidate.patientId === selectedPatientId,
+      ),
+    [selectedPatientId],
   );
 
   const confirmPatient = React.useMemo(
     () =>
       confirmPatientId
-        ? INPATIENT_STAYS.find((patient) => patient.id === confirmPatientId) ?? null
+        ? (INPATIENT_STAYS.find((patient) => patient.id === confirmPatientId) ??
+          null)
         : null,
-    [confirmPatientId]
+    [confirmPatientId],
   );
 
   const seededPatient = getPatientByMrn(selectedPatient?.mrn ?? mrnParam);
 
   const getDraftByPatientId = React.useCallback(
-    (patientId: string): DischargeDraft => drafts[patientId] ?? buildInitialDraft(patientId),
-    [drafts]
+    (patientId: string): DischargeDraft =>
+      drafts[patientId] ?? buildInitialDraft(patientId),
+    [drafts],
   );
 
   const getChecklistByPatientId = React.useCallback(
-    (patientId: string): ChecklistState => checklists[patientId] ?? buildInitialChecklistState(patientId),
-    [checklists]
+    (patientId: string): ChecklistState =>
+      checklists[patientId] ?? buildInitialChecklistState(patientId),
+    [checklists],
   );
 
   const selectedDraft = getDraftByPatientId(selectedPatientId);
@@ -610,7 +685,9 @@ export default function IpdDischargePage() {
   const getProgressByPatientId = React.useCallback(
     (patientId: string) => {
       const checklist = getChecklistByPatientId(patientId);
-      const doneCount = DISCHARGE_CHECKLIST.filter((item) => checklist[item.id]).length;
+      const doneCount = DISCHARGE_CHECKLIST.filter(
+        (item) => checklist[item.id],
+      ).length;
       const percent =
         DISCHARGE_CHECKLIST.length === 0
           ? 0
@@ -622,13 +699,13 @@ export default function IpdDischargePage() {
         requiredComplete: isRequiredChecklistComplete(checklist),
       };
     },
-    [getChecklistByPatientId]
+    [getChecklistByPatientId],
   );
 
   const selectedProgress = getProgressByPatientId(selectedPatientId);
-  const [selectedAge = '--', selectedGender = '--'] = selectedPatient?.ageGender
-    .split('/')
-    .map((value) => value.trim()) ?? ['--', '--'];
+  const [selectedAge = "--", selectedGender = "--"] = selectedPatient?.ageGender
+    .split("/")
+    .map((value) => value.trim()) ?? ["--", "--"];
 
   const pendingCount = activeCandidates.length;
   const dischargedCount = completedEntries.length;
@@ -636,19 +713,22 @@ export default function IpdDischargePage() {
   const topBarPatientOptions = React.useMemo<IpdPatientOption[]>(() => {
     return INPATIENT_STAYS.map((patient) => {
       const progress = getProgressByPatientId(patient.id);
-      const candidate = DISCHARGE_CANDIDATES.find((row) => row.patientId === patient.id);
+      const candidate = DISCHARGE_CANDIDATES.find(
+        (row) => row.patientId === patient.id,
+      );
       const isDischarged = completedPatientIds.includes(patient.id);
       const status = isDischarged
-        ? 'Discharged'
+        ? "Discharged"
         : progress.percent >= 80 || Boolean(candidate)
-        ? 'Discharge Due'
-        : patient.ward.toLowerCase().includes('icu')
-        ? 'ICU'
-        : 'Admitted';
-      const tags = ['Admitted'];
-      if (patient.ward.toLowerCase().includes('icu')) tags.push('ICU');
-      if (progress.percent >= 80 || Boolean(candidate)) tags.push('Discharge Due');
-      if (isDischarged) tags.push('Discharged');
+          ? "Discharge Due"
+          : patient.ward.toLowerCase().includes("icu")
+            ? "ICU"
+            : "Admitted";
+      const tags = ["Admitted"];
+      if (patient.ward.toLowerCase().includes("icu")) tags.push("ICU");
+      if (progress.percent >= 80 || Boolean(candidate))
+        tags.push("Discharge Due");
+      if (isDischarged) tags.push("Discharged");
 
       return {
         patientId: patient.id,
@@ -660,8 +740,15 @@ export default function IpdDischargePage() {
         consultant: patient.consultant,
         diagnosis: patient.diagnosis,
         status,
-        statusTone: status === 'Discharged' ? 'success' : status === 'Discharge Due' ? 'warning' : status === 'ICU' ? 'info' : 'success',
-        insurance: INSURANCE_BY_PATIENT_ID[patient.id] ?? '--',
+        statusTone:
+          status === "Discharged"
+            ? "success"
+            : status === "Discharge Due"
+              ? "warning"
+              : status === "ICU"
+                ? "info"
+                : "success",
+        insurance: INSURANCE_BY_PATIENT_ID[patient.id] ?? "--",
         totalBill: TOTAL_BILL_BY_PATIENT_ID[patient.id] ?? 0,
         dueAmount: DUE_BILL_BY_PATIENT_ID[patient.id] ?? 0,
         tags,
@@ -670,37 +757,85 @@ export default function IpdDischargePage() {
   }, [completedPatientIds, getProgressByPatientId]);
 
   const selectedTopBarPatient = React.useMemo(
-    () => topBarPatientOptions.find((row) => row.patientId === selectedPatientId) ?? null,
-    [selectedPatientId, topBarPatientOptions]
+    () =>
+      topBarPatientOptions.find((row) => row.patientId === selectedPatientId) ??
+      null,
+    [selectedPatientId, topBarPatientOptions],
   );
 
   const topBarFields = React.useMemo<IpdPatientTopBarField[]>(() => {
     if (!selectedPatient) return [];
-    const allergies = seededPatient?.tags?.join(', ') || 'No known';
+    const allergies = seededPatient?.tags?.join(", ") || "No known";
     const status = completedPatientIds.includes(selectedPatient.id)
-      ? 'Discharged'
+      ? "Discharged"
       : selectedProgress.percent >= 80
-      ? 'Discharge Due'
-      : selectedPatient.ward.toLowerCase().includes('icu')
-      ? 'ICU'
-      : 'Admitted';
+        ? "Discharge Due"
+        : selectedPatient.ward.toLowerCase().includes("icu")
+          ? "ICU"
+          : "Admitted";
 
     return [
-      { id: 'age-sex', label: 'Age / Sex', value: `${selectedAge} / ${selectedGender}` },
-      { id: 'ward-bed', label: 'Ward / Bed', value: `${selectedPatient.ward} · ${selectedPatient.bed}` },
-      { id: 'admitted', label: 'Admitted', value: selectedPatient.admissionDate || '--' },
-      { id: 'los', label: 'LOS', value: selectedCandidate ? `Day ${selectedCandidate.losDays}` : '--' },
-      { id: 'diagnosis', label: 'Diagnosis', value: selectedPatient.diagnosis || '--' },
-      { id: 'consultant', label: 'Consultant', value: selectedPatient.consultant || '--' },
-      { id: 'blood-group', label: 'Blood Group', value: '--' },
-      { id: 'allergies', label: 'Allergies', value: allergies, tone: allergies === 'No known' ? 'success' : 'warning' },
-      { id: 'insurance', label: 'Insurance', value: INSURANCE_BY_PATIENT_ID[selectedPatient.id] ?? '--', tone: 'info' },
-      { id: 'status', label: 'Status', value: status, tone: status === 'Discharged' ? 'success' : status === 'Discharge Due' ? 'warning' : 'info' },
       {
-        id: 'total-bill',
-        label: 'Total Bill',
-        value: INR_CURRENCY.format(TOTAL_BILL_BY_PATIENT_ID[selectedPatient.id] ?? 0),
-        tone: 'info',
+        id: "age-sex",
+        label: "Age / Sex",
+        value: `${selectedAge} / ${selectedGender}`,
+      },
+      {
+        id: "ward-bed",
+        label: "Ward / Bed",
+        value: `${selectedPatient.ward} · ${selectedPatient.bed}`,
+      },
+      {
+        id: "admitted",
+        label: "Admitted",
+        value: selectedPatient.admissionDate || "--",
+      },
+      {
+        id: "los",
+        label: "LOS",
+        value: selectedCandidate ? `Day ${selectedCandidate.losDays}` : "--",
+      },
+      {
+        id: "diagnosis",
+        label: "Diagnosis",
+        value: selectedPatient.diagnosis || "--",
+      },
+      {
+        id: "consultant",
+        label: "Consultant",
+        value: selectedPatient.consultant || "--",
+      },
+      { id: "blood-group", label: "Blood Group", value: "--" },
+      {
+        id: "allergies",
+        label: "Allergies",
+        value: allergies,
+        tone: allergies === "No known" ? "success" : "warning",
+      },
+      {
+        id: "insurance",
+        label: "Insurance",
+        value: INSURANCE_BY_PATIENT_ID[selectedPatient.id] ?? "--",
+        tone: "info",
+      },
+      {
+        id: "status",
+        label: "Status",
+        value: status,
+        tone:
+          status === "Discharged"
+            ? "success"
+            : status === "Discharge Due"
+              ? "warning"
+              : "info",
+      },
+      {
+        id: "total-bill",
+        label: "Total Bill",
+        value: INR_CURRENCY.format(
+          TOTAL_BILL_BY_PATIENT_ID[selectedPatient.id] ?? 0,
+        ),
+        tone: "info",
       },
     ];
   }, [
@@ -719,14 +854,16 @@ export default function IpdDischargePage() {
       const patient = INPATIENT_STAYS.find((row) => row.id === patientId);
       const params = new URLSearchParams(searchParams.toString());
       if (patient?.mrn) {
-        params.set('mrn', patient.mrn);
+        params.set("mrn", patient.mrn);
       } else {
-        params.delete('mrn');
+        params.delete("mrn");
       }
       const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
     },
-    [pathname, router, searchParams]
+    [pathname, router, searchParams],
   );
 
   const topBarHeader = (
@@ -744,14 +881,14 @@ export default function IpdDischargePage() {
   const openAvsForPatient = (patientId: string) => {
     setSelectedPatientId(patientId);
     setErrors({});
-    setFlowTab('avs');
+    setFlowTab("avs");
   };
 
   const openDischargeConfirmation = (patientId: string) => {
-    if (!guardDischargeWrite('start discharge confirmation')) return;
+    if (!guardDischargeWrite("start discharge confirmation")) return;
     const draft = getDraftByPatientId(patientId);
     setSelectedPatientId(patientId);
-    setFlowTab('avs');
+    setFlowTab("avs");
     setErrors({});
     setConfirmPatientId(patientId);
     setConfirmDischargeDraft({
@@ -759,26 +896,26 @@ export default function IpdDischargePage() {
       followUpDate: draft.followUpDate,
       instructions: draft.patientInstructions,
     });
-    setConfirmDischargeError('');
+    setConfirmDischargeError("");
     setConfirmDischargeOpen(true);
   };
 
   const closeDischargeConfirmation = () => {
     setConfirmDischargeOpen(false);
-    setConfirmDischargeError('');
+    setConfirmDischargeError("");
   };
 
   const finalizeDischargeFromConfirmation = () => {
-    if (!guardDischargeWrite('complete discharge')) return;
+    if (!guardDischargeWrite("complete discharge")) return;
     if (!confirmPatientId) return;
 
     if (!confirmDischargeDraft.followUpDate.trim()) {
-      setConfirmDischargeError('Follow-up date is required.');
+      setConfirmDischargeError("Follow-up date is required.");
       return;
     }
 
     if (!confirmDischargeDraft.instructions.trim()) {
-      setConfirmDischargeError('Discharge instructions are required.');
+      setConfirmDischargeError("Discharge instructions are required.");
       return;
     }
 
@@ -794,7 +931,7 @@ export default function IpdDischargePage() {
   const updateDraftField = <K extends keyof DischargeDraft>(
     patientId: string,
     field: K,
-    value: DischargeDraft[K]
+    value: DischargeDraft[K],
   ) => {
     setDrafts((prev) => ({
       ...prev,
@@ -814,88 +951,96 @@ export default function IpdDischargePage() {
   };
 
   const addDischargeMedication = () => {
-    if (!guardDischargeWrite('add discharge medication')) return;
+    if (!guardDischargeWrite("add discharge medication")) return;
     if (!selectedPatientId) return;
     if (!dischargeMedicationDraft.medicationName.trim()) {
-      setDischargeMedicationDialogError('Medication name is required.');
+      setDischargeMedicationDialogError("Medication name is required.");
       return;
     }
 
     const nextFrequency = dischargeMedicationDraft.duration.trim()
-      ? `${dischargeMedicationDraft.frequency.trim() || 'OD'} | ${dischargeMedicationDraft.duration.trim()}`
-      : dischargeMedicationDraft.frequency.trim() || 'OD';
+      ? `${dischargeMedicationDraft.frequency.trim() || "OD"} | ${dischargeMedicationDraft.duration.trim()}`
+      : dischargeMedicationDraft.frequency.trim() || "OD";
     const row: DischargeMedicationRow = {
       id: `dc-med-${Date.now()}`,
       medicationName: dischargeMedicationDraft.medicationName.trim(),
-      dose: dischargeMedicationDraft.dose.trim() || '--',
-      route: dischargeMedicationDraft.route.trim() || '--',
+      dose: dischargeMedicationDraft.dose.trim() || "--",
+      route: dischargeMedicationDraft.route.trim() || "--",
       frequency: nextFrequency,
       instructions: dischargeMedicationDraft.instructions.trim(),
       dispenseAtDischarge: dischargeMedicationDraft.dispenseAtDischarge,
     };
 
-    updateDraftField(selectedPatientId, 'dischargeMedicationRows', [
+    updateDraftField(selectedPatientId, "dischargeMedicationRows", [
       ...(selectedDraft.dischargeMedicationRows ?? []),
       row,
     ]);
     setDischargeMedicationDraft(buildInitialDischargeMedicationDraft());
-    setDischargeMedicationDialogError('');
+    setDischargeMedicationDialogError("");
     setDischargeMedicationDialogOpen(false);
     setSnackbar({
       open: true,
       message: `${row.medicationName} added to discharge list.`,
-      severity: 'success',
+      severity: "success",
     });
   };
 
   const openDischargeMedicationDialog = () => {
-    if (!guardDischargeWrite('add discharge medication')) return;
+    if (!guardDischargeWrite("add discharge medication")) return;
     setDischargeMedicationDraft(buildInitialDischargeMedicationDraft());
-    setDischargeMedicationDialogError('');
+    setDischargeMedicationDialogError("");
     setDischargeMedicationDialogOpen(true);
   };
 
   const removeDischargeMedication = (rowId: string) => {
-    if (!guardDischargeWrite('remove discharge medication')) return;
+    if (!guardDischargeWrite("remove discharge medication")) return;
     if (!selectedPatientId) return;
 
     updateDraftField(
       selectedPatientId,
-      'dischargeMedicationRows',
-      (selectedDraft.dischargeMedicationRows ?? []).filter((row) => row.id !== rowId)
+      "dischargeMedicationRows",
+      (selectedDraft.dischargeMedicationRows ?? []).filter(
+        (row) => row.id !== rowId,
+      ),
     );
   };
 
   const toggleDischargeMedicationDispense = (rowId: string) => {
-    if (!guardDischargeWrite('update discharge medication billing')) return;
+    if (!guardDischargeWrite("update discharge medication billing")) return;
     if (!selectedPatientId) return;
 
     updateDraftField(
       selectedPatientId,
-      'dischargeMedicationRows',
+      "dischargeMedicationRows",
       (selectedDraft.dischargeMedicationRows ?? []).map((row) =>
-        row.id === rowId ? { ...row, dispenseAtDischarge: !row.dispenseAtDischarge } : row
-      )
+        row.id === rowId
+          ? { ...row, dispenseAtDischarge: !row.dispenseAtDischarge }
+          : row,
+      ),
     );
   };
 
   const importFromCurrentMedicationList = () => {
-    if (!guardDischargeWrite('import current medications')) return;
+    if (!guardDischargeWrite("import current medications")) return;
     if (!selectedPatientId) return;
 
     const sharedStore = readSharedPrescriptionStore();
-    const sourceRows = (sharedStore[selectedPatientId] ?? []).filter((row) => row.status !== 'Stopped');
+    const sourceRows = (sharedStore[selectedPatientId] ?? []).filter(
+      (row) => row.status !== "Stopped",
+    );
     if (sourceRows.length === 0) {
       setSnackbar({
         open: true,
-        message: 'No active current medications available to import.',
-        severity: 'info',
+        message: "No active current medications available to import.",
+        severity: "info",
       });
       return;
     }
 
     const existingRows = selectedDraft.dischargeMedicationRows ?? [];
-    const existingSignatures = new Set(existingRows.map((row) => medicationRowSignature(row)));
+    const existingSignatures = new Set(
+      existingRows.map((row) => medicationRowSignature(row)),
+    );
     const mappedRows = sourceRows
       .map((row) => mapSharedPrescriptionToDischargeRow(row))
       .filter((row) => !existingSignatures.has(medicationRowSignature(row)));
@@ -903,22 +1048,30 @@ export default function IpdDischargePage() {
     if (mappedRows.length === 0) {
       setSnackbar({
         open: true,
-        message: 'All current medications are already present in discharge list.',
-        severity: 'info',
+        message:
+          "All current medications are already present in discharge list.",
+        severity: "info",
       });
       return;
     }
 
-    updateDraftField(selectedPatientId, 'dischargeMedicationRows', [...existingRows, ...mappedRows]);
+    updateDraftField(selectedPatientId, "dischargeMedicationRows", [
+      ...existingRows,
+      ...mappedRows,
+    ]);
     setSnackbar({
       open: true,
       message: `${mappedRows.length} medications imported from current list.`,
-      severity: 'success',
+      severity: "success",
     });
   };
 
-  const updateChecklistItem = (patientId: string, checklistId: string, checked: boolean) => {
-    if (!guardDischargeWrite('update discharge checklist')) return;
+  const updateChecklistItem = (
+    patientId: string,
+    checklistId: string,
+    checked: boolean,
+  ) => {
+    if (!guardDischargeWrite("update discharge checklist")) return;
     setChecklists((prev) => ({
       ...prev,
       [patientId]: {
@@ -927,39 +1080,41 @@ export default function IpdDischargePage() {
       },
     }));
 
-    if (checklistId === 'bill-clearance') {
+    if (checklistId === "bill-clearance") {
       syncIpdEncounterDischargeChecks(patientId, { billingCleared: checked });
     }
-    if (checklistId === 'pharmacy') {
+    if (checklistId === "pharmacy") {
       syncIpdEncounterDischargeChecks(patientId, { pharmacyCleared: checked });
     }
-    if (checklistId === 'follow-up') {
+    if (checklistId === "follow-up") {
       syncIpdEncounterDischargeChecks(patientId, { followUpReady: checked });
     }
   };
 
   const handleSaveDraft = () => {
-    if (!guardDischargeWrite('save discharge draft')) return;
+    if (!guardDischargeWrite("save discharge draft")) return;
     const now = new Date();
-    setSaveStamp(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    setSaveStamp(
+      now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    );
     setSnackbar({
       open: true,
-      message: 'Discharge draft saved locally.',
-      severity: 'info',
+      message: "Discharge draft saved locally.",
+      severity: "info",
     });
   };
 
   const printAfterVisitSummary = () => {
     setSnackbar({
       open: true,
-      message: 'After Visit Summary is ready to print.',
-      severity: 'success',
+      message: "After Visit Summary is ready to print.",
+      severity: "success",
     });
   };
 
   const validateCompletion = (
     patientId: string,
-    draftOverride?: Partial<DischargeDraft>
+    draftOverride?: Partial<DischargeDraft>,
   ): boolean => {
     const draft = {
       ...getDraftByPatientId(patientId),
@@ -975,54 +1130,58 @@ export default function IpdDischargePage() {
         encounter.pendingMedications === 0);
     const nextErrors: DraftErrors = {};
 
-    const requiredFields: Array<Exclude<keyof DischargeDraft, 'dischargeMedicationRows'>> = [
-      'dischargeDate',
-      'finalDiagnosis',
-      'conditionAtDischarge',
-      'followUpDate',
-      'followUpDoctor',
-      'patientInstructions',
+    const requiredFields: Array<
+      Exclude<keyof DischargeDraft, "dischargeMedicationRows">
+    > = [
+      "dischargeDate",
+      "finalDiagnosis",
+      "conditionAtDischarge",
+      "followUpDate",
+      "followUpDoctor",
+      "patientInstructions",
     ];
 
     requiredFields.forEach((field) => {
       if (!draft[field].trim()) {
-        nextErrors[field] = 'Required';
+        nextErrors[field] = "Required";
       }
     });
 
     if ((draft.dischargeMedicationRows ?? []).length === 0) {
-      nextErrors.dischargeMedicationRows = 'Add at least one discharge medication.';
+      nextErrors.dischargeMedicationRows =
+        "Add at least one discharge medication.";
     }
 
     const hasErrors = Object.keys(nextErrors).length > 0;
 
     if (hasErrors || !checklistReady) {
       setSelectedPatientId(patientId);
-      setFlowTab('avs');
+      setFlowTab("avs");
       setErrors(nextErrors);
     }
 
     if (hasErrors) {
       setSnackbar({
         open: true,
-        message: 'Complete all required AVS fields before discharge.',
-        severity: 'error',
+        message: "Complete all required AVS fields before discharge.",
+        severity: "error",
       });
     }
 
     if (!checklistReady) {
       setSnackbar({
         open: true,
-        message: 'Complete all required checklist items before discharge.',
-        severity: 'error',
+        message: "Complete all required checklist items before discharge.",
+        severity: "error",
       });
     }
 
     if (!integrationReady) {
       setSnackbar({
         open: true,
-        message: 'Pending clinical orders/diagnostics/medications must be completed before discharge.',
-        severity: 'error',
+        message:
+          "Pending clinical orders/diagnostics/medications must be completed before discharge.",
+        severity: "error",
       });
     }
 
@@ -1031,9 +1190,9 @@ export default function IpdDischargePage() {
 
   const handleCompleteDischarge = (
     patientId: string,
-    draftOverride?: Partial<DischargeDraft>
+    draftOverride?: Partial<DischargeDraft>,
   ): boolean => {
-    if (!guardDischargeWrite('complete discharge')) {
+    if (!guardDischargeWrite("complete discharge")) {
       return false;
     }
     if (completedPatientIds.includes(patientId)) {
@@ -1061,11 +1220,13 @@ export default function IpdDischargePage() {
     }
 
     const completedAt = new Date().toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
-    setCompletedPatientIds((prev) => (prev.includes(patientId) ? prev : [...prev, patientId]));
+    setCompletedPatientIds((prev) =>
+      prev.includes(patientId) ? prev : [...prev, patientId],
+    );
     setCompletedEntries((prev) => {
       if (prev.some((entry) => entry.patientId === patientId)) {
         return prev;
@@ -1078,7 +1239,7 @@ export default function IpdDischargePage() {
           patientName: patient.patientName,
           mrn: patient.mrn,
           completedAt,
-          preparedBy: 'Ward Nurse 1',
+          preparedBy: "Ward Nurse 1",
         },
         ...prev,
       ];
@@ -1088,7 +1249,7 @@ export default function IpdDischargePage() {
     setSnackbar({
       open: true,
       message: `Discharge completed for ${patient.patientName}.`,
-      severity: 'success',
+      severity: "success",
     });
     markIpdEncounterDischarged(patientId);
 
@@ -1100,9 +1261,9 @@ export default function IpdDischargePage() {
     px: 1.5,
     py: 0.45,
     borderRadius: 1.2,
-    textTransform: 'none',
+    textTransform: "none",
     fontWeight: 600,
-    boxShadow: 'none',
+    boxShadow: "none",
   };
 
   const actionButtonSx = {
@@ -1114,22 +1275,22 @@ export default function IpdDischargePage() {
   };
 
   const labelSx = {
-    display: 'block',
+    display: "block",
     mb: 0.45,
     fontSize: 11,
     fontWeight: 800,
     letterSpacing: 0.3,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: alpha(theme.palette.text.primary, 0.84),
   };
 
   const inlineFormSx = {
     ...ipdFormStylesSx,
-    '& .MuiOutlinedInput-root': {
+    "& .MuiOutlinedInput-root": {
       borderRadius: 1.35,
       backgroundColor: alpha(theme.palette.primary.main, 0.06),
     },
-    '& .MuiInputBase-input::placeholder': {
+    "& .MuiInputBase-input::placeholder": {
       color: alpha(theme.palette.text.primary, 0.5),
       opacity: 1,
     },
@@ -1140,248 +1301,319 @@ export default function IpdDischargePage() {
 
     if (progressPercent === 100) {
       return {
-        label: 'stable',
+        label: "stable",
         color: theme.palette.success.dark,
         bg: alpha(theme.palette.success.main, 0.2),
       };
     }
 
-    if (normalized.includes('acute') || normalized.includes('uncontrolled') || progressPercent >= 30) {
+    if (
+      normalized.includes("acute") ||
+      normalized.includes("uncontrolled") ||
+      progressPercent >= 30
+    ) {
       return {
-        label: 'critical',
+        label: "critical",
         color: theme.palette.error.main,
         bg: alpha(theme.palette.error.main, 0.16),
       };
     }
 
-    if (normalized.includes('hypergly') || normalized.includes('watch')) {
+    if (normalized.includes("hypergly") || normalized.includes("watch")) {
       return {
-        label: 'watch',
+        label: "watch",
         color: theme.palette.warning.dark,
         bg: alpha(theme.palette.warning.main, 0.2),
       };
     }
 
     return {
-      label: 'stable',
+      label: "stable",
       color: theme.palette.success.dark,
       bg: alpha(theme.palette.success.main, 0.2),
     };
   }
 
-  const renderDischargeTable = (patientIds: string[], title: string, emptyMessage: string) => (
-    <Card
-      elevation={0}
-      sx={{
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: alpha(theme.palette.primary.main, 0.18),
-        overflow: 'hidden',
-        boxShadow: 'none',
-      }}
-    >
-      <Box sx={{ px: 2, py: 1.6, borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Stack direction="row" spacing={0.8} alignItems="center">
-          <ChecklistIcon fontSize="small" color="warning" />
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            {title}
-          </Typography>
-        </Stack>
-      </Box>
-
-      {patientIds.length === 0 ? (
-        <Box sx={{ p: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            {emptyMessage}
-          </Typography>
-        </Box>
-      ) : (
-        <TableContainer sx={{ p: 1.2 }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow
+  const dischargePatientColumns = React.useMemo<CommonColumn<{ id: string }>[]>(
+    () => [
+      {
+        field: "patient",
+        headerName: "Patient",
+        width: 240,
+        renderCell: (row) => {
+          const patient = INPATIENT_STAYS.find((item) => item.id === row.id);
+          if (!patient) return null;
+          return (
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Avatar
                 sx={{
-                  '& .MuiTableCell-root': {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.06),
-                    color: alpha(theme.palette.text.primary, 0.52),
-                    fontWeight: 700,
-                    fontSize: 12,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.3,
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                  },
+                  width: 36,
+                  height: 36,
+                  bgcolor: alpha(theme.palette.primary.main, 0.12),
+                  color: "primary.main",
+                  fontWeight: 800,
+                  fontSize: 14,
                 }}
               >
-                <TableCell>Patient</TableCell>
-                <TableCell sx={{ minWidth: 70 }}>Bed</TableCell>
-                <TableCell sx={{ minWidth: 64 }}>Day</TableCell>
-                <TableCell>Diagnosis</TableCell>
-                <TableCell sx={{ minWidth: 110 }}>Status</TableCell>
-                <TableCell sx={{ minWidth: 220 }}>Discharge %</TableCell>
-                <TableCell sx={{ minWidth: 240 }}>Action</TableCell>
-              </TableRow>
-            </TableHead>
-
-            <TableBody>
-              {patientIds.map((patientId) => {
-                const patient = INPATIENT_STAYS.find((item) => item.id === patientId);
-                const candidate = DISCHARGE_CANDIDATES.find((item) => item.patientId === patientId);
-                if (!patient || !candidate) return null;
-
-                const progress = getProgressByPatientId(patientId);
-                const statusPill = resolveStatusPill(patient.diagnosis, progress.percent);
-                const isDischarged = completedPatientIds.includes(patientId);
-                const barColor =
-                  progress.percent === 100 ? theme.palette.success.main : theme.palette.error.main;
-
-                return (
-                  <TableRow
-                    key={patientId}
-                    sx={{
-                      '& .MuiTableCell-root': {
-                        borderBottom: '1px solid',
-                        borderColor: 'divider',
-                        py: 1.15,
-                        verticalAlign: 'middle',
-                      },
-                    }}
-                  >
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {patient.patientName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {patient.mrn}
-                      </Typography>
-                    </TableCell>
-
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {patient.bed}
-                      </Typography>
-                    </TableCell>
-
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        Day {candidate.losDays}
-                      </Typography>
-                    </TableCell>
-
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {patient.diagnosis}
-                      </Typography>
-                    </TableCell>
-
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={statusPill.label}
-                        sx={{
-                          fontFamily: 'monospace',
-                          fontWeight: 700,
-                          color: statusPill.color,
-                          backgroundColor: statusPill.bg,
-                        }}
-                      />
-                    </TableCell>
-
-                    <TableCell>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Box
-                          sx={{
-                            width: 190,
-                            height: 6,
-                            borderRadius: 99,
-                            overflow: 'hidden',
-                            backgroundColor: alpha(theme.palette.primary.main, 0.14),
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              height: '100%',
-                              width: `${progress.percent}%`,
-                              backgroundColor: barColor,
-                            }}
-                          />
-                        </Box>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
-                          {progress.percent}%
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-
-                    <TableCell>
-                      <Stack direction="row" spacing={0.7} flexWrap="wrap">
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          sx={actionButtonSx}
-                          onClick={() => openAvsForPatient(patientId)}
-                        >
-                          Checklist
-                        </Button>
-
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            ...actionButtonSx,
-                            borderColor: alpha(theme.palette.warning.main, 0.8),
-                            color: theme.palette.warning.dark,
-                            '&:hover': {
-                              borderColor: theme.palette.warning.main,
-                              backgroundColor: alpha(theme.palette.warning.main, 0.08),
-                            },
-                          }}
-                          onClick={() => openAvsForPatient(patientId)}
-                        >
-                          AVS
-                        </Button>
-
-                        {isDischarged ? (
-                          <Chip size="small" color="success" label="Discharged" sx={{ fontWeight: 700 }} />
-                        ) : (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            disabled={!canManageDischarge}
-                            sx={{
-                              ...actionButtonSx,
-                              background: 'linear-gradient(90deg, #4f46e5 0%, #4338ca 100%)',
-                              '&:hover': {
-                                background: 'linear-gradient(90deg, #4338ca 0%, #3730a3 100%)',
-                              },
-                            }}
-                            onClick={() => openDischargeConfirmation(patientId)}
-                          >
-                            Discharge
-                          </Button>
-                        )}
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-    </Card>
+                {patient.patientName
+                  .split(" ")
+                  .map((p) => p[0])
+                  .join("")
+                  .substring(0, 2)
+                  .toUpperCase()}
+              </Avatar>
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  {patient.patientName}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {patient.mrn}
+                </Typography>
+              </Box>
+            </Stack>
+          );
+        },
+      },
+      {
+        field: "bed",
+        headerName: "Bed",
+        width: 100,
+        renderCell: (row) => {
+          const patient = INPATIENT_STAYS.find((item) => item.id === row.id);
+          if (!patient) return null;
+          return (
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              {patient.bed}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "day",
+        headerName: "Day",
+        width: 80,
+        renderCell: (row) => {
+          const candidate = DISCHARGE_CANDIDATES.find(
+            (item) => item.patientId === row.id,
+          );
+          if (!candidate) return null;
+          return (
+            <Typography variant="body2" color="text.secondary">
+              Day {candidate.losDays}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "diagnosis",
+        headerName: "Diagnosis",
+        width: 240,
+        renderCell: (row) => {
+          const patient = INPATIENT_STAYS.find((item) => item.id === row.id);
+          if (!patient) return null;
+          return (
+            <Typography variant="body2" color="text.secondary">
+              {patient.diagnosis}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "status",
+        headerName: "Status",
+        width: 120,
+        renderCell: (row) => {
+          const patient = INPATIENT_STAYS.find((item) => item.id === row.id);
+          if (!patient) return null;
+          const progress = getProgressByPatientId(row.id);
+          const statusPill = resolveStatusPill(
+            patient.diagnosis,
+            progress.percent,
+          );
+          return (
+            <Chip
+              size="small"
+              label={statusPill.label}
+              sx={{
+                fontFamily: "monospace",
+                fontWeight: 700,
+                color: statusPill.color,
+                backgroundColor: statusPill.bg,
+              }}
+            />
+          );
+        },
+      },
+      {
+        field: "dischargePercent",
+        headerName: "Discharge %",
+        width: 250,
+        renderCell: (row) => {
+          const progress = getProgressByPatientId(row.id);
+          const barColor =
+            progress.percent === 100
+              ? theme.palette.success.main
+              : theme.palette.error.main;
+          return (
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              sx={{ width: "100%" }}
+            >
+              <Box
+                sx={{
+                  flex: 1,
+                  height: 6,
+                  borderRadius: 99,
+                  overflow: "hidden",
+                  backgroundColor: alpha(theme.palette.primary.main, 0.14),
+                }}
+              >
+                <Box
+                  sx={{
+                    height: "100%",
+                    width: `${progress.percent}%`,
+                    backgroundColor: barColor,
+                  }}
+                />
+              </Box>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 700, color: "text.secondary", minWidth: 40 }}
+              >
+                {progress.percent}%
+              </Typography>
+            </Stack>
+          );
+        },
+      },
+      {
+        field: "action",
+        headerName: "Action",
+        width: 260,
+        renderCell: (row) => {
+          const isDischarged = completedPatientIds.includes(row.id);
+          return (
+            <Stack direction="row" spacing={0.7} flexWrap="wrap">
+              <Button
+                size="small"
+                variant="outlined"
+                sx={actionButtonSx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openAvsForPatient(row.id);
+                }}
+              >
+                Checklist
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                sx={{
+                  ...actionButtonSx,
+                  borderColor: alpha(theme.palette.warning.main, 0.8),
+                  color: theme.palette.warning.dark,
+                  "&:hover": {
+                    borderColor: theme.palette.warning.main,
+                    backgroundColor: alpha(theme.palette.warning.main, 0.08),
+                  },
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openAvsForPatient(row.id);
+                }}
+              >
+                AVS
+              </Button>
+              {isDischarged ? (
+                <Chip
+                  size="small"
+                  color="success"
+                  label="Discharged"
+                  sx={{ fontWeight: 700 }}
+                />
+              ) : (
+                <Button
+                  size="small"
+                  variant="contained"
+                  disabled={!canManageDischarge}
+                  sx={{
+                    ...actionButtonSx,
+                    background:
+                      "linear-gradient(90deg, #4f46e5 0%, #4338ca 100%)",
+                    "&:hover": {
+                      background:
+                        "linear-gradient(90deg, #4338ca 0%, #3730a3 100%)",
+                    },
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openDischargeConfirmation(row.id);
+                  }}
+                >
+                  Discharge
+                </Button>
+              )}
+            </Stack>
+          );
+        },
+      },
+    ],
+    [
+      theme,
+      getProgressByPatientId,
+      completedPatientIds,
+      canManageDischarge,
+      actionButtonSx,
+    ],
   );
 
-  const medicationItems = (selectedDraft.dischargeMedicationRows ?? []).map((item) => {
-    const instructionPart = item.instructions ? ` - ${item.instructions}` : '';
-    return `${item.medicationName} ${item.dose} ${item.frequency}${instructionPart}`;
-  });
+  const renderDischargeTable = (
+    patientIds: string[],
+    title: string,
+    emptyMessage: string,
+  ) => {
+    const rows = patientIds.map((id) => ({ id }));
+
+    return (
+      <Box sx={{ mt: 2 }}>
+        <CommonDataGrid<{ id: string }>
+          rows={rows}
+          columns={dischargePatientColumns}
+          getRowId={(row) => row.id}
+          hideSearch
+          emptyTitle="No Discharges"
+          emptyDescription={emptyMessage}
+          toolbarLeft={
+            <Stack direction="row" spacing={0.8} alignItems="center">
+              <ChecklistIcon fontSize="small" color="warning" />
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                {title}
+              </Typography>
+            </Stack>
+          }
+        />
+      </Box>
+    );
+  };
+
+  const medicationItems = (selectedDraft.dischargeMedicationRows ?? []).map(
+    (item) => {
+      const instructionPart = item.instructions
+        ? ` - ${item.instructions}`
+        : "";
+      return `${item.medicationName} ${item.dose} ${item.frequency}${instructionPart}`;
+    },
+  );
 
   return (
     <PageTemplate title="Discharge & AVS" header={topBarHeader}>
       <Stack spacing={2}>
         {!canManageDischarge ? (
           <Alert severity="warning">
-            You are in read-only mode for discharge workflow. Contact admin for `ipd.discharge.write` access.
+            You are in read-only mode for discharge workflow. Contact admin for
+            `ipd.discharge.write` access.
           </Alert>
         ) : null}
 
@@ -1390,34 +1622,45 @@ export default function IpdDischargePage() {
             elevation={0}
             sx={{
               p: { xs: 1.5, md: 2 },
-              borderRadius: '10px 10px 0 0',
-              border: '1px solid',
-              borderBottom: 'none',
+              borderRadius: "10px 10px 0 0",
+              border: "1px solid",
+              borderBottom: "none",
               borderColor: alpha(theme.palette.primary.main, 0.16),
               background: `linear-gradient(145deg, ${alpha(
                 theme.palette.primary.main,
-                0.08
+                0.08,
               )} 0%, ${alpha(theme.palette.info.main, 0.06)} 100%)`,
             }}
           >
             <Stack
-              direction={{ xs: 'column', lg: 'row' }}
+              direction={{ xs: "column", lg: "row" }}
               justifyContent="space-between"
-              alignItems={{ xs: 'flex-start', lg: 'center' }}
+              alignItems={{ xs: "flex-start", lg: "center" }}
               spacing={1.25}
             >
               <Box>
-                <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', lineHeight: 1.1 }}>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 800,
+                    color: "primary.main",
+                    lineHeight: 1.1,
+                  }}
+                >
                   Discharge & After Visit Summary
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Process patient discharges, generate AVS, release beds, and complete billing.
+                  Process patient discharges, generate AVS, release beds, and
+                  complete billing.
                 </Typography>
               </Box>
 
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            
-                <Button size="small" variant="contained" onClick={() => setFlowTab('avs')}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={() => setFlowTab("avs")}
+                >
                   AVS Preview
                 </Button>
                 <Button
@@ -1425,7 +1668,10 @@ export default function IpdDischargePage() {
                   color="error"
                   variant="outlined"
                   disabled={!selectedPatient || !canManageDischarge}
-                  onClick={() => selectedPatient && openDischargeConfirmation(selectedPatient.id)}
+                  onClick={() =>
+                    selectedPatient &&
+                    openDischargeConfirmation(selectedPatient.id)
+                  }
                 >
                   Start Discharge
                 </Button>
@@ -1435,18 +1681,18 @@ export default function IpdDischargePage() {
 
           <Box
             sx={{
-              position: 'sticky',
+              position: "sticky",
               top: IPD_PATIENT_TOP_BAR_STICKY_OFFSET,
               zIndex: 5,
-              backdropFilter: 'blur(6px)',
+              backdropFilter: "blur(6px)",
             }}
           >
             <Card
               elevation={0}
               sx={{
                 p: 0,
-                borderRadius: '0 0 10px 10px',
-                borderTop: 'none',
+                borderRadius: "0 0 10px 10px",
+                borderTop: "none",
                 borderColor: alpha(theme.palette.primary.main, 0.16),
               }}
             >
@@ -1457,89 +1703,101 @@ export default function IpdDischargePage() {
                   variant="scrollable"
                   scrollButtons="auto"
                   sx={{
-                    '& .MuiTabs-flexContainer': { gap: 0.5 },
-                    '& .MuiTabs-indicator': { display: 'none' },
-                    '& .MuiTab-root': {
-                      textTransform: 'none',
+                    "& .MuiTabs-flexContainer": { gap: 0.5 },
+                    "& .MuiTabs-indicator": { display: "none" },
+                    "& .MuiTab-root": {
+                      textTransform: "none",
                       fontWeight: 600,
                       minHeight: 40,
                       px: 2,
                       borderRadius: 1.5,
-                      color: 'text.secondary',
+                      color: "text.secondary",
                     },
-                    '& .MuiTab-root.Mui-selected': {
-                      color: 'common.white',
-                      backgroundColor: 'primary.main',
+                    "& .MuiTab-root.Mui-selected": {
+                      color: "common.white",
+                      backgroundColor: "primary.main",
                     },
                   }}
                 >
-                  <Tab value="pending" label={`Pending Discharge (${pendingCount})`} />
+                  <Tab
+                    value="pending"
+                    label={`Pending Discharge (${pendingCount})`}
+                  />
                   <Tab value="all" label="All Patients" />
                   <Tab value="avs" label="AVS Preview" />
-                  <Tab value="discharged" label={`Discharged (${dischargedCount})`} />
+                  <Tab
+                    value="discharged"
+                    label={`Discharged (${dischargedCount})`}
+                  />
                 </Tabs>
               </Box>
             </Card>
           </Box>
         </Stack>
 
-        {flowTab === 'pending'
+        {flowTab === "pending"
           ? renderDischargeTable(
               activeCandidates.map((candidate) => candidate.patientId),
-              'Patients Approaching Discharge',
-              'No pending discharges.'
+              "Patients Approaching Discharge",
+              "No pending discharges.",
             )
           : null}
 
-        {flowTab === 'all'
+        {flowTab === "all"
           ? renderDischargeTable(
               DISCHARGE_CANDIDATES.map((candidate) => candidate.patientId),
-              'All Active Patients',
-              'No discharge patients available.'
+              "All Active Patients",
+              "No discharge patients available.",
             )
           : null}
 
-        {flowTab === 'avs' ? (
+        {flowTab === "avs" ? (
           selectedPatient ? (
             <Card
               elevation={0}
               sx={{
                 borderRadius: 2,
-                border: '1px solid',
+                border: "1px solid",
                 borderColor: alpha(theme.palette.primary.main, 0.18),
-                overflow: 'hidden',
-                boxShadow: 'none',
+                overflow: "hidden",
+                boxShadow: "none",
               }}
             >
               <Box
                 sx={{
                   px: 2,
                   py: 1.5,
-                  borderBottom: '1px solid',
-                  borderColor: 'divider',
+                  borderBottom: "1px solid",
+                  borderColor: "divider",
                   backgroundColor: alpha(theme.palette.primary.main, 0.03),
                 }}
               >
                 <Stack
-                  direction={{ xs: 'column', md: 'row' }}
+                  direction={{ xs: "column", md: "row" }}
                   spacing={0.8}
                   justifyContent="space-between"
-                  alignItems={{ xs: 'flex-start', md: 'center' }}
+                  alignItems={{ xs: "flex-start", md: "center" }}
                 >
                   <Box>
                     <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                       AVS Workspace
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      Complete discharge checklist, medications, and summary for selected patient.
+                      Complete discharge checklist, medications, and summary for
+                      selected patient.
                     </Typography>
                   </Box>
 
                   <Stack direction="row" spacing={0.8}>
-                    <Chip size="small" label={`Checklist ${selectedProgress.doneCount}/${DISCHARGE_CHECKLIST.length}`} />
                     <Chip
                       size="small"
-                      color={selectedProgress.percent === 100 ? 'success' : 'warning'}
+                      label={`Checklist ${selectedProgress.doneCount}/${DISCHARGE_CHECKLIST.length}`}
+                    />
+                    <Chip
+                      size="small"
+                      color={
+                        selectedProgress.percent === 100 ? "success" : "warning"
+                      }
                       label={`${selectedProgress.percent}%`}
                     />
                   </Stack>
@@ -1550,7 +1808,7 @@ export default function IpdDischargePage() {
                 <Card
                   elevation={0}
                   sx={{
-                    border: '1px solid',
+                    border: "1px solid",
                     borderColor: alpha(theme.palette.primary.main, 0.14),
                     borderRadius: 1.8,
                     minHeight: 330,
@@ -1561,20 +1819,23 @@ export default function IpdDischargePage() {
                     sx={{
                       px: 1.6,
                       py: 1.2,
-                      borderBottom: '1px solid',
-                      borderColor: 'divider',
+                      borderBottom: "1px solid",
+                      borderColor: "divider",
                       backgroundColor: alpha(theme.palette.primary.main, 0.03),
                     }}
                   >
                     <Stack
-                      direction={{ xs: 'column', md: 'row' }}
+                      direction={{ xs: "column", md: "row" }}
                       spacing={0.8}
                       justifyContent="space-between"
-                      alignItems={{ xs: 'flex-start', md: 'center' }}
+                      alignItems={{ xs: "flex-start", md: "center" }}
                     >
                       <Stack direction="row" spacing={0.8} alignItems="center">
                         <LocalPharmacyIcon fontSize="small" color="primary" />
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 700 }}
+                        >
                           Discharge Medications
                         </Typography>
                       </Stack>
@@ -1602,82 +1863,134 @@ export default function IpdDischargePage() {
                   </Box>
 
                   <Box sx={{ p: 1.6 }}>
-                    <TableContainer
+                    <Box
                       sx={{
-                        border: '1px solid',
+                        border: "1px solid",
                         borderColor: alpha(theme.palette.primary.main, 0.16),
                         borderRadius: 1.2,
                         minHeight: 240,
+                        overflow: "hidden",
                       }}
                     >
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Medication</TableCell>
-                            <TableCell>Dose / Route</TableCell>
-                            <TableCell>Frequency</TableCell>
-                            <TableCell>Instructions</TableCell>
-                            <TableCell>Billing</TableCell>
-                            <TableCell align="right">Action</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {(selectedDraft.dischargeMedicationRows ?? []).length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={6} sx={{ py: 2.4, textAlign: 'center', color: 'text.secondary' }}>
-                                No discharge medications added yet.
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            (selectedDraft.dischargeMedicationRows ?? []).map((row) => (
-                              <TableRow key={row.id} hover>
-                                <TableCell sx={{ fontWeight: 700 }}>{row.medicationName}</TableCell>
-                                <TableCell>{`${row.dose} / ${row.route}`}</TableCell>
-                                <TableCell>{row.frequency}</TableCell>
-                                <TableCell>{row.instructions || '--'}</TableCell>
-                                <TableCell>
-                                  <Chip
-                                    size="small"
-                                    color={row.dispenseAtDischarge ? 'success' : 'default'}
-                                    label={row.dispenseAtDischarge ? 'Billable' : 'Not Billable'}
-                                  />
-                                </TableCell>
-                                <TableCell align="right">
-                                  <Stack direction="row" spacing={0.7} justifyContent="flex-end">
-                                    <Button
-                                      size="small"
-                                      variant={row.dispenseAtDischarge ? 'contained' : 'outlined'}
-                                      sx={actionButtonSx}
-                                      disabled={!canManageDischarge}
-                                      onClick={() => toggleDischargeMedicationDispense(row.id)}
-                                    >
-                                      {row.dispenseAtDischarge ? 'Billed' : 'Bill'}
-                                    </Button>
-                                    <Button
-                                      size="small"
-                                      color="error"
-                                      variant="text"
-                                      sx={actionButtonSx}
-                                      disabled={!canManageDischarge}
-                                      onClick={() => removeDischargeMedication(row.id)}
-                                    >
-                                      Remove
-                                    </Button>
-                                  </Stack>
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
+                      <CommonDataGrid<DischargeMedicationRow>
+                        rows={selectedDraft.dischargeMedicationRows ?? []}
+                        columns={[
+                          {
+                            field: "medicationName",
+                            headerName: "Medication",
+                            width: 200,
+                            renderCell: (row) => (
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 700 }}
+                              >
+                                {row.medicationName}
+                              </Typography>
+                            ),
+                          },
+                          {
+                            field: "doseRoute",
+                            headerName: "Dose / Route",
+                            width: 140,
+                            renderCell: (row) => `${row.dose} / ${row.route}`,
+                          },
+                          {
+                            field: "frequency",
+                            headerName: "Frequency",
+                            width: 120,
+                          },
+                          {
+                            field: "instructions",
+                            headerName: "Instructions",
+                            width: 200,
+                            renderCell: (row) => row.instructions || "--",
+                          },
+                          {
+                            field: "billing",
+                            headerName: "Billing",
+                            width: 120,
+                            renderCell: (row) => (
+                              <Chip
+                                size="small"
+                                color={
+                                  row.dispenseAtDischarge
+                                    ? "success"
+                                    : "default"
+                                }
+                                label={
+                                  row.dispenseAtDischarge
+                                    ? "Billable"
+                                    : "Not Billable"
+                                }
+                              />
+                            ),
+                          },
+                          {
+                            field: "action",
+                            headerName: "Action",
+                            width: 180,
+                            renderCell: (row) => (
+                              <Stack
+                                direction="row"
+                                spacing={0.7}
+                                justifyContent="flex-start"
+                              >
+                                <Button
+                                  size="small"
+                                  variant={
+                                    row.dispenseAtDischarge
+                                      ? "contained"
+                                      : "outlined"
+                                  }
+                                  sx={actionButtonSx}
+                                  disabled={!canManageDischarge}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleDischargeMedicationDispense(row.id);
+                                  }}
+                                >
+                                  {row.dispenseAtDischarge ? "Billed" : "Bill"}
+                                </Button>
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  variant="text"
+                                  sx={actionButtonSx}
+                                  disabled={!canManageDischarge}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeDischargeMedication(row.id);
+                                  }}
+                                >
+                                  Remove
+                                </Button>
+                              </Stack>
+                            ),
+                          },
+                        ]}
+                        getRowId={(row) => row.id}
+                        hideToolbar
+                        localeText={{
+                          noRowsLabel: "No discharge medications added yet.",
+                        }}
+                      />
+                    </Box>
                     {errors.dischargeMedicationRows ? (
-                      <Typography variant="caption" color="error.main" sx={{ mt: 0.7, display: 'block' }}>
+                      <Typography
+                        variant="caption"
+                        color="error.main"
+                        sx={{ mt: 0.7, display: "block" }}
+                      >
                         {errors.dischargeMedicationRows}
                       </Typography>
                     ) : (
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.7, display: 'block' }}>
-                        Rows marked as Billable are synced to billing ledger as discharge pharmacy items.
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ mt: 0.7, display: "block" }}
+                      >
+                        Rows marked as Billable are synced to billing ledger as
+                        discharge pharmacy items.
                       </Typography>
                     )}
                   </Box>
@@ -1689,7 +2002,7 @@ export default function IpdDischargePage() {
                       <Card
                         elevation={0}
                         sx={{
-                          border: '1px solid',
+                          border: "1px solid",
                           borderColor: alpha(theme.palette.primary.main, 0.14),
                           borderRadius: 1.8,
                         }}
@@ -1698,14 +2011,27 @@ export default function IpdDischargePage() {
                           sx={{
                             px: 1.6,
                             py: 1.2,
-                            borderBottom: '1px solid',
-                            borderColor: 'divider',
-                            backgroundColor: alpha(theme.palette.primary.main, 0.03),
+                            borderBottom: "1px solid",
+                            borderColor: "divider",
+                            backgroundColor: alpha(
+                              theme.palette.primary.main,
+                              0.03,
+                            ),
                           }}
                         >
-                          <Stack direction="row" spacing={0.8} alignItems="center">
-                            <AssignmentTurnedInIcon fontSize="small" color="primary" />
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          <Stack
+                            direction="row"
+                            spacing={0.8}
+                            alignItems="center"
+                          >
+                            <AssignmentTurnedInIcon
+                              fontSize="small"
+                              color="primary"
+                            />
+                            <Typography
+                              variant="subtitle2"
+                              sx={{ fontWeight: 700 }}
+                            >
                               Discharge Checklist
                             </Typography>
                           </Stack>
@@ -1724,28 +2050,38 @@ export default function IpdDischargePage() {
                                 sx={{
                                   px: 1,
                                   py: 0.75,
-                                  border: '1px solid',
-                                  borderColor: 'divider',
+                                  border: "1px solid",
+                                  borderColor: "divider",
                                   borderRadius: 1.2,
                                 }}
                               >
                                 <Button
                                   size="small"
-                                  variant={checked ? 'contained' : 'outlined'}
-                                  sx={{ ...actionButtonSx, minWidth: 38, px: 0.8 }}
+                                  variant={checked ? "contained" : "outlined"}
+                                  sx={{
+                                    ...actionButtonSx,
+                                    minWidth: 38,
+                                    px: 0.8,
+                                  }}
                                   disabled={!canManageDischarge}
                                   onClick={() =>
-                                    updateChecklistItem(selectedPatientId, item.id, !checked)
+                                    updateChecklistItem(
+                                      selectedPatientId,
+                                      item.id,
+                                      !checked,
+                                    )
                                   }
                                 >
-                                  {checked ? 'Done' : 'Todo'}
+                                  {checked ? "Done" : "Todo"}
                                 </Button>
 
                                 <Typography
                                   variant="body2"
                                   sx={{
                                     fontWeight: 600,
-                                    textDecoration: checked ? 'line-through' : 'none',
+                                    textDecoration: checked
+                                      ? "line-through"
+                                      : "none",
                                   }}
                                 >
                                   {item.label}
@@ -1755,7 +2091,6 @@ export default function IpdDischargePage() {
                           })}
                         </Stack>
                       </Card>
-
                     </Stack>
                   </Grid>
 
@@ -1764,24 +2099,37 @@ export default function IpdDischargePage() {
                       <Card
                         elevation={0}
                         sx={{
-                          border: '1px solid',
+                          border: "1px solid",
                           borderColor: alpha(theme.palette.primary.main, 0.14),
                           borderRadius: 1.8,
-                          overflow: 'hidden',
+                          overflow: "hidden",
                         }}
                       >
                         <Box
                           sx={{
                             px: 1.8,
                             py: 1.3,
-                            borderBottom: '1px solid',
-                            borderColor: 'divider',
-                            backgroundColor: alpha(theme.palette.primary.main, 0.03),
+                            borderBottom: "1px solid",
+                            borderColor: "divider",
+                            backgroundColor: alpha(
+                              theme.palette.primary.main,
+                              0.03,
+                            ),
                           }}
                         >
-                          <Stack direction="row" spacing={0.8} alignItems="center">
-                            <CalendarMonthIcon fontSize="small" color="primary" />
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          <Stack
+                            direction="row"
+                            spacing={0.8}
+                            alignItems="center"
+                          >
+                            <CalendarMonthIcon
+                              fontSize="small"
+                              color="primary"
+                            />
+                            <Typography
+                              variant="subtitle2"
+                              sx={{ fontWeight: 700 }}
+                            >
                               Clinical Discharge Summary
                             </Typography>
                           </Stack>
@@ -1798,7 +2146,11 @@ export default function IpdDischargePage() {
                                 type="date"
                                 value={selectedDraft.dischargeDate}
                                 onChange={(event) =>
-                                  updateDraftField(selectedPatientId, 'dischargeDate', event.target.value)
+                                  updateDraftField(
+                                    selectedPatientId,
+                                    "dischargeDate",
+                                    event.target.value,
+                                  )
                                 }
                                 error={Boolean(errors.dischargeDate)}
                                 helperText={errors.dischargeDate}
@@ -1817,13 +2169,20 @@ export default function IpdDischargePage() {
                                 onChange={(event) =>
                                   updateDraftField(
                                     selectedPatientId,
-                                    'dischargeType',
-                                    event.target.value as DischargeType
+                                    "dischargeType",
+                                    event.target.value as DischargeType,
                                   )
                                 }
                                 fullWidth
                               >
-                                {(['Regular', 'Transfer', 'AMA', 'DAMA'] as DischargeType[]).map((type) => (
+                                {(
+                                  [
+                                    "Regular",
+                                    "Transfer",
+                                    "AMA",
+                                    "DAMA",
+                                  ] as DischargeType[]
+                                ).map((type) => (
                                   <MenuItem key={type} value={type}>
                                     {type}
                                   </MenuItem>
@@ -1842,8 +2201,8 @@ export default function IpdDischargePage() {
                                 onChange={(event) =>
                                   updateDraftField(
                                     selectedPatientId,
-                                    'conditionAtDischarge',
-                                    event.target.value as DischargeCondition
+                                    "conditionAtDischarge",
+                                    event.target.value as DischargeCondition,
                                   )
                                 }
                                 error={Boolean(errors.conditionAtDischarge)}
@@ -1851,7 +2210,11 @@ export default function IpdDischargePage() {
                                 fullWidth
                               >
                                 {(
-                                  ['Stable', 'Improved', 'Recovered'] as DischargeCondition[]
+                                  [
+                                    "Stable",
+                                    "Improved",
+                                    "Recovered",
+                                  ] as DischargeCondition[]
                                 ).map((condition) => (
                                   <MenuItem key={condition} value={condition}>
                                     {condition}
@@ -1868,7 +2231,11 @@ export default function IpdDischargePage() {
                                 size="small"
                                 value={selectedDraft.finalDiagnosis}
                                 onChange={(event) =>
-                                  updateDraftField(selectedPatientId, 'finalDiagnosis', event.target.value)
+                                  updateDraftField(
+                                    selectedPatientId,
+                                    "finalDiagnosis",
+                                    event.target.value,
+                                  )
                                 }
                                 error={Boolean(errors.finalDiagnosis)}
                                 helperText={errors.finalDiagnosis}
@@ -1886,8 +2253,8 @@ export default function IpdDischargePage() {
                                 onChange={(event) =>
                                   updateDraftField(
                                     selectedPatientId,
-                                    'diagnosisAtDischarge',
-                                    event.target.value
+                                    "diagnosisAtDischarge",
+                                    event.target.value,
                                   )
                                 }
                                 fullWidth
@@ -1906,8 +2273,8 @@ export default function IpdDischargePage() {
                                 onChange={(event) =>
                                   updateDraftField(
                                     selectedPatientId,
-                                    'hospitalCourse',
-                                    event.target.value
+                                    "hospitalCourse",
+                                    event.target.value,
                                   )
                                 }
                                 fullWidth
@@ -1924,7 +2291,11 @@ export default function IpdDischargePage() {
                                 minRows={2.5}
                                 value={selectedDraft.procedures}
                                 onChange={(event) =>
-                                  updateDraftField(selectedPatientId, 'procedures', event.target.value)
+                                  updateDraftField(
+                                    selectedPatientId,
+                                    "procedures",
+                                    event.target.value,
+                                  )
                                 }
                                 fullWidth
                               />
@@ -1936,24 +2307,37 @@ export default function IpdDischargePage() {
                       <Card
                         elevation={0}
                         sx={{
-                          border: '1px solid',
+                          border: "1px solid",
                           borderColor: alpha(theme.palette.primary.main, 0.14),
                           borderRadius: 1.8,
-                          overflow: 'hidden',
+                          overflow: "hidden",
                         }}
                       >
                         <Box
                           sx={{
                             px: 1.8,
                             py: 1.3,
-                            borderBottom: '1px solid',
-                            borderColor: 'divider',
-                            backgroundColor: alpha(theme.palette.primary.main, 0.03),
+                            borderBottom: "1px solid",
+                            borderColor: "divider",
+                            backgroundColor: alpha(
+                              theme.palette.primary.main,
+                              0.03,
+                            ),
                           }}
                         >
-                          <Stack direction="row" spacing={0.8} alignItems="center">
-                            <LocalPharmacyIcon fontSize="small" color="primary" />
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          <Stack
+                            direction="row"
+                            spacing={0.8}
+                            alignItems="center"
+                          >
+                            <LocalPharmacyIcon
+                              fontSize="small"
+                              color="primary"
+                            />
+                            <Typography
+                              variant="subtitle2"
+                              sx={{ fontWeight: 700 }}
+                            >
                               Patient AVS Form
                             </Typography>
                           </Stack>
@@ -1970,7 +2354,11 @@ export default function IpdDischargePage() {
                                 type="date"
                                 value={selectedDraft.followUpDate}
                                 onChange={(event) =>
-                                  updateDraftField(selectedPatientId, 'followUpDate', event.target.value)
+                                  updateDraftField(
+                                    selectedPatientId,
+                                    "followUpDate",
+                                    event.target.value,
+                                  )
                                 }
                                 error={Boolean(errors.followUpDate)}
                                 helperText={errors.followUpDate}
@@ -1988,8 +2376,8 @@ export default function IpdDischargePage() {
                                 onChange={(event) =>
                                   updateDraftField(
                                     selectedPatientId,
-                                    'followUpDepartment',
-                                    event.target.value
+                                    "followUpDepartment",
+                                    event.target.value,
                                   )
                                 }
                                 fullWidth
@@ -2004,7 +2392,11 @@ export default function IpdDischargePage() {
                                 size="small"
                                 value={selectedDraft.followUpDoctor}
                                 onChange={(event) =>
-                                  updateDraftField(selectedPatientId, 'followUpDoctor', event.target.value)
+                                  updateDraftField(
+                                    selectedPatientId,
+                                    "followUpDoctor",
+                                    event.target.value,
+                                  )
                                 }
                                 error={Boolean(errors.followUpDoctor)}
                                 helperText={errors.followUpDoctor}
@@ -2024,8 +2416,8 @@ export default function IpdDischargePage() {
                                 onChange={(event) =>
                                   updateDraftField(
                                     selectedPatientId,
-                                    'patientInstructions',
-                                    event.target.value
+                                    "patientInstructions",
+                                    event.target.value,
                                   )
                                 }
                                 error={Boolean(errors.patientInstructions)}
@@ -2044,7 +2436,11 @@ export default function IpdDischargePage() {
                                 minRows={2}
                                 value={selectedDraft.warningSigns}
                                 onChange={(event) =>
-                                  updateDraftField(selectedPatientId, 'warningSigns', event.target.value)
+                                  updateDraftField(
+                                    selectedPatientId,
+                                    "warningSigns",
+                                    event.target.value,
+                                  )
                                 }
                                 fullWidth
                               />
@@ -2052,14 +2448,19 @@ export default function IpdDischargePage() {
                           </Grid>
 
                           <Stack
-                            direction={{ xs: 'column', sm: 'row' }}
+                            direction={{ xs: "column", sm: "row" }}
                             spacing={0.8}
                             justifyContent="space-between"
-                            alignItems={{ xs: 'flex-start', sm: 'center' }}
+                            alignItems={{ xs: "flex-start", sm: "center" }}
                             sx={{ mt: 1.2 }}
                           >
-                            <Typography variant="caption" color="text.secondary">
-                              {saveStamp ? `Last saved at ${saveStamp}` : 'No draft saved yet'}
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {saveStamp
+                                ? `Last saved at ${saveStamp}`
+                                : "No draft saved yet"}
                             </Typography>
 
                             <Stack direction="row" spacing={0.8}>
@@ -2087,12 +2488,16 @@ export default function IpdDischargePage() {
                                 disabled={!canManageDischarge}
                                 sx={{
                                   ...compactButtonSx,
-                                  background: 'linear-gradient(90deg, #4f46e5 0%, #4338ca 100%)',
-                                  '&:hover': {
-                                    background: 'linear-gradient(90deg, #4338ca 0%, #3730a3 100%)',
+                                  background:
+                                    "linear-gradient(90deg, #4f46e5 0%, #4338ca 100%)",
+                                  "&:hover": {
+                                    background:
+                                      "linear-gradient(90deg, #4338ca 0%, #3730a3 100%)",
                                   },
                                 }}
-                                onClick={() => openDischargeConfirmation(selectedPatientId)}
+                                onClick={() =>
+                                  openDischargeConfirmation(selectedPatientId)
+                                }
                               >
                                 Discharge
                               </Button>
@@ -2104,68 +2509,102 @@ export default function IpdDischargePage() {
                       <Card
                         elevation={0}
                         sx={{
-                          border: '1px solid',
+                          border: "1px solid",
                           borderColor: alpha(theme.palette.primary.main, 0.14),
                           borderRadius: 1.8,
-                          overflow: 'hidden',
+                          overflow: "hidden",
                         }}
                       >
-                        <Box sx={{ px: 1.8, py: 1.2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        <Box
+                          sx={{
+                            px: 1.8,
+                            py: 1.2,
+                            borderBottom: "1px solid",
+                            borderColor: "divider",
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ fontWeight: 700 }}
+                          >
                             AVS Preview
                           </Typography>
                         </Box>
 
                         <Box sx={{ p: 1.8 }}>
                           <Stack spacing={0.9}>
-                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                              {selectedPatient.patientName} ({selectedPatient.mrn})
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 700 }}
+                            >
+                              {selectedPatient.patientName} (
+                              {selectedPatient.mrn})
                             </Typography>
 
-                            <Typography variant="caption" color="text.secondary">
-                              Date: {selectedDraft.dischargeDate || '--'} · Type: {selectedDraft.dischargeType} ·
-                              {' '}Condition: {selectedDraft.conditionAtDischarge}
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              Date: {selectedDraft.dischargeDate || "--"} ·
+                              Type: {selectedDraft.dischargeType} · Condition:{" "}
+                              {selectedDraft.conditionAtDischarge}
                             </Typography>
 
                             <Typography variant="body2">
-                              <strong>Diagnosis:</strong>{' '}
-                              {selectedDraft.diagnosisAtDischarge || selectedDraft.finalDiagnosis || '--'}
+                              <strong>Diagnosis:</strong>{" "}
+                              {selectedDraft.diagnosisAtDischarge ||
+                                selectedDraft.finalDiagnosis ||
+                                "--"}
                             </Typography>
 
                             {selectedDraft.hospitalCourse.trim() ? (
                               <Typography variant="body2">
-                                <strong>Hospital Course:</strong> {selectedDraft.hospitalCourse}
+                                <strong>Hospital Course:</strong>{" "}
+                                {selectedDraft.hospitalCourse}
                               </Typography>
                             ) : null}
 
                             {selectedDraft.procedures.trim() ? (
                               <Typography variant="body2">
-                                <strong>Procedures:</strong> {selectedDraft.procedures}
+                                <strong>Procedures:</strong>{" "}
+                                {selectedDraft.procedures}
                               </Typography>
                             ) : null}
 
                             <Typography variant="body2">
-                              <strong>Follow-up:</strong> {selectedDraft.followUpDepartment} ·{' '}
-                              {selectedDraft.followUpDoctor} · {selectedDraft.followUpDate || '--'}
+                              <strong>Follow-up:</strong>{" "}
+                              {selectedDraft.followUpDepartment} ·{" "}
+                              {selectedDraft.followUpDoctor} ·{" "}
+                              {selectedDraft.followUpDate || "--"}
                             </Typography>
 
                             <Typography variant="body2">
-                              <strong>Instructions:</strong> {selectedDraft.patientInstructions || '--'}
+                              <strong>Instructions:</strong>{" "}
+                              {selectedDraft.patientInstructions || "--"}
                             </Typography>
 
                             <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.4 }}>
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 700, mb: 0.4 }}
+                              >
                                 Medications
                               </Typography>
 
                               {medicationItems.length === 0 ? (
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
                                   No medications added.
                                 </Typography>
                               ) : (
                                 <Stack spacing={0.2}>
                                   {medicationItems.map((medication, index) => (
-                                    <Typography key={`${medication}-${index}`} variant="body2">
+                                    <Typography
+                                      key={`${medication}-${index}`}
+                                      variant="body2"
+                                    >
                                       • {medication}
                                     </Typography>
                                   ))}
@@ -2187,18 +2626,25 @@ export default function IpdDischargePage() {
           )
         ) : null}
 
-        {flowTab === 'discharged' ? (
+        {flowTab === "discharged" ? (
           <Card
             elevation={0}
             sx={{
               borderRadius: 2,
-              border: '1px solid',
+              border: "1px solid",
               borderColor: alpha(theme.palette.primary.main, 0.18),
-              overflow: 'hidden',
-              boxShadow: 'none',
+              overflow: "hidden",
+              boxShadow: "none",
             }}
           >
-            <Box sx={{ px: 2, py: 1.6, borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Box
+              sx={{
+                px: 2,
+                py: 1.6,
+                borderBottom: "1px solid",
+                borderColor: "divider",
+              }}
+            >
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 Discharged Patients
               </Typography>
@@ -2211,40 +2657,57 @@ export default function IpdDischargePage() {
                 </Typography>
               ) : (
                 completedEntries.map((entry) => {
-                  const patient = INPATIENT_STAYS.find((item) => item.id === entry.patientId);
+                  const patient = INPATIENT_STAYS.find(
+                    (item) => item.id === entry.patientId,
+                  );
 
                   return (
                     <Box
                       key={entry.id}
                       sx={{
-                        border: '1px solid',
+                        border: "1px solid",
                         borderColor: alpha(theme.palette.success.main, 0.28),
                         borderRadius: 1.5,
                         px: 1.4,
                         py: 1.1,
-                        backgroundColor: alpha(theme.palette.success.main, 0.04),
+                        backgroundColor: alpha(
+                          theme.palette.success.main,
+                          0.04,
+                        ),
                       }}
                     >
                       <Stack
-                        direction={{ xs: 'column', md: 'row' }}
+                        direction={{ xs: "column", md: "row" }}
                         spacing={1}
                         justifyContent="space-between"
-                        alignItems={{ xs: 'flex-start', md: 'center' }}
+                        alignItems={{ xs: "flex-start", md: "center" }}
                       >
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 700 }}>
                             {entry.patientName} ({entry.mrn})
                           </Typography>
                           {patient ? (
-                            <Typography variant="caption" color="text.secondary">
-                              {patient.diagnosis} · {patient.bed} · {patient.consultant}
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {patient.diagnosis} · {patient.bed} ·{" "}
+                              {patient.consultant}
                             </Typography>
                           ) : null}
                         </Box>
 
                         <Stack direction="row" spacing={0.8}>
-                          <Chip size="small" color="success" label={`Done ${entry.completedAt}`} />
-                          <Chip size="small" variant="outlined" label={entry.preparedBy} />
+                          <Chip
+                            size="small"
+                            color="success"
+                            label={`Done ${entry.completedAt}`}
+                          />
+                          <Chip
+                            size="small"
+                            variant="outlined"
+                            label={entry.preparedBy}
+                          />
                         </Stack>
                       </Stack>
                     </Box>
@@ -2259,7 +2722,7 @@ export default function IpdDischargePage() {
           open={dischargeMedicationDialogOpen}
           onClose={() => {
             setDischargeMedicationDialogOpen(false);
-            setDischargeMedicationDialogError('');
+            setDischargeMedicationDialogError("");
           }}
           maxWidth="sm"
           fullWidth
@@ -2268,19 +2731,23 @@ export default function IpdDischargePage() {
           actionsSx={{
             px: 2,
             py: 1.2,
-            borderTop: '1px solid',
-            borderColor: 'divider',
+            borderTop: "1px solid",
+            borderColor: "divider",
             backgroundColor: alpha(theme.palette.primary.main, 0.04),
           }}
           actions={
-            <Stack direction="row" spacing={0.8} sx={{ width: '100%', justifyContent: 'flex-end' }}>
+            <Stack
+              direction="row"
+              spacing={0.8}
+              sx={{ width: "100%", justifyContent: "flex-end" }}
+            >
               <Button
                 size="small"
                 variant="outlined"
                 sx={compactButtonSx}
                 onClick={() => {
                   setDischargeMedicationDialogOpen(false);
-                  setDischargeMedicationDialogError('');
+                  setDischargeMedicationDialogError("");
                 }}
               >
                 Cancel
@@ -2399,15 +2866,23 @@ export default function IpdDischargePage() {
 
               <Chip
                 size="small"
-                color={dischargeMedicationDraft.dispenseAtDischarge ? 'success' : 'default'}
-                label={dischargeMedicationDraft.dispenseAtDischarge ? 'Bill On Discharge' : 'No Billing'}
+                color={
+                  dischargeMedicationDraft.dispenseAtDischarge
+                    ? "success"
+                    : "default"
+                }
+                label={
+                  dischargeMedicationDraft.dispenseAtDischarge
+                    ? "Bill On Discharge"
+                    : "No Billing"
+                }
                 onClick={() =>
                   setDischargeMedicationDraft((prev) => ({
                     ...prev,
                     dispenseAtDischarge: !prev.dispenseAtDischarge,
                   }))
                 }
-                sx={{ cursor: 'pointer', width: 'fit-content' }}
+                sx={{ cursor: "pointer", width: "fit-content" }}
               />
 
               {dischargeMedicationDialogError ? (
@@ -2425,9 +2900,16 @@ export default function IpdDischargePage() {
           maxWidth="sm"
           fullWidth
           title={
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }}>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              sx={{ width: "100%" }}
+            >
               <Stack direction="row" spacing={0.7} alignItems="center">
-                <AssignmentTurnedInIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                <AssignmentTurnedInIcon
+                  sx={{ fontSize: 16, color: "error.main" }}
+                />
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Confirm Discharge
                 </Typography>
@@ -2440,8 +2922,8 @@ export default function IpdDischargePage() {
           titleSx={{
             px: 2.2,
             py: 1.4,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
+            borderBottom: "1px solid",
+            borderColor: "divider",
           }}
           contentSx={{
             ...inlineFormSx,
@@ -2451,13 +2933,22 @@ export default function IpdDischargePage() {
           actionsSx={{
             px: 2.2,
             py: 1.2,
-            borderTop: '1px solid',
-            borderColor: 'divider',
+            borderTop: "1px solid",
+            borderColor: "divider",
             backgroundColor: alpha(theme.palette.primary.main, 0.04),
           }}
           actions={
-            <Stack direction="row" spacing={0.8} sx={{ width: '100%', justifyContent: 'flex-end' }}>
-              <Button size="small" variant="outlined" sx={compactButtonSx} onClick={closeDischargeConfirmation}>
+            <Stack
+              direction="row"
+              spacing={0.8}
+              sx={{ width: "100%", justifyContent: "flex-end" }}
+            >
+              <Button
+                size="small"
+                variant="outlined"
+                sx={compactButtonSx}
+                onClick={closeDischargeConfirmation}
+              >
                 Cancel
               </Button>
               <Button
@@ -2475,9 +2966,12 @@ export default function IpdDischargePage() {
           content={
             <Stack spacing={1.1}>
               <Typography variant="body2" color="text.secondary">
-                You are about to discharge{' '}
-                <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                  {confirmPatient?.patientName ?? '--'}
+                You are about to discharge{" "}
+                <Box
+                  component="span"
+                  sx={{ fontWeight: 700, color: "text.primary" }}
+                >
+                  {confirmPatient?.patientName ?? "--"}
                 </Box>
                 . This will mark the IPD stay as complete and release the bed.
               </Typography>
@@ -2499,7 +2993,13 @@ export default function IpdDischargePage() {
                     }
                     fullWidth
                   >
-                    {(['Stable', 'Improved', 'Recovered'] as DischargeCondition[]).map((condition) => (
+                    {(
+                      [
+                        "Stable",
+                        "Improved",
+                        "Recovered",
+                      ] as DischargeCondition[]
+                    ).map((condition) => (
                       <MenuItem key={condition} value={condition}>
                         {condition}
                       </MenuItem>
@@ -2559,12 +3059,12 @@ export default function IpdDischargePage() {
           open={snackbar.open}
           autoHideDuration={3500}
           onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
         >
           <Alert
             onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
             severity={snackbar.severity}
-            sx={{ width: '100%' }}
+            sx={{ width: "100%" }}
           >
             {snackbar.message}
           </Alert>

@@ -1,64 +1,66 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   Alert,
+  Box,
   Button,
   Chip,
+  Divider,
+  Drawer,
+  FormControl,
+  IconButton,
+  InputLabel,
   MenuItem,
+  Select,
   Snackbar,
   Stack,
   TextField,
   Typography,
-} from '@/src/ui/components/atoms';
-import Grid from '@/src/ui/components/layout/AlignedGrid';
-import CommonTable, {
-  CommonTableColumn,
-  CommonTableFilter,
-  CommonTableFilterOption,
-} from '@/src/ui/components/molecules/CommonTable';
-import { CommonDialog } from '@/src/ui/components/molecules';
+} from "@/src/ui/components/atoms";
+import { SelectChangeEvent } from "@mui/material";
+import Grid from "@/src/ui/components/layout/AlignedGrid";
+import CommonDataGrid, {
+  CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
+import { CommonDialog } from "@/src/ui/components/molecules";
 import {
   Add as AddIcon,
   AssignmentInd as AssignmentIndIcon,
   Bolt as BoltIcon,
+  Close as CloseIcon,
   FileDownload as FileDownloadIcon,
+  FilterList as FilterListIcon,
   History as HistoryIcon,
   LocalHospital as LocalHospitalIcon,
   PlayArrow as PlayArrowIcon,
   SwapHoriz as SwapHorizIcon,
   WarningAmber as WarningAmberIcon,
-} from '@mui/icons-material';
-import {
-  EncounterStatus,
-  OpdEncounterCase,
-} from './opd-mock-data';
-import { AdmissionPriority } from '@/src/screens/ipd/ipd-mock-data';
-import {
-  ENCOUNTER_STATUS_LABEL,
-  buildEncounterRoute,
-} from './opd-encounter';
-import { useUser } from '@/src/core/auth/UserContext';
-import { useAppDispatch } from '@/src/store/hooks';
-import { updateEncounter } from '@/src/store/slices/opdSlice';
-import { useOpdData } from '@/src/store/opdHooks';
-import { usePermission } from '@/src/core/auth/usePermission';
-import OpdLayout from './components/OpdLayout';
-import ActionBar from './components/ActionBar';
+} from "@mui/icons-material";
+import { EncounterStatus, OpdEncounterCase } from "./opd-mock-data";
+import { AdmissionPriority } from "@/src/screens/ipd/ipd-mock-data";
+import { ENCOUNTER_STATUS_LABEL, buildEncounterRoute } from "./opd-encounter";
+import { useUser } from "@/src/core/auth/UserContext";
+import { useAppDispatch } from "@/src/store/hooks";
+import { updateEncounter } from "@/src/store/slices/opdSlice";
+import { useOpdData } from "@/src/store/opdHooks";
+import { usePermission } from "@/src/core/auth/usePermission";
+import OpdLayout from "./components/OpdLayout";
+import ActionBar from "./components/ActionBar";
 import {
   IpdMetricCard,
   IpdSectionCard,
   ipdFormStylesSx,
-} from '@/src/screens/ipd/components/ipd-ui';
-import { useIpdEncounters } from '@/src/screens/ipd/ipd-encounter-context';
-import { getOpdRoleFlowProfile } from './opd-role-flow';
+} from "@/src/screens/ipd/components/ipd-ui";
+import { useIpdEncounters } from "@/src/screens/ipd/ipd-encounter-context";
+import { getOpdRoleFlowProfile } from "./opd-role-flow";
 import {
   buildDefaultTransferPayload,
   upsertOpdToIpdTransferLead,
-} from '@/src/screens/ipd/ipd-transfer-store';
+} from "@/src/screens/ipd/ipd-transfer-store";
 
-type QueueStage = 'Waiting' | 'In Progress';
+type QueueStage = "Waiting" | "In Progress";
 
 interface QueueItem extends OpdEncounterCase {
   token: string;
@@ -74,21 +76,23 @@ interface QueueTransferDraft {
   requestNote: string;
 }
 
-const ACTIVE_QUEUE_STATUSES: EncounterStatus[] = ['ARRIVED', 'IN_QUEUE', 'IN_PROGRESS'];
+const ACTIVE_QUEUE_STATUSES: EncounterStatus[] = [
+  "ARRIVED",
+  "IN_QUEUE",
+  "IN_PROGRESS",
+];
 
-const queueStatusColor: Record<EncounterStatus, 'default' | 'info' | 'warning' | 'success' | 'error'> = {
-  BOOKED: 'default',
-  ARRIVED: 'warning',
-  IN_QUEUE: 'warning',
-  IN_PROGRESS: 'info',
-  COMPLETED: 'success',
-  CANCELLED: 'error',
+const queueStatusColor: Record<
+  EncounterStatus,
+  "default" | "info" | "warning" | "success" | "error"
+> = {
+  BOOKED: "default",
+  ARRIVED: "warning",
+  IN_QUEUE: "warning",
+  IN_PROGRESS: "info",
+  COMPLETED: "success",
+  CANCELLED: "error",
 };
-
-function buildFilterOptions(values: string[], allLabel: string): CommonTableFilterOption[] {
-  const uniqueValues = Array.from(new Set(values.filter(Boolean)));
-  return [{ label: allLabel, value: 'all' }, ...uniqueValues.map((value) => ({ label: value, value }))];
-}
 
 const statusRank: Record<EncounterStatus, number> = {
   BOOKED: 0,
@@ -103,7 +107,10 @@ function normalizeMrn(mrn: string): string {
   return mrn.trim().toUpperCase();
 }
 
-function pickPreferredEncounter(current: OpdEncounterCase, incoming: OpdEncounterCase): OpdEncounterCase {
+function pickPreferredEncounter(
+  current: OpdEncounterCase,
+  incoming: OpdEncounterCase,
+): OpdEncounterCase {
   const currentRank = statusRank[current.status] ?? 0;
   const incomingRank = statusRank[incoming.status] ?? 0;
   if (incomingRank > currentRank) return incoming;
@@ -112,7 +119,10 @@ function pickPreferredEncounter(current: OpdEncounterCase, incoming: OpdEncounte
   return current;
 }
 
-function buildQueue(encounters: OpdEncounterCase[], excludedMrnSet: Set<string>): QueueItem[] {
+function buildQueue(
+  encounters: OpdEncounterCase[],
+  excludedMrnSet: Set<string>,
+): QueueItem[] {
   const activeCandidates = encounters
     .filter((item) => ACTIVE_QUEUE_STATUSES.includes(item.status))
     .filter((item) => !excludedMrnSet.has(normalizeMrn(item.mrn)));
@@ -128,18 +138,19 @@ function buildQueue(encounters: OpdEncounterCase[], excludedMrnSet: Set<string>)
     activeByMrn.set(key, pickPreferredEncounter(existing, item));
   });
 
-  const active = Array.from(activeByMrn.values())
-    .sort((left, right) => left.appointmentTime.localeCompare(right.appointmentTime));
+  const active = Array.from(activeByMrn.values()).sort((left, right) =>
+    left.appointmentTime.localeCompare(right.appointmentTime),
+  );
 
   return active.map((item, index) => {
-    const isInProgress = item.status === 'IN_PROGRESS';
+    const isInProgress = item.status === "IN_PROGRESS";
     const waitMinutes = isInProgress ? 0 : 8 + index * 4;
 
     return {
       ...item,
-      token: String(index + 1).padStart(2, '0'),
+      token: String(index + 1).padStart(2, "0"),
       waitMinutes,
-      stage: isInProgress ? 'In Progress' : 'Waiting',
+      stage: isInProgress ? "In Progress" : "Waiting",
     };
   });
 }
@@ -161,36 +172,42 @@ export default function OpdQueuePage() {
     () =>
       new Set(
         ipdEncounters
-          .filter((record) => record.workflowStatus !== 'discharged')
-          .map((record) => normalizeMrn(record.mrn))
+          .filter((record) => record.workflowStatus !== "discharged")
+          .map((record) => normalizeMrn(record.mrn)),
       ),
-    [ipdEncounters]
+    [ipdEncounters],
   );
 
-  const queue = React.useMemo(() => buildQueue(encounters, activeIpdMrnSet), [encounters, activeIpdMrnSet]);
+  const queue = React.useMemo(
+    () => buildQueue(encounters, activeIpdMrnSet),
+    [encounters, activeIpdMrnSet],
+  );
   const roleProfile = React.useMemo(() => getOpdRoleFlowProfile(role), [role]);
   const canStartConsult = roleProfile.capabilities.canStartConsult;
   const canViewHistory = roleProfile.capabilities.canViewClinicalHistory;
   const canCreateRegistration = roleProfile.capabilities.canManageCalendar;
   const canTransferToIpd =
-    roleProfile.capabilities.canTransferToIpd && permissionGate('ipd.transfer.write');
+    roleProfile.capabilities.canTransferToIpd &&
+    permissionGate("ipd.transfer.write");
   const [transferDialogOpen, setTransferDialogOpen] = React.useState(false);
-  const [selectedTransferItem, setSelectedTransferItem] = React.useState<QueueItem | null>(null);
+  const [selectedTransferItem, setSelectedTransferItem] =
+    React.useState<QueueItem | null>(null);
   const [transferDraft, setTransferDraft] = React.useState<QueueTransferDraft>({
-    priority: 'Routine',
-    preferredWard: 'Medical Ward - 1',
-    provisionalDiagnosis: '',
-    admissionReason: '',
-    requestNote: '',
+    priority: "Routine",
+    preferredWard: "Medical Ward - 1",
+    provisionalDiagnosis: "",
+    admissionReason: "",
+    requestNote: "",
   });
+  const [filterDrawerOpen, setFilterDrawerOpen] = React.useState(false);
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
-    severity: 'success' | 'error' | 'info' | 'warning';
+    severity: "success" | "error" | "info" | "warning";
   }>({
     open: false,
-    message: '',
-    severity: 'success',
+    message: "",
+    severity: "success",
   });
   const [isHydrated, setIsHydrated] = React.useState(false);
 
@@ -198,69 +215,91 @@ export default function OpdQueuePage() {
     setIsHydrated(true);
   }, []);
 
-  const withMrn = React.useCallback(
-    (route: string, mrn?: string) => {
-      if (!mrn) return route;
-      const joiner = route.includes('?') ? '&' : '?';
-      return `${route}${joiner}mrn=${encodeURIComponent(mrn)}`;
-    },
-    []
-  );
+  const withMrn = React.useCallback((route: string, mrn?: string) => {
+    if (!mrn) return route;
+    const joiner = route.includes("?") ? "&" : "?";
+    return `${route}${joiner}mrn=${encodeURIComponent(mrn)}`;
+  }, []);
 
-  const waitingCount = queue.filter((item) => item.stage === 'Waiting').length;
-  const inProgressCount = queue.filter((item) => item.stage === 'In Progress').length;
-  const completedCount = encounters.filter((item) => item.status === 'COMPLETED').length;
-  const emergencyCount = queue.filter((item) => item.queuePriority === 'Urgent').length;
+  const waitingCount = queue.filter((item) => item.stage === "Waiting").length;
+  const inProgressCount = queue.filter(
+    (item) => item.stage === "In Progress",
+  ).length;
+  const completedCount = encounters.filter(
+    (item) => item.status === "COMPLETED",
+  ).length;
+  const emergencyCount = queue.filter(
+    (item) => item.queuePriority === "Urgent",
+  ).length;
 
   const averageWaitMinutes = React.useMemo(() => {
-    const waitingRows = queue.filter((item) => item.stage === 'Waiting');
+    const waitingRows = queue.filter((item) => item.stage === "Waiting");
     if (waitingRows.length === 0) return 0;
     const total = waitingRows.reduce((sum, item) => sum + item.waitMinutes, 0);
     return Math.round(total / waitingRows.length);
   }, [queue]);
 
-  const queueStageOptions = React.useMemo(
-    () => buildFilterOptions(queue.map((item) => item.stage), 'All Stage'),
-    [queue]
-  );
-  const queuePriorityOptions = React.useMemo(
-    () => buildFilterOptions(queue.map((item) => item.queuePriority), 'All Priority'),
-    [queue]
-  );
-  const queueDepartmentOptions = React.useMemo(
-    () => buildFilterOptions(queue.map((item) => item.department), 'All Department'),
-    [queue]
-  );
+  const [stageFilter, setStageFilter] = React.useState("All Stage");
+  const [priorityFilter, setPriorityFilter] = React.useState("All Priorities");
+  const [departmentFilter, setDepartmentFilter] =
+    React.useState("All Departments");
 
-  const queueFilters = React.useMemo<CommonTableFilter<QueueItem>[]>(
-    () => [
-      {
-        id: 'stage',
-        label: 'Stage',
-        options: queueStageOptions,
-        getValue: (row) => row.stage,
-        allValue: 'all',
-        minWidth: 150,
-      },
-      {
-        id: 'priority',
-        label: 'Priority',
-        options: queuePriorityOptions,
-        getValue: (row) => row.queuePriority,
-        allValue: 'all',
-        minWidth: 150,
-      },
-      {
-        id: 'department',
-        label: 'Department',
-        options: queueDepartmentOptions,
-        getValue: (row) => row.department,
-        allValue: 'all',
-        minWidth: 190,
-      },
-    ],
-    [queueStageOptions, queuePriorityOptions, queueDepartmentOptions]
-  );
+  const resetFilters = () => {
+    setStageFilter("All Stage");
+    setPriorityFilter("All Priorities");
+    setDepartmentFilter("All Departments");
+  };
+
+  const filteredQueue = React.useMemo(() => {
+    return queue.filter((item) => {
+      if (stageFilter !== "All Stage" && item.stage !== stageFilter)
+        return false;
+      if (
+        priorityFilter !== "All Priorities" &&
+        item.queuePriority !== priorityFilter
+      )
+        return false;
+      if (
+        departmentFilter !== "All Departments" &&
+        item.department !== departmentFilter
+      )
+        return false;
+      return true;
+    });
+  }, [queue, stageFilter, priorityFilter, departmentFilter]);
+
+  const filterDropdowns = [
+    {
+      id: "stage",
+      placeholder: "All Stages",
+      value: stageFilter,
+      options: [
+        "All Stage",
+        ...Array.from(new Set(queue.map((item) => item.stage))),
+      ],
+      onChange: setStageFilter,
+    },
+    {
+      id: "priority",
+      placeholder: "All Priorities",
+      value: priorityFilter,
+      options: [
+        "All Priorities",
+        ...Array.from(new Set(queue.map((item) => item.queuePriority))),
+      ],
+      onChange: setPriorityFilter,
+    },
+    {
+      id: "department",
+      placeholder: "All Departments",
+      value: departmentFilter,
+      options: [
+        "All Departments",
+        ...Array.from(new Set(queue.map((item) => item.department))),
+      ],
+      onChange: setDepartmentFilter,
+    },
+  ];
 
   const handleStartConsult = React.useCallback(
     (item: QueueItem) => {
@@ -268,19 +307,19 @@ export default function OpdQueuePage() {
         setSnackbar({
           open: true,
           message: `${roleProfile.label} cannot start consultation. Please assign to a doctor.`,
-          severity: 'warning',
+          severity: "warning",
         });
         return;
       }
       dispatch(
         updateEncounter({
           id: item.id,
-          changes: { status: 'IN_PROGRESS' },
-        })
+          changes: { status: "IN_PROGRESS" },
+        }),
       );
       router.push(withMrn(buildEncounterRoute(item.id), item.mrn));
     },
-    [canStartConsult, dispatch, roleProfile.label, router, withMrn]
+    [canStartConsult, dispatch, roleProfile.label, router, withMrn],
   );
 
   const handleViewHistory = React.useCallback(
@@ -289,13 +328,13 @@ export default function OpdQueuePage() {
         setSnackbar({
           open: true,
           message: `${roleProfile.label} cannot open clinical history.`,
-          severity: 'warning',
+          severity: "warning",
         });
         return;
       }
-      router.push(withMrn('/appointments/visit?tab=notes', item.mrn));
+      router.push(withMrn("/appointments/visit?tab=notes", item.mrn));
     },
-    [canViewHistory, roleProfile.label, router, withMrn]
+    [canViewHistory, roleProfile.label, router, withMrn],
   );
 
   const handleOpenTransferDialog = React.useCallback(
@@ -304,12 +343,14 @@ export default function OpdQueuePage() {
         setSnackbar({
           open: true,
           message: `${roleProfile.label} does not have permission to move patient to IPD.`,
-          severity: 'warning',
+          severity: "warning",
         });
         return;
       }
 
-      const appointment = appointments.find((row) => row.id === item.appointmentId);
+      const appointment = appointments.find(
+        (row) => row.id === item.appointmentId,
+      );
       const defaults = buildDefaultTransferPayload(item, {
         payerType: appointment?.payerType,
         phone: appointment?.phone,
@@ -321,13 +362,13 @@ export default function OpdQueuePage() {
       setTransferDraft({
         priority: defaults.priority,
         preferredWard: defaults.preferredWard,
-        provisionalDiagnosis: defaults.provisionalDiagnosis ?? '',
+        provisionalDiagnosis: defaults.provisionalDiagnosis ?? "",
         admissionReason: defaults.admissionReason,
-        requestNote: '',
+        requestNote: "",
       });
       setTransferDialogOpen(true);
     },
-    [appointments, canTransferToIpd, role, roleProfile.label]
+    [appointments, canTransferToIpd, role, roleProfile.label],
   );
 
   const handleSubmitTransfer = React.useCallback(() => {
@@ -336,7 +377,7 @@ export default function OpdQueuePage() {
       setSnackbar({
         open: true,
         message: `${roleProfile.label} does not have permission to move patient to IPD.`,
-        severity: 'warning',
+        severity: "warning",
       });
       return;
     }
@@ -344,8 +385,8 @@ export default function OpdQueuePage() {
     if (!transferDraft.preferredWard.trim()) {
       setSnackbar({
         open: true,
-        message: 'Preferred ward is required for IPD transfer.',
-        severity: 'error',
+        message: "Preferred ward is required for IPD transfer.",
+        severity: "error",
       });
       return;
     }
@@ -353,13 +394,15 @@ export default function OpdQueuePage() {
     if (!transferDraft.admissionReason.trim()) {
       setSnackbar({
         open: true,
-        message: 'Admission reason is required for IPD transfer.',
-        severity: 'error',
+        message: "Admission reason is required for IPD transfer.",
+        severity: "error",
       });
       return;
     }
 
-    const appointment = appointments.find((row) => row.id === selectedTransferItem.appointmentId);
+    const appointment = appointments.find(
+      (row) => row.id === selectedTransferItem.appointmentId,
+    );
     const defaults = buildDefaultTransferPayload(selectedTransferItem, {
       payerType: appointment?.payerType,
       phone: appointment?.phone,
@@ -371,7 +414,9 @@ export default function OpdQueuePage() {
       ...defaults,
       priority: transferDraft.priority,
       preferredWard: transferDraft.preferredWard.trim(),
-      provisionalDiagnosis: transferDraft.provisionalDiagnosis.trim() || defaults.provisionalDiagnosis,
+      provisionalDiagnosis:
+        transferDraft.provisionalDiagnosis.trim() ||
+        defaults.provisionalDiagnosis,
       admissionReason: transferDraft.admissionReason.trim(),
       requestNote: transferDraft.requestNote.trim(),
     });
@@ -379,8 +424,8 @@ export default function OpdQueuePage() {
     dispatch(
       updateEncounter({
         id: selectedTransferItem.id,
-        changes: { status: 'COMPLETED' },
-      })
+        changes: { status: "COMPLETED" },
+      }),
     );
 
     setTransferDialogOpen(false);
@@ -388,10 +433,10 @@ export default function OpdQueuePage() {
     setSnackbar({
       open: true,
       message:
-        result.status === 'created'
+        result.status === "created"
           ? `IPD transfer created for ${result.lead.patientName}.`
           : `IPD transfer updated for ${result.lead.patientName}.`,
-      severity: 'success',
+      severity: "success",
     });
     router.push(`/ipd/admissions?mrn=${encodeURIComponent(result.lead.mrn)}`);
   }, [
@@ -409,25 +454,12 @@ export default function OpdQueuePage() {
     transferDraft.requestNote,
   ]);
 
-  const queueColumns = React.useMemo<CommonTableColumn<QueueItem>[]>(
+  const queueColumns = React.useMemo<CommonColumn<QueueItem>[]>(
     () => [
       {
-        id: 'token',
-        label: 'Token',
-        minWidth: 90,
-        renderCell: (row) => (
-          <Typography
-            variant="body1"
-            sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'primary.main' }}
-          >
-            {row.token}
-          </Typography>
-        ),
-      },
-      {
-        id: 'patient',
-        label: 'Patient',
-        minWidth: 220,
+        field: "patientName",
+        headerName: "Patient",
+        width: "25%",
         renderCell: (row) => (
           <Stack spacing={0.2}>
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -440,9 +472,9 @@ export default function OpdQueuePage() {
         ),
       },
       {
-        id: 'complaint',
-        label: 'Chief Complaint',
-        minWidth: 220,
+        field: "chiefComplaint",
+        headerName: "Chief Complaint",
+        width: "25%",
         renderCell: (row) => (
           <Typography variant="body2" color="text.secondary">
             {row.chiefComplaint}
@@ -450,25 +482,29 @@ export default function OpdQueuePage() {
         ),
       },
       {
-        id: 'doctor',
-        label: 'Consultant',
-        minWidth: 170,
+        field: "doctor",
+        headerName: "Consultant",
+        width: 170,
         renderCell: (row) => row.doctor,
       },
       {
-        id: 'status',
-        label: 'Status',
-        minWidth: 230,
+        field: "status",
+        headerName: "Status",
+        width: 230,
         renderCell: (row) => (
           <Stack direction="row" spacing={0.6} flexWrap="wrap">
-            <Chip label={row.stage} color={row.stage === 'In Progress' ? 'info' : 'warning'} size="small" />
+            <Chip
+              label={row.stage}
+              color={row.stage === "In Progress" ? "info" : "warning"}
+              size="small"
+            />
             <Chip
               label={ENCOUNTER_STATUS_LABEL[row.status]}
               color={queueStatusColor[row.status]}
               variant="outlined"
               size="small"
             />
-            {row.queuePriority === 'Urgent' ? (
+            {row.queuePriority === "Urgent" ? (
               <Chip
                 size="small"
                 color="error"
@@ -480,20 +516,20 @@ export default function OpdQueuePage() {
         ),
       },
       {
-        id: 'wait',
-        label: 'Wait',
-        minWidth: 90,
+        field: "waitMinutes",
+        headerName: "Wait",
+        width: 100,
         renderCell: (row) => (
           <Typography variant="body2" color="text.secondary">
-            {row.stage === 'Waiting' ? `${row.waitMinutes} min` : '--'}
+            {row.stage === "Waiting" ? `${row.waitMinutes} min` : "--"}
           </Typography>
         ),
       },
       {
-        id: 'actions',
-        label: 'Action',
-        align: 'right',
-        minWidth: 360,
+        field: "actions",
+        headerName: "Action",
+        align: "right",
+        width: 380,
         renderCell: (row) => (
           <Stack direction="row" spacing={0.7} justifyContent="flex-end">
             <Button
@@ -503,7 +539,7 @@ export default function OpdQueuePage() {
               disabled={!canStartConsult}
               onClick={() => handleStartConsult(row)}
             >
-              {row.stage === 'In Progress' ? 'Open Consult' : 'Start Consult'}
+              {row.stage === "In Progress" ? "Open Consult" : "Start Consult"}
             </Button>
             <Button
               size="small"
@@ -535,12 +571,16 @@ export default function OpdQueuePage() {
       handleOpenTransferDialog,
       handleStartConsult,
       handleViewHistory,
-    ]
+    ],
   );
 
   if (!isHydrated) {
     return (
-      <OpdLayout title="OPD Dashboard" currentPageTitle="Queue" showRoleGuide={false}>
+      <OpdLayout
+        title="OPD Dashboard"
+        currentPageTitle="Queue"
+        showRoleGuide={false}
+      >
         <Stack spacing={2}>
           <Alert severity="info">Loading OPD queue...</Alert>
         </Stack>
@@ -549,15 +589,21 @@ export default function OpdQueuePage() {
   }
 
   return (
-    <OpdLayout title="OPD Dashboard" currentPageTitle="Queue" showRoleGuide={false}>
+    <OpdLayout
+      title="OPD Dashboard"
+      currentPageTitle="Queue"
+      showRoleGuide={false}
+    >
       <Stack spacing={2}>
-        {opdStatus === 'loading' ? (
-          <Alert severity="info">Loading OPD data from the local JSON server.</Alert>
+        {opdStatus === "loading" ? (
+          <Alert severity="info">
+            Loading OPD data from the local JSON server.
+          </Alert>
         ) : null}
-        {opdStatus === 'error' ? (
+        {opdStatus === "error" ? (
           <Alert severity="warning">
             OPD JSON server not reachable. Showing fallback data.
-            {opdError ? ` (${opdError})` : ''}
+            {opdError ? ` (${opdError})` : ""}
           </Alert>
         ) : null}
 
@@ -600,60 +646,180 @@ export default function OpdQueuePage() {
           </Grid>
         </Grid>
 
-        <IpdSectionCard
+        {/* <IpdSectionCard
           title="OPD Queue"
           // subtitle="Track, filter, and launch OPD consultations."
-          action={
-            role !== 'DOCTOR' ? (
-              <ActionBar>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  disabled={!canCreateRegistration}
-                  onClick={() => router.push('/patients/registration')}
-                >
-                  New Patient Registration
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<FileDownloadIcon />}
-                  onClick={() =>
-                    setSnackbar({
-                      open: true,
-                      message: 'Report export started.',
-                      severity: 'info',
-                    })
-                  }
-                >
-                  Export Reports
-                </Button>
-              </ActionBar>
-            ) : null
-          }
           bodySx={ipdFormStylesSx}
-        >
-          <CommonTable
-            rows={queue}
+        > */}
+          <CommonDataGrid<QueueItem>
+            rows={filteredQueue}
             columns={queueColumns}
             getRowId={(row) => row.id}
-            emptyMessage="No patients in queue for the selected filter."
-            searchBy={(row) =>
-              [
-                row.token,
-                row.patientName,
-                row.mrn,
-                row.chiefComplaint,
-                row.doctor,
-                row.department,
-                row.queuePriority,
-              ].join(' ')
-            }
+            showSerialNo={true}
+            emptyTitle="No patients in queue"
+            emptyDescription="No patients in queue for the selected filter."
             searchPlaceholder="Search patient, MRN, complaint..."
-            filters={queueFilters}
-            initialRowsPerPage={10}
-            rowsPerPageOptions={[10, 25, 50]}
+            searchFields={[
+              "token",
+              "patientName",
+              "mrn",
+              "chiefComplaint",
+              "doctor",
+              "department",
+              "queuePriority",
+            ]}
+            toolbarRight={
+              <Stack direction="row" spacing={1}>
+                {role !== "DOCTOR" && (
+                  <>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<AddIcon />}
+                      disabled={!canCreateRegistration}
+                      onClick={() => router.push("/patients/registration")}
+                    >
+                      New Patient Registration
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<FileDownloadIcon />}
+                      onClick={() =>
+                        setSnackbar({
+                          open: true,
+                          message: "Report export started.",
+                          severity: "info",
+                        })
+                      }
+                    >
+                      Export Reports
+                    </Button>
+                  </>
+                )}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<FilterListIcon />}
+                  onClick={() => setFilterDrawerOpen(true)}
+                >
+                  Filters
+                </Button>
+                <Button variant="text" size="small" onClick={resetFilters}>
+                  Clear
+                </Button>
+              </Stack>
+            }
           />
-        </IpdSectionCard>
+        {/* </IpdSectionCard> */}
+
+        <Drawer
+          anchor="right"
+          open={filterDrawerOpen}
+          onClose={() => setFilterDrawerOpen(false)}
+        >
+          <Box sx={{ width: 360, p: 3 }}>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              sx={{ mb: 2 }}
+            >
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Queue Filters
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Narrow down the OPD queue
+                </Typography>
+              </Box>
+              <IconButton onClick={() => setFilterDrawerOpen(false)}>
+                <CloseIcon />
+              </IconButton>
+            </Stack>
+
+            <Divider sx={{ mb: 3 }} />
+
+            <Stack spacing={3}>
+              {/* Stage Filter */}
+              <FormControl fullWidth size="small">
+                <InputLabel>Stage</InputLabel>
+                <Select
+                  label="Stage"
+                  value={stageFilter}
+                  onChange={(e: SelectChangeEvent<unknown>) =>
+                    setStageFilter(e.target.value as string)
+                  }
+                >
+                  {["All Stage", "Waiting", "In Progress"].map((v) => (
+                    <MenuItem key={v} value={v}>
+                      {v}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Priority Filter */}
+              <FormControl fullWidth size="small">
+                <InputLabel>Priority</InputLabel>
+                <Select
+                  label="Priority"
+                  value={priorityFilter}
+                  onChange={(e: SelectChangeEvent<unknown>) =>
+                    setPriorityFilter(e.target.value as string)
+                  }
+                >
+                  {["All Priorities", "Routine", "Urgent"].map((v) => (
+                    <MenuItem key={v} value={v}>
+                      {v}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Department Filter */}
+              <FormControl fullWidth size="small">
+                <InputLabel>Department</InputLabel>
+                <Select
+                  label="Department"
+                  value={departmentFilter}
+                  onChange={(e: SelectChangeEvent<unknown>) =>
+                    setDepartmentFilter(e.target.value as string)
+                  }
+                >
+                  {[
+                    "All Departments",
+                    ...Array.from(
+                      new Set(queue.map((item) => item.department)),
+                    ),
+                  ].map((v) => (
+                    <MenuItem key={v} value={v}>
+                      {v}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Stack>
+
+            <Box sx={{ mt: 4 }}>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => setFilterDrawerOpen(false)}
+              >
+                Apply Filters
+              </Button>
+              <Button
+                variant="text"
+                fullWidth
+                sx={{ mt: 1 }}
+                onClick={resetFilters}
+              >
+                Reset All
+              </Button>
+            </Box>
+          </Box>
+        </Drawer>
       </Stack>
 
       <CommonDialog
@@ -672,7 +838,8 @@ export default function OpdQueuePage() {
         content={
           <Stack spacing={1.5} sx={{ pt: 1 }}>
             <Alert severity="info">
-              Create an IPD admission request from OPD. This patient will appear in IPD Admission Queue.
+              Create an IPD admission request from OPD. This patient will appear
+              in IPD Admission Queue.
             </Alert>
             <TextField
               select
@@ -686,7 +853,7 @@ export default function OpdQueuePage() {
               }
               fullWidth
             >
-              {['Routine', 'Urgent', 'Emergency'].map((option) => (
+              {["Routine", "Urgent", "Emergency"].map((option) => (
                 <MenuItem key={option} value={option}>
                   {option}
                 </MenuItem>
@@ -704,7 +871,13 @@ export default function OpdQueuePage() {
               }
               fullWidth
             >
-              {['Medical Ward - 1', 'Medical Ward - 2', 'Surgical Ward - 1', 'ICU', 'HDU'].map((option) => (
+              {[
+                "Medical Ward - 1",
+                "Medical Ward - 2",
+                "Surgical Ward - 1",
+                "ICU",
+                "HDU",
+              ].map((option) => (
                 <MenuItem key={option} value={option}>
                   {option}
                 </MenuItem>
@@ -776,12 +949,12 @@ export default function OpdQueuePage() {
         open={snackbar.open}
         autoHideDuration={3200}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <Alert
           onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          sx={{ width: "100%" }}
         >
           {snackbar.message}
         </Alert>

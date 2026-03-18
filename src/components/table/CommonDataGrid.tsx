@@ -3,565 +3,388 @@
 import * as React from "react";
 import {
   Box,
-  Button,
-  IconButton,
-  Menu,
+  InputAdornment,
   MenuItem,
+  Select,
   Skeleton,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
   TextField,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Typography,
   Paper,
 } from "@/src/ui/components/atoms";
-import EmptyState from "@/src/ui/components/molecules/EmptyState";
-import {
-  DataGrid,
-  GridColDef,
-  GridColumnVisibilityModel,
-  GridDensity,
-  GridFilterModel,
-  GridApi,
-  GridPaginationModel,
-  GridRowIdGetter,
-  GridRowSelectionModel,
-  GridSortModel,
-  GridToolbarColumnsButton,
-  GridToolbarContainer,
-  GridToolbarDensitySelector,
-  GridToolbarExport,
-  GridToolbarFilterButton,
-  GridToolbarQuickFilter,
-  GridValidRowModel,
-  useGridApiRef,
-} from "@mui/x-data-grid";
-import {
-  Add as AddIcon,
-  Close as CloseIcon,
-  Print as PrintIcon,
-  Replay as ReplayIcon,
-  Save as SaveIcon,
-  ViewList as ViewListIcon,
-} from "@mui/icons-material";
+import { SxProps, Theme } from "@/src/ui/theme";
+import { Search as SearchIcon } from "@mui/icons-material";
+import { DataGridProps } from "@mui/x-data-grid";
 
-const DataGridComponent = DataGrid;
+/* ─── Column Definition ──────────────────────────────────────────────────── */
 
-export type DataGridQuery = {
-  paginationModel: GridPaginationModel;
-  sortModel: GridSortModel;
-  filterModel: GridFilterModel;
-  quickFilter?: string;
+export type CommonColumn<R> = {
+  field: string;
+  headerName: string;
+  width?: number | string;
+  flex?: number;
+  align?: "left" | "center" | "right";
+  renderCell?: (row: R) => React.ReactNode;
+  valueGetter?: (row: R) => string | number | null | undefined;
 };
 
-export type CommonDataGridState = {
-  paginationModel?: GridPaginationModel;
-  sortModel?: GridSortModel;
-  filterModel?: GridFilterModel;
-  columnVisibilityModel?: GridColumnVisibilityModel;
-  density?: GridDensity;
-  columnOrder?: string[];
-  pinnedColumns?: any;
+/* ─── Filter Dropdown ────────────────────────────────────────────────────── */
+
+export type FilterDropdown = {
+  id: string;
+  placeholder: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
 };
 
-type ToolbarConfig = {
-  title?: string;
-  showQuickFilter?: boolean;
-  showColumns?: boolean;
-  showFilters?: boolean;
-  showDensity?: boolean;
-  showExport?: boolean;
-  showPrint?: boolean;
-  showSavedViews?: boolean;
-  emptyCtaLabel?: string;
-  onEmptyCtaClick?: () => void;
-};
+/* ─── Props ──────────────────────────────────────────────────────────────── */
 
-export type CommonDataGridProps<R extends GridValidRowModel> = {
-  tableId: string;
-  columns: GridColDef<R>[];
+export type CommonDataGridProps<R extends object> = {
+  columns: CommonColumn<R>[];
   rows: R[];
-  tableHeight?: number | string;
-  rowHeight?: number;
-  getRowId?: GridRowIdGetter<R>;
+  localeText?: DataGridProps["localeText"];
+
+  /** Returns a stable unique key per row; defaults to array index */
+  getRowId?: (row: R) => string | number;
   loading?: boolean;
-  error?: string | null;
-  onRetry?: () => void;
-  toolbarConfig?: ToolbarConfig;
-  initialState?: CommonDataGridState;
-  serverMode?: boolean;
-  totalRowCount?: number;
-  onQueryChange?: (query: DataGridQuery) => void;
-  persistKey?: string;
-  slots?: any;
-  slotProps?: any;
-  externalState?: CommonDataGridState | null;
-  filterModel?: GridFilterModel;
-  onFilterModelChange?: (model: GridFilterModel) => void;
-  onRowClick?: (params: any) => void;
-  renderBulkActions?: (params: {
-    selection: GridRowSelectionModel;
-    clearSelection: () => void;
-  }) => React.ReactNode;
-  checkboxSelection?: boolean;
+  /** Placeholder text inside the search input */
+  searchPlaceholder?: string;
+  /**
+   * Which row fields to search across.
+   * If omitted, all string/number fields on the row are searched.
+   */
+  searchFields?: string[];
+  /** Configurable dropdown filters rendered in the toolbar */
+  filterDropdowns?: FilterDropdown[];
+  /** Callback fired when a row is clicked */
+  onRowClick?: (row: R) => void;
+  rowsPerPageOptions?: number[];
+  defaultRowsPerPage?: number;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  /** Extra content rendered on the left side (after search) */
+  toolbarLeft?: React.ReactNode;
+  /** Extra content rendered on the right side of the toolbar */
+  toolbarRight?: React.ReactNode;
+  /** Whether to show a serial number column */
+  showSerialNo?: boolean;
+  /** Whether to hide the toolbar (search and filters) */
+  hideToolbar?: boolean;
+  /** External search value */
+  externalSearchValue?: string;
+  /** Callback when search changes */
+  onSearchChange?: (value: string) => void;
+  /** Whether to hide the search input */
+  hideSearch?: boolean;
 };
 
-const getStorageKey = (tableId: string, persistKey?: string) =>
-  `scanbo:grid:${persistKey ?? tableId}`;
+/* ─── Component ──────────────────────────────────────────────────────────── */
 
-const getViewsKey = (tableId: string, persistKey?: string) =>
-  `scanbo:grid:${persistKey ?? tableId}:views`;
+export default function CommonDataGrid<R extends object>({
+  columns,
+  rows,
+  getRowId,
+  loading = false,
+  searchPlaceholder = "Search...",
+  searchFields,
+  filterDropdowns,
+  onRowClick,
+  rowsPerPageOptions = [5, 10, 25],
+  defaultRowsPerPage = 10,
+  emptyTitle = "No records found",
+  emptyDescription = "Try adjusting your filters.",
+  toolbarLeft,
+  toolbarRight,
+  showSerialNo = false,
+  hideToolbar = false,
+  externalSearchValue,
+  onSearchChange,
+  hideSearch = false,
+}: CommonDataGridProps<R>) {
+  const [internalSearch, setInternalSearch] = React.useState("");
+  const search = externalSearchValue ?? internalSearch;
+  const setSearch = onSearchChange ?? setInternalSearch;
 
-const safeParse = <T,>(value: string | null): T | null => {
-  if (!value) return null;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return null;
-  }
-};
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(defaultRowsPerPage);
 
-const sanitizeFilterModel = (model?: GridFilterModel): GridFilterModel => {
-  if (!model) return { items: [] };
-  const items = model.items ?? [];
-  return {
-    ...model,
-    items: items.length > 1 ? [items[0]] : items,
-  };
-};
-
-const LoadingOverlay = () => (
-  <Box sx={{ p: 3 }}>
-    <Stack spacing={1.5}>
-      {Array.from({ length: 6 }).map((_, index) => (
-        <Skeleton key={index} variant="rounded" height={32} />
-      ))}
-    </Stack>
-  </Box>
-);
-
-const ErrorOverlay = ({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry?: () => void;
-}) => (
-  <EmptyState
-    title="Something went wrong"
-    description={message}
-    actionLabel={onRetry ? "Retry" : undefined}
-    onAction={onRetry}
-    icon={<ReplayIcon />}
-  />
-);
-
-const EmptyOverlay = ({
-  title = "No patients found",
-  description = "Try adjusting filters or add a new patient.",
-  ctaLabel,
-  onCta,
-}: {
-  title?: string;
-  description?: string;
-  ctaLabel?: string;
-  onCta?: () => void;
-}) => (
-  <EmptyState
-    title={title}
-    description={description}
-    actionLabel={ctaLabel}
-    onAction={onCta}
-    icon={<AddIcon />}
-  />
-);
-
-export default function CommonDataGrid<R extends GridValidRowModel>(
-  props: CommonDataGridProps<R>,
-) {
-  const {
-    tableId,
-    columns,
-    rows,
-    tableHeight = 640,
-    rowHeight,
-    getRowId,
-    loading,
-    error,
-    onRetry,
-    toolbarConfig,
-    initialState,
-    serverMode,
-    totalRowCount,
-    onQueryChange,
-    persistKey,
-    slots,
-    slotProps,
-    externalState,
-    filterModel: filterModelProp,
-    onFilterModelChange,
-    onRowClick,
-    renderBulkActions,
-    checkboxSelection = true,
-  } = props;
-
-  const storageKey = React.useMemo(
-    () => getStorageKey(tableId, persistKey),
-    [tableId, persistKey],
-  );
-  const viewsKey = React.useMemo(
-    () => getViewsKey(tableId, persistKey),
-    [tableId, persistKey],
-  );
-
-  const apiRef = useGridApiRef();
-
-  const [hydrated, setHydrated] = React.useState(false);
-  const emptySelection: GridRowSelectionModel = React.useMemo(
-    () => ({ type: "include", ids: new Set() }),
-    [],
-  );
-  const normalizeSelection = React.useCallback(
-    (model: any): GridRowSelectionModel => {
-      if (model?.ids instanceof Set) return model as GridRowSelectionModel;
-      if (Array.isArray(model)) {
-        return { type: "include", ids: new Set(model) };
-      }
-      return { type: "include", ids: new Set() };
-    },
-    [],
-  );
-
-  const [rowSelectionModel, setRowSelectionModel] =
-    React.useState<GridRowSelectionModel>(emptySelection);
-  const [savedViews, setSavedViews] = React.useState<
-    Array<{ id: string; name: string; state: CommonDataGridState }>
-  >([]);
-  const [viewsAnchor, setViewsAnchor] = React.useState<null | HTMLElement>(
-    null,
-  );
-  const [saveDialogOpen, setSaveDialogOpen] = React.useState(false);
-  const [viewName, setViewName] = React.useState("");
-
-  const defaultState: CommonDataGridState = {
-    paginationModel: { page: 0, pageSize: 25 },
-    sortModel: [],
-    filterModel: { items: [], quickFilterValues: [] },
-    columnVisibilityModel: {},
-    density: "standard",
-  };
-
-  const [state, setState] = React.useState<CommonDataGridState>(() => ({
-    ...defaultState,
-    ...initialState,
-  }));
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const persisted = safeParse<CommonDataGridState>(
-      localStorage.getItem(storageKey),
-    );
-    const persistedViews = safeParse<
-      Array<{ id: string; name: string; state: CommonDataGridState }>
-    >(localStorage.getItem(viewsKey));
-    if (persisted) {
-      setState((prev) => ({ ...prev, ...persisted }));
-    }
-    if (persistedViews) {
-      setSavedViews(persistedViews);
-    }
-    setHydrated(true);
-  }, [storageKey, viewsKey]);
-
-  React.useEffect(() => {
-    if (!hydrated || typeof window === "undefined") return;
-    localStorage.setItem(storageKey, JSON.stringify(state));
-  }, [hydrated, state, storageKey]);
-
-  React.useEffect(() => {
-    if (!hydrated || typeof window === "undefined") return;
-    localStorage.setItem(viewsKey, JSON.stringify(savedViews));
-  }, [hydrated, savedViews, viewsKey]);
-
-  React.useEffect(() => {
-    if (!externalState) return;
-    setState((prev) => ({ ...prev, ...externalState }));
-  }, [externalState]);
-  const resolvedColumns = React.useMemo(() => {
-    if (!state.columnOrder || state.columnOrder.length === 0) return columns;
-    const ordered = [...columns].sort((a, b) => {
-      const aIndex = state.columnOrder!.indexOf(a.field);
-      const bIndex = state.columnOrder!.indexOf(b.field);
-      if (aIndex === -1 && bIndex === -1) return 0;
-      if (aIndex === -1) return 1;
-      if (bIndex === -1) return -1;
-      return aIndex - bIndex;
-    });
-    return ordered;
-  }, [columns, state.columnOrder]);
-
-  const resolvedFilterModel = React.useMemo(
-    () => sanitizeFilterModel(filterModelProp ?? state.filterModel),
-    [filterModelProp, state.filterModel],
-  );
-
-  const resolvedPaginationModel =
-    state.paginationModel ?? defaultState.paginationModel!;
-  const resolvedSortModel = state.sortModel ?? [];
-  const resolvedColumnVisibilityModel = state.columnVisibilityModel ?? {};
-  const resolvedDensity = state.density ?? "standard";
-
-  React.useEffect(() => {
-    if (!serverMode || !onQueryChange) return;
-    const handle = setTimeout(() => {
-      onQueryChange({
-        paginationModel: resolvedPaginationModel,
-        sortModel: resolvedSortModel,
-        filterModel: resolvedFilterModel,
-        quickFilter: (resolvedFilterModel.quickFilterValues || []).join(" "),
+  /* ── client-side search ── */
+  const filtered = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((row) => {
+      const fields = searchFields ?? Object.keys(row);
+      return fields.some((field) => {
+        const val = (row as Record<string, unknown>)[field];
+        if (val == null) return false;
+        return String(val).toLowerCase().includes(q);
       });
-    }, 200);
-    return () => clearTimeout(handle);
-  }, [
-    serverMode,
-    onQueryChange,
-    resolvedPaginationModel,
-    resolvedSortModel,
-    resolvedFilterModel,
-  ]);
+    });
+  }, [rows, search, searchFields]);
 
-  const handleSaveView = () => {
-    if (!viewName.trim()) return;
-    setSavedViews((prev) => [
-      ...prev,
-      { id: String(Date.now()), name: viewName.trim(), state },
-    ]);
-    setViewName("");
-    setSaveDialogOpen(false);
-  };
-
-  const applyView = (viewState: CommonDataGridState) => {
-    setState((prev) => ({ ...prev, ...viewState }));
-  };
-
-  const clearSelection = () => setRowSelectionModel(emptySelection);
-
-  const CustomToolbar = () => (
-    <GridToolbarContainer sx={{ gap: 1, px: 1.5, py: 1 }}>
-      <Stack
-        direction="row"
-        alignItems="center"
-        spacing={1}
-        sx={{ flex: 1, minWidth: 0 }}
-      >
-        {toolbarConfig?.title && (
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            {toolbarConfig.title}
-          </Typography>
-        )}
-        {toolbarConfig?.showQuickFilter !== false && (
-          <GridToolbarQuickFilter
-            debounceMs={300}
-            quickFilterParser={(input) =>
-              input.split(/\s+/).filter((token) => token.length > 0)
-            }
-            aria-label="Search table"
-          />
-        )}
-      </Stack>
-      <Stack direction="row" alignItems="center" spacing={1}>
-        {toolbarConfig?.showColumns !== false && <GridToolbarColumnsButton />}
-        {toolbarConfig?.showFilters !== false && <GridToolbarFilterButton />}
-        {toolbarConfig?.showDensity !== false && <GridToolbarDensitySelector />}
-        {toolbarConfig?.showExport !== false && (
-          <GridToolbarExport
-            csvOptions={{ fileName: tableId, utf8WithBom: true }}
-            printOptions={{ disableToolbarButton: false }}
-          />
-        )}
-        {toolbarConfig?.showPrint && (
-          <IconButton aria-label="Print" onClick={() => window.print()}>
-            <PrintIcon fontSize="small" />
-          </IconButton>
-        )}
-        {toolbarConfig?.showSavedViews !== false && (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<ViewListIcon />}
-            onClick={(event) => setViewsAnchor(event.currentTarget)}
-          >
-            Saved Views
-          </Button>
-        )}
-      </Stack>
-    </GridToolbarContainer>
+  const paginated = filtered.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage,
   );
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [search, rows]);
+
+  const getCellValue = (row: R, col: CommonColumn<R>): React.ReactNode => {
+    if (col.renderCell) return col.renderCell(row);
+    if (col.valueGetter) {
+      const v = col.valueGetter(row);
+      return v != null ? String(v) : "—";
+    }
+    const v = (row as Record<string, unknown>)[col.field];
+    return v != null ? String(v) : "—";
+  };
+
+  const rowKey = (row: R, index: number) => (getRowId ? getRowId(row) : index);
 
   return (
-    <Paper sx={{ width: "100%", borderRadius: 3, overflow: "hidden" }}>
-      {rowSelectionModel?.ids?.size > 0 && (
-        <Box
+    <Paper
+      elevation={0}
+      sx={{
+        borderRadius: 2,
+        border: "1px solid",
+        borderColor: "rgba(17, 114, 186, 0.14)",
+        overflow: "hidden",
+        boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
+        width: "100%",
+      }}
+    >
+      {/* ── Toolbar ── */}
+      {!hideToolbar && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          flexWrap="wrap"
+          gap={1}
           sx={{
             px: 2,
-            py: 1,
+            py: 1.5,
             borderBottom: "1px solid",
             borderColor: "divider",
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
           }}
-          aria-label="Bulk actions"
         >
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {rowSelectionModel?.ids?.size ?? 0} selected
-          </Typography>
+          {toolbarLeft}
+
+          {/* Search */}
+          {!hideSearch && (
+            <TextField
+              size="small"
+              placeholder={searchPlaceholder}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ fontSize: 18, color: "text.disabled" }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                flex: { xs: 1, md: 2 },
+                maxWidth: { md: 600 },
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  fontSize: "0.875rem",
+                  bgcolor: "background.paper",
+                },
+              }}
+            />
+          )}
+
+          {/* Filter dropdowns */}
+          {filterDropdowns?.map((fd) => (
+            <TextField
+              key={fd.id}
+              select
+              size="small"
+              label={fd.placeholder}
+              value={fd.value}
+              onChange={(e) => fd.onChange(e.target.value as string)}
+              sx={{
+                minWidth: 130,
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  fontSize: "0.875rem",
+                },
+              }}
+            >
+              {fd.options.map((opt) => (
+                <MenuItem key={opt} value={opt} sx={{ fontSize: "0.875rem" }}>
+                  {opt}
+                </MenuItem>
+              ))}
+            </TextField>
+          ))}
+
           <Box sx={{ flex: 1 }} />
-          {renderBulkActions?.({
-            selection: rowSelectionModel,
-            clearSelection,
-          })}
-          <IconButton onClick={clearSelection} aria-label="Clear selection">
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </Box>
+
+          {toolbarRight}
+        </Stack>
       )}
 
-      <Box sx={{ height: tableHeight, width: "100%" }}>
-        <DataGridComponent
-          apiRef={apiRef}
-          rows={rows}
-          columns={resolvedColumns}
-          rowHeight={rowHeight}
-          getRowId={getRowId}
-          loading={loading}
-          rowCount={serverMode ? (totalRowCount ?? rows.length) : undefined}
-          paginationMode={serverMode ? "server" : "client"}
-          sortingMode={serverMode ? "server" : "client"}
-          filterMode={serverMode ? "server" : "client"}
-          paginationModel={resolvedPaginationModel}
-          onPaginationModelChange={(model: GridPaginationModel) =>
-            setState((prev) => ({ ...prev, paginationModel: model }))
-          }
-          sortModel={resolvedSortModel}
-          onSortModelChange={(model: GridSortModel) =>
-            setState((prev) => ({ ...prev, sortModel: model }))
-          }
-          filterModel={resolvedFilterModel}
-          onFilterModelChange={(model: GridFilterModel) => {
-            const nextModel = sanitizeFilterModel(model);
-            if (!filterModelProp) {
-              setState((prev) => ({ ...prev, filterModel: nextModel }));
-            }
-            onFilterModelChange?.(nextModel);
-          }}
-          columnVisibilityModel={resolvedColumnVisibilityModel}
-          onColumnVisibilityModelChange={(model: GridColumnVisibilityModel) =>
-            setState((prev) => ({ ...prev, columnVisibilityModel: model }))
-          }
-          density={resolvedDensity}
-          onDensityChange={(newDensity: GridDensity) =>
-            setState((prev) => ({ ...prev, density: newDensity }))
-          }
-          onColumnOrderChange={() => {
-            const api = apiRef.current;
-            if (!api) return;
-            const ordered = api
-              .getAllColumns()
-              .map((column: any) => column.field)
-              .filter(Boolean);
-            setState((prev) => ({ ...prev, columnOrder: ordered }));
-          }}
-          checkboxSelection={checkboxSelection}
-          disableRowSelectionOnClick
-          onRowSelectionModelChange={(model: GridRowSelectionModel) =>
-            setRowSelectionModel(normalizeSelection(model))
-          }
-          rowSelectionModel={rowSelectionModel}
-          onRowClick={onRowClick}
-          slots={{
-            toolbar: CustomToolbar,
-            loadingOverlay: LoadingOverlay,
-            noRowsOverlay: () => (
-              <EmptyOverlay
-                ctaLabel={toolbarConfig?.emptyCtaLabel}
-                onCta={toolbarConfig?.onEmptyCtaClick}
-              />
-            ),
-            noResultsOverlay: () => (
-              <EmptyOverlay
-                title="No results"
-                description="Try refining your filters."
-              />
-            ),
-            ...slots,
-          }}
-          slotProps={slotProps}
-          initialState={undefined}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-row:hover": { cursor: "pointer" },
-          }}
-        />
-      </Box>
+      {/* ── Table ── */}
+      <TableContainer>
+        <Table sx={{ minWidth: 700 }} size="small">
+          {/* Headers */}
+          <TableHead>
+            <TableRow
+              sx={{
+                "& .MuiTableCell-head": {
+                  backgroundColor: "#f9fafb",
+                  borderBottom: "1px solid",
+                  borderColor: "rgba(17, 114, 186, 0.07)",
+                  py: 1.25,
+                  px: 2,
+                  fontSize: "0.68rem",
+                  fontWeight: 700,
+                  color: "text.secondary",
+                  letterSpacing: "0.07em",
+                  textTransform: "uppercase",
+                  lineHeight: 1.4,
+                  whiteSpace: "nowrap",
+                },
+              }}
+            >
+              {showSerialNo && <TableCell width={60}>Sr. No.</TableCell>}
+              {columns.map((col) => (
+                <TableCell
+                  key={col.field}
+                  align={col.align ?? "left"}
+                  sx={
+                    col.flex
+                      ? { width: "auto" }
+                      : col.width
+                        ? { width: col.width, minWidth: col.width }
+                        : {}
+                  }
+                >
+                  {col.headerName}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
 
-      {error && <ErrorOverlay message={error} onRetry={onRetry} />}
+          {/* Body */}
+          <TableBody>
+            {loading ? (
+              Array.from({ length: rowsPerPage }).map((_, i) => (
+                <TableRow key={i}>
+                  {showSerialNo && (
+                    <TableCell sx={{ py: 1.6, px: 2 }}>
+                      <Skeleton variant="text" width={20} />
+                    </TableCell>
+                  )}
+                  {columns.map((col) => (
+                    <TableCell key={col.field} sx={{ py: 1.6, px: 2 }}>
+                      <Skeleton variant="rounded" height={28} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : paginated.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length + (showSerialNo ? 1 : 0)}
+                  align="center"
+                  sx={{ py: 6, border: 0 }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, color: "text.primary", mb: 0.5 }}
+                  >
+                    {emptyTitle}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {emptyDescription}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginated.map((row, index) => (
+                <TableRow
+                  key={rowKey(row, index)}
+                  hover
+                  onClick={() => onRowClick?.(row)}
+                  sx={{
+                    cursor: onRowClick ? "pointer" : "default",
+                    "& .MuiTableCell-body": {
+                      py: 1.5,
+                      px: 2,
+                      borderBottom: "1px solid",
+                      borderColor: "rgba(17, 114, 186, 0.07)",
+                      verticalAlign: "middle",
+                    },
+                    "&:last-child .MuiTableCell-body": { borderBottom: 0 },
+                    "&:hover": { backgroundColor: "#f8fafc" },
+                  }}
+                >
+                  {showSerialNo && (
+                    <TableCell
+                      sx={{
+                        fontWeight: 500,
+                        color: "text.secondary",
+                        width: 60,
+                      }}
+                    >
+                      {page * rowsPerPage + index + 1}
+                    </TableCell>
+                  )}
+                  {columns.map((col) => (
+                    <TableCell
+                      key={col.field}
+                      align={col.align ?? "left"}
+                      sx={
+                        col.flex
+                          ? { width: "auto" }
+                          : col.width
+                            ? { width: col.width, minWidth: col.width }
+                            : {}
+                      }
+                    >
+                      {getCellValue(row, col)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-      <Menu
-        anchorEl={viewsAnchor}
-        open={Boolean(viewsAnchor)}
-        onClose={() => setViewsAnchor(null)}
-      >
-        {savedViews.length === 0 && (
-          <MenuItem disabled>No saved views</MenuItem>
-        )}
-        {savedViews.map((view) => (
-          <MenuItem
-            key={view.id}
-            onClick={() => {
-              applyView(view.state);
-              setViewsAnchor(null);
-            }}
-          >
-            {view.name}
-          </MenuItem>
-        ))}
-        <MenuItem
-          onClick={() => {
-            setViewsAnchor(null);
-            setSaveDialogOpen(true);
-          }}
-        >
-          <SaveIcon fontSize="small" style={{ marginRight: 8 }} />
-          Save current view
-        </MenuItem>
-      </Menu>
-
-      <Dialog open={saveDialogOpen} onClose={() => setSaveDialogOpen(false)}>
-        <DialogTitle>Save view</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            label="View name"
-            value={viewName}
-            onChange={(event) => setViewName(event.target.value)}
-            size="small"
-            sx={{ mt: 1 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSaveDialogOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={handleSaveView}
-            startIcon={<SaveIcon />}
-          >
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* ── Pagination ── */}
+      <TablePagination
+        component="div"
+        count={filtered.length}
+        page={page}
+        onPageChange={(_, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(e) => {
+          setRowsPerPage(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
+        rowsPerPageOptions={rowsPerPageOptions}
+        sx={{
+          borderTop: "1px solid",
+          borderColor: "divider",
+          "& .MuiTablePagination-toolbar": { fontSize: "0.8rem" },
+          "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+            { fontSize: "0.8rem" },
+        }}
+      />
     </Paper>
   );
 }

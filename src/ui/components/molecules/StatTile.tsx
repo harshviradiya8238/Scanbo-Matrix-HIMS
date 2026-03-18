@@ -1,11 +1,11 @@
-import * as React from 'react';
-import { alpha, useTheme } from '@mui/material';
-import { Box, Stack } from '@/src/ui/components/atoms';
-import Paper from '@/src/ui/components/atoms/Paper';
-import Text from '@/src/ui/components/atoms/Text';
-import { cardShadow } from '@/src/core/theme/tokens';
+import * as React from "react";
+import { alpha, useTheme } from "@mui/material";
+import { Box, Stack } from "@/src/ui/components/atoms";
+import Paper from "@/src/ui/components/atoms/Paper";
+import Text from "@/src/ui/components/atoms/Text";
+import { cardShadow } from "@/src/core/theme/tokens";
 
-type Tone = 'primary' | 'secondary' | 'info' | 'success' | 'warning' | 'error';
+type Tone = "primary" | "secondary" | "info" | "success" | "warning" | "error";
 
 interface StatTileProps {
   label: string;
@@ -13,7 +13,7 @@ interface StatTileProps {
   subtitle?: string;
   icon?: React.ReactNode;
   tone?: Tone;
-  variant?: 'soft' | 'outlined';
+  variant?: "soft" | "outlined";
   sx?: object;
 }
 
@@ -22,24 +22,27 @@ export default function StatTile({
   value,
   subtitle,
   icon,
-  tone = 'primary',
-  variant = 'soft',
+  tone = "primary",
+  variant = "soft",
   sx,
 }: StatTileProps) {
   const theme = useTheme();
   const palette = theme.palette[tone];
-  const isOutlined = variant === 'outlined';
+  const isOutlined = variant === "outlined";
 
   return (
     <Paper
       elevation={0}
       sx={{
         p: 2,
+        // mb: 2,
         borderRadius: 2,
-        border: isOutlined ? '1px solid' : 'none',
-        borderColor: isOutlined ? alpha(palette.main, 0.2) : 'transparent',
+        border: isOutlined ? "1px solid" : "none",
+        borderColor: isOutlined ? alpha(palette.main, 0.2) : "transparent",
         boxShadow: cardShadow,
-        backgroundColor: isOutlined ? theme.palette.background.paper : alpha(palette.main, 0.08),
+        backgroundColor: isOutlined
+          ? theme.palette.background.paper
+          : alpha(palette.main, 0.08),
         ...sx,
       }}
     >
@@ -48,7 +51,10 @@ export default function StatTile({
           <Text variant="caption" color="text.secondary">
             {label}
           </Text>
-          <Text variant="h4" sx={{ fontWeight: 700, lineHeight: 1.2, color: 'text.primary' }}>
+          <Text
+            variant="h4"
+            sx={{ fontWeight: 700, lineHeight: 1.2, color: "text.primary" }}
+          >
             {value}
           </Text>
           {subtitle ? (
@@ -62,9 +68,9 @@ export default function StatTile({
             sx={{
               width: 52,
               height: 52,
-              borderRadius: '50%',
-              display: 'grid',
-              placeItems: 'center',
+              borderRadius: "50%",
+              display: "grid",
+              placeItems: "center",
               bgcolor: alpha(palette.main, 0.16),
               color: palette.main,
             }}

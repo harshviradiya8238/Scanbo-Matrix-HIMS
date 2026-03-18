@@ -1,10 +1,37 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import { useUser } from '@/src/core/auth/UserContext';
-import { Avatar, Box, Button, Chip, Drawer, FormControl, IconButton, InputLabel, Menu, MenuItem, Select, SelectChangeEvent, Slider, Stack, TextField, Typography, Snackbar, Alert, Divider, Autocomplete } from '@/src/ui/components/atoms';
-import { Card, CommonDialog, StatTile } from '@/src/ui/components/molecules';
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/src/core/auth/UserContext";
+import { alpha, useTheme } from "@/src/ui/theme";
+import {
+  Avatar,
+  Box,
+  Button,
+  Chip,
+  Drawer,
+  FormControl,
+  IconButton,
+  InputLabel,
+  Menu,
+  MenuItem,
+  Select,
+  SelectChangeEvent,
+  Slider,
+  Stack,
+  TextField,
+  Typography,
+  Snackbar,
+  Alert,
+  Divider,
+  Autocomplete,
+} from "@/src/ui/components/atoms";
+import {
+  Card,
+  CommonDialog,
+  StatTile,
+  WorkspaceHeaderCard,
+} from "@/src/ui/components/molecules";
 import {
   Add as AddIcon,
   AssignmentLate as AssignmentLateIcon,
@@ -16,360 +43,394 @@ import {
   PeopleAlt as PeopleAltIcon,
   PersonAddAlt as PersonAddAltIcon,
   Close as CloseIcon,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
+import CommonDataGrid, {
+  CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
+import { ListItemIcon, ListItemText } from "@mui/material";
 import {
-  GridActionsCellItem,
-  GridColDef,
-  GridFilterModel,
-  GridRenderCellParams,
-} from '@mui/x-data-grid';
-import DataTable, { CommonDataGridState } from '@/src/ui/components/organisms/DataTable';
-import { patientData, patientMetrics, PatientRow } from '@/src/mocks/patientServer';
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  CalendarMonth as CalendarMonthIcon,
+  PlayArrow as StartIcon,
+  Hotel as AdmitIcon,
+  Receipt as InvoiceIcon,
+  Archive as ArchiveIcon,
+} from "@mui/icons-material";
+import {
+  patientData,
+  patientMetrics,
+  PatientRow,
+} from "@/src/mocks/patientServer";
 
-const statusColors: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
-  Active: 'success',
-  Admitted: 'info',
-  'Billing Hold': 'warning',
-  Inactive: 'default',
-  Discharged: 'default',
+const statusColors: Record<
+  string,
+  "success" | "warning" | "error" | "info" | "default"
+> = {
+  Active: "success",
+  Admitted: "info",
+  "Billing Hold": "warning",
+  Inactive: "default",
+  Discharged: "default",
 };
 
-const tagOptions = ['VIP', 'High Risk', 'Diabetic', 'Hypertension', 'Pregnancy', 'Allergy'];
-
-const defaultFilterModel: GridFilterModel = { items: [], quickFilterValues: [] };
+const tagOptions = [
+  "VIP",
+  "High Risk",
+  "Diabetic",
+  "Hypertension",
+  "Pregnancy",
+  "Allergy",
+];
 
 export default function PatientListPage() {
+  const theme = useTheme();
   const router = useRouter();
   const { role } = useUser();
-  const isDoctor = role === 'DOCTOR';
+  const isDoctor = role === "DOCTOR";
   const [rows] = React.useState<PatientRow[]>(patientData);
 
   const [filterDrawerOpen, setFilterDrawerOpen] = React.useState(false);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
-  const [selectedPatient, setSelectedPatient] = React.useState<PatientRow | null>(null);
+  const [selectedPatient, setSelectedPatient] =
+    React.useState<PatientRow | null>(null);
   const [snackbar, setSnackbar] = React.useState<string | null>(null);
-  const [viewsAnchor, setViewsAnchor] = React.useState<null | HTMLElement>(null);
-  const [externalState, setExternalState] = React.useState<CommonDataGridState | null>(null);
+  const [viewsAnchor, setViewsAnchor] = React.useState<null | HTMLElement>(
+    null,
+  );
   const [confirmAction, setConfirmAction] = React.useState<{
     title: string;
     description: string;
     onConfirm: () => void;
   } | null>(null);
+  const [actionMenu, setActionMenu] = React.useState<{
+    anchor: HTMLElement;
+    row: PatientRow;
+  } | null>(null);
+
+  const handleMenuOpen = (
+    e: React.MouseEvent<HTMLElement>,
+    row: PatientRow,
+  ) => {
+    e.stopPropagation();
+    setActionMenu({ anchor: e.currentTarget, row });
+  };
+
+  const handleMenuClose = () => setActionMenu(null);
 
   const [filters, setFilters] = React.useState({
-    status: 'All',
-    gender: 'All',
-    department: 'All',
-    doctor: 'All',
+    status: "All",
+    gender: "All",
+    department: "All",
+    doctor: "All",
     ageRange: [18, 80] as number[],
-    regDateFrom: '',
-    regDateTo: '',
-    lastVisitFrom: '',
-    lastVisitTo: '',
+    regDateFrom: "",
+    regDateTo: "",
+    lastVisitFrom: "",
+    lastVisitTo: "",
     tags: [] as string[],
   });
 
-  const [filterModel, setFilterModel] = React.useState<GridFilterModel>(defaultFilterModel);
-
-  const columns = React.useMemo<GridColDef<PatientRow>[]>(
+  const columns = React.useMemo<CommonColumn<PatientRow>[]>(
     () => [
       {
-        field: 'mrn',
-        headerName: 'MRN/Patient ID',
+        field: "mrn",
+        headerName: "MRN/Patient ID",
         width: 140,
       },
       {
-        field: 'name',
-        headerName: 'Name',
+        field: "name",
+        headerName: "Name",
         width: 240,
-        renderCell: (params: GridRenderCellParams<PatientRow>) => (
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ height: '100%', width: '100%' }}>
-            <Avatar sx={{ width: 32, height: 32, fontSize: 13, bgcolor: 'primary.main' }}>
-              {params.row.firstName[0]}
-              {params.row.lastName[0]}
+        renderCell: (row: PatientRow) => (
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Avatar
+              sx={{
+                width: 32,
+                height: 32,
+                fontSize: 13,
+                bgcolor: "primary.main",
+              }}
+            >
+              {row.firstName[0]}
+              {row.lastName[0]}
             </Avatar>
-            <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Box sx={{ minWidth: 0 }}>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {params.row.name}
+                {row.name}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.25 }}>
-                {params.row.department}
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", lineHeight: 1.25 }}
+              >
+                {row.department}
               </Typography>
             </Box>
           </Stack>
         ),
       },
       {
-        field: 'ageGender',
-        headerName: 'Age / Gender',
+        field: "ageGender",
+        headerName: "Age / Gender",
         width: 140,
-        valueGetter: (_value, row) => `${row?.age ?? '—'} / ${row?.gender ?? '—'}`,
+        valueGetter: (row: PatientRow) =>
+          `${row?.age ?? "—"} / ${row?.gender ?? "—"}`,
       },
       {
-        field: 'phone',
-        headerName: 'Phone',
+        field: "phone",
+        headerName: "Phone",
         width: 140,
       },
       {
-        field: 'city',
-        headerName: 'City',
+        field: "city",
+        headerName: "City",
         width: 120,
       },
       {
-        field: 'lastVisit',
-        headerName: 'Last Visit',
+        field: "lastVisit",
+        headerName: "Last Visit",
         width: 150,
-        valueGetter: (_value, row) =>
-          row?.lastVisit ? new Date(row.lastVisit).toLocaleDateString() : '—',
+        valueGetter: (row: PatientRow) =>
+          row?.lastVisit ? new Date(row.lastVisit).toLocaleDateString() : "—",
       },
       {
-        field: 'nextAppointment',
-        headerName: 'Next Appointment',
+        field: "nextAppointment",
+        headerName: "Next Appointment",
         width: 170,
-        valueGetter: (_value, row) =>
-          row?.nextAppointment ? new Date(row.nextAppointment).toLocaleDateString() : '—',
+        valueGetter: (row: PatientRow) =>
+          row?.nextAppointment
+            ? new Date(row.nextAppointment).toLocaleDateString()
+            : "—",
       },
       {
-        field: 'status',
-        headerName: 'Status',
+        field: "status",
+        headerName: "Status",
         width: 140,
-        renderCell: (params) => (
+        renderCell: (row: PatientRow) => (
           <Chip
-            label={params.row.status}
+            label={row.status}
             size="small"
-            color={statusColors[params.row.status]}
-            variant={params.row.status === 'Inactive' ? 'outlined' : 'filled'}
+            color={statusColors[row.status]}
+            variant={row.status === "Inactive" ? "outlined" : "filled"}
           />
         ),
       },
       {
-        field: 'outstandingBalance',
-        headerName: 'Outstanding',
+        field: "outstandingBalance",
+        headerName: "Outstanding",
         width: 140,
-        valueGetter: (_value, row) =>
-          typeof row?.outstandingBalance === 'number'
+        valueGetter: (row: PatientRow) =>
+          typeof row?.outstandingBalance === "number"
             ? `$${row.outstandingBalance.toFixed(2)}`
-            : '—',
+            : "—",
       },
       {
-        field: 'tags',
-        headerName: 'Tags',
+        field: "tags",
+        headerName: "Tags",
         width: 200,
-        renderCell: (params) => (
+        renderCell: (row: PatientRow) => (
           <Stack direction="row" spacing={0.5} flexWrap="wrap">
-            {params.row.tags.length === 0 && (
+            {row.tags.length === 0 && (
               <Typography variant="caption" color="text.secondary">
                 —
               </Typography>
             )}
-            {params.row.tags.map((tag) => (
+            {row.tags.map((tag) => (
               <Chip key={tag} label={tag} size="small" variant="outlined" />
             ))}
           </Stack>
         ),
       },
       {
-        field: 'createdAt',
-        headerName: 'Created At',
+        field: "createdAt",
+        headerName: "Created At",
         width: 140,
-        valueGetter: (_value, row) =>
-          row?.createdAt ? new Date(row.createdAt).toLocaleDateString() : '—',
+        valueGetter: (row: PatientRow) =>
+          row?.createdAt ? new Date(row.createdAt).toLocaleDateString() : "—",
       },
       {
-        field: 'actions',
-        headerName: 'Actions',
-        type: 'actions',
+        field: "actions",
+        headerName: "Actions",
         width: 120,
-        getActions: (params) => [
-          <GridActionsCellItem
-            key="view"
-            label="View profile"
-            onClick={() => {
-              setSelectedPatient(params.row);
-              setDetailsOpen(true);
+        align: "center",
+        renderCell: (row: PatientRow) => (
+          <IconButton
+            size="small"
+            onClick={(e) => handleMenuOpen(e, row)}
+            sx={{
+              color: "text.secondary",
+              "&:hover": { color: "primary.main" },
             }}
-            showInMenu
-          />,
-          <GridActionsCellItem key="edit" label="Edit" onClick={() => setSnackbar('Edit patient (stub)')} showInMenu />,
-          <GridActionsCellItem
-            key="appointment"
-            label="Create appointment"
-            onClick={() => setSnackbar('Create appointment (stub)')}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="encounter"
-            label="Start encounter"
-            onClick={() => setSnackbar('Start encounter (stub)')}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="admit"
-            label="Admit"
-            onClick={() => setSnackbar('Admit patient (stub)')}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="invoice"
-            label="Generate invoice"
-            onClick={() => setSnackbar('Generate invoice (stub)')}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="archive"
-            label="Archive"
-            onClick={() =>
-              setConfirmAction({
-                title: 'Archive patient?',
-                description: 'This will archive the patient record and hide it from active lists.',
-                onConfirm: () => setSnackbar('Archive patient (stub)'),
-              })
-            }
-            showInMenu
-          />,
-        ],
+          >
+            <MoreVertIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        ),
       },
     ],
-    []
+    [],
   );
 
-  const applyFilterStateToModel = React.useCallback(() => {
-    const items: GridFilterModel['items'] = [];
-    if (filters.status !== 'All') {
-      items.push({ id: 1, field: 'status', operator: 'equals', value: filters.status });
-    }
-    if (filters.gender !== 'All') {
-      items.push({ id: 2, field: 'gender', operator: 'equals', value: filters.gender });
-    }
-    if (filters.department !== 'All') {
-      items.push({ id: 3, field: 'department', operator: 'equals', value: filters.department });
-    }
-    if (filters.doctor !== 'All') {
-      items.push({ id: 4, field: 'doctor', operator: 'equals', value: filters.doctor });
-    }
-    if (filters.tags.length > 0) {
-      items.push({ id: 5, field: 'tags', operator: 'isAnyOf', value: filters.tags });
-    }
-    items.push({ id: 6, field: 'age', operator: '>=', value: filters.ageRange[0] });
-    items.push({ id: 7, field: 'age', operator: '<=', value: filters.ageRange[1] });
+  const resetFilters = () => {
+    setFilters({
+      status: "All",
+      gender: "All",
+      department: "All",
+      doctor: "All",
+      ageRange: [18, 80],
+      regDateFrom: "",
+      regDateTo: "",
+      lastVisitFrom: "",
+      lastVisitTo: "",
+      tags: [],
+    });
+  };
 
-    if (filters.regDateFrom) {
-      items.push({ id: 8, field: 'createdAt', operator: 'after', value: filters.regDateFrom });
-    }
-    if (filters.regDateTo) {
-      items.push({ id: 9, field: 'createdAt', operator: 'before', value: filters.regDateTo });
-    }
-    if (filters.lastVisitFrom) {
-      items.push({ id: 10, field: 'lastVisit', operator: 'after', value: filters.lastVisitFrom });
-    }
-    if (filters.lastVisitTo) {
-      items.push({ id: 11, field: 'lastVisit', operator: 'before', value: filters.lastVisitTo });
-    }
+  const filteredRows = React.useMemo(() => {
+    return rows.filter((row) => {
+      if (filters.status !== "All" && row.status !== filters.status)
+        return false;
+      if (filters.gender !== "All" && row.gender !== filters.gender)
+        return false;
+      if (filters.department !== "All" && row.department !== filters.department)
+        return false;
+      if (filters.doctor !== "All" && row.doctor !== filters.doctor)
+        return false; // Note: row might not have doctor field, check PatientRow
+      if (row.age < filters.ageRange[0] || row.age > filters.ageRange[1])
+        return false;
 
-    setFilterModel({ items, quickFilterValues: filterModel.quickFilterValues ?? [] });
-  }, [filters, filterModel.quickFilterValues]);
+      if (
+        filters.regDateFrom &&
+        new Date(row.createdAt) < new Date(filters.regDateFrom)
+      )
+        return false;
+      if (
+        filters.regDateTo &&
+        new Date(row.createdAt) > new Date(filters.regDateTo)
+      )
+        return false;
+      if (
+        filters.lastVisitFrom &&
+        (!row.lastVisit ||
+          new Date(row.lastVisit) < new Date(filters.lastVisitFrom))
+      )
+        return false;
+      if (
+        filters.lastVisitTo &&
+        (!row.lastVisit ||
+          new Date(row.lastVisit) > new Date(filters.lastVisitTo))
+      )
+        return false;
 
-  React.useEffect(() => {
-    applyFilterStateToModel();
-  }, [applyFilterStateToModel]);
+      if (
+        filters.tags.length > 0 &&
+        !filters.tags.some((tag) => row.tags.includes(tag))
+      )
+        return false;
+
+      return true;
+    });
+  }, [rows, filters]);
 
   const handleBulkAction = (message: string) => {
     setSnackbar(message);
   };
 
   const savedViews = [
-    {
-      label: 'Default View',
-      state: null,
-    },
-    {
-      label: 'Billing Risk',
-      state: {
-        filterModel: {
-          items: [
-            { id: 1, field: 'status', operator: 'equals', value: 'Billing Hold' },
-            { id: 2, field: 'outstandingBalance', operator: '>=', value: 500 },
-          ],
-        },
-        sortModel: [{ field: 'outstandingBalance', sort: 'desc' }],
-      } satisfies CommonDataGridState,
-    },
-    {
-      label: 'Recently Admitted',
-      state: {
-        filterModel: {
-          items: [{ id: 1, field: 'status', operator: 'equals', value: 'Admitted' }],
-        },
-        sortModel: [{ field: 'lastVisit', sort: 'desc' }],
-      } satisfies CommonDataGridState,
-    },
+    { label: "Default View" },
+    { label: "Billing Risk" },
+    { label: "Recently Admitted" },
   ];
 
   const statCards = [
     {
-      label: 'Total Patients',
+      label: "Total Patients",
       value: patientMetrics.total,
-      tone: 'primary',
+      tone: "primary",
       Icon: PeopleAltIcon,
     },
     {
-      label: 'Today Registrations',
+      label: "Today Registrations",
       value: patientMetrics.todayRegistrations,
-      tone: 'success',
+      tone: "success",
       Icon: PersonAddAltIcon,
     },
     {
-      label: 'Pending Bills',
+      label: "Pending Bills",
       value: patientMetrics.pendingBills,
-      tone: 'warning',
+      tone: "warning",
       Icon: AssignmentLateIcon,
     },
     {
-      label: 'Admitted',
+      label: "Admitted",
       value: patientMetrics.admitted,
-      tone: 'primary',
+      tone: "primary",
       Icon: HotelIcon,
     },
   ] as const;
 
   return (
     <Box sx={{ px: 3, py: 3 }}>
-      <Card
-        elevation={0}
-        sx={{
-          p: 2,
-          borderRadius: 2.5,
-        }}
-      >
+      <WorkspaceHeaderCard sx={{ mb: 2 }}>
         <Stack
-          direction={{ xs: 'column', md: 'row' }}
+          direction={{ xs: "column", md: "row" }}
           spacing={2}
           justifyContent="space-between"
-          alignItems={{ xs: 'flex-start', md: 'center' }}
+          alignItems={{ xs: "flex-start", md: "center" }}
         >
           <Box>
-            {!isDoctor && (
-              <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
-                <Chip size="small" color="primary" label="Patient Registry" />
-                <Chip size="small" color="info" variant="outlined" label="OPD + IPD Linked" />
-              </Stack>
-            )}
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              Patients
+            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
+              <Chip
+                size="small"
+                color="primary"
+                label="Registry"
+                sx={{ fontWeight: 600 }}
+              />
+              <Chip
+                size="small"
+                variant="outlined"
+                label="Records Central"
+                sx={{
+                  bgcolor: alpha(theme.palette.background.paper, 0.45),
+                  fontWeight: 600,
+                }}
+              />
+            </Stack>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 800,
+                color: "primary.main",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Patient List
             </Typography>
-            {!isDoctor && (
-              <Typography variant="body2" color="text.secondary">
-                Manage patient demographics, visits, admissions, and billing status in one place.
-              </Typography>
-            )}
+            <Typography variant="body2" color="text.secondary">
+              Centralized repository for all patient demographic and clinical
+              identifiers.
+            </Typography>
           </Box>
-          <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
+          <Stack
+            direction="row"
+            spacing={1.25}
+            flexWrap="wrap"
+            alignItems="center"
+          >
             {!isDoctor && (
               <>
-                <Button variant="outlined" startIcon={<CloudUploadIcon />}>
+                <Button
+                  variant="outlined"
+                  startIcon={<CloudUploadIcon />}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                >
                   Import
                 </Button>
-                <Button variant="outlined" startIcon={<FileDownloadIcon />}>
+                <Button
+                  variant="outlined"
+                  startIcon={<FileDownloadIcon />}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                >
                   Export
                 </Button>
               </>
@@ -378,34 +439,41 @@ export default function PatientListPage() {
               variant="outlined"
               endIcon={<MoreVertIcon />}
               onClick={(event) => setViewsAnchor(event.currentTarget)}
+              sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              Saved Views
+              Views
             </Button>
             {!isDoctor && (
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => router.push('/patients/registration')}
+                onClick={() => router.push("/patients/registration")}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 700,
+                  boxShadow:
+                    "0 4px 12px " + alpha(theme.palette.primary.main, 0.25),
+                }}
               >
-                Add Patient
+                Register Patient
               </Button>
             )}
           </Stack>
         </Stack>
-      </Card>
+      </WorkspaceHeaderCard>
       <Box
-          sx={{
-            display: 'grid',
-            gap: 2,
-            mt: 2,
-              
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: 'repeat(2, minmax(0, 1fr))',
-              lg: 'repeat(4, minmax(0, 1fr))',
-            },
-          }}
-        >
+        sx={{
+          display: "grid",
+          gap: 2,
+          mt: 2,
+
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, minmax(0, 1fr))",
+            lg: "repeat(4, minmax(0, 1fr))",
+          },
+        }}
+      >
         {statCards.map((stat) => (
           <StatTile
             key={stat.label}
@@ -415,129 +483,67 @@ export default function PatientListPage() {
             icon={<stat.Icon sx={{ fontSize: 28 }} />}
           />
         ))}
-      
-          </Box>
+      </Box>
 
       <Card
         sx={{
           mt: 2,
-          p: 2,
+          // p: 2,
         }}
       >
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              Patient Registry
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {rows.length} patients
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => setFilterDrawerOpen(true)}>
-              Filters
-            </Button>
-            <Button
-              variant="text"
-              onClick={() => {
-                setFilters({
-                  status: 'All',
-                  gender: 'All',
-                  department: 'All',
-                  doctor: 'All',
-                  ageRange: [18, 80],
-                  regDateFrom: '',
-                  regDateTo: '',
-                  lastVisitFrom: '',
-                  lastVisitTo: '',
-                  tags: [],
-                });
-                setFilterModel(defaultFilterModel);
-              }}
-            >
-              Clear filters
-            </Button>
-          </Stack>
-        </Stack>
-
-        <DataTable
-          tableId="patient-list"
+        <CommonDataGrid<PatientRow>
           columns={columns}
-          rows={rows}
-          rowHeight={72}
-          filterModel={filterModel}
-          onFilterModelChange={setFilterModel}
-          externalState={externalState}
-          toolbarConfig={{
-            title: 'Patients',
-            showSavedViews: true,
-            showPrint: true,
-            showExport: !isDoctor,
-            ...(isDoctor
-              ? {}
-              : {
-                  emptyCtaLabel: 'Add Patient',
-                  onEmptyCtaClick: () => router.push('/patients/registration'),
-                }),
-          }}
-          onRowClick={(params) => {
+          rows={filteredRows}
+          getRowId={(row) => row.mrn}
+          searchPlaceholder="Search..."
+          searchFields={["mrn", "name", "phone", "city", "department"]}
+          showSerialNo={true}
+          onRowClick={(row) => {
             if (isDoctor) {
-              setSelectedPatient(params.row as PatientRow);
+              setSelectedPatient(row);
               setDetailsOpen(true);
               return;
             }
-
-            const row = params.row as PatientRow;
             router.push(`/patients/profile?mrn=${row.mrn}`);
           }}
-          renderBulkActions={() => (
+          toolbarRight={
             <Stack direction="row" spacing={1}>
-              {!isDoctor && (
-                <Button size="small" variant="outlined" onClick={() => handleBulkAction('Export selected (stub)')}>
-                  Export selected
-                </Button>
-              )}
               <Button
-                size="small"
                 variant="outlined"
-                onClick={() =>
-                  setConfirmAction({
-                    title: 'Mark patients inactive?',
-                    description: 'Selected patients will be moved to inactive status.',
-                    onConfirm: () => handleBulkAction('Mark inactive (stub)'),
-                  })
-                }
-              >
-                Mark inactive
-              </Button>
-              <Button size="small" variant="outlined" onClick={() => handleBulkAction('Assign tags (stub)')}>
-                Assign tags
-              </Button>
-              <Button size="small" variant="outlined" onClick={() => handleBulkAction('Send SMS (stub)')}>
-                Send SMS
-              </Button>
-              <Button
                 size="small"
-                color="error"
-                variant="outlined"
-                onClick={() =>
-                  setConfirmAction({
-                    title: 'Merge duplicates?',
-                    description: 'This will merge selected duplicate records into a single patient.',
-                    onConfirm: () => handleBulkAction('Merge duplicates (stub)'),
-                  })
-                }
+                startIcon={<FilterListIcon />}
+                onClick={() => setFilterDrawerOpen(true)}
               >
-                Merge duplicates
+                Filters
               </Button>
+              <Button variant="text" size="small" onClick={resetFilters}>
+                Clear
+              </Button>
+              {/* <Button
+                  variant="outlined"
+                  startIcon={<FileDownloadIcon />}
+                  size="small"
+                  onClick={() => handleBulkAction("Export selected (stub)")}
+                >
+                  Export
+                </Button> */}
             </Stack>
-          )}
+          }
         />
       </Card>
 
-      <Drawer anchor="right" open={filterDrawerOpen} onClose={() => setFilterDrawerOpen(false)}>
+      <Drawer
+        anchor="right"
+        open={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+      >
         <Box sx={{ width: 360, p: 3 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mb: 2 }}
+          >
             <Typography variant="h6">Filters</Typography>
             <IconButton onClick={() => setFilterDrawerOpen(false)}>
               <CloseIcon />
@@ -551,10 +557,20 @@ export default function PatientListPage() {
                 label="Status"
                 value={filters.status}
                 onChange={(event: SelectChangeEvent<unknown>) =>
-                  setFilters((prev) => ({ ...prev, status: event.target.value as string }))
+                  setFilters((prev) => ({
+                    ...prev,
+                    status: event.target.value as string,
+                  }))
                 }
               >
-                {['All', 'Active', 'Inactive', 'Admitted', 'Discharged', 'Billing Hold'].map((value) => (
+                {[
+                  "All",
+                  "Active",
+                  "Inactive",
+                  "Admitted",
+                  "Discharged",
+                  "Billing Hold",
+                ].map((value) => (
                   <MenuItem key={value} value={value}>
                     {value}
                   </MenuItem>
@@ -568,10 +584,13 @@ export default function PatientListPage() {
                 label="Gender"
                 value={filters.gender}
                 onChange={(event: SelectChangeEvent<unknown>) =>
-                  setFilters((prev) => ({ ...prev, gender: event.target.value as string }))
+                  setFilters((prev) => ({
+                    ...prev,
+                    gender: event.target.value as string,
+                  }))
                 }
               >
-                {['All', 'Male', 'Female', 'Other'].map((value) => (
+                {["All", "Male", "Female", "Other"].map((value) => (
                   <MenuItem key={value} value={value}>
                     {value}
                   </MenuItem>
@@ -585,7 +604,12 @@ export default function PatientListPage() {
               </Typography>
               <Slider
                 value={filters.ageRange}
-                onChange={(_, value) => setFilters((prev) => ({ ...prev, ageRange: value as number[] }))}
+                onChange={(_, value) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    ageRange: value as number[],
+                  }))
+                }
                 valueLabelDisplay="auto"
                 min={0}
                 max={100}
@@ -599,7 +623,12 @@ export default function PatientListPage() {
                 size="small"
                 InputLabelProps={{ shrink: true }}
                 value={filters.regDateFrom}
-                onChange={(event) => setFilters((prev) => ({ ...prev, regDateFrom: event.target.value }))}
+                onChange={(event) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    regDateFrom: event.target.value,
+                  }))
+                }
                 fullWidth
               />
               <TextField
@@ -608,7 +637,12 @@ export default function PatientListPage() {
                 size="small"
                 InputLabelProps={{ shrink: true }}
                 value={filters.regDateTo}
-                onChange={(event) => setFilters((prev) => ({ ...prev, regDateTo: event.target.value }))}
+                onChange={(event) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    regDateTo: event.target.value,
+                  }))
+                }
                 fullWidth
               />
             </Stack>
@@ -620,7 +654,12 @@ export default function PatientListPage() {
                 size="small"
                 InputLabelProps={{ shrink: true }}
                 value={filters.lastVisitFrom}
-                onChange={(event) => setFilters((prev) => ({ ...prev, lastVisitFrom: event.target.value }))}
+                onChange={(event) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    lastVisitFrom: event.target.value,
+                  }))
+                }
                 fullWidth
               />
               <TextField
@@ -629,7 +668,12 @@ export default function PatientListPage() {
                 size="small"
                 InputLabelProps={{ shrink: true }}
                 value={filters.lastVisitTo}
-                onChange={(event) => setFilters((prev) => ({ ...prev, lastVisitTo: event.target.value }))}
+                onChange={(event) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    lastVisitTo: event.target.value,
+                  }))
+                }
                 fullWidth
               />
             </Stack>
@@ -640,10 +684,21 @@ export default function PatientListPage() {
                 label="Department"
                 value={filters.department}
                 onChange={(event: SelectChangeEvent<unknown>) =>
-                  setFilters((prev) => ({ ...prev, department: event.target.value as string }))
+                  setFilters((prev) => ({
+                    ...prev,
+                    department: event.target.value as string,
+                  }))
                 }
               >
-                {['All', 'Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Oncology', 'Dermatology'].map((value) => (
+                {[
+                  "All",
+                  "Cardiology",
+                  "Neurology",
+                  "Orthopedics",
+                  "Pediatrics",
+                  "Oncology",
+                  "Dermatology",
+                ].map((value) => (
                   <MenuItem key={value} value={value}>
                     {value}
                   </MenuItem>
@@ -657,10 +712,21 @@ export default function PatientListPage() {
                 label="Doctor"
                 value={filters.doctor}
                 onChange={(event: SelectChangeEvent<unknown>) =>
-                  setFilters((prev) => ({ ...prev, doctor: event.target.value as string }))
+                  setFilters((prev) => ({
+                    ...prev,
+                    doctor: event.target.value as string,
+                  }))
                 }
               >
-                {['All', 'Dr. Rao', 'Dr. Chen', 'Dr. Kim', 'Dr. Martinez', 'Dr. Singh', 'Dr. Patel'].map((value) => (
+                {[
+                  "All",
+                  "Dr. Rao",
+                  "Dr. Chen",
+                  "Dr. Kim",
+                  "Dr. Martinez",
+                  "Dr. Singh",
+                  "Dr. Patel",
+                ].map((value) => (
                   <MenuItem key={value} value={value}>
                     {value}
                   </MenuItem>
@@ -672,20 +738,36 @@ export default function PatientListPage() {
               multiple
               options={tagOptions}
               value={filters.tags}
-              onChange={(_, value) => setFilters((prev) => ({ ...prev, tags: value }))}
-              renderInput={(params) => <TextField {...params} label="Tags" size="small" />}
+              onChange={(_, value) =>
+                setFilters((prev) => ({ ...prev, tags: value }))
+              }
+              renderInput={(params) => (
+                <TextField {...params} label="Tags" size="small" />
+              )}
             />
 
-            <Button variant="contained" onClick={() => setFilterDrawerOpen(false)}>
+            <Button
+              variant="contained"
+              onClick={() => setFilterDrawerOpen(false)}
+            >
               Apply filters
             </Button>
           </Stack>
         </Box>
       </Drawer>
 
-      <Drawer anchor="right" open={detailsOpen} onClose={() => setDetailsOpen(false)}>
+      <Drawer
+        anchor="right"
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+      >
         <Box sx={{ width: 360, p: 3 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mb: 2 }}
+          >
             <Typography variant="h6">Patient Summary</Typography>
             <IconButton onClick={() => setDetailsOpen(false)}>
               <CloseIcon />
@@ -694,7 +776,10 @@ export default function PatientListPage() {
           {selectedPatient ? (
             <Stack spacing={2}>
               <Stack direction="row" spacing={1.5} alignItems="center">
-                <Avatar>{selectedPatient.firstName[0]}{selectedPatient.lastName[0]}</Avatar>
+                <Avatar>
+                  {selectedPatient.firstName[0]}
+                  {selectedPatient.lastName[0]}
+                </Avatar>
                 <Box>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                     {selectedPatient.name}
@@ -708,35 +793,67 @@ export default function PatientListPage() {
               <Divider />
 
               <Box>
-                <Typography variant="caption" color="text.secondary">Demographics</Typography>
-                <Typography variant="body2">{selectedPatient.age} years · {selectedPatient.gender}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Demographics
+                </Typography>
+                <Typography variant="body2">
+                  {selectedPatient.age} years · {selectedPatient.gender}
+                </Typography>
                 <Typography variant="body2">{selectedPatient.phone}</Typography>
                 <Typography variant="body2">{selectedPatient.city}</Typography>
               </Box>
 
               <Box>
-                <Typography variant="caption" color="text.secondary">Alerts / Allergies</Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 0.5 }}>
-                  {selectedPatient.alerts.length === 0 && selectedPatient.allergies.length === 0 && (
-                    <Typography variant="body2" color="text.secondary">No alerts</Typography>
-                  )}
+                <Typography variant="caption" color="text.secondary">
+                  Alerts / Allergies
+                </Typography>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  flexWrap="wrap"
+                  sx={{ mt: 0.5 }}
+                >
+                  {selectedPatient.alerts.length === 0 &&
+                    selectedPatient.allergies.length === 0 && (
+                      <Typography variant="body2" color="text.secondary">
+                        No alerts
+                      </Typography>
+                    )}
                   {selectedPatient.alerts.map((alert) => (
-                    <Chip key={alert} label={alert} color="warning" size="small" />
+                    <Chip
+                      key={alert}
+                      label={alert}
+                      color="warning"
+                      size="small"
+                    />
                   ))}
                   {selectedPatient.allergies.map((allergy) => (
-                    <Chip key={allergy} label={allergy} color="error" size="small" />
+                    <Chip
+                      key={allergy}
+                      label={allergy}
+                      color="error"
+                      size="small"
+                    />
                   ))}
                 </Stack>
               </Box>
 
               <Box>
-                <Typography variant="caption" color="text.secondary">Last Vitals</Typography>
-                <Typography variant="body2">{selectedPatient.lastVitals}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Last Vitals
+                </Typography>
+                <Typography variant="body2">
+                  {selectedPatient.lastVitals}
+                </Typography>
               </Box>
 
               <Box>
-                <Typography variant="caption" color="text.secondary">Last Visit Note</Typography>
-                <Typography variant="body2">{selectedPatient.lastVisitNote}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Last Visit Note
+                </Typography>
+                <Typography variant="body2">
+                  {selectedPatient.lastVisitNote}
+                </Typography>
               </Box>
             </Stack>
           ) : (
@@ -747,18 +864,101 @@ export default function PatientListPage() {
         </Box>
       </Drawer>
 
-      <Menu anchorEl={viewsAnchor} open={Boolean(viewsAnchor)} onClose={() => setViewsAnchor(null)}>
+      <Menu
+        anchorEl={actionMenu?.anchor}
+        open={Boolean(actionMenu)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem
+          onClick={() => {
+            if (actionMenu) {
+              setSelectedPatient(actionMenu.row);
+              setDetailsOpen(true);
+            }
+            handleMenuClose();
+          }}
+        >
+          View profile
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            setSnackbar("Edit patient (stub)");
+            handleMenuClose();
+          }}
+        >
+          Edit
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            setSnackbar("Create appointment (stub)");
+            handleMenuClose();
+          }}
+        >
+          Create appointment
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            setSnackbar("Start encounter (stub)");
+            handleMenuClose();
+          }}
+        >
+          Start encounter
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            setSnackbar("Admit patient (stub)");
+            handleMenuClose();
+          }}
+        >
+          Admit
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            setSnackbar("Generate invoice (stub)");
+            handleMenuClose();
+          }}
+        >
+          Generate invoice
+        </MenuItem>
+
+        <Divider sx={{ my: 0.5 }} />
+
+        <MenuItem
+          onClick={() => {
+            if (actionMenu) {
+              setConfirmAction({
+                title: "Archive patient?",
+                description:
+                  "This will archive the patient record and hide it from active lists.",
+                onConfirm: () => setSnackbar("Archive patient (stub)"),
+              });
+            }
+            handleMenuClose();
+          }}
+          sx={{ color: "error.main" }}
+        >
+          Archive
+        </MenuItem>
+      </Menu>
+
+      <Menu
+        anchorEl={viewsAnchor}
+        open={Boolean(viewsAnchor)}
+        onClose={() => setViewsAnchor(null)}
+      >
         {savedViews.map((view) => (
           <MenuItem
             key={view.label}
             onClick={() => {
-              if (view.state?.filterModel) {
-                setFilterModel(view.state.filterModel as GridFilterModel);
-              }
-              if (!view.state) {
-                setFilterModel(defaultFilterModel);
-              }
-              setExternalState(view.state ?? { filterModel: defaultFilterModel, sortModel: [] });
+              // Note: Saved views logic simplified as we moved away from DataTable state
+              setSnackbar(
+                `Applying ${view.label} (not fully implemented in CommonDataGrid migration)`,
+              );
               setViewsAnchor(null);
             }}
           >
@@ -771,7 +971,7 @@ export default function PatientListPage() {
         open={Boolean(snackbar)}
         autoHideDuration={3000}
         onClose={() => setSnackbar(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <Alert severity="info" onClose={() => setSnackbar(null)}>
           {snackbar}

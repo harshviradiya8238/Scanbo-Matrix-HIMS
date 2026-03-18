@@ -11,26 +11,25 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  Drawer,
+  FormControl,
   Grid,
   IconButton,
-  InputAdornment,
+  InputLabel,
   LinearProgress,
   MenuItem,
   Paper,
   Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from "@/src/ui/components/atoms";
-import { IpdMetricCard } from "@/src/screens/ipd/components/ipd-ui";
-import { WorkspaceHeaderCard } from "@/src/ui/components/molecules";
+import CommonDataGrid, {
+  CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
+import { SelectChangeEvent } from "@mui/material";
+import { WorkspaceHeaderCard, StatTile } from "@/src/ui/components/molecules";
 import {
   CARE_COMPANION_ENROLLED,
   type CareCompanionEnrolled,
@@ -45,6 +44,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Close as CloseIcon,
   Edit as EditIcon,
+  FilterList as FilterListIcon,
   Group as GroupIcon,
   Lock as LockIcon,
   NavigateBefore as PrevIcon,
@@ -78,13 +78,14 @@ interface EnrolledPatient {
   isUrgent?: boolean;
 }
 
-const STATUS_FILTER_OPTIONS: { value: PatientStatus | "all"; label: string }[] = [
-  { value: "all", label: "All Status" },
-  { value: "high_risk", label: "High Risk" },
-  { value: "watch", label: "Watch" },
-  { value: "stable", label: "Stable" },
-  { value: "closed", label: "Closed" },
-];
+const STATUS_FILTER_OPTIONS: { value: PatientStatus | "all"; label: string }[] =
+  [
+    { value: "all", label: "All Status" },
+    { value: "high_risk", label: "High Risk" },
+    { value: "watch", label: "Watch" },
+    { value: "stable", label: "Stable" },
+    { value: "closed", label: "Closed" },
+  ];
 
 const PROGRAM_OPTIONS = [
   "All Programs",
@@ -172,35 +173,33 @@ function getAdherenceColor(adherence: number, theme: Theme) {
   return theme.palette.error.main;
 }
 
-const HEADER_SX = {
-  fontWeight: 700,
-  textTransform: "uppercase" as const,
-  fontSize: "0.7rem",
-  letterSpacing: "0.06em",
-  color: "text.secondary",
-  py: 1.25,
-  borderBottom: "1px solid",
-  borderColor: "rgba(17, 114, 186, 0.12)",
-  bgcolor: "rgba(17, 114, 186, 0.03)",
-  whiteSpace: "nowrap" as const,
-};
-
 export default function CareCompanionPage() {
   const theme = useTheme();
   const canWrite = usePermission()("clinical.care_companion.write");
   const [search, setSearch] = React.useState("");
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [patients, setPatients] = React.useState<EnrolledPatient[]>(MOCK_PATIENTS);
+  const [patients, setPatients] =
+    React.useState<EnrolledPatient[]>(MOCK_PATIENTS);
   const [isEnrollDialogOpen, setIsEnrollDialogOpen] = React.useState(false);
-  const [drawerPatient, setDrawerPatient] = React.useState<EnrolledPatient | null>(null);
+  const [drawerPatient, setDrawerPatient] =
+    React.useState<EnrolledPatient | null>(null);
   const [drawerEditMode, setDrawerEditMode] = React.useState(false);
   const [closePlanDialogOpen, setClosePlanDialogOpen] = React.useState(false);
-  const [closePlanPatient, setClosePlanPatient] = React.useState<EnrolledPatient | null>(null);
+  const [closePlanPatient, setClosePlanPatient] =
+    React.useState<EnrolledPatient | null>(null);
   const [closeReason, setCloseReason] = React.useState("completed");
   const [closingNotes, setClosingNotes] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState<PatientStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = React.useState<PatientStatus | "all">(
+    "all",
+  );
   const [programFilter, setProgramFilter] = React.useState("All Programs");
+  const [filterDrawerOpen, setFilterDrawerOpen] = React.useState(false);
+
+  const resetFilters = () => {
+    setStatusFilter("all");
+    setProgramFilter("All Programs");
+  };
 
   const activePatients = patients.filter((p) => p.status !== "closed");
 
@@ -222,9 +221,307 @@ export default function CareCompanionPage() {
     return list;
   }, [patients, search, statusFilter, programFilter]);
 
-  const paginatedPatients = filteredPatients.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage,
+  const columns = React.useMemo<CommonColumn<EnrolledPatient>[]>(
+    () => [
+      {
+        field: "name",
+        headerName: "Patient",
+        width: "25%",
+        renderCell: (row) => (
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Avatar
+              sx={{
+                width: 36,
+                height: 36,
+                bgcolor: row.avatarColor,
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                flexShrink: 0,
+              }}
+            >
+              {row.initials}
+            </Avatar>
+            <Box>
+              <Typography
+                variant="body2"
+                fontWeight={700}
+                sx={{ color: "text.primary", lineHeight: 1.3 }}
+              >
+                {row.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {row.mrn} · {row.language}
+              </Typography>
+              {row.platforms.length > 0 && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", fontSize: "0.67rem" }}
+                >
+                  {row.platforms.join(" · ")}
+                </Typography>
+              )}
+            </Box>
+          </Stack>
+        ),
+      },
+      {
+        field: "program",
+        headerName: "Program",
+        width: 150,
+        renderCell: (row) => (
+          <Box
+            sx={{
+              display: "inline-flex",
+              px: 1.25,
+              py: 0.3,
+              borderRadius: "20px",
+              border: "1px solid",
+              borderColor: "rgba(17, 114, 186, 0.2)",
+              bgcolor: "rgba(17, 114, 186, 0.04)",
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                color: "primary.main",
+              }}
+            >
+              {row.program}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: "status",
+        headerName: "Status",
+        width: 150,
+        renderCell: (row) => {
+          const statusCfg = getStatusConfig(row.status, theme);
+          return (
+            <Box
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.5,
+                px: 1.25,
+                py: 0.35,
+                borderRadius: "20px",
+                bgcolor: statusCfg.bg,
+                border: "1px solid",
+                borderColor: statusCfg.border,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  bgcolor: statusCfg.color,
+                  flexShrink: 0,
+                }}
+              />
+              <Typography
+                sx={{
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  color: statusCfg.color,
+                  lineHeight: 1,
+                }}
+              >
+                {statusCfg.label}
+              </Typography>
+            </Box>
+          );
+        },
+      },
+      {
+        field: "vitals",
+        headerName: "Vitals",
+        width: 150,
+        renderCell: (row) =>
+          row.bp || row.glucose ? (
+            <Box>
+              {row.bp && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: "block",
+                    fontWeight: 600,
+                    color: row.bpAlert ? "error.main" : "text.primary",
+                  }}
+                >
+                  BP: {row.bp}
+                </Typography>
+              )}
+              {row.glucose && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: "block",
+                    fontWeight: 600,
+                    color: row.glucoseAlert ? "error.main" : "text.secondary",
+                  }}
+                >
+                  Glucose: {row.glucose}
+                </Typography>
+              )}
+            </Box>
+          ) : (
+            <Typography variant="caption" color="text.disabled">
+              —
+            </Typography>
+          ),
+      },
+      {
+        field: "adherence",
+        headerName: "Adherence",
+        width: 180,
+        renderCell: (row) => (
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <LinearProgress
+              variant="determinate"
+              value={row.adherence}
+              sx={{
+                flex: 1,
+                height: 6,
+                borderRadius: 4,
+                bgcolor: alpha(getAdherenceColor(row.adherence, theme), 0.12),
+                "& .MuiLinearProgress-bar": {
+                  bgcolor: getAdherenceColor(row.adherence, theme),
+                  borderRadius: 4,
+                },
+              }}
+            />
+            <Typography
+              variant="caption"
+              fontWeight={700}
+              sx={{
+                minWidth: 30,
+                color: getAdherenceColor(row.adherence, theme),
+              }}
+            >
+              {row.adherence}%
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        field: "lastCheckIn",
+        headerName: "Last Check-In",
+        width: 150,
+        align: "center",
+      },
+      {
+        field: "actions",
+        headerName: "Actions",
+        width: 180,
+        align: "center",
+        renderCell: (row) => (
+          <Stack
+            direction="row"
+            spacing={0.25}
+            justifyContent="center"
+            alignItems="center"
+          >
+            {row.status !== "closed" && row.isUrgent ? (
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 700,
+                  borderRadius: "20px",
+                  fontSize: "0.75rem",
+                  py: 0.3,
+                  px: 1.25,
+                  minWidth: 0,
+                }}
+              >
+                Urgent
+              </Button>
+            ) : row.status !== "closed" ? (
+              <Button
+                size="small"
+                variant="outlined"
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 700,
+                  borderRadius: "20px",
+                  fontSize: "0.75rem",
+                  py: 0.3,
+                  px: 1.25,
+                  minWidth: 0,
+                  borderColor: "rgba(17, 114, 186, 0.3)",
+                  color: "primary.main",
+                  "&:hover": {
+                    bgcolor: "rgba(17, 114, 186, 0.05)",
+                  },
+                }}
+              >
+                Call
+              </Button>
+            ) : null}
+            {row.status !== "closed" && (
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setDrawerPatient(row);
+                  setDrawerEditMode(true);
+                }}
+                sx={{
+                  color: "text.secondary",
+                  "&:hover": {
+                    bgcolor: "rgba(17, 114, 186, 0.06)",
+                    color: "primary.main",
+                  },
+                }}
+              >
+                <EditIcon sx={{ fontSize: "0.95rem" }} />
+              </IconButton>
+            )}
+            <IconButton
+              size="small"
+              onClick={() => {
+                setDrawerPatient(row);
+                setDrawerEditMode(false);
+              }}
+              sx={{
+                color: "text.secondary",
+                "&:hover": {
+                  bgcolor: "rgba(17, 114, 186, 0.06)",
+                  color: "primary.main",
+                },
+              }}
+            >
+              <VisibilityIcon sx={{ fontSize: "0.95rem" }} />
+            </IconButton>
+            {row.status !== "closed" && (
+              <IconButton
+                onClick={() => {
+                  setClosePlanPatient(row);
+                  setClosePlanDialogOpen(true);
+                }}
+                size="small"
+                sx={{
+                  color: "text.secondary",
+                  "&:hover": {
+                    bgcolor: "rgba(17, 114, 186, 0.06)",
+                    color: "warning.dark",
+                  },
+                }}
+              >
+                <LockIcon sx={{ fontSize: "0.95rem" }} />
+              </IconButton>
+            )}
+          </Stack>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [theme, canWrite],
   );
 
   const highRiskCount = patients.filter((p) => p.status === "high_risk").length;
@@ -285,556 +582,157 @@ export default function CareCompanionPage() {
             },
           }}
         >
-          <IpdMetricCard
+          <StatTile
             label="Total Enrolled"
             value={patients.length.toString()}
-            trend="Active care plans · +12%"
+            subtitle="Active care plans · +12%"
             tone="primary"
             icon={<GroupIcon sx={{ fontSize: 22 }} />}
+            
           />
-          <IpdMetricCard
+          <StatTile
             label="High-Risk Alerts"
             value={highRiskCount}
-            trend="BP / Sugar out of range"
-            tone="danger"
+            subtitle="BP / Sugar out of range"
+            tone="primary"
             icon={<WarningAmberIcon sx={{ fontSize: 22 }} />}
+         
           />
-          <IpdMetricCard
+          <StatTile
             label="Adherence Rate"
             value={`${adherenceAvg}%`}
-            trend="Medicines + check-ins · +4%"
-            tone="success"
+            subtitle="Medicines + check-ins · +4%"
+            tone="primary"
             icon={<CheckCircleIcon sx={{ fontSize: 22 }} />}
+           
           />
-          <IpdMetricCard
+          <StatTile
             label="Upcoming Reviews"
             value="9"
-            trend="Scheduled for today"
-            tone="warning"
+            subtitle="Scheduled for today"
+            tone="primary"
             icon={<CalendarTodayIcon sx={{ fontSize: 22 }} />}
+            
           />
         </Box>
 
-        {/* Patient Table */}
-        <Paper
+        {/* <Paper
           elevation={0}
           sx={{
             borderRadius: 2,
             border: "1px solid",
-            borderColor: "rgba(17, 114, 186, 0.14)",
+            borderColor: alpha(theme.palette.primary.main, 0.14),
             overflow: "hidden",
             boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
           }}
+        > */}
+          <CommonDataGrid<EnrolledPatient>
+            rows={filteredPatients}
+            columns={columns}
+            getRowId={(row) => row.id}
+            showSerialNo={true}
+            searchPlaceholder="Search patient, ID, program..."
+            searchFields={["name", "mrn", "program"]}
+            toolbarRight={
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<FilterListIcon />}
+                  onClick={() => setFilterDrawerOpen(true)}
+                >
+                  Filters
+                </Button>
+                <Button variant="text" size="small" onClick={resetFilters}>
+                  Clear
+                </Button>
+              </Stack>
+            }
+          />
+        {/* </Paper> */}
+
+        <Drawer
+          anchor="right"
+          open={filterDrawerOpen}
+          onClose={() => setFilterDrawerOpen(false)}
         >
-          {/* Toolbar */}
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            alignItems={{ xs: "flex-start", sm: "center" }}
-            justifyContent="space-between"
-            gap={1.5}
-            sx={{
-              px: 2,
-              py: 1.25,
-              borderBottom: "1px solid rgba(17, 114, 186, 0.10)",
-              bgcolor: "background.paper",
-            }}
-          >
-            {/* Search + Filters */}
+          <Box sx={{ width: 360, p: 3 }}>
             <Stack
               direction="row"
-              spacing={1}
+              justifyContent="space-between"
               alignItems="center"
-              flexWrap="wrap"
-              useFlexGap
-              sx={{ flex: 1, minWidth: 0 }}
+              sx={{ mb: 2 }}
             >
-              <Box sx={{ flex: 1, minWidth: 200 }}>
-              <TextField
-                placeholder="Search patient, ID, condition..."
-                size="small"
-                fullWidth
-                value={search}
-                onChange={(e) => setSearch(e.target.value as string)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start" sx={{ pl: 0.75 }}>
-                      <SearchIcon sx={{ fontSize: 20, color: "text.secondary" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    minHeight: 44,
-                    borderRadius: 2.5,
-                    fontSize: "0.875rem",
-                    backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                    "&:hover": {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.06),
-                    },
-                    "&.Mui-focused": {
-                      backgroundColor: "background.paper",
-                      "& fieldset": {
-                        borderColor: "primary.main",
-                      },
-                    },
-                  },
-                }}
-              />
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Care Filters
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Narrow down enrolled patients
+                </Typography>
               </Box>
-              <Select
-                value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(e.target.value as PatientStatus | "all")
-                }
-                size="small"
-                sx={{
-                  minWidth: 130,
-                  fontSize: "0.875rem",
-                  borderRadius: 2,
-                  bgcolor: "background.default",
-                }}
-              >
-                {STATUS_FILTER_OPTIONS.map((opt) => (
-                  <MenuItem
-                    key={opt.value}
-                    value={opt.value}
-                    sx={{ fontSize: "0.875rem" }}
-                  >
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </Select>
-              <Select
-                value={programFilter}
-                onChange={(e) => setProgramFilter(e.target.value as string)}
-                size="small"
-                sx={{
-                  minWidth: 140,
-                  fontSize: "0.875rem",
-                  borderRadius: 2,
-                  bgcolor: "background.default",
-                }}
-              >
-                {PROGRAM_OPTIONS.map((opt) => (
-                  <MenuItem key={opt} value={opt} sx={{ fontSize: "0.875rem" }}>
-                    {opt}
-                  </MenuItem>
-                ))}
-              </Select>
-            </Stack>
-          </Stack>
-
-          {/* Table */}
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={HEADER_SX}>Patient</TableCell>
-                  <TableCell sx={HEADER_SX}>Program</TableCell>
-                  <TableCell sx={HEADER_SX}>Status</TableCell>
-                  <TableCell sx={HEADER_SX}>Vitals</TableCell>
-                  <TableCell sx={{ ...HEADER_SX, minWidth: 140 }}>
-                    Adherence
-                  </TableCell>
-                  <TableCell align="center" sx={HEADER_SX}>Last Check-In</TableCell>
-                  <TableCell sx={{ ...HEADER_SX }} align="center">
-                    Actions
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedPatients.map((p) => {
-                  const statusCfg = getStatusConfig(p.status, theme);
-                  return (
-                    <TableRow
-                      key={p.id}
-                      sx={{
-                        "&:hover": { bgcolor: "rgba(17, 114, 186, 0.03)" },
-                        "&:not(:last-child) td": {
-                          borderBottom: "1px solid rgba(17, 114, 186, 0.07)",
-                        },
-                        transition: "background 0.15s",
-                      }}
-                    >
-                      {/* Patient */}
-                      <TableCell sx={{ py: 1.5 }}>
-                        <Stack
-                          direction="row"
-                          spacing={1.5}
-                          alignItems="center"
-                        >
-                          <Avatar
-                            sx={{
-                              width: 36,
-                              height: 36,
-                              bgcolor: p.avatarColor,
-                              fontSize: "0.8rem",
-                              fontWeight: 700,
-                              flexShrink: 0,
-                            }}
-                          >
-                            {p.initials}
-                          </Avatar>
-                          <Box>
-                            <Typography
-                              variant="body2"
-                              fontWeight={700}
-                              sx={{ color: "text.primary", lineHeight: 1.3 }}
-                            >
-                              {p.name}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              {p.patientId} · {p.language}
-                            </Typography>
-                            {p.platforms.length > 0 && (
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{ display: "block", fontSize: "0.67rem" }}
-                              >
-                                {p.platforms.join(" · ")}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Stack>
-                      </TableCell>
-
-                      {/* Program */}
-                      <TableCell sx={{ py: 1.5 }}>
-                        <Box
-                          sx={{
-                            display: "inline-flex",
-                            px: 1.25,
-                            py: 0.3,
-                            borderRadius: "20px",
-                            border: "1px solid",
-                            borderColor: "rgba(17, 114, 186, 0.2)",
-                            bgcolor: "rgba(17, 114, 186, 0.04)",
-                          }}
-                        >
-                          <Typography
-                            sx={{
-                              fontSize: "0.78rem",
-                              fontWeight: 600,
-                              color: "primary.main",
-                            }}
-                          >
-                            {p.program}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-
-                      {/* Status Badge */}
-                      <TableCell sx={{ py: 1.5 }}>
-                        <Box
-                          sx={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 0.5,
-                            px: 1.25,
-                            py: 0.35,
-                            borderRadius: "20px",
-                            bgcolor: statusCfg.bg,
-                            border: "1px solid",
-                            borderColor: statusCfg.border,
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: "50%",
-                              bgcolor: statusCfg.color,
-                              flexShrink: 0,
-                            }}
-                          />
-                          <Typography
-                            sx={{
-                              fontSize: "0.75rem",
-                              fontWeight: 700,
-                              color: statusCfg.color,
-                              lineHeight: 1,
-                            }}
-                          >
-                            {statusCfg.label}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-
-                      {/* Vitals */}
-                      <TableCell sx={{ py: 1.5 }}>
-                        {p.bp || p.glucose ? (
-                          <Box>
-                            {p.bp && (
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  display: "block",
-                                  fontWeight: 600,
-                                  color: p.bpAlert
-                                    ? "error.main"
-                                    : "text.primary",
-                                }}
-                              >
-                                BP: {p.bp}
-                              </Typography>
-                            )}
-                            {p.glucose && (
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  display: "block",
-                                  fontWeight: 600,
-                                  color: p.glucoseAlert
-                                    ? "error.main"
-                                    : "text.secondary",
-                                }}
-                              >
-                                Glucose: {p.glucose}
-                              </Typography>
-                            )}
-                          </Box>
-                        ) : (
-                          <Typography variant="caption" color="text.disabled">
-                            —
-                          </Typography>
-                        )}
-                      </TableCell>
-
-                      {/* Adherence */}
-                      <TableCell sx={{ py: 1.5, minWidth: 140 }}>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <LinearProgress
-                            variant="determinate"
-                            value={p.adherence}
-                            sx={{
-                              flex: 1,
-                              height: 6,
-                              borderRadius: 4,
-                              bgcolor: alpha(
-                                getAdherenceColor(p.adherence, theme),
-                                0.12,
-                              ),
-                              "& .MuiLinearProgress-bar": {
-                                bgcolor: getAdherenceColor(p.adherence, theme),
-                                borderRadius: 4,
-                              },
-                            }}
-                          />
-                          <Typography
-                            variant="caption"
-                            fontWeight={700}
-                            sx={{
-                              minWidth: 30,
-                              color: getAdherenceColor(p.adherence, theme),
-                            }}
-                          >
-                            {p.adherence}%
-                          </Typography>
-                        </Stack>
-                      </TableCell>
-
-                      {/* Last Check-In */}
-                      <TableCell align="center" sx={{ py: 1.5 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {p.lastCheckIn}
-                        </Typography>
-                      </TableCell>
-
-                      {/* Actions */}
-                      <TableCell sx={{ py: 1.5 }} align="center">
-                        <Stack
-                          direction="row"
-                          spacing={0.25}
-                          justifyContent="center"
-                          alignItems="center"
-                        >
-                          {p.status !== "closed" && p.isUrgent ? (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="error"
-                              sx={{
-                                textTransform: "none",
-                                fontWeight: 700,
-                                borderRadius: "20px",
-                                fontSize: "0.75rem",
-                                py: 0.3,
-                                px: 1.25,
-                                minWidth: 0,
-                              }}
-                            >
-                              Urgent
-                            </Button>
-                          ) : p.status !== "closed" ? (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              sx={{
-                                textTransform: "none",
-                                fontWeight: 700,
-                                borderRadius: "20px",
-                                fontSize: "0.75rem",
-                                py: 0.3,
-                                
-                                px: 1.25,
-                                minWidth: 0,
-                                borderColor: "rgba(17, 114, 186, 0.3)",
-                                color: "primary.main",
-                                "&:hover": {
-                                  bgcolor: "rgba(17, 114, 186, 0.05)",
-                                },
-                              }}
-                            >
-                              Call
-                            </Button>
-                          ) : null}
-                          {p.status !== "closed" && (
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setDrawerPatient(p);
-                                setDrawerEditMode(true);
-                              }}
-                              sx={{
-                                color: "text.secondary",
-                                "&:hover": {
-                                  bgcolor: "rgba(17, 114, 186, 0.06)",
-                                  color: "primary.main",
-                                },
-                              }}
-                            >
-                              <EditIcon sx={{ fontSize: "0.95rem" }} />
-                            </IconButton>
-                          )}
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setDrawerPatient(p);
-                              setDrawerEditMode(false);
-                            }}
-                            sx={{
-                              color: "text.secondary",
-                              "&:hover": {
-                                bgcolor: "rgba(17, 114, 186, 0.06)",
-                                color: "primary.main",
-                              },
-                            }}
-                          >
-                            <VisibilityIcon sx={{ fontSize: "0.95rem" }} />
-                          </IconButton>
-                          {p.status !== "closed" && (
-                            <IconButton
-                              onClick={() => {
-                                setClosePlanPatient(p);
-                                setClosePlanDialogOpen(true);
-                              }}
-                              size="small"
-                              sx={{
-                                color: "text.secondary",
-                                "&:hover": {
-                                  bgcolor: "rgba(17, 114, 186, 0.06)",
-                                  color: "warning.dark",
-                                },
-                              }}
-                            >
-                              <LockIcon sx={{ fontSize: "0.95rem" }} />
-                            </IconButton>
-                          )}
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {paginatedPatients.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} sx={{ py: 4, textAlign: "center" }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No patients match your filters.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          {/* Pagination */}
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="flex-end"
-            spacing={2}
-            sx={{
-              px: 2,
-              py: 1.25,
-              borderTop: "1px solid rgba(17, 114, 186, 0.10)",
-              bgcolor: "background.paper",
-            }}
-          >
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="caption" color="text.secondary">
-                Rows per page:
-              </Typography>
-              <Select
-                value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setPage(0);
-                }}
-                size="small"
-                variant="standard"
-                disableUnderline
-                sx={{
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  color: "text.primary",
-                  "& .MuiSelect-select": { py: 0 },
-                }}
-              >
-                {[5, 10, 25, 50].map((n) => (
-                  <MenuItem key={n} value={n} sx={{ fontSize: "0.8rem" }}>
-                    {n}
-                  </MenuItem>
-                ))}
-              </Select>
-            </Stack>
-            <Typography variant="caption" color="text.secondary">
-              {filteredPatients.length === 0
-                ? "0"
-                : `${page * rowsPerPage + 1}–${Math.min((page + 1) * rowsPerPage, filteredPatients.length)}`}{" "}
-              of {filteredPatients.length}
-            </Typography>
-            <Stack direction="row" spacing={0.25}>
-              <IconButton
-                size="small"
-                disabled={page === 0}
-                onClick={() => setPage((p) => p - 1)}
-                sx={{
-                  color: page === 0 ? "action.disabled" : "text.secondary",
-                }}
-              >
-                <PrevIcon sx={{ fontSize: "1.1rem" }} />
-              </IconButton>
-              <IconButton
-                size="small"
-                disabled={(page + 1) * rowsPerPage >= filteredPatients.length}
-                onClick={() => setPage((p) => p + 1)}
-                sx={{
-                  color:
-                    (page + 1) * rowsPerPage >= filteredPatients.length
-                      ? "action.disabled"
-                      : "text.secondary",
-                }}
-              >
-                <NextIcon sx={{ fontSize: "1.1rem" }} />
+              <IconButton onClick={() => setFilterDrawerOpen(false)}>
+                <CloseIcon />
               </IconButton>
             </Stack>
-          </Stack>
-        </Paper>
+
+            <Divider sx={{ mb: 3 }} />
+
+            <Stack spacing={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Status</InputLabel>
+                <Select
+                  label="Status"
+                  value={statusFilter}
+                  onChange={(e: SelectChangeEvent<unknown>) =>
+                    setStatusFilter(e.target.value as PatientStatus | "all")
+                  }
+                >
+                  {STATUS_FILTER_OPTIONS.map((opt) => (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth size="small">
+                <InputLabel>Program</InputLabel>
+                <Select
+                  label="Program"
+                  value={programFilter}
+                  onChange={(e: SelectChangeEvent<unknown>) =>
+                    setProgramFilter(e.target.value as string)
+                  }
+                >
+                  {PROGRAM_OPTIONS.map((opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {opt}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Stack>
+
+            <Box sx={{ mt: 4 }}>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => setFilterDrawerOpen(false)}
+              >
+                Apply Filters
+              </Button>
+              <Button
+                variant="text"
+                fullWidth
+                sx={{ mt: 1 }}
+                onClick={resetFilters}
+              >
+                Reset All
+              </Button>
+            </Box>
+          </Box>
+        </Drawer>
       </Stack>
 
       <EnrollPatientDialog
@@ -959,15 +857,28 @@ export default function CareCompanionPage() {
                     flexShrink: 0,
                   }}
                 >
-                  <WarningAmberIcon sx={{ color: "error.main", fontSize: 18 }} />
+                  <WarningAmberIcon
+                    sx={{ color: "error.main", fontSize: 18 }}
+                  />
                 </Box>
                 <Box>
-                  <Typography variant="body2" fontWeight={700} color="error.main" mb={0.4}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={700}
+                    color="error.main"
+                    mb={0.4}
+                  >
                     This will archive the patient's care plan.
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block" lineHeight={1.6}>
-                    Automated reminders and check-in requests will stop. All data will be archived
-                    and accessible for future reference. Re-enroll to restart.
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    lineHeight={1.6}
+                  >
+                    Automated reminders and check-in requests will stop. All
+                    data will be archived and accessible for future reference.
+                    Re-enroll to restart.
                   </Typography>
                 </Box>
               </Box>
@@ -1002,7 +913,11 @@ export default function CareCompanionPage() {
                     { k: "Enrolled", v: "Jan 12, 2025" },
                     { k: "Closing On", v: "10 Mar 2026" },
                     { k: "Total Check-ins", v: "3 logged" },
-                    { k: "Overall Adherence", v: `${closePlanPatient.adherence}%`, alert: true },
+                    {
+                      k: "Overall Adherence",
+                      v: `${closePlanPatient.adherence}%`,
+                      alert: true,
+                    },
                   ].map(({ k, v, alert }, i, arr) => (
                     <Stack
                       key={k}
@@ -1014,7 +929,9 @@ export default function CareCompanionPage() {
                         py: 1.1,
                         borderBottom: i < arr.length - 1 ? "1px solid" : "none",
                         borderColor: "divider",
-                        bgcolor: alert ? alpha(theme.palette.error.main, 0.03) : "transparent",
+                        bgcolor: alert
+                          ? alpha(theme.palette.error.main, 0.03)
+                          : "transparent",
                       }}
                     >
                       <Typography variant="body2" color="text.secondary">
@@ -1054,7 +971,9 @@ export default function CareCompanionPage() {
                   value={closeReason}
                   onChange={(e) => setCloseReason(e.target.value)}
                 >
-                  <MenuItem value="completed">Program completed successfully</MenuItem>
+                  <MenuItem value="completed">
+                    Program completed successfully
+                  </MenuItem>
                   <MenuItem value="transferred">Patient transferred</MenuItem>
                   <MenuItem value="withdrawn">Patient withdrew</MenuItem>
                   <MenuItem value="other">Other</MenuItem>
@@ -1075,7 +994,14 @@ export default function CareCompanionPage() {
                   }}
                 >
                   Closing Notes{" "}
-                  <Box component="span" sx={{ textTransform: "none", fontSize: "0.68rem", fontWeight: 400 }}>
+                  <Box
+                    component="span"
+                    sx={{
+                      textTransform: "none",
+                      fontSize: "0.68rem",
+                      fontWeight: 400,
+                    }}
+                  >
                     (Optional)
                   </Box>
                 </Typography>
@@ -1108,7 +1034,12 @@ export default function CareCompanionPage() {
         >
           <Button
             variant="outlined"
-            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1.5, px: 2.5 }}
+            sx={{
+              textTransform: "none",
+              fontWeight: 700,
+              borderRadius: 1.5,
+              px: 2.5,
+            }}
             onClick={() => {
               setClosePlanDialogOpen(false);
               setClosePlanPatient(null);
@@ -1119,15 +1050,24 @@ export default function CareCompanionPage() {
           <Button
             variant="contained"
             color="error"
-
             disableElevation
-            startIcon={<LockIcon sx={{ fontSize: 16 , color: "common.white"}} />}
-            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1.5, px: 2.5,color: "common.white" }}
+            startIcon={
+              <LockIcon sx={{ fontSize: 16, color: "common.white" }} />
+            }
+            sx={{
+              textTransform: "none",
+              fontWeight: 700,
+              borderRadius: 1.5,
+              px: 2.5,
+              color: "common.white",
+            }}
             onClick={() => {
               if (closePlanPatient) {
                 setPatients((prev) =>
                   prev.map((pt) =>
-                    pt.id === closePlanPatient.id ? { ...pt, status: "closed" as PatientStatus } : pt,
+                    pt.id === closePlanPatient.id
+                      ? { ...pt, status: "closed" as PatientStatus }
+                      : pt,
                   ),
                 );
               }

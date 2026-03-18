@@ -32,6 +32,9 @@ import {
   Add as AddIcon,
   ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
+import CommonDataGrid, {
+  type CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
 import { useAppDispatch, useAppSelector } from "@/src/store/hooks";
 import {
   addSample,
@@ -76,6 +79,7 @@ function SampleDetailView({
   onEnterResults,
   onVerify,
   onPublish,
+  detailResultColumns,
 }: {
   sample: LabSample;
   clientName: string;
@@ -88,6 +92,7 @@ function SampleDetailView({
   onEnterResults: (testCode: string) => void;
   onVerify: () => void;
   onPublish: () => void;
+  detailResultColumns: CommonColumn<LabResultRow>[];
 }) {
   const theme = useTheme();
   const lab = useLabTheme(theme);
@@ -354,58 +359,12 @@ function SampleDetailView({
 
       {tab === 2 && (
         <Box sx={lab.cardSx}>
-          {sampleResults.length === 0 ? (
-            <Box sx={{ p: 4, textAlign: "center" }}>
-              <Typography color="text.secondary">
-                No results entered yet for this sample.
-              </Typography>
-            </Box>
-          ) : (
-            <TableContainer sx={lab.tableContainerSx}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Test</TableCell>
-                    <TableCell>Analyte</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Result</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Unit</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Ref Range</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Flag</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Analyst</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {sampleResults.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell>{r.test}</TableCell>
-                      <TableCell>{r.analyte}</TableCell>
-                      <TableCell
-                        sx={{
-                          fontWeight: 700,
-                          color:
-                            r.flag !== "NORMAL" ? "error.main" : "success.main",
-                        }}
-                      >
-                        {r.result}
-                      </TableCell>
-                      <TableCell>{r.unit || "—"}</TableCell>
-                      <TableCell>
-                        {refFromLowHigh(r.refLow, r.refHigh)}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={r.flag}
-                          sx={lab.chipSx(getFlagColor(r.flag, theme))}
-                        />
-                      </TableCell>
-                      <TableCell>{r.analyst}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
+          <CommonDataGrid<LabResultRow>
+            rows={sampleResults}
+            columns={detailResultColumns}
+            getRowId={(row) => row.id}
+            emptyTitle="No results entered yet for this sample."
+          />
         </Box>
       )}
 
@@ -755,6 +714,213 @@ export default function LabSamplesPage() {
     ? tests.find((t) => t.code === enterResultsTestCode)
     : null;
 
+  const sampleColumns = React.useMemo<CommonColumn<LabSample>[]>(
+    () => [
+      {
+        headerName: "Sample ID",
+        field: "id",
+        width: 120,
+        renderCell: (row) => (
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 700, color: "primary.main" }}
+          >
+            {row.id}
+          </Typography>
+        ),
+      },
+      {
+        headerName: "Patient",
+        field: "patient",
+        width: 160,
+      },
+      {
+        headerName: "Client",
+        field: "client",
+        width: 160,
+        renderCell: (row) => clientNameFor(row.client),
+      },
+      {
+        headerName: "Type",
+        field: "type",
+        width: 120,
+      },
+      {
+        headerName: "Date",
+        field: "date",
+        width: 120,
+      },
+      {
+        headerName: "Tests",
+        field: "tests",
+        width: 220,
+        renderCell: (row) => (
+          <Stack direction="row" spacing={0.5} flexWrap="wrap">
+            {row.tests.map((t) => (
+              <Chip
+                key={t}
+                size="small"
+                label={t}
+                sx={lab.chipSx(theme.palette.info.main)}
+              />
+            ))}
+          </Stack>
+        ),
+      },
+      {
+        headerName: "Priority",
+        field: "priority",
+        width: 110,
+        renderCell: (row) => (
+          <Chip
+            size="small"
+            label={row.priority}
+            color={
+              row.priority === "URGENT" || row.priority === "STAT"
+                ? "error"
+                : row.priority === "NORMAL"
+                  ? "default"
+                  : "warning"
+            }
+          />
+        ),
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 130,
+        renderCell: (row) => {
+          const cfg = sampleStatus[row.status];
+          return (
+            <Chip size="small" label={cfg.label} sx={lab.chipSx(cfg.color)} />
+          );
+        },
+      },
+      {
+        headerName: "Actions",
+        field: "id",
+        width: 280,
+        align: "right",
+        headerAlign: "right",
+        renderCell: (row) => (
+          <Stack direction="row" spacing={0.75} justifyContent="flex-end">
+            {row.status === "registered" && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="info"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleQuickReceive(row);
+                }}
+              >
+                Receive
+              </Button>
+            )}
+            {row.status === "analysed" && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="success"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleQuickVerify(row);
+                }}
+              >
+                Verify
+              </Button>
+            )}
+            {row.status === "verified" && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleQuickPublish(row);
+                }}
+              >
+                Publish
+              </Button>
+            )}
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/lab/samples?id=${row.id}`);
+              }}
+            >
+              View
+            </Button>
+          </Stack>
+        ),
+      },
+    ],
+    [theme, lab, sampleStatus, router],
+  );
+
+  const detailResultColumns = React.useMemo<CommonColumn<LabResultRow>[]>(
+    () => [
+      {
+        headerName: "Test",
+        field: "test",
+        width: 150,
+      },
+      {
+        headerName: "Analyte",
+        field: "analyte",
+        width: 150,
+      },
+      {
+        headerName: "Result",
+        field: "result",
+        width: 100,
+        renderCell: (row) => (
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 700,
+              color: row.flag !== "NORMAL" ? "error.main" : "success.main",
+            }}
+          >
+            {row.result}
+          </Typography>
+        ),
+      },
+      {
+        headerName: "Unit",
+        field: "unit",
+        width: 100,
+        renderCell: (row) => row.unit || "—",
+      },
+      {
+        headerName: "Ref Range",
+        field: "id",
+        width: 150,
+        renderCell: (row) => refFromLowHigh(row.refLow, row.refHigh),
+      },
+      {
+        headerName: "Flag",
+        field: "flag",
+        width: 120,
+        renderCell: (row) => (
+          <Chip
+            size="small"
+            label={row.flag}
+            sx={lab.chipSx(getFlagColor(row.flag, theme))}
+          />
+        ),
+      },
+      {
+        headerName: "Analyst",
+        field: "analyst",
+        width: 150,
+      },
+    ],
+    [theme, lab],
+  );
+
   if (selectedSample) {
     return (
       <PageTemplate title="Samples" currentPageTitle="Sample Detail">
@@ -775,6 +941,7 @@ export default function LabSamplesPage() {
               onEnterResults={handleEnterResults}
               onVerify={handleVerify}
               onPublish={handlePublish}
+              detailResultColumns={detailResultColumns}
             />
             {enterResultsTest && (
               <EnterResultsModal
@@ -836,6 +1003,7 @@ export default function LabSamplesPage() {
             direction={{ xs: "column", sm: "row" }}
             spacing={2}
             alignItems="center"
+            sx={{ display: view === "board" ? "flex" : "none", mb: 2 }}
           >
             <TextField
               size="small"
@@ -844,6 +1012,7 @@ export default function LabSamplesPage() {
               onChange={(e) => setSearch(e.target.value)}
               sx={{ maxWidth: 280 }}
             />
+            <Box sx={{ flex: 1 }} />
             <TextField
               select
               size="small"
@@ -859,133 +1028,42 @@ export default function LabSamplesPage() {
                 </option>
               ))}
             </TextField>
-            <Typography variant="caption" color="text.secondary">
-              {filtered.length} results
-            </Typography>
           </Stack>
 
           {view === "list" ? (
-            <Box sx={lab.cardSx}>
-              <TableContainer sx={lab.tableContainerSx}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Sample ID</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Patient</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Client</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Tests</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Priority</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {filtered.map((s) => {
-                      const cfg = sampleStatus[s.status];
-                      return (
-                        <TableRow
-                          key={s.id}
-                          hover
-                          sx={{ cursor: "pointer" }}
-                          onClick={() => router.push(`/lab/samples?id=${s.id}`)}
-                        >
-                          <TableCell
-                            sx={{ fontWeight: 700, color: "primary.main" }}
-                          >
-                            {s.id}
-                          </TableCell>
-                          <TableCell>{s.patient}</TableCell>
-                          <TableCell>{clientNameFor(s.client)}</TableCell>
-                          <TableCell>{s.type}</TableCell>
-                          <TableCell>{s.date}</TableCell>
-                          <TableCell>
-                            <Stack
-                              direction="row"
-                              spacing={0.5}
-                              flexWrap="wrap"
-                            >
-                              {s.tests.map((t) => (
-                                <Chip
-                                  key={t}
-                                  size="small"
-                                  label={t}
-                                  sx={lab.chipSx(theme.palette.info.main)}
-                                />
-                              ))}
-                            </Stack>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              size="small"
-                              label={s.priority}
-                              color={
-                                s.priority === "URGENT" || s.priority === "STAT"
-                                  ? "error"
-                                  : s.priority === "NORMAL"
-                                    ? "default"
-                                    : "warning"
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              size="small"
-                              label={cfg.label}
-                              sx={lab.chipSx(cfg.color)}
-                            />
-                          </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Stack direction="row" spacing={0.75}>
-                              {s.status === "registered" && (
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  color="info"
-                                  onClick={() => handleQuickReceive(s)}
-                                >
-                                  Receive
-                                </Button>
-                              )}
-                              {s.status === "analysed" && (
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  color="success"
-                                  onClick={() => handleQuickVerify(s)}
-                                >
-                                  Verify
-                                </Button>
-                              )}
-                              {s.status === "verified" && (
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  color="primary"
-                                  onClick={() => handleQuickPublish(s)}
-                                >
-                                  Publish
-                                </Button>
-                              )}
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                onClick={() =>
-                                  router.push(`/lab/samples?id=${s.id}`)
-                                }
-                              >
-                                View
-                              </Button>
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Box>
+            <CommonDataGrid<LabSample>
+              rows={filtered}
+              columns={sampleColumns}
+              getRowId={(row) => row.id}
+              externalSearchValue={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Search by ID, patient, client..."
+              onRowClick={(row) => router.push(`/lab/samples?id=${row.id}`)}
+              toolbarRight={
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <TextField
+                    select
+                    size="small"
+                    SelectProps={{ native: true }}
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    sx={{
+                      minWidth: 140,
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                      },
+                    }}
+                  >
+                    <option value="all">All Status</option>
+                    {SAMPLE_STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {sampleStatus[s].label}
+                      </option>
+                    ))}
+                  </TextField>
+                </Stack>
+              }
+            />
           ) : (
             <Box
               sx={{
