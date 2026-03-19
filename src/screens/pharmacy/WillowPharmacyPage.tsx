@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import PageTemplate from "@/src/ui/components/PageTemplate";
 import {
   Alert,
   Avatar,
@@ -25,9 +25,9 @@ import {
   TableRow,
   TextField,
   Typography,
-} from '@/src/ui/components/atoms';
-import { Card, CommonTabs, StatTile } from '@/src/ui/components/molecules';
-import { alpha, useTheme } from '@/src/ui/theme';
+} from "@/src/ui/components/atoms";
+import { Card, CommonTabs, StatTile } from "@/src/ui/components/molecules";
+import { alpha, useTheme } from "@/src/ui/theme";
 import {
   CheckCircle as CheckCircleIcon,
   History as HistoryIcon,
@@ -37,8 +37,8 @@ import {
   QuestionAnswer as QuestionAnswerIcon,
   Science as ScienceIcon,
   WarningAmber as WarningAmberIcon,
-} from '@mui/icons-material';
-import { usePermission } from '@/src/core/auth/usePermission';
+} from "@mui/icons-material";
+import { usePermission } from "@/src/core/auth/usePermission";
 import {
   buildInventoryId,
   getItemLabel,
@@ -46,15 +46,15 @@ import {
   InventoryState,
   readInventoryState,
   writeInventoryState,
-} from '@/src/core/inventory/inventoryStore';
+} from "@/src/core/inventory/inventoryStore";
 
-type WillowTab = 'queue' | 'dispensed' | 'inventory' | 'activity';
-type Priority = 'STAT' | 'Urgent' | 'Routine';
-type RxStatus = 'Pending' | 'In Review' | 'On Hold' | 'Dispensed';
-type ActivitySeverity = 'success' | 'info' | 'warning' | 'error';
+type WillowTab = "queue" | "dispensed" | "inventory" | "activity";
+type Priority = "STAT" | "Urgent" | "Routine";
+type RxStatus = "Pending" | "In Review" | "On Hold" | "Dispensed";
+type ActivitySeverity = "success" | "info" | "warning" | "error";
 
-type QueueStatusFilter = 'All' | RxStatus;
-type PriorityFilter = 'All' | Priority;
+type QueueStatusFilter = "All" | RxStatus;
+type PriorityFilter = "All" | Priority;
 
 interface WillowMedication {
   id: string;
@@ -105,13 +105,13 @@ interface WillowInventoryRow {
   location: string;
   nextExpiry: string;
   category: string;
-  itemStatus: 'Active' | 'Inactive';
+  itemStatus: "Active" | "Inactive";
 }
 
 interface ActivityEvent {
   id: string;
   timestamp: string;
-  type: 'Status Update' | 'Dispense' | 'Clarification' | 'Inventory';
+  type: "Status Update" | "Dispense" | "Clarification" | "Inventory";
   message: string;
   actor: string;
   severity: ActivitySeverity;
@@ -132,13 +132,13 @@ interface ToastState {
 }
 
 const TABS: Array<{ id: WillowTab; label: string }> = [
-  { id: 'queue', label: 'Prescription Queue' },
-  { id: 'dispensed', label: 'Dispensed Today' },
-  { id: 'inventory', label: 'Inventory Health' },
-  { id: 'activity', label: 'Activity Trail' },
+  { id: "queue", label: "Prescription Queue" },
+  { id: "dispensed", label: "Dispensed Today" },
+  { id: "inventory", label: "Inventory Health" },
+  { id: "activity", label: "Activity Trail" },
 ];
 
-const WILLOW_UI_STORAGE_KEY = 'scanbo.hims.pharmacy.willow.ui.v2';
+const WILLOW_UI_STORAGE_KEY = "scanbo.hims.pharmacy.willow.ui.v2";
 
 const PRIORITY_RANK: Record<Priority, number> = {
   STAT: 0,
@@ -146,27 +146,27 @@ const PRIORITY_RANK: Record<Priority, number> = {
   Routine: 2,
 };
 
-const dateTimeFormatter = new Intl.DateTimeFormat('en-IN', {
-  day: '2-digit',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
+const dateTimeFormatter = new Intl.DateTimeFormat("en-IN", {
+  day: "2-digit",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
 });
 
-const timeFormatter = new Intl.DateTimeFormat('en-IN', {
-  hour: '2-digit',
-  minute: '2-digit',
+const timeFormatter = new Intl.DateTimeFormat("en-IN", {
+  hour: "2-digit",
+  minute: "2-digit",
 });
 
 function formatDateTime(value: string): string {
   const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) return '--';
+  if (Number.isNaN(parsed)) return "--";
   return dateTimeFormatter.format(parsed);
 }
 
 function formatTime(value: string): string {
   const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) return '--';
+  if (Number.isNaN(parsed)) return "--";
   return timeFormatter.format(parsed);
 }
 
@@ -184,209 +184,210 @@ function buildDefaultState(): WillowUiState {
   return {
     queue: [
       {
-        id: 'wl-rx-001',
-        rxNo: 'WL-2026-001',
-        patientName: 'Ramesh Gupta',
-        initials: 'RG',
-        patientId: 'ER-5101',
-        mrn: 'MRN-247811',
-        ageGender: '58y / Male',
-        priority: 'STAT',
-        status: 'In Review',
-        department: 'Emergency',
-        prescriber: 'Dr. Neha Bhat',
+        id: "wl-rx-001",
+        rxNo: "WL-2026-001",
+        patientName: "Ramesh Gupta",
+        initials: "RG",
+        patientId: "ER-5101",
+        mrn: "MRN-247811",
+        ageGender: "58y / Male",
+        priority: "STAT",
+        status: "In Review",
+        department: "Emergency",
+        prescriber: "Dr. Neha Bhat",
         receivedAt: new Date(now - 22 * 60_000).toISOString(),
-        complaint: 'Acute chest pain with diaphoresis',
-        allergies: ['Aspirin', 'Penicillin'],
+        complaint: "Acute chest pain with diaphoresis",
+        allergies: ["Aspirin", "Penicillin"],
         medications: [
           {
-            id: 'wl-rx-001-m-1',
-            name: 'Clopidogrel',
-            dose: '300 mg',
-            route: 'Oral',
-            frequency: 'STAT x1',
+            id: "wl-rx-001-m-1",
+            name: "Clopidogrel",
+            dose: "300 mg",
+            route: "Oral",
+            frequency: "STAT x1",
             quantity: 1,
-            note: 'Aspirin substituted due to allergy.',
-            inventoryDrug: 'Clopidogrel 75mg',
+            note: "Aspirin substituted due to allergy.",
+            inventoryDrug: "Clopidogrel 75mg",
           },
           {
-            id: 'wl-rx-001-m-2',
-            name: 'Atorvastatin',
-            dose: '80 mg',
-            route: 'Oral',
-            frequency: 'OD',
+            id: "wl-rx-001-m-2",
+            name: "Atorvastatin",
+            dose: "80 mg",
+            route: "Oral",
+            frequency: "OD",
             quantity: 14,
-            note: 'Monitor LFT and CPK due to high-intensity therapy.',
-            inventoryDrug: 'Atorvastatin 80mg',
+            note: "Monitor LFT and CPK due to high-intensity therapy.",
+            inventoryDrug: "Atorvastatin 80mg",
           },
           {
-            id: 'wl-rx-001-m-3',
-            name: 'Morphine',
-            dose: '4 mg',
-            route: 'IV',
-            frequency: 'STAT x1',
+            id: "wl-rx-001-m-3",
+            name: "Morphine",
+            dose: "4 mg",
+            route: "IV",
+            frequency: "STAT x1",
             quantity: 1,
-            note: 'Controlled drug. Dual sign check required.',
-            inventoryDrug: 'Morphine 10mg/mL',
+            note: "Controlled drug. Dual sign check required.",
+            inventoryDrug: "Morphine 10mg/mL",
           },
         ],
       },
       {
-        id: 'wl-rx-002',
-        rxNo: 'WL-2026-002',
-        patientName: 'Asha Iyer',
-        initials: 'AI',
-        patientId: 'ER-5102',
-        mrn: 'MRN-247902',
-        ageGender: '32y / Female',
-        priority: 'Urgent',
-        status: 'Pending',
-        department: 'Emergency',
-        prescriber: 'Dr. Neha Bhat',
+        id: "wl-rx-002",
+        rxNo: "WL-2026-002",
+        patientName: "Asha Iyer",
+        initials: "AI",
+        patientId: "ER-5102",
+        mrn: "MRN-247902",
+        ageGender: "32y / Female",
+        priority: "Urgent",
+        status: "Pending",
+        department: "Emergency",
+        prescriber: "Dr. Neha Bhat",
         receivedAt: new Date(now - 34 * 60_000).toISOString(),
-        complaint: 'Road traffic injury with severe pain',
-        allergies: ['No known allergy'],
+        complaint: "Road traffic injury with severe pain",
+        allergies: ["No known allergy"],
         medications: [
           {
-            id: 'wl-rx-002-m-1',
-            name: 'Morphine',
-            dose: '5 mg',
-            route: 'IV',
-            frequency: 'STAT x1',
+            id: "wl-rx-002-m-1",
+            name: "Morphine",
+            dose: "5 mg",
+            route: "IV",
+            frequency: "STAT x1",
             quantity: 1,
-            note: 'Controlled dispensing log required.',
-            inventoryDrug: 'Morphine 10mg/mL',
+            note: "Controlled dispensing log required.",
+            inventoryDrug: "Morphine 10mg/mL",
           },
           {
-            id: 'wl-rx-002-m-2',
-            name: 'Ketorolac',
-            dose: '30 mg',
-            route: 'IV',
-            frequency: 'STAT x1',
+            id: "wl-rx-002-m-2",
+            name: "Ketorolac",
+            dose: "30 mg",
+            route: "IV",
+            frequency: "STAT x1",
             quantity: 1,
-            note: 'No major interaction identified.',
-            inventoryDrug: 'Ketorolac 30mg/mL',
+            note: "No major interaction identified.",
+            inventoryDrug: "Ketorolac 30mg/mL",
           },
         ],
       },
       {
-        id: 'wl-rx-003',
-        rxNo: 'WL-2026-003',
-        patientName: 'Farhan Ali',
-        initials: 'FA',
-        patientId: 'IPD-1204',
-        mrn: 'MRN-241100',
-        ageGender: '64y / Male',
-        priority: 'Routine',
-        status: 'Pending',
-        department: 'IPD Ward-2',
-        prescriber: 'Dr. P. Sharma',
+        id: "wl-rx-003",
+        rxNo: "WL-2026-003",
+        patientName: "Farhan Ali",
+        initials: "FA",
+        patientId: "IPD-1204",
+        mrn: "MRN-241100",
+        ageGender: "64y / Male",
+        priority: "Routine",
+        status: "Pending",
+        department: "IPD Ward-2",
+        prescriber: "Dr. P. Sharma",
         receivedAt: new Date(now - 56 * 60_000).toISOString(),
-        complaint: 'Hypertension follow-up',
-        allergies: ['No known allergy'],
+        complaint: "Hypertension follow-up",
+        allergies: ["No known allergy"],
         medications: [
           {
-            id: 'wl-rx-003-m-1',
-            name: 'Amlodipine',
-            dose: '5 mg',
-            route: 'Oral',
-            frequency: 'OD',
+            id: "wl-rx-003-m-1",
+            name: "Amlodipine",
+            dose: "5 mg",
+            route: "Oral",
+            frequency: "OD",
             quantity: 30,
-            note: 'Routine supply for discharge planning.',
-            inventoryDrug: 'Amlodipine 5mg',
+            note: "Routine supply for discharge planning.",
+            inventoryDrug: "Amlodipine 5mg",
           },
           {
-            id: 'wl-rx-003-m-2',
-            name: 'Telmisartan',
-            dose: '40 mg',
-            route: 'Oral',
-            frequency: 'OD',
+            id: "wl-rx-003-m-2",
+            name: "Telmisartan",
+            dose: "40 mg",
+            route: "Oral",
+            frequency: "OD",
             quantity: 30,
-            note: 'Routine supply.',
-            inventoryDrug: 'Telmisartan 40mg',
+            note: "Routine supply.",
+            inventoryDrug: "Telmisartan 40mg",
           },
         ],
       },
       {
-        id: 'wl-rx-004',
-        rxNo: 'WL-2026-004',
-        patientName: 'Meera Singh',
-        initials: 'MS',
-        patientId: 'IPD-1410',
-        mrn: 'MRN-243200',
-        ageGender: '44y / Female',
-        priority: 'Urgent',
-        status: 'On Hold',
-        department: 'ICU',
-        prescriber: 'Dr. Harish Rao',
+        id: "wl-rx-004",
+        rxNo: "WL-2026-004",
+        patientName: "Meera Singh",
+        initials: "MS",
+        patientId: "IPD-1410",
+        mrn: "MRN-243200",
+        ageGender: "44y / Female",
+        priority: "Urgent",
+        status: "On Hold",
+        department: "ICU",
+        prescriber: "Dr. Harish Rao",
         receivedAt: new Date(now - 70 * 60_000).toISOString(),
-        complaint: 'Sepsis protocol medication set',
-        allergies: ['Vancomycin'],
+        complaint: "Sepsis protocol medication set",
+        allergies: ["Vancomycin"],
         medications: [
           {
-            id: 'wl-rx-004-m-1',
-            name: 'Piperacillin/Tazobactam',
-            dose: '4.5 g',
-            route: 'IV',
-            frequency: 'Q6H',
+            id: "wl-rx-004-m-1",
+            name: "Piperacillin/Tazobactam",
+            dose: "4.5 g",
+            route: "IV",
+            frequency: "Q6H",
             quantity: 8,
-            note: 'Awaiting renal dose clarification.',
-            inventoryDrug: 'Piperacillin/Tazobactam 4.5g',
+            note: "Awaiting renal dose clarification.",
+            inventoryDrug: "Piperacillin/Tazobactam 4.5g",
           },
           {
-            id: 'wl-rx-004-m-2',
-            name: 'Noradrenaline',
-            dose: '4 mg',
-            route: 'IV',
-            frequency: 'As directed',
+            id: "wl-rx-004-m-2",
+            name: "Noradrenaline",
+            dose: "4 mg",
+            route: "IV",
+            frequency: "As directed",
             quantity: 2,
-            note: 'Critical care support; verify titration protocol.',
-            inventoryDrug: 'Noradrenaline 4mg',
+            note: "Critical care support; verify titration protocol.",
+            inventoryDrug: "Noradrenaline 4mg",
           },
         ],
-        holdReason: 'Need prescriber confirmation due to documented Vancomycin allergy.',
+        holdReason:
+          "Need prescriber confirmation due to documented Vancomycin allergy.",
       },
     ],
     dispensed: [
       {
-        id: 'wl-d-001',
-        rxId: 'seed-rx-legacy',
-        rxNo: 'WL-2026-000',
-        patientName: 'Lata Patwardhan',
-        department: 'Maternity',
+        id: "wl-d-001",
+        rxId: "seed-rx-legacy",
+        rxNo: "WL-2026-000",
+        patientName: "Lata Patwardhan",
+        department: "Maternity",
         dispensedAt: new Date(now - 96 * 60_000).toISOString(),
-        dispensedBy: 'Ph. Ananya',
+        dispensedBy: "Ph. Ananya",
         itemCount: 2,
       },
     ],
     activity: [
       {
-        id: 'wl-a-001',
+        id: "wl-a-001",
         timestamp: new Date(now - 10 * 60_000).toISOString(),
-        type: 'Status Update',
-        message: 'WL-2026-001 moved to In Review.',
-        actor: 'Ph. Ananya',
-        severity: 'info',
-        rxNo: 'WL-2026-001',
-        patientName: 'Ramesh Gupta',
+        type: "Status Update",
+        message: "WL-2026-001 moved to In Review.",
+        actor: "Ph. Ananya",
+        severity: "info",
+        rxNo: "WL-2026-001",
+        patientName: "Ramesh Gupta",
       },
       {
-        id: 'wl-a-002',
+        id: "wl-a-002",
         timestamp: new Date(now - 15 * 60_000).toISOString(),
-        type: 'Inventory',
-        message: 'Low stock alert raised for Morphine 10mg/mL.',
-        actor: 'System',
-        severity: 'warning',
+        type: "Inventory",
+        message: "Low stock alert raised for Morphine 10mg/mL.",
+        actor: "System",
+        severity: "warning",
       },
       {
-        id: 'wl-a-003',
+        id: "wl-a-003",
         timestamp: new Date(now - 23 * 60_000).toISOString(),
-        type: 'Dispense',
-        message: 'WL-2026-000 dispensed with 2 medication items.',
-        actor: 'Ph. Ananya',
-        severity: 'success',
-        rxNo: 'WL-2026-000',
-        patientName: 'Lata Patwardhan',
+        type: "Dispense",
+        message: "WL-2026-000 dispensed with 2 medication items.",
+        actor: "Ph. Ananya",
+        severity: "success",
+        rxNo: "WL-2026-000",
+        patientName: "Lata Patwardhan",
       },
     ],
   };
@@ -395,17 +396,21 @@ function buildDefaultState(): WillowUiState {
 const DEFAULT_STATE = buildDefaultState();
 
 function readUiState(): WillowUiState {
-  if (typeof window === 'undefined') return DEFAULT_STATE;
+  if (typeof window === "undefined") return DEFAULT_STATE;
 
   try {
     const raw = window.localStorage.getItem(WILLOW_UI_STORAGE_KEY);
     if (!raw) return DEFAULT_STATE;
     const parsed = JSON.parse(raw) as Partial<WillowUiState>;
-    if (!parsed || typeof parsed !== 'object') return DEFAULT_STATE;
+    if (!parsed || typeof parsed !== "object") return DEFAULT_STATE;
     return {
       queue: Array.isArray(parsed.queue) ? parsed.queue : DEFAULT_STATE.queue,
-      dispensed: Array.isArray(parsed.dispensed) ? parsed.dispensed : DEFAULT_STATE.dispensed,
-      activity: Array.isArray(parsed.activity) ? parsed.activity : DEFAULT_STATE.activity,
+      dispensed: Array.isArray(parsed.dispensed)
+        ? parsed.dispensed
+        : DEFAULT_STATE.dispensed,
+      activity: Array.isArray(parsed.activity)
+        ? parsed.activity
+        : DEFAULT_STATE.activity,
     };
   } catch {
     return DEFAULT_STATE;
@@ -413,7 +418,7 @@ function readUiState(): WillowUiState {
 }
 
 function writeUiState(state: WillowUiState): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
     window.localStorage.setItem(WILLOW_UI_STORAGE_KEY, JSON.stringify(state));
@@ -428,23 +433,27 @@ function buildEventId(prefix: string): string {
 
 function appendActivity(
   activity: ActivityEvent[],
-  next: Omit<ActivityEvent, 'id' | 'timestamp'>
+  next: Omit<ActivityEvent, "id" | "timestamp">,
 ): ActivityEvent[] {
   const row: ActivityEvent = {
     ...next,
-    id: buildEventId('wl-a'),
+    id: buildEventId("wl-a"),
     timestamp: nowIso(),
   };
   return [row, ...activity].slice(0, 180);
 }
 
-function inventoryHealth(row: WillowInventoryRow): 'Out of stock' | 'Low stock' | 'Normal' {
-  if (row.stock <= 0) return 'Out of stock';
-  if (row.stock <= row.reorderLevel) return 'Low stock';
-  return 'Normal';
+function inventoryHealth(
+  row: WillowInventoryRow,
+): "Out of stock" | "Low stock" | "Normal" {
+  if (row.stock <= 0) return "Out of stock";
+  if (row.stock <= row.reorderLevel) return "Low stock";
+  return "Normal";
 }
 
-function activityColor(severity: ActivitySeverity): 'success' | 'info' | 'warning' | 'error' {
+function activityColor(
+  severity: ActivitySeverity,
+): "success" | "info" | "warning" | "error" {
   return severity;
 }
 
@@ -452,34 +461,39 @@ export default function WillowPharmacyPage() {
   const theme = useTheme();
   const router = useRouter();
   const permissionGate = usePermission();
-  const canWrite = permissionGate('pharmacy.willow.write') || permissionGate('pharmacy.*');
+  const canWrite =
+    permissionGate("pharmacy.willow.write") || permissionGate("pharmacy.*");
 
-  const [activeTab, setActiveTab] = React.useState<WillowTab>('queue');
-  const [uiState, setUiState] = React.useState<WillowUiState>(() => readUiState());
-  const [inventoryState, setInventoryState] = React.useState<InventoryState>(() =>
-    readInventoryState()
+  const [activeTab, setActiveTab] = React.useState<WillowTab>("queue");
+  const [uiState, setUiState] = React.useState<WillowUiState>(() =>
+    readUiState(),
   );
-  const [selectedId, setSelectedId] = React.useState('');
+  const [inventoryState, setInventoryState] = React.useState<InventoryState>(
+    () => readInventoryState(),
+  );
+  const [selectedId, setSelectedId] = React.useState("");
 
-  const [search, setSearch] = React.useState('');
-  const [priorityFilter, setPriorityFilter] = React.useState<PriorityFilter>('All');
-  const [statusFilter, setStatusFilter] = React.useState<QueueStatusFilter>('All');
-  const [dispensedSearch, setDispensedSearch] = React.useState('');
-  const [inventorySearch, setInventorySearch] = React.useState('');
+  const [search, setSearch] = React.useState("");
+  const [priorityFilter, setPriorityFilter] =
+    React.useState<PriorityFilter>("All");
+  const [statusFilter, setStatusFilter] =
+    React.useState<QueueStatusFilter>("All");
+  const [dispensedSearch, setDispensedSearch] = React.useState("");
+  const [inventorySearch, setInventorySearch] = React.useState("");
 
   const [clarifyOpen, setClarifyOpen] = React.useState(false);
-  const [clarifyMessage, setClarifyMessage] = React.useState('');
+  const [clarifyMessage, setClarifyMessage] = React.useState("");
 
   const [holdOpen, setHoldOpen] = React.useState(false);
-  const [holdReason, setHoldReason] = React.useState('');
+  const [holdReason, setHoldReason] = React.useState("");
 
-  const [restockItemId, setRestockItemId] = React.useState('');
-  const [restockQty, setRestockQty] = React.useState('');
+  const [restockItemId, setRestockItemId] = React.useState("");
+  const [restockQty, setRestockQty] = React.useState("");
 
   const [toast, setToast] = React.useState<ToastState>({
     open: false,
-    msg: '',
-    severity: 'success',
+    msg: "",
+    severity: "success",
   });
 
   React.useEffect(() => {
@@ -494,7 +508,7 @@ export default function WillowPharmacyPage() {
     const refreshInventory = () => {
       const latest = readInventoryState();
       setInventoryState((current) =>
-        JSON.stringify(current) === JSON.stringify(latest) ? current : latest
+        JSON.stringify(current) === JSON.stringify(latest) ? current : latest,
       );
     };
 
@@ -504,42 +518,52 @@ export default function WillowPharmacyPage() {
       }
     };
 
-    window.addEventListener('focus', refreshInventory);
-    window.addEventListener('storage', onStorage);
+    window.addEventListener("focus", refreshInventory);
+    window.addEventListener("storage", onStorage);
 
     return () => {
-      window.removeEventListener('focus', refreshInventory);
-      window.removeEventListener('storage', onStorage);
+      window.removeEventListener("focus", refreshInventory);
+      window.removeEventListener("storage", onStorage);
     };
   }, []);
 
   const notify = React.useCallback(
-    (msg: string, severity: ActivitySeverity = 'success') => {
+    (msg: string, severity: ActivitySeverity = "success") => {
       setToast({ open: true, msg, severity });
     },
-    []
+    [],
   );
 
   const inventoryRows = React.useMemo<WillowInventoryRow[]>(() => {
     return inventoryState.items
       .map((item) => {
-        const stockRow = inventoryState.stock.find((entry) => entry.itemId === item.id);
+        const stockRow = inventoryState.stock.find(
+          (entry) => entry.itemId === item.id,
+        );
         return {
           itemId: item.id,
           drug: getItemLabel(item),
           stock: stockRow?.onHand ?? 0,
           reorderLevel: item.reorderLevel,
-          location: stockRow?.location ?? 'UNASSIGNED',
-          nextExpiry: stockRow?.nextExpiry ?? '--',
+          location: stockRow?.location ?? "UNASSIGNED",
+          nextExpiry: stockRow?.nextExpiry ?? "--",
           category: item.category,
           itemStatus: item.status,
         };
       })
       .sort((a, b) => {
         const scoreA =
-          inventoryHealth(a) === 'Out of stock' ? 0 : inventoryHealth(a) === 'Low stock' ? 1 : 2;
+          inventoryHealth(a) === "Out of stock"
+            ? 0
+            : inventoryHealth(a) === "Low stock"
+              ? 1
+              : 2;
         const scoreB =
-          inventoryHealth(b) === 'Out of stock' ? 0 : inventoryHealth(b) === 'Low stock' ? 1 : 2;
+          inventoryHealth(b) === "Out of stock"
+            ? 0
+            : inventoryHealth(b) === "Low stock"
+              ? 1
+              : 2;
 
         if (scoreA !== scoreB) return scoreA - scoreB;
         return a.drug.localeCompare(b.drug);
@@ -551,8 +575,9 @@ export default function WillowPharmacyPage() {
 
     return [...uiState.queue]
       .filter((row) => {
-        if (priorityFilter !== 'All' && row.priority !== priorityFilter) return false;
-        if (statusFilter !== 'All' && row.status !== statusFilter) return false;
+        if (priorityFilter !== "All" && row.priority !== priorityFilter)
+          return false;
+        if (statusFilter !== "All" && row.status !== statusFilter) return false;
         if (!query) return true;
 
         return (
@@ -572,7 +597,7 @@ export default function WillowPharmacyPage() {
 
   React.useEffect(() => {
     if (!filteredQueue.length) {
-      setSelectedId('');
+      setSelectedId("");
       return;
     }
 
@@ -583,19 +608,29 @@ export default function WillowPharmacyPage() {
 
   const selectedRx = filteredQueue.find((row) => row.id === selectedId) ?? null;
 
-  const pendingCount = uiState.queue.filter((row) => row.status === 'Pending').length;
-  const reviewCount = uiState.queue.filter((row) => row.status === 'In Review').length;
-  const holdCount = uiState.queue.filter((row) => row.status === 'On Hold').length;
-  const statCount = uiState.queue.filter(
-    (row) => row.priority === 'STAT' && row.status !== 'Dispensed'
+  const pendingCount = uiState.queue.filter(
+    (row) => row.status === "Pending",
   ).length;
-  const lowStockCount = inventoryRows.filter((row) => inventoryHealth(row) === 'Low stock').length;
+  const reviewCount = uiState.queue.filter(
+    (row) => row.status === "In Review",
+  ).length;
+  const holdCount = uiState.queue.filter(
+    (row) => row.status === "On Hold",
+  ).length;
+  const statCount = uiState.queue.filter(
+    (row) => row.priority === "STAT" && row.status !== "Dispensed",
+  ).length;
+  const lowStockCount = inventoryRows.filter(
+    (row) => inventoryHealth(row) === "Low stock",
+  ).length;
   const outOfStockCount = inventoryRows.filter(
-    (row) => inventoryHealth(row) === 'Out of stock'
+    (row) => inventoryHealth(row) === "Out of stock",
   ).length;
 
   const inventoryByDrug = React.useMemo(() => {
-    return new Map(inventoryRows.map((item) => [normalizeDrugLabel(item.drug), item]));
+    return new Map(
+      inventoryRows.map((item) => [normalizeDrugLabel(item.drug), item]),
+    );
   }, [inventoryRows]);
 
   const dispensedRows = React.useMemo(() => {
@@ -630,7 +665,7 @@ export default function WillowPharmacyPage() {
     (nextStatus: RxStatus) => {
       if (!selectedRx) return;
       if (!canWrite) {
-        notify('You are in read-only mode for Willow actions.', 'warning');
+        notify("You are in read-only mode for Willow actions.", "warning");
         return;
       }
 
@@ -641,45 +676,49 @@ export default function WillowPharmacyPage() {
         if (!target) return prev;
 
         const queue = prev.queue.map((row) =>
-          row.id === target.id ? { ...row, status: nextStatus } : row
+          row.id === target.id ? { ...row, status: nextStatus } : row,
         );
 
         let dispensed = prev.dispensed;
         let activity = prev.activity;
 
-        if (nextStatus === 'Dispensed' && target.status !== 'Dispensed') {
+        if (nextStatus === "Dispensed" && target.status !== "Dispensed") {
           const dispensedRow: DispensedRecord = {
-            id: buildEventId('wl-d'),
+            id: buildEventId("wl-d"),
             rxId: target.id,
             rxNo: target.rxNo,
             patientName: target.patientName,
             department: target.department,
             dispensedAt: nowIso(),
-            dispensedBy: 'Shift Pharmacist',
+            dispensedBy: "Shift Pharmacist",
             itemCount: target.medications.length,
           };
 
-          const existingIndex = prev.dispensed.findIndex((row) => row.rxId === target.id);
+          const existingIndex = prev.dispensed.findIndex(
+            (row) => row.rxId === target.id,
+          );
           if (existingIndex >= 0) {
-            dispensed = prev.dispensed.map((row, idx) => (idx === existingIndex ? dispensedRow : row));
+            dispensed = prev.dispensed.map((row, idx) =>
+              idx === existingIndex ? dispensedRow : row,
+            );
           } else {
             dispensed = [dispensedRow, ...prev.dispensed];
           }
 
           activity = appendActivity(activity, {
-            type: 'Dispense',
+            type: "Dispense",
             message: `${target.rxNo} dispensed with ${target.medications.length} items.`,
-            actor: 'Shift Pharmacist',
-            severity: 'success',
+            actor: "Shift Pharmacist",
+            severity: "success",
             rxNo: target.rxNo,
             patientName: target.patientName,
           });
         } else {
           activity = appendActivity(activity, {
-            type: 'Status Update',
+            type: "Status Update",
             message: `${target.rxNo} moved to ${nextStatus}.`,
-            actor: 'Shift Pharmacist',
-            severity: nextStatus === 'On Hold' ? 'warning' : 'info',
+            actor: "Shift Pharmacist",
+            severity: nextStatus === "On Hold" ? "warning" : "info",
             rxNo: target.rxNo,
             patientName: target.patientName,
           });
@@ -693,10 +732,13 @@ export default function WillowPharmacyPage() {
         };
       });
 
-      if (nextStatus === 'Dispensed' && selectedRx.status !== 'Dispensed') {
+      if (nextStatus === "Dispensed" && selectedRx.status !== "Dispensed") {
         setInventoryState((prev) => {
           const itemByLabel = new Map(
-            prev.items.map((item) => [normalizeDrugLabel(getItemLabel(item)), item])
+            prev.items.map((item) => [
+              normalizeDrugLabel(getItemLabel(item)),
+              item,
+            ]),
           );
           const stock = [...prev.stock];
 
@@ -714,12 +756,12 @@ export default function WillowPharmacyPage() {
               };
             } else {
               stock.push({
-                id: buildInventoryId('stk'),
+                id: buildInventoryId("stk"),
                 itemId: item.id,
                 onHand: 0,
                 reserved: 0,
-                location: 'UNASSIGNED',
-                nextExpiry: '',
+                location: "UNASSIGNED",
+                nextExpiry: "",
                 updatedAt: nowIso(),
               });
             }
@@ -734,48 +776,48 @@ export default function WillowPharmacyPage() {
 
       notify(
         `Prescription marked as ${nextStatus}.`,
-        nextStatus === 'Dispensed' ? 'success' : 'info'
+        nextStatus === "Dispensed" ? "success" : "info",
       );
     },
-    [canWrite, notify, selectedRx]
+    [canWrite, notify, selectedRx],
   );
 
   const submitClarification = () => {
     if (!selectedRx) return;
     if (!canWrite) {
-      notify('You are in read-only mode for Willow actions.', 'warning');
+      notify("You are in read-only mode for Willow actions.", "warning");
       return;
     }
     if (!clarifyMessage.trim()) {
-      notify('Clarification note cannot be empty.', 'warning');
+      notify("Clarification note cannot be empty.", "warning");
       return;
     }
 
     setUiState((prev) => ({
       ...prev,
       activity: appendActivity(prev.activity, {
-        type: 'Clarification',
+        type: "Clarification",
         message: `Clarification sent for ${selectedRx.rxNo}: ${clarifyMessage.trim()}`,
-        actor: 'Shift Pharmacist',
-        severity: 'info',
+        actor: "Shift Pharmacist",
+        severity: "info",
         rxNo: selectedRx.rxNo,
         patientName: selectedRx.patientName,
       }),
     }));
 
-    setClarifyMessage('');
+    setClarifyMessage("");
     setClarifyOpen(false);
-    notify('Clarification note sent to prescriber.', 'success');
+    notify("Clarification note sent to prescriber.", "success");
   };
 
   const submitHold = () => {
     if (!selectedRx) return;
     if (!canWrite) {
-      notify('You are in read-only mode for Willow actions.', 'warning');
+      notify("You are in read-only mode for Willow actions.", "warning");
       return;
     }
     if (!holdReason.trim()) {
-      notify('Hold reason is required.', 'warning');
+      notify("Hold reason is required.", "warning");
       return;
     }
 
@@ -784,51 +826,51 @@ export default function WillowPharmacyPage() {
         row.id === selectedRx.id
           ? {
               ...row,
-              status: 'On Hold' as RxStatus,
+              status: "On Hold" as RxStatus,
               holdReason: holdReason.trim(),
             }
-          : row
+          : row,
       );
 
       return {
         ...prev,
         queue,
         activity: appendActivity(prev.activity, {
-          type: 'Status Update',
+          type: "Status Update",
           message: `${selectedRx.rxNo} placed on hold: ${holdReason.trim()}`,
-          actor: 'Shift Pharmacist',
-          severity: 'warning',
+          actor: "Shift Pharmacist",
+          severity: "warning",
           rxNo: selectedRx.rxNo,
           patientName: selectedRx.patientName,
         }),
       };
     });
 
-    setHoldReason('');
+    setHoldReason("");
     setHoldOpen(false);
-    notify('Prescription moved to hold queue.', 'warning');
+    notify("Prescription moved to hold queue.", "warning");
   };
 
   const openRestock = (itemId: string) => {
     setRestockItemId(itemId);
-    setRestockQty('');
+    setRestockQty("");
   };
 
   const submitRestock = () => {
     if (!restockItemId) return;
     if (!canWrite) {
-      notify('You are in read-only mode for inventory actions.', 'warning');
+      notify("You are in read-only mode for inventory actions.", "warning");
       return;
     }
 
     const qty = Number(restockQty);
     if (!Number.isFinite(qty) || qty <= 0) {
-      notify('Restock quantity must be greater than zero.', 'warning');
+      notify("Restock quantity must be greater than zero.", "warning");
       return;
     }
 
     const targetRow = inventoryRows.find((row) => row.itemId === restockItemId);
-    const drugLabel = targetRow?.drug || 'Inventory item';
+    const drugLabel = targetRow?.drug || "Inventory item";
 
     setInventoryState((prev) => {
       const stock = [...prev.stock];
@@ -842,12 +884,12 @@ export default function WillowPharmacyPage() {
         };
       } else {
         stock.push({
-          id: buildInventoryId('stk'),
+          id: buildInventoryId("stk"),
           itemId: restockItemId,
           onHand: qty,
           reserved: 0,
-          location: 'MAIN-STORE',
-          nextExpiry: '',
+          location: "MAIN-STORE",
+          nextExpiry: "",
           updatedAt: nowIso(),
         });
       }
@@ -861,49 +903,50 @@ export default function WillowPharmacyPage() {
     setUiState((prev) => ({
       ...prev,
       activity: appendActivity(prev.activity, {
-        type: 'Inventory',
+        type: "Inventory",
         message: `${drugLabel} restocked by ${qty} units from Willow desk.`,
-        actor: 'Inventory Desk',
-        severity: 'success',
+        actor: "Inventory Desk",
+        severity: "success",
       }),
     }));
 
-    setRestockItemId('');
-    setRestockQty('');
-    notify('Inventory updated successfully.', 'success');
+    setRestockItemId("");
+    setRestockQty("");
+    notify("Inventory updated successfully.", "success");
   };
 
-  const restockItem = inventoryRows.find((row) => row.itemId === restockItemId) ?? null;
+  const restockItem =
+    inventoryRows.find((row) => row.itemId === restockItemId) ?? null;
 
   const metricTiles = [
     {
-      label: 'Pending',
+      label: "Pending",
       value: pendingCount,
-      subtitle: 'Awaiting pharmacist review',
+      subtitle: "Awaiting pharmacist review",
       icon: <ScienceIcon sx={{ fontSize: 18 }} />,
     },
     {
-      label: 'In Review',
+      label: "In Review",
       value: reviewCount,
-      subtitle: 'Under validation',
+      subtitle: "Under validation",
       icon: <LocalPharmacyIcon sx={{ fontSize: 18 }} />,
     },
     {
-      label: 'On Hold',
+      label: "On Hold",
       value: holdCount,
-      subtitle: 'Needs clarification',
+      subtitle: "Needs clarification",
       icon: <WarningAmberIcon sx={{ fontSize: 18 }} />,
     },
     {
-      label: 'STAT Open',
+      label: "STAT Open",
       value: statCount,
-      subtitle: 'Priority dispensing',
+      subtitle: "Priority dispensing",
       icon: <PriorityHighIcon sx={{ fontSize: 18 }} />,
     },
     {
-      label: 'Low / OOS',
+      label: "Low / OOS",
       value: `${lowStockCount} / ${outOfStockCount}`,
-      subtitle: 'Inventory alerts',
+      subtitle: "Inventory alerts",
       icon: <Inventory2Icon sx={{ fontSize: 18 }} />,
     },
   ];
@@ -915,7 +958,7 @@ export default function WillowPharmacyPage() {
 
   const shellCardSx = {
     borderRadius: 2.2,
-    border: '1px solid',
+    border: "1px solid",
     borderColor: panelBorderColor,
     bgcolor: alpha(theme.palette.background.paper, 0.98),
     boxShadow: `0 4px 14px ${alpha(theme.palette.common.black, 0.03)}`,
@@ -928,30 +971,44 @@ export default function WillowPharmacyPage() {
       currentPageTitle="Willow"
       fullHeight
     >
-      <Stack spacing={1.2} sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <Stack spacing={1.2} sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
         {!canWrite ? (
-          <Alert severity="info">You are currently in read-only mode for Willow actions.</Alert>
+          <Alert severity="info">
+            You are currently in read-only mode for Willow actions.
+          </Alert>
         ) : null}
 
         <Card elevation={0} sx={{ ...shellCardSx, p: 1.2 }}>
           <Stack
-            direction={{ xs: 'column', lg: 'row' }}
+            direction={{ xs: "column", lg: "row" }}
             spacing={1}
             justifyContent="space-between"
-            alignItems={{ lg: 'center' }}
+            alignItems={{ lg: "center" }}
             sx={{ mb: 1 }}
           >
             <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
               Workflow Standard: Verify / Dispense / Track Inventory / Audit
             </Typography>
             <Stack direction="row" spacing={0.7} flexWrap="wrap" useFlexGap>
-              <Button size="small" variant="outlined" onClick={() => router.push('/inventory/items')}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => router.push("/inventory/items")}
+              >
                 Item Master
               </Button>
-              <Button size="small" variant="outlined" onClick={() => router.push('/inventory/purchase-orders')}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => router.push("/inventory/purchase-orders")}
+              >
                 Purchase Orders
               </Button>
-              <Button size="small" variant="outlined" onClick={() => router.push('/inventory/grn')}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => router.push("/inventory/grn")}
+              >
                 Receive (GRN)
               </Button>
             </Stack>
@@ -959,12 +1016,12 @@ export default function WillowPharmacyPage() {
 
           <Box
             sx={{
-              display: 'grid',
+              display: "grid",
               gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(2, minmax(0, 1fr))',
-                lg: 'repeat(3, minmax(0, 1fr))',
-                xl: 'repeat(5, minmax(0, 1fr))',
+                xs: "1fr",
+                sm: "repeat(2, minmax(0, 1fr))",
+                lg: "repeat(3, minmax(0, 1fr))",
+                xl: "repeat(5, minmax(0, 1fr))",
               },
               gap: 2,
             }}
@@ -987,18 +1044,18 @@ export default function WillowPharmacyPage() {
           sx={{
             ...shellCardSx,
             borderColor: sectionBorderColor,
-            display: 'flex',
-            flexDirection: 'column',
+            display: "flex",
+            flexDirection: "column",
             flex: 1,
             minHeight: 0,
-            overflow: 'hidden',
+            overflow: "hidden",
           }}
         >
           <Box
             sx={{
               px: 1,
               py: 0.6,
-              borderBottom: '1px solid',
+              borderBottom: "1px solid",
               borderColor: sectionBorderColor,
               bgcolor: alpha(theme.palette.primary.main, 0.03),
               flexShrink: 0,
@@ -1008,31 +1065,43 @@ export default function WillowPharmacyPage() {
               tabs={TABS.map((tab) => ({ id: tab.id, label: tab.label }))}
               value={activeTab}
               onChange={setActiveTab}
-              tabSx={{ minHeight: 34, px: 1.2, borderRadius: 1.2, fontSize: 12.5 }}
+              tabSx={{
+                minHeight: 34,
+                px: 1.2,
+                borderRadius: 1.2,
+                fontSize: 12.5,
+              }}
             />
           </Box>
 
-          {activeTab === 'queue' ? (
+          {activeTab === "queue" ? (
             <Box
               sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', lg: '340px minmax(0, 1fr)' },
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", lg: "340px minmax(0, 1fr)" },
                 flex: 1,
                 minHeight: 0,
-                overflow: 'hidden',
+                overflow: "hidden",
               }}
             >
               <Box
                 sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
+                  display: "flex",
+                  flexDirection: "column",
                   minHeight: 0,
-                  borderRight: { lg: 'none' },
-                  borderBottom: { xs: 'none', lg: 'none' },
-                  bgcolor: 'background.paper',
+                  borderRight: { lg: "none" },
+                  borderBottom: { xs: "none", lg: "none" },
+                  bgcolor: "background.paper",
                 }}
               >
-                <Box sx={{ p: 1.2, borderBottom: '1px solid', borderColor: sectionBorderColor, flexShrink: 0 }}>
+                <Box
+                  sx={{
+                    p: 1.2,
+                    borderBottom: "1px solid",
+                    borderColor: sectionBorderColor,
+                    flexShrink: 0,
+                  }}
+                >
                   <TextField
                     size="small"
                     fullWidth
@@ -1041,28 +1110,46 @@ export default function WillowPharmacyPage() {
                     onChange={(event) => setSearch(event.target.value)}
                   />
 
-                  <Stack direction={{ xs: 'column', sm: 'row', lg: 'column' }} spacing={0.8} sx={{ mt: 1 }}>
+                  <Stack
+                    direction={{ xs: "column", sm: "row", lg: "column" }}
+                    spacing={0.8}
+                    sx={{ mt: 1 }}
+                  >
                     <TextField
                       select
                       label="Priority"
                       size="small"
                       value={priorityFilter}
-                      onChange={(event) => setPriorityFilter(event.target.value as PriorityFilter)}
+                      onChange={(event) =>
+                        setPriorityFilter(event.target.value as PriorityFilter)
+                      }
                     >
-                      {(['All', 'STAT', 'Urgent', 'Routine'] as const).map((value) => (
-                        <MenuItem key={value} value={value}>
-                          {value}
-                        </MenuItem>
-                      ))}
+                      {(["All", "STAT", "Urgent", "Routine"] as const).map(
+                        (value) => (
+                          <MenuItem key={value} value={value}>
+                            {value}
+                          </MenuItem>
+                        ),
+                      )}
                     </TextField>
                     <TextField
                       select
                       label="Status"
                       size="small"
                       value={statusFilter}
-                      onChange={(event) => setStatusFilter(event.target.value as QueueStatusFilter)}
+                      onChange={(event) =>
+                        setStatusFilter(event.target.value as QueueStatusFilter)
+                      }
                     >
-                      {(['All', 'Pending', 'In Review', 'On Hold', 'Dispensed'] as const).map((value) => (
+                      {(
+                        [
+                          "All",
+                          "Pending",
+                          "In Review",
+                          "On Hold",
+                          "Dispensed",
+                        ] as const
+                      ).map((value) => (
                         <MenuItem key={value} value={value}>
                           {value}
                         </MenuItem>
@@ -1075,24 +1162,29 @@ export default function WillowPharmacyPage() {
                   sx={{
                     flex: 1,
                     minHeight: 0,
-                    overflowY: 'auto',
-                    '&::-webkit-scrollbar': { width: 5 },
-                    '&::-webkit-scrollbar-thumb': { bgcolor: scrollbarThumbColor, borderRadius: 99 },
+                    overflowY: "auto",
+                    "&::-webkit-scrollbar": { width: 5 },
+                    "&::-webkit-scrollbar-thumb": {
+                      bgcolor: scrollbarThumbColor,
+                      borderRadius: 99,
+                    },
                   }}
                 >
                   {filteredQueue.length === 0 ? (
                     <Box sx={{ p: 1.25 }}>
-                      <Alert severity="info">No prescriptions match current filters.</Alert>
+                      <Alert severity="info">
+                        No prescriptions match current filters.
+                      </Alert>
                     </Box>
                   ) : (
                     filteredQueue.map((row) => {
                       const isSelected = selectedRx?.id === row.id;
                       const accent =
-                        row.priority === 'STAT'
+                        row.priority === "STAT"
                           ? theme.palette.error.main
-                          : row.priority === 'Urgent'
-                          ? theme.palette.warning.main
-                          : theme.palette.primary.main;
+                          : row.priority === "Urgent"
+                            ? theme.palette.warning.main
+                            : theme.palette.primary.main;
 
                       return (
                         <Box
@@ -1101,17 +1193,23 @@ export default function WillowPharmacyPage() {
                           sx={{
                             px: 1.2,
                             py: 1.05,
-                            borderBottom: '1px solid',
+                            borderBottom: "1px solid",
                             borderColor: listDividerColor,
-                            borderLeft: '3px solid',
-                            borderLeftColor: isSelected ? accent : 'transparent',
+                            borderLeft: "3px solid",
+                            borderLeftColor: isSelected
+                              ? accent
+                              : "transparent",
                             bgcolor: isSelected
                               ? alpha(theme.palette.primary.main, 0.06)
-                              : 'background.paper',
-                            cursor: 'pointer',
+                              : "background.paper",
+                            cursor: "pointer",
                           }}
                         >
-                          <Stack direction="row" spacing={1} alignItems="flex-start">
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="flex-start"
+                          >
                             <Avatar
                               sx={{
                                 width: 30,
@@ -1125,21 +1223,32 @@ export default function WillowPharmacyPage() {
                             </Avatar>
 
                             <Box sx={{ minWidth: 0, flex: 1 }}>
-                              <Stack direction="row" justifyContent="space-between" spacing={0.5}>
-                                <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                              <Stack
+                                direction="row"
+                                justifyContent="space-between"
+                                spacing={0.5}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 800 }}
+                                >
                                   {row.patientName}
                                 </Typography>
                                 <Chip
                                   size="small"
                                   label={row.priority}
                                   color={
-                                    row.priority === 'STAT'
-                                      ? 'error'
-                                      : row.priority === 'Urgent'
-                                      ? 'warning'
-                                      : 'default'
+                                    row.priority === "STAT"
+                                      ? "error"
+                                      : row.priority === "Urgent"
+                                        ? "warning"
+                                        : "default"
                                   }
-                                  variant={row.priority === 'Routine' ? 'outlined' : 'filled'}
+                                  variant={
+                                    row.priority === "Routine"
+                                      ? "outlined"
+                                      : "filled"
+                                  }
                                   sx={{ fontSize: 10, height: 20 }}
                                 />
                               </Stack>
@@ -1147,11 +1256,17 @@ export default function WillowPharmacyPage() {
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
-                                sx={{ fontFamily: '"JetBrains Mono", monospace' }}
+                                sx={{
+                                  fontFamily: '"JetBrains Mono", monospace',
+                                }}
                               >
                                 {row.rxNo} - {row.patientId} - {row.mrn}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ display: "block" }}
+                              >
                                 {row.department} - {formatTime(row.receivedAt)}
                               </Typography>
 
@@ -1159,13 +1274,13 @@ export default function WillowPharmacyPage() {
                                 size="small"
                                 label={row.status}
                                 color={
-                                  row.status === 'Dispensed'
-                                    ? 'success'
-                                    : row.status === 'In Review'
-                                    ? 'info'
-                                    : row.status === 'On Hold'
-                                    ? 'warning'
-                                    : 'default'
+                                  row.status === "Dispensed"
+                                    ? "success"
+                                    : row.status === "In Review"
+                                      ? "info"
+                                      : row.status === "On Hold"
+                                        ? "warning"
+                                        : "default"
                                 }
                                 sx={{ mt: 0.45, fontWeight: 700, height: 20 }}
                               />
@@ -1180,66 +1295,90 @@ export default function WillowPharmacyPage() {
 
               <Box
                 sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
+                  display: "flex",
+                  flexDirection: "column",
                   minHeight: 0,
                   bgcolor: alpha(theme.palette.primary.main, 0.02),
                 }}
               >
                 {!selectedRx ? (
                   <Box sx={{ p: 1.2 }}>
-                    <Alert severity="info">Select a prescription from queue.</Alert>
+                    <Alert severity="info">
+                      Select a prescription from queue.
+                    </Alert>
                   </Box>
                 ) : (
                   <>
                     <Box
                       sx={{
                         p: 1.2,
-                        borderBottom: '1px solid',
+                        borderBottom: "1px solid",
                         borderColor: sectionBorderColor,
-                        bgcolor: 'background.paper',
+                        bgcolor: "background.paper",
                         flexShrink: 0,
                       }}
                     >
-                      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1}>
+                      <Stack
+                        direction={{ xs: "column", md: "row" }}
+                        justifyContent="space-between"
+                        spacing={1}
+                      >
                         <Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                          <Typography
+                            variant="subtitle1"
+                            sx={{ fontWeight: 800 }}
+                          >
                             {selectedRx.patientName}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {selectedRx.rxNo} - {selectedRx.patientId} - {selectedRx.mrn} - {selectedRx.ageGender}
+                            {selectedRx.rxNo} - {selectedRx.patientId} -{" "}
+                            {selectedRx.mrn} - {selectedRx.ageGender}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.45 }}>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mt: 0.45 }}
+                          >
                             {selectedRx.complaint}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35 }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", mt: 0.35 }}
+                          >
                             Prescriber: {selectedRx.prescriber}
                           </Typography>
                         </Box>
 
-                        <Stack direction="row" spacing={0.6} flexWrap="wrap" useFlexGap alignItems="flex-start">
+                        <Stack
+                          direction="row"
+                          spacing={0.6}
+                          flexWrap="wrap"
+                          useFlexGap
+                          alignItems="flex-start"
+                        >
                           <Chip
                             size="small"
                             label={selectedRx.priority}
                             color={
-                              selectedRx.priority === 'STAT'
-                                ? 'error'
-                                : selectedRx.priority === 'Urgent'
-                                ? 'warning'
-                                : 'default'
+                              selectedRx.priority === "STAT"
+                                ? "error"
+                                : selectedRx.priority === "Urgent"
+                                  ? "warning"
+                                  : "default"
                             }
                           />
                           <Chip
                             size="small"
                             label={selectedRx.status}
                             color={
-                              selectedRx.status === 'Dispensed'
-                                ? 'success'
-                                : selectedRx.status === 'In Review'
-                                ? 'info'
-                                : selectedRx.status === 'On Hold'
-                                ? 'warning'
-                                : 'default'
+                              selectedRx.status === "Dispensed"
+                                ? "success"
+                                : selectedRx.status === "In Review"
+                                  ? "info"
+                                  : selectedRx.status === "On Hold"
+                                    ? "warning"
+                                    : "default"
                             }
                           />
                         </Stack>
@@ -1250,15 +1389,18 @@ export default function WillowPharmacyPage() {
                       sx={{
                         flex: 1,
                         minHeight: 0,
-                        overflowY: 'auto',
+                        overflowY: "auto",
                         p: 1.2,
-                        '&::-webkit-scrollbar': { width: 5 },
-                        '&::-webkit-scrollbar-thumb': { bgcolor: scrollbarThumbColor, borderRadius: 99 },
+                        "&::-webkit-scrollbar": { width: 5 },
+                        "&::-webkit-scrollbar-thumb": {
+                          bgcolor: scrollbarThumbColor,
+                          borderRadius: 99,
+                        },
                       }}
                     >
-                      {selectedRx.allergies[0] !== 'No known allergy' ? (
+                      {selectedRx.allergies[0] !== "No known allergy" ? (
                         <Alert severity="warning" sx={{ mb: 1 }}>
-                          Allergy warning: {selectedRx.allergies.join(', ')}
+                          Allergy warning: {selectedRx.allergies.join(", ")}
                         </Alert>
                       ) : (
                         <Alert severity="success" sx={{ mb: 1 }}>
@@ -1274,7 +1416,11 @@ export default function WillowPharmacyPage() {
 
                       <Card
                         elevation={0}
-                        sx={{ borderRadius: 2, border: '1px solid', borderColor: sectionBorderColor }}
+                        sx={{
+                          borderRadius: 2,
+                          border: "1px solid",
+                          borderColor: sectionBorderColor,
+                        }}
                       >
                         <TableContainer>
                           <Table size="small">
@@ -1290,13 +1436,19 @@ export default function WillowPharmacyPage() {
                             </TableHead>
                             <TableBody>
                               {selectedRx.medications.map((med) => {
-                                const inventory = inventoryByDrug.get(normalizeDrugLabel(med.inventoryDrug));
+                                const inventory = inventoryByDrug.get(
+                                  normalizeDrugLabel(med.inventoryDrug),
+                                );
                                 const stock = inventory?.stock ?? 0;
-                                const health = inventory ? inventoryHealth(inventory) : 'Out of stock';
+                                const health = inventory
+                                  ? inventoryHealth(inventory)
+                                  : "Out of stock";
 
                                 return (
                                   <TableRow key={med.id}>
-                                    <TableCell sx={{ fontWeight: 700 }}>{med.name}</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>
+                                      {med.name}
+                                    </TableCell>
                                     <TableCell>{`${med.dose} / ${med.route}`}</TableCell>
                                     <TableCell>{med.frequency}</TableCell>
                                     <TableCell>{med.quantity}</TableCell>
@@ -1305,11 +1457,11 @@ export default function WillowPharmacyPage() {
                                         size="small"
                                         label={`${stock} (${health})`}
                                         color={
-                                          health === 'Out of stock'
-                                            ? 'error'
-                                            : health === 'Low stock'
-                                            ? 'warning'
-                                            : 'success'
+                                          health === "Out of stock"
+                                            ? "error"
+                                            : health === "Low stock"
+                                              ? "warning"
+                                              : "success"
                                         }
                                       />
                                     </TableCell>
@@ -1327,19 +1479,24 @@ export default function WillowPharmacyPage() {
                       sx={{
                         px: 1.2,
                         py: 0.9,
-                        borderTop: '1px solid',
+                        borderTop: "1px solid",
                         borderColor: sectionBorderColor,
-                        bgcolor: 'background.paper',
+                        bgcolor: "background.paper",
                         flexShrink: 0,
                       }}
                     >
-                      <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap>
+                      <Stack
+                        direction="row"
+                        spacing={0.8}
+                        flexWrap="wrap"
+                        useFlexGap
+                      >
                         <Button
                           size="small"
                           variant="contained"
                           color="info"
                           disabled={!canWrite}
-                          onClick={() => updateSelectedStatus('In Review')}
+                          onClick={() => updateSelectedStatus("In Review")}
                         >
                           Mark In Review
                         </Button>
@@ -1357,7 +1514,7 @@ export default function WillowPharmacyPage() {
                           variant="contained"
                           color="success"
                           disabled={!canWrite}
-                          onClick={() => updateSelectedStatus('Dispensed')}
+                          onClick={() => updateSelectedStatus("Dispensed")}
                           startIcon={<CheckCircleIcon fontSize="small" />}
                         >
                           Mark Dispensed
@@ -1378,18 +1535,18 @@ export default function WillowPharmacyPage() {
             </Box>
           ) : null}
 
-          {activeTab === 'dispensed' ? (
-            <Box sx={{ p: 1.2, flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          {activeTab === "dispensed" ? (
+            <Box sx={{ p: 1.2, flex: 1, minHeight: 0, overflow: "hidden" }}>
               <Card
                 elevation={0}
                 sx={{
                   borderRadius: 2,
-                  border: '1px solid',
+                  border: "1px solid",
                   borderColor: sectionBorderColor,
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  height: '100%',
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  height: "100%",
                   minHeight: 0,
                 }}
               >
@@ -1397,14 +1554,20 @@ export default function WillowPharmacyPage() {
                   sx={{
                     px: 1.2,
                     py: 0.9,
-                    borderBottom: '1px solid',
+                    borderBottom: "1px solid",
                     borderColor: sectionBorderColor,
                     bgcolor: alpha(theme.palette.success.main, 0.04),
                   }}
                 >
-                  <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }}>
+                  <Stack
+                    direction={{ xs: "column", md: "row" }}
+                    spacing={1}
+                    alignItems={{ md: "center" }}
+                  >
                     <Stack direction="row" spacing={0.8} alignItems="center">
-                      <CheckCircleIcon sx={{ fontSize: 18, color: 'success.main' }} />
+                      <CheckCircleIcon
+                        sx={{ fontSize: 18, color: "success.main" }}
+                      />
                       <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                         Dispensed Transactions
                       </Typography>
@@ -1414,13 +1577,17 @@ export default function WillowPharmacyPage() {
                       size="small"
                       placeholder="Search by Rx / patient"
                       value={dispensedSearch}
-                      onChange={(event) => setDispensedSearch(event.target.value)}
-                      sx={{ width: { xs: '100%', md: 280 } }}
+                      onChange={(event) =>
+                        setDispensedSearch(event.target.value)
+                      }
+                      sx={{ width: { xs: "100%", md: 280 } }}
                     />
                   </Stack>
                 </Box>
 
-                <TableContainer sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                <TableContainer
+                  sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}
+                >
                   <Table size="small" stickyHeader>
                     <TableHead>
                       <TableRow>
@@ -1436,17 +1603,23 @@ export default function WillowPharmacyPage() {
                       {dispensedRows.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={6}>
-                            <Alert severity="info">No dispensed records for the current search.</Alert>
+                            <Alert severity="info">
+                              No dispensed records for the current search.
+                            </Alert>
                           </TableCell>
                         </TableRow>
                       ) : (
                         dispensedRows.map((row) => (
                           <TableRow key={row.id}>
-                            <TableCell sx={{ fontWeight: 700 }}>{row.rxNo}</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>
+                              {row.rxNo}
+                            </TableCell>
                             <TableCell>{row.patientName}</TableCell>
                             <TableCell>{row.department}</TableCell>
                             <TableCell>{row.itemCount}</TableCell>
-                            <TableCell>{formatDateTime(row.dispensedAt)}</TableCell>
+                            <TableCell>
+                              {formatDateTime(row.dispensedAt)}
+                            </TableCell>
                             <TableCell>{row.dispensedBy}</TableCell>
                           </TableRow>
                         ))
@@ -1458,18 +1631,18 @@ export default function WillowPharmacyPage() {
             </Box>
           ) : null}
 
-          {activeTab === 'inventory' ? (
-            <Box sx={{ p: 1.2, flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          {activeTab === "inventory" ? (
+            <Box sx={{ p: 1.2, flex: 1, minHeight: 0, overflow: "hidden" }}>
               <Card
                 elevation={0}
                 sx={{
                   borderRadius: 2,
-                  border: '1px solid',
+                  border: "1px solid",
                   borderColor: sectionBorderColor,
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  height: '100%',
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  height: "100%",
                   minHeight: 0,
                 }}
               >
@@ -1477,14 +1650,20 @@ export default function WillowPharmacyPage() {
                   sx={{
                     px: 1.2,
                     py: 0.9,
-                    borderBottom: '1px solid',
+                    borderBottom: "1px solid",
                     borderColor: sectionBorderColor,
                     bgcolor: alpha(theme.palette.primary.main, 0.04),
                   }}
                 >
-                  <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }}>
+                  <Stack
+                    direction={{ xs: "column", md: "row" }}
+                    spacing={1}
+                    alignItems={{ md: "center" }}
+                  >
                     <Stack direction="row" spacing={0.8} alignItems="center">
-                      <Inventory2Icon sx={{ fontSize: 18, color: 'primary.main' }} />
+                      <Inventory2Icon
+                        sx={{ fontSize: 18, color: "primary.main" }}
+                      />
                       <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                         Live Inventory Health (Unified)
                       </Typography>
@@ -1494,16 +1673,24 @@ export default function WillowPharmacyPage() {
                       size="small"
                       placeholder="Search drug / location"
                       value={inventorySearch}
-                      onChange={(event) => setInventorySearch(event.target.value)}
-                      sx={{ width: { xs: '100%', md: 280 } }}
+                      onChange={(event) =>
+                        setInventorySearch(event.target.value)
+                      }
+                      sx={{ width: { xs: "100%", md: 280 } }}
                     />
-                    <Button size="small" variant="outlined" onClick={() => router.push('/pharmacy/stock')}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => router.push("/pharmacy/stock")}
+                    >
                       Open Stock Management
                     </Button>
                   </Stack>
                 </Box>
 
-                <TableContainer sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                <TableContainer
+                  sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}
+                >
                   <Table size="small" stickyHeader>
                     <TableHead>
                       <TableRow>
@@ -1522,7 +1709,9 @@ export default function WillowPharmacyPage() {
                       {filteredInventoryRows.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={9}>
-                            <Alert severity="info">No inventory rows for the current search.</Alert>
+                            <Alert severity="info">
+                              No inventory rows for the current search.
+                            </Alert>
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -1530,12 +1719,19 @@ export default function WillowPharmacyPage() {
                           const health = inventoryHealth(row);
                           const coverage =
                             row.reorderLevel > 0
-                              ? Math.min(100, Math.round((row.stock / row.reorderLevel) * 100))
+                              ? Math.min(
+                                  100,
+                                  Math.round(
+                                    (row.stock / row.reorderLevel) * 100,
+                                  ),
+                                )
                               : 0;
 
                           return (
                             <TableRow key={row.itemId}>
-                              <TableCell sx={{ fontWeight: 700 }}>{row.drug}</TableCell>
+                              <TableCell sx={{ fontWeight: 700 }}>
+                                {row.drug}
+                              </TableCell>
                               <TableCell>{row.category}</TableCell>
                               <TableCell>{row.stock}</TableCell>
                               <TableCell>{row.reorderLevel}</TableCell>
@@ -1545,15 +1741,19 @@ export default function WillowPharmacyPage() {
                                     variant="determinate"
                                     value={Math.max(0, coverage)}
                                     color={
-                                      health === 'Out of stock'
-                                        ? 'error'
-                                        : health === 'Low stock'
-                                        ? 'warning'
-                                        : 'success'
+                                      health === "Out of stock"
+                                        ? "error"
+                                        : health === "Low stock"
+                                          ? "warning"
+                                          : "success"
                                     }
                                     sx={{ height: 7, borderRadius: 999 }}
                                   />
-                                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25 }}>
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    sx={{ mt: 0.25 }}
+                                  >
                                     {coverage}% of reorder threshold
                                   </Typography>
                                 </Box>
@@ -1563,14 +1763,14 @@ export default function WillowPharmacyPage() {
                                   size="small"
                                   label={health}
                                   color={
-                                    health === 'Out of stock'
-                                      ? 'error'
-                                      : health === 'Low stock'
-                                      ? 'warning'
-                                      : 'success'
+                                    health === "Out of stock"
+                                      ? "error"
+                                      : health === "Low stock"
+                                        ? "warning"
+                                        : "success"
                                   }
                                   icon={
-                                    health === 'Normal' ? (
+                                    health === "Normal" ? (
                                       <LocalPharmacyIcon fontSize="small" />
                                     ) : (
                                       <WarningAmberIcon fontSize="small" />
@@ -1584,7 +1784,9 @@ export default function WillowPharmacyPage() {
                                 <Button
                                   size="small"
                                   variant="outlined"
-                                  disabled={!canWrite || row.itemStatus !== 'Active'}
+                                  disabled={
+                                    !canWrite || row.itemStatus !== "Active"
+                                  }
                                   onClick={() => openRestock(row.itemId)}
                                 >
                                   Restock
@@ -1601,18 +1803,18 @@ export default function WillowPharmacyPage() {
             </Box>
           ) : null}
 
-          {activeTab === 'activity' ? (
-            <Box sx={{ p: 1.2, flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          {activeTab === "activity" ? (
+            <Box sx={{ p: 1.2, flex: 1, minHeight: 0, overflow: "hidden" }}>
               <Card
                 elevation={0}
                 sx={{
                   borderRadius: 2,
-                  border: '1px solid',
+                  border: "1px solid",
                   borderColor: sectionBorderColor,
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  height: '100%',
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  height: "100%",
                   minHeight: 0,
                 }}
               >
@@ -1620,13 +1822,13 @@ export default function WillowPharmacyPage() {
                   sx={{
                     px: 1.2,
                     py: 0.9,
-                    borderBottom: '1px solid',
+                    borderBottom: "1px solid",
                     borderColor: sectionBorderColor,
                     bgcolor: alpha(theme.palette.primary.main, 0.04),
                   }}
                 >
                   <Stack direction="row" spacing={0.8} alignItems="center">
-                    <HistoryIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                    <HistoryIcon sx={{ fontSize: 18, color: "primary.main" }} />
                     <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                       Operational Activity Trail
                     </Typography>
@@ -1637,10 +1839,13 @@ export default function WillowPharmacyPage() {
                   sx={{
                     flex: 1,
                     minHeight: 0,
-                    overflowY: 'auto',
+                    overflowY: "auto",
                     p: 1.1,
-                    '&::-webkit-scrollbar': { width: 5 },
-                    '&::-webkit-scrollbar-thumb': { bgcolor: scrollbarThumbColor, borderRadius: 99 },
+                    "&::-webkit-scrollbar": { width: 5 },
+                    "&::-webkit-scrollbar-thumb": {
+                      bgcolor: scrollbarThumbColor,
+                      borderRadius: 99,
+                    },
                   }}
                 >
                   {uiState.activity.length === 0 ? (
@@ -1653,14 +1858,25 @@ export default function WillowPharmacyPage() {
                           elevation={0}
                           sx={{
                             borderRadius: 1.6,
-                            border: '1px solid',
-                            borderColor: alpha(theme.palette.primary.main, 0.14),
+                            border: "1px solid",
+                            borderColor: alpha(
+                              theme.palette.primary.main,
+                              0.14,
+                            ),
                             px: 1,
                             py: 0.85,
                           }}
                         >
-                          <Stack direction={{ xs: 'column', md: 'row' }} spacing={0.7}>
-                            <Stack direction="row" spacing={0.6} alignItems="center" sx={{ minWidth: 0 }}>
+                          <Stack
+                            direction={{ xs: "column", md: "row" }}
+                            spacing={0.7}
+                          >
+                            <Stack
+                              direction="row"
+                              spacing={0.6}
+                              alignItems="center"
+                              sx={{ minWidth: 0 }}
+                            >
                               <Chip
                                 size="small"
                                 label={event.type}
@@ -1668,7 +1884,11 @@ export default function WillowPharmacyPage() {
                                 sx={{ fontWeight: 700 }}
                               />
                               {event.rxNo ? (
-                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ fontWeight: 700 }}
+                                >
                                   {event.rxNo}
                                 </Typography>
                               ) : null}
@@ -1678,7 +1898,10 @@ export default function WillowPharmacyPage() {
                               {event.message}
                             </Typography>
 
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               {event.actor} - {formatDateTime(event.timestamp)}
                             </Typography>
                           </Stack>
@@ -1693,7 +1916,12 @@ export default function WillowPharmacyPage() {
         </Card>
       </Stack>
 
-      <Dialog open={clarifyOpen} onClose={() => setClarifyOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={clarifyOpen}
+        onClose={() => setClarifyOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>Send Clarification to Prescriber</DialogTitle>
         <DialogContent>
           <TextField
@@ -1715,7 +1943,12 @@ export default function WillowPharmacyPage() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={holdOpen} onClose={() => setHoldOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={holdOpen}
+        onClose={() => setHoldOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>Place Prescription On Hold</DialogTitle>
         <DialogContent>
           <TextField
@@ -1737,11 +1970,18 @@ export default function WillowPharmacyPage() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={Boolean(restockItem)} onClose={() => setRestockItemId('')} fullWidth maxWidth="xs">
+      <Dialog
+        open={Boolean(restockItem)}
+        onClose={() => setRestockItemId("")}
+        fullWidth
+        maxWidth="xs"
+      >
         <DialogTitle>Restock Inventory</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            {restockItem ? `Drug: ${restockItem.drug}` : 'Select inventory item'}
+            {restockItem
+              ? `Drug: ${restockItem.drug}`
+              : "Select inventory item"}
           </Typography>
           <TextField
             autoFocus
@@ -1754,7 +1994,7 @@ export default function WillowPharmacyPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRestockItemId('')}>Cancel</Button>
+          <Button onClick={() => setRestockItemId("")}>Cancel</Button>
           <Button variant="contained" onClick={submitRestock}>
             Update Stock
           </Button>

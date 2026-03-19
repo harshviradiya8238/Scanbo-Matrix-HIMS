@@ -39,6 +39,9 @@ import { useLabTheme } from "../lab-theme";
 import AddWorksheetModal from "../modals/AddWorksheetModal";
 import type { LabWorksheet } from "../lab-types";
 import LabWorkspaceCard from "../components/LabWorkspaceCard";
+import CommonDataGrid, {
+  type CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
 
 function worksheetProgress(
   w: LabWorksheet,
@@ -60,6 +63,7 @@ function WorksheetDetailView({
   onAddSample,
   onSubmitForVerification,
   onVerify,
+  worksheetSampleColumns,
 }: {
   worksheet: LabWorksheet;
   samples: {
@@ -73,6 +77,7 @@ function WorksheetDetailView({
   onAddSample: (sampleId: string) => void;
   onSubmitForVerification: () => void;
   onVerify: () => void;
+  worksheetSampleColumns: CommonColumn<any>[];
 }) {
   const theme = useTheme();
   const lab = useLabTheme(theme);
@@ -158,43 +163,11 @@ function WorksheetDetailView({
           Verify Worksheet
         </Button>
       </Stack>
-      <Box sx={lab.cardSx}>
-        <Typography
-          variant="overline"
-          sx={{
-            color: "primary.main",
-            fontWeight: 600,
-            letterSpacing: 1,
-            px: 2,
-            pt: 2,
-            display: "block",
-          }}
-        >
-          Samples in worksheet
-        </Typography>
-        <TableContainer sx={lab.tableContainerSx}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Sample ID</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Patient</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {worksheetSamples.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell sx={{ fontWeight: 700, color: "primary.main" }}>
-                    {s.id}
-                  </TableCell>
-                  <TableCell>{s.patient}</TableCell>
-                  <TableCell>{s.status}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
+      <CommonDataGrid
+        rows={worksheetSamples}
+        columns={worksheetSampleColumns}
+        getRowId={(row) => row.id}
+      />
     </Box>
   );
 }
@@ -219,6 +192,42 @@ export default function LabWorksheetsPage() {
   const selectedId = searchParams.get("id");
   const selectedWs = worksheets.find((w) => w.id === selectedId);
 
+  const worksheetSampleColumns = React.useMemo<CommonColumn<any>[]>(
+    () => [
+      {
+        headerName: "Sample ID",
+        field: "id",
+        width: 150,
+        renderCell: (row) => (
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 700, color: "primary.main" }}
+          >
+            {row.id}
+          </Typography>
+        ),
+      },
+      {
+        headerName: "Patient",
+        field: "patient",
+        width: 250,
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 150,
+        renderCell: (row) => (
+          <Chip
+            size="small"
+            label={row.status}
+            sx={lab.chipSx(theme.palette.info.main)}
+          />
+        ),
+      },
+    ],
+    [theme, lab],
+  );
+
   const samplesForDetail = samples.map((s) => ({
     id: s.id,
     patient: s.patient,
@@ -236,6 +245,7 @@ export default function LabWorksheetsPage() {
               samples={samplesForDetail}
               results={results}
               onBack={() => router.push("/lab/worksheets")}
+              worksheetSampleColumns={worksheetSampleColumns}
               onAddSample={(sampleId) => {
                 dispatch(
                   addSampleToWorksheet({

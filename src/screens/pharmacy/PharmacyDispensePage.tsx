@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import * as React from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import PageTemplate from "@/src/ui/components/PageTemplate";
 import {
   Alert,
   Box,
@@ -22,33 +22,33 @@ import {
   Tabs,
   TextField,
   Typography,
-} from '@/src/ui/components/atoms';
-import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { Card } from '@/src/ui/components/molecules';
-import { alpha, useTheme } from '@/src/ui/theme';
+} from "@/src/ui/components/atoms";
+import Grid from "@/src/ui/components/layout/AlignedGrid";
+import { Card } from "@/src/ui/components/molecules";
+import { alpha, useTheme } from "@/src/ui/theme";
 import {
   LocalPharmacy as LocalPharmacyIcon,
   PointOfSale as PointOfSaleIcon,
   ReceiptLong as ReceiptLongIcon,
   Medication as MedicationIcon,
-} from '@mui/icons-material';
-import { useMrnParam } from '@/src/core/patients/useMrnParam';
-import { formatPatientLabel } from '@/src/core/patients/patientDisplay';
-import { usePermission } from '@/src/core/auth/usePermission';
-import { useOpdData } from '@/src/store/opdHooks';
-import { IpdMetricCard } from '@/src/screens/ipd/components/ipd-ui';
+} from "@mui/icons-material";
+import { useMrnParam } from "@/src/core/patients/useMrnParam";
+import { formatPatientLabel } from "@/src/core/patients/patientDisplay";
+import { usePermission } from "@/src/core/auth/usePermission";
+import { useOpdData } from "@/src/store/opdHooks";
+import { IpdMetricCard } from "@/src/screens/ipd/components/ipd-ui";
 import {
   IpdEncounterRecord,
   syncIpdEncounterClinical,
   syncIpdEncounterDischargeChecks,
   useIpdEncounters,
-} from '@/src/screens/ipd/ipd-encounter-context';
+} from "@/src/screens/ipd/ipd-encounter-context";
 
-type DispenseWorkflowTab = 'ipd' | 'opd' | 'retail';
-type IpdRxStatus = 'Prescribed' | 'Dispensed' | 'Administered' | 'Stopped';
-type OpdDispenseStatus = 'Pending' | 'Dispensed' | 'Collected' | 'Cancelled';
-type PaymentMode = 'Cash' | 'Card' | 'UPI';
-type BillingStatus = 'Pending' | 'Ready for Billing' | 'Cancelled';
+type DispenseWorkflowTab = "ipd" | "opd" | "retail";
+type IpdRxStatus = "Prescribed" | "Dispensed" | "Administered" | "Stopped";
+type OpdDispenseStatus = "Pending" | "Dispensed" | "Collected" | "Cancelled";
+type PaymentMode = "Cash" | "Card" | "UPI";
+type BillingStatus = "Pending" | "Ready for Billing" | "Cancelled";
 
 interface IpdPrescriptionRow {
   id: string;
@@ -118,13 +118,13 @@ interface BillingEntry {
   patientName: string;
   admissionId: string;
   encounterId: string;
-  category: 'Medication';
+  category: "Medication";
   serviceCode: string;
   serviceName: string;
   quantity: number;
   unitPrice: number;
   amount: number;
-  currency: 'INR';
+  currency: "INR";
   status: BillingStatus;
   orderedBy: string;
   orderedAt: string;
@@ -139,24 +139,24 @@ interface PersistedOrderBillingState {
 }
 
 const WORKFLOW_TABS: Array<{ id: DispenseWorkflowTab; label: string }> = [
-  { id: 'ipd', label: 'IPD Dispense' },
-  { id: 'opd', label: 'OPD Dispense' },
-  { id: 'retail', label: 'Walk-in Retail' },
+  { id: "ipd", label: "IPD Dispense" },
+  { id: "opd", label: "OPD Dispense" },
+  { id: "retail", label: "Walk-in Retail" },
 ];
 
-const IPD_RX_STORAGE_KEY = 'scanbo.hims.ipd.prescriptions.module.v1';
-const ORDER_BILLING_STORAGE_KEY = 'scanbo.hims.ipd.orders-billing.v1';
-const OPD_DISPENSE_STORAGE_KEY = 'scanbo.hims.opd.pharmacy-dispense.v1';
-const RETAIL_SALES_STORAGE_KEY = 'scanbo.hims.pharmacy.retail-sales.v1';
+const IPD_RX_STORAGE_KEY = "scanbo.hims.ipd.prescriptions.module.v1";
+const ORDER_BILLING_STORAGE_KEY = "scanbo.hims.ipd.orders-billing.v1";
+const OPD_DISPENSE_STORAGE_KEY = "scanbo.hims.opd.pharmacy-dispense.v1";
+const RETAIL_SALES_STORAGE_KEY = "scanbo.hims.pharmacy.retail-sales.v1";
 
-const CURRENCY_FORMATTER = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
+const CURRENCY_FORMATTER = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
   maximumFractionDigits: 0,
 });
 
 function isWorkflowTab(value: string | null): value is DispenseWorkflowTab {
-  return value === 'ipd' || value === 'opd' || value === 'retail';
+  return value === "ipd" || value === "opd" || value === "retail";
 }
 
 function formatCurrency(value: number): string {
@@ -168,19 +168,19 @@ function nowTimeStamp(): string {
 }
 
 function readIpdPrescriptionStore(): IpdPrescriptionStore {
-  if (typeof window === 'undefined') return {};
+  if (typeof window === "undefined") return {};
   try {
     const raw = window.sessionStorage.getItem(IPD_RX_STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as IpdPrescriptionStore;
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
   }
 }
 
 function writeIpdPrescriptionStore(store: IpdPrescriptionStore): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(IPD_RX_STORAGE_KEY, JSON.stringify(store));
   } catch {
@@ -189,28 +189,31 @@ function writeIpdPrescriptionStore(store: IpdPrescriptionStore): void {
 }
 
 function readOpdDispenseStore(): OpdDispenseStore {
-  if (typeof window === 'undefined') return {};
+  if (typeof window === "undefined") return {};
   try {
     const raw = window.sessionStorage.getItem(OPD_DISPENSE_STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as OpdDispenseStore;
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
   }
 }
 
 function writeOpdDispenseStore(store: OpdDispenseStore): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(OPD_DISPENSE_STORAGE_KEY, JSON.stringify(store));
+    window.sessionStorage.setItem(
+      OPD_DISPENSE_STORAGE_KEY,
+      JSON.stringify(store),
+    );
   } catch {
     // best effort persistence
   }
 }
 
 function readRetailSales(): RetailSaleRecord[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.sessionStorage.getItem(RETAIL_SALES_STORAGE_KEY);
     if (!raw) return [];
@@ -222,21 +225,28 @@ function readRetailSales(): RetailSaleRecord[] {
 }
 
 function writeRetailSales(records: RetailSaleRecord[]): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(RETAIL_SALES_STORAGE_KEY, JSON.stringify(records));
+    window.sessionStorage.setItem(
+      RETAIL_SALES_STORAGE_KEY,
+      JSON.stringify(records),
+    );
   } catch {
     // best effort persistence
   }
 }
 
 function readPersistedBillingByPatient(): Record<string, BillingEntry[]> {
-  if (typeof window === 'undefined') return {};
+  if (typeof window === "undefined") return {};
   try {
     const raw = window.sessionStorage.getItem(ORDER_BILLING_STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as Partial<PersistedOrderBillingState>;
-    if (!parsed?.billingByPatient || typeof parsed.billingByPatient !== 'object') return {};
+    if (
+      !parsed?.billingByPatient ||
+      typeof parsed.billingByPatient !== "object"
+    )
+      return {};
     return parsed.billingByPatient;
   } catch {
     return {};
@@ -244,13 +254,14 @@ function readPersistedBillingByPatient(): Record<string, BillingEntry[]> {
 }
 
 function isPendingIpdMedication(status: IpdRxStatus): boolean {
-  return status === 'Prescribed' || status === 'Dispensed';
+  return status === "Prescribed" || status === "Dispensed";
 }
 
 function mapIpdRxStatusToBillingStatus(status: IpdRxStatus): BillingStatus {
-  if (status === 'Stopped') return 'Cancelled';
-  if (status === 'Dispensed' || status === 'Administered') return 'Ready for Billing';
-  return 'Pending';
+  if (status === "Stopped") return "Cancelled";
+  if (status === "Dispensed" || status === "Administered")
+    return "Ready for Billing";
+  return "Pending";
 }
 
 function buildBillingId(patientId: string, rowId: string): string {
@@ -281,29 +292,38 @@ function buildOrderId(patientId: string, rowId: string): string {
   return `rx-ipd-${rowId}`;
 }
 
-function parseMedicationServiceName(serviceName: string): { medicationName: string; dose: string } {
+function parseMedicationServiceName(serviceName: string): {
+  medicationName: string;
+  dose: string;
+} {
   const trimmed = serviceName.trim();
   const match = /^(.*)\s+\((.*)\)$/.exec(trimmed);
   if (!match) {
-    return { medicationName: trimmed || 'Medication', dose: '--' };
+    return { medicationName: trimmed || "Medication", dose: "--" };
   }
   return {
-    medicationName: match[1]?.trim() || 'Medication',
-    dose: match[2]?.trim() || '--',
+    medicationName: match[1]?.trim() || "Medication",
+    dose: match[2]?.trim() || "--",
   };
 }
 
-function isDischargeMedicationBillingEntry(entry: BillingEntry, patientId: string): boolean {
-  const entryId = String(entry.id || '');
-  const orderId = String(entry.orderId || '');
+function isDischargeMedicationBillingEntry(
+  entry: BillingEntry,
+  patientId: string,
+): boolean {
+  const entryId = String(entry.id || "");
+  const orderId = String(entry.orderId || "");
   return (
     entryId.startsWith(`bill-rx-discharge-${patientId}-`) ||
     orderId.startsWith(`rx-discharge-${patientId}-`) ||
-    entry.serviceCode === 'MED-DC'
+    entry.serviceCode === "MED-DC"
   );
 }
 
-function inferDischargeSourceRowId(patientId: string, entry: BillingEntry): string {
+function inferDischargeSourceRowId(
+  patientId: string,
+  entry: BillingEntry,
+): string {
   const billingPrefix = `bill-rx-discharge-${patientId}-`;
   const orderPrefix = `rx-discharge-${patientId}-`;
   if (String(entry.id).startsWith(billingPrefix)) {
@@ -316,27 +336,30 @@ function inferDischargeSourceRowId(patientId: string, entry: BillingEntry): stri
 }
 
 function mapBillingStatusToIpdRxStatus(status: BillingStatus): IpdRxStatus {
-  if (status === 'Cancelled') return 'Stopped';
-  if (status === 'Ready for Billing') return 'Dispensed';
-  return 'Prescribed';
+  if (status === "Cancelled") return "Stopped";
+  if (status === "Ready for Billing") return "Dispensed";
+  return "Prescribed";
 }
 
-function toIpdRowsFromDischargeBilling(patientId: string, entries: BillingEntry[]): IpdPrescriptionRow[] {
+function toIpdRowsFromDischargeBilling(
+  patientId: string,
+  entries: BillingEntry[],
+): IpdPrescriptionRow[] {
   return entries
     .filter((entry) => isDischargeMedicationBillingEntry(entry, patientId))
     .map((entry) => {
       const sourceRowId = inferDischargeSourceRowId(patientId, entry);
-      const parsed = parseMedicationServiceName(entry.serviceName || '');
+      const parsed = parseMedicationServiceName(entry.serviceName || "");
       return {
         id: `dc-rx-${patientId}-${sourceRowId}`,
         medicationName: parsed.medicationName,
         dose: parsed.dose,
-        route: '--',
-        frequency: '--',
-        duration: '',
-        notes: 'Synced from discharge medication billing',
-        status: mapBillingStatusToIpdRxStatus(entry.status ?? 'Pending'),
-        prescribedBy: entry.orderedBy || 'Discharge Team',
+        route: "--",
+        frequency: "--",
+        duration: "",
+        notes: "Synced from discharge medication billing",
+        status: mapBillingStatusToIpdRxStatus(entry.status ?? "Pending"),
+        prescribedBy: entry.orderedBy || "Discharge Team",
         updatedAt: entry.statusUpdatedAt || entry.orderedAt || nowTimeStamp(),
       };
     });
@@ -344,18 +367,25 @@ function toIpdRowsFromDischargeBilling(patientId: string, entries: BillingEntry[
 
 function syncIpdPrescriptionBillingLedger(
   encounters: IpdEncounterRecord[],
-  prescriptionStore: IpdPrescriptionStore
+  prescriptionStore: IpdPrescriptionStore,
 ): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
     const raw = window.sessionStorage.getItem(ORDER_BILLING_STORAGE_KEY);
     const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
     const ordersByPatient = parsed?.ordersByPatient;
-    const existingBillingByPatient = (parsed?.billingByPatient ?? {}) as Record<string, BillingEntry[]>;
-    const nextBillingByPatient: Record<string, BillingEntry[]> = { ...existingBillingByPatient };
+    const existingBillingByPatient = (parsed?.billingByPatient ?? {}) as Record<
+      string,
+      BillingEntry[]
+    >;
+    const nextBillingByPatient: Record<string, BillingEntry[]> = {
+      ...existingBillingByPatient,
+    };
 
-    const encounterByPatientId = encounters.reduce<Record<string, IpdEncounterRecord>>((acc, encounter) => {
+    const encounterByPatientId = encounters.reduce<
+      Record<string, IpdEncounterRecord>
+    >((acc, encounter) => {
       acc[encounter.patientId] = encounter;
       return acc;
     }, {});
@@ -376,30 +406,42 @@ function syncIpdPrescriptionBillingLedger(
       const syncedRows: BillingEntry[] = rows.map((row) => {
         const billingId = buildBillingId(patientId, row.id);
         const existing = existingById.get(billingId);
-        const quantity = Number.isFinite(existing?.quantity) ? Number(existing?.quantity) : 1;
-        const unitPrice = Number.isFinite(existing?.unitPrice) ? Number(existing?.unitPrice) : 300;
-        const amount = Number.isFinite(existing?.amount) ? Number(existing?.amount) : quantity * unitPrice;
+        const quantity = Number.isFinite(existing?.quantity)
+          ? Number(existing?.quantity)
+          : 1;
+        const unitPrice = Number.isFinite(existing?.unitPrice)
+          ? Number(existing?.unitPrice)
+          : 300;
+        const amount = Number.isFinite(existing?.amount)
+          ? Number(existing?.amount)
+          : quantity * unitPrice;
 
         return {
           id: billingId,
           orderId: buildOrderId(patientId, row.id),
           patientId,
-          patientMrn: encounter?.mrn ?? existing?.patientMrn ?? '',
-          patientName: encounter?.patientName ?? existing?.patientName ?? '',
-          admissionId: encounter?.admissionId ?? existing?.admissionId ?? `adm-${patientId}`,
-          encounterId: encounter?.encounterId ?? existing?.encounterId ?? `enc-${patientId}`,
-          category: 'Medication',
-          serviceCode: existing?.serviceCode ?? 'MED-IPD',
+          patientMrn: encounter?.mrn ?? existing?.patientMrn ?? "",
+          patientName: encounter?.patientName ?? existing?.patientName ?? "",
+          admissionId:
+            encounter?.admissionId ??
+            existing?.admissionId ??
+            `adm-${patientId}`,
+          encounterId:
+            encounter?.encounterId ??
+            existing?.encounterId ??
+            `enc-${patientId}`,
+          category: "Medication",
+          serviceCode: existing?.serviceCode ?? "MED-IPD",
           serviceName: `${row.medicationName} (${row.dose})`,
           quantity,
           unitPrice,
           amount,
-          currency: 'INR',
+          currency: "INR",
           status: mapIpdRxStatusToBillingStatus(row.status),
           orderedBy: existing?.orderedBy ?? row.prescribedBy,
           orderedAt: existing?.orderedAt ?? row.updatedAt,
           statusUpdatedAt: row.updatedAt,
-          statusUpdatedBy: 'Pharmacy',
+          statusUpdatedBy: "Pharmacy",
         };
       });
 
@@ -410,20 +452,25 @@ function syncIpdPrescriptionBillingLedger(
       ORDER_BILLING_STORAGE_KEY,
       JSON.stringify({
         version: 1,
-        ordersByPatient: ordersByPatient && typeof ordersByPatient === 'object' ? ordersByPatient : {},
+        ordersByPatient:
+          ordersByPatient && typeof ordersByPatient === "object"
+            ? ordersByPatient
+            : {},
         billingByPatient: nextBillingByPatient,
-      })
+      }),
     );
   } catch {
     // best effort sync only
   }
 }
 
-function opdStatusChipColor(status: OpdDispenseStatus): 'warning' | 'info' | 'success' | 'default' {
-  if (status === 'Pending') return 'warning';
-  if (status === 'Dispensed') return 'info';
-  if (status === 'Collected') return 'success';
-  return 'default';
+function opdStatusChipColor(
+  status: OpdDispenseStatus,
+): "warning" | "info" | "success" | "default" {
+  if (status === "Pending") return "warning";
+  if (status === "Dispensed") return "info";
+  if (status === "Collected") return "success";
+  return "default";
 }
 
 export default function PharmacyDispensePage() {
@@ -433,49 +480,56 @@ export default function PharmacyDispensePage() {
   const searchParams = useSearchParams();
   const mrnParam = useMrnParam();
   const permissionGate = usePermission();
-  const canDispense = permissionGate('pharmacy.dispense.write');
+  const canDispense = permissionGate("pharmacy.dispense.write");
 
   const ipdEncounters = useIpdEncounters();
   const opdData = useOpdData();
 
-  const [activeTab, setActiveTab] = React.useState<DispenseWorkflowTab>('ipd');
-  const [selectedIpdPatientId, setSelectedIpdPatientId] = React.useState('');
-  const [selectedOpdEncounterId, setSelectedOpdEncounterId] = React.useState('');
+  const [activeTab, setActiveTab] = React.useState<DispenseWorkflowTab>("ipd");
+  const [selectedIpdPatientId, setSelectedIpdPatientId] = React.useState("");
+  const [selectedOpdEncounterId, setSelectedOpdEncounterId] =
+    React.useState("");
   const [ipdRxStore, setIpdRxStore] = React.useState<IpdPrescriptionStore>(() =>
-    readIpdPrescriptionStore()
+    readIpdPrescriptionStore(),
   );
-  const [persistedBillingByPatient, setPersistedBillingByPatient] = React.useState<
-    Record<string, BillingEntry[]>
-  >(() => readPersistedBillingByPatient());
-  const [opdDispenseStore, setOpdDispenseStore] = React.useState<OpdDispenseStore>(() =>
-    readOpdDispenseStore()
-  );
+  const [persistedBillingByPatient, setPersistedBillingByPatient] =
+    React.useState<Record<string, BillingEntry[]>>(() =>
+      readPersistedBillingByPatient(),
+    );
+  const [opdDispenseStore, setOpdDispenseStore] =
+    React.useState<OpdDispenseStore>(() => readOpdDispenseStore());
 
-  const [retailCustomerName, setRetailCustomerName] = React.useState('');
-  const [retailCustomerMobile, setRetailCustomerMobile] = React.useState('');
-  const [retailPrescriptionRef, setRetailPrescriptionRef] = React.useState('');
-  const [retailPrescriptionVerified, setRetailPrescriptionVerified] = React.useState(false);
-  const [retailPaymentMode, setRetailPaymentMode] = React.useState<PaymentMode>('Cash');
-  const [retailItemDraft, setRetailItemDraft] = React.useState<RetailItemDraft>({
-    medicineName: '',
-    quantity: '',
-    unitPrice: '',
-  });
+  const [retailCustomerName, setRetailCustomerName] = React.useState("");
+  const [retailCustomerMobile, setRetailCustomerMobile] = React.useState("");
+  const [retailPrescriptionRef, setRetailPrescriptionRef] = React.useState("");
+  const [retailPrescriptionVerified, setRetailPrescriptionVerified] =
+    React.useState(false);
+  const [retailPaymentMode, setRetailPaymentMode] =
+    React.useState<PaymentMode>("Cash");
+  const [retailItemDraft, setRetailItemDraft] = React.useState<RetailItemDraft>(
+    {
+      medicineName: "",
+      quantity: "",
+      unitPrice: "",
+    },
+  );
   const [retailCart, setRetailCart] = React.useState<RetailItemRow[]>([]);
-  const [retailSales, setRetailSales] = React.useState<RetailSaleRecord[]>(() => readRetailSales());
+  const [retailSales, setRetailSales] = React.useState<RetailSaleRecord[]>(() =>
+    readRetailSales(),
+  );
 
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
-    severity: 'success' | 'info' | 'warning' | 'error';
+    severity: "success" | "info" | "warning" | "error";
   }>({
     open: false,
-    message: '',
-    severity: 'success',
+    message: "",
+    severity: "success",
   });
 
   React.useEffect(() => {
-    const tabParam = searchParams.get('tab');
+    const tabParam = searchParams.get("tab");
     if (!isWorkflowTab(tabParam)) return;
     setActiveTab((current) => (current === tabParam ? current : tabParam));
   }, [searchParams]);
@@ -488,12 +542,14 @@ export default function PharmacyDispensePage() {
     const refreshIpdPrescriptionStore = () => {
       const latestStore = readIpdPrescriptionStore();
       setIpdRxStore((currentStore) =>
-        JSON.stringify(currentStore) === JSON.stringify(latestStore) ? currentStore : latestStore
+        JSON.stringify(currentStore) === JSON.stringify(latestStore)
+          ? currentStore
+          : latestStore,
       );
     };
 
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         refreshIpdPrescriptionStore();
       }
     };
@@ -505,15 +561,15 @@ export default function PharmacyDispensePage() {
     };
 
     refreshIpdPrescriptionStore();
-    window.addEventListener('focus', refreshIpdPrescriptionStore);
-    window.addEventListener('storage', onStorageChange);
-    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener("focus", refreshIpdPrescriptionStore);
+    window.addEventListener("storage", onStorageChange);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     const intervalId = window.setInterval(refreshIpdPrescriptionStore, 5000);
 
     return () => {
-      window.removeEventListener('focus', refreshIpdPrescriptionStore);
-      window.removeEventListener('storage', onStorageChange);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener("focus", refreshIpdPrescriptionStore);
+      window.removeEventListener("storage", onStorageChange);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.clearInterval(intervalId);
     };
   }, []);
@@ -532,19 +588,19 @@ export default function PharmacyDispensePage() {
     };
 
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         refreshBillingLedger();
       }
     };
 
     refreshBillingLedger();
-    window.addEventListener('focus', refreshBillingLedger);
-    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener("focus", refreshBillingLedger);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     const intervalId = window.setInterval(refreshBillingLedger, 5000);
 
     return () => {
-      window.removeEventListener('focus', refreshBillingLedger);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener("focus", refreshBillingLedger);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.clearInterval(intervalId);
     };
   }, []);
@@ -556,9 +612,9 @@ export default function PharmacyDispensePage() {
   const activeIpdEncounters = React.useMemo(
     () =>
       ipdEncounters
-        .filter((record) => record.workflowStatus !== 'discharged')
+        .filter((record) => record.workflowStatus !== "discharged")
         .sort((a, b) => a.patientName.localeCompare(b.patientName)),
-    [ipdEncounters]
+    [ipdEncounters],
   );
 
   React.useEffect(() => {
@@ -572,7 +628,7 @@ export default function PharmacyDispensePage() {
         const existingById = new Set(existingRows.map((row) => row.id));
         const dischargeRows = toIpdRowsFromDischargeBilling(
           patientId,
-          persistedBillingByPatient[patientId] ?? []
+          persistedBillingByPatient[patientId] ?? [],
         ).filter((row) => !existingById.has(row.id));
 
         if (dischargeRows.length > 0) {
@@ -587,8 +643,11 @@ export default function PharmacyDispensePage() {
 
   const ipdEncounterFromMrn = React.useMemo(
     () =>
-      mrnParam ? activeIpdEncounters.find((record) => record.mrn === mrnParam) ?? null : null,
-    [activeIpdEncounters, mrnParam]
+      mrnParam
+        ? (activeIpdEncounters.find((record) => record.mrn === mrnParam) ??
+          null)
+        : null,
+    [activeIpdEncounters, mrnParam],
   );
 
   React.useEffect(() => {
@@ -602,15 +661,25 @@ export default function PharmacyDispensePage() {
   }, [activeIpdEncounters, ipdEncounterFromMrn, selectedIpdPatientId]);
 
   const selectedIpdEncounter =
-    activeIpdEncounters.find((record) => record.patientId === selectedIpdPatientId) ??
+    activeIpdEncounters.find(
+      (record) => record.patientId === selectedIpdPatientId,
+    ) ??
     ipdEncounterFromMrn ??
     activeIpdEncounters[0] ??
     null;
 
-  const selectedIpdRows = selectedIpdEncounter ? ipdRxStore[selectedIpdEncounter.patientId] ?? [] : [];
-  const ipdPendingCount = selectedIpdRows.filter((row) => isPendingIpdMedication(row.status)).length;
-  const ipdDispensedCount = selectedIpdRows.filter((row) => row.status === 'Dispensed').length;
-  const ipdAdministeredCount = selectedIpdRows.filter((row) => row.status === 'Administered').length;
+  const selectedIpdRows = selectedIpdEncounter
+    ? (ipdRxStore[selectedIpdEncounter.patientId] ?? [])
+    : [];
+  const ipdPendingCount = selectedIpdRows.filter((row) =>
+    isPendingIpdMedication(row.status),
+  ).length;
+  const ipdDispensedCount = selectedIpdRows.filter(
+    (row) => row.status === "Dispensed",
+  ).length;
+  const ipdAdministeredCount = selectedIpdRows.filter(
+    (row) => row.status === "Administered",
+  ).length;
   const ipdPharmacyReady = selectedIpdRows.length > 0 && ipdPendingCount === 0;
 
   React.useEffect(() => {
@@ -624,8 +693,11 @@ export default function PharmacyDispensePage() {
   }, [ipdPendingCount, ipdPharmacyReady, selectedIpdEncounter]);
 
   const opdEncounterRows = React.useMemo(
-    () => opdData.encounters.filter((row) => row.status !== 'COMPLETED' && row.status !== 'CANCELLED'),
-    [opdData.encounters]
+    () =>
+      opdData.encounters.filter(
+        (row) => row.status !== "COMPLETED" && row.status !== "CANCELLED",
+      ),
+    [opdData.encounters],
   );
 
   const opdPrescriptionsByEncounter = React.useMemo(() => {
@@ -659,37 +731,49 @@ export default function PharmacyDispensePage() {
     null;
 
   const selectedOpdRows = selectedOpdEncounter
-    ? opdPrescriptionsByEncounter[selectedOpdEncounter.id] ?? []
+    ? (opdPrescriptionsByEncounter[selectedOpdEncounter.id] ?? [])
     : [];
 
   const opdPendingCount = selectedOpdRows.filter(
-    (row) => (opdDispenseStore[row.id]?.status ?? 'Pending') === 'Pending'
+    (row) => (opdDispenseStore[row.id]?.status ?? "Pending") === "Pending",
   ).length;
   const opdDispensedCount = selectedOpdRows.filter(
-    (row) => (opdDispenseStore[row.id]?.status ?? 'Pending') === 'Dispensed'
+    (row) => (opdDispenseStore[row.id]?.status ?? "Pending") === "Dispensed",
   ).length;
   const opdCollectedCount = selectedOpdRows.filter(
-    (row) => (opdDispenseStore[row.id]?.status ?? 'Pending') === 'Collected'
+    (row) => (opdDispenseStore[row.id]?.status ?? "Pending") === "Collected",
   ).length;
 
-  const retailCartTotal = retailCart.reduce((sum, item) => sum + item.amount, 0);
+  const retailCartTotal = retailCart.reduce(
+    (sum, item) => sum + item.amount,
+    0,
+  );
 
   const pageSubtitle =
-    activeTab === 'ipd' && selectedIpdEncounter
-      ? formatPatientLabel(selectedIpdEncounter.patientName, selectedIpdEncounter.mrn)
-      : activeTab === 'opd' && selectedOpdEncounter
-      ? formatPatientLabel(selectedOpdEncounter.patientName, selectedOpdEncounter.mrn)
-      : 'IPD / OPD / Walk-in retail dispensing';
+    activeTab === "ipd" && selectedIpdEncounter
+      ? formatPatientLabel(
+          selectedIpdEncounter.patientName,
+          selectedIpdEncounter.mrn,
+        )
+      : activeTab === "opd" && selectedOpdEncounter
+        ? formatPatientLabel(
+            selectedOpdEncounter.patientName,
+            selectedOpdEncounter.mrn,
+          )
+        : "IPD / OPD / Walk-in retail dispensing";
 
   const switchTab = (nextTab: DispenseWorkflowTab) => {
     setActiveTab(nextTab);
     const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', nextTab);
-    if (mrnParam) params.set('mrn', mrnParam);
+    params.set("tab", nextTab);
+    if (mrnParam) params.set("mrn", mrnParam);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  const notify = (message: string, severity: 'success' | 'info' | 'warning' | 'error' = 'success') => {
+  const notify = (
+    message: string,
+    severity: "success" | "info" | "warning" | "error" = "success",
+  ) => {
     setSnackbar({ open: true, message, severity });
   };
 
@@ -697,20 +781,25 @@ export default function PharmacyDispensePage() {
     if (!selectedIpdEncounter || !canDispense) return;
     setIpdRxStore((previous) => ({
       ...previous,
-      [selectedIpdEncounter.patientId]: (previous[selectedIpdEncounter.patientId] ?? []).map((row) =>
+      [selectedIpdEncounter.patientId]: (
+        previous[selectedIpdEncounter.patientId] ?? []
+      ).map((row) =>
         row.id === rowId
           ? {
               ...row,
               status,
               updatedAt: nowTimeStamp(),
             }
-          : row
+          : row,
       ),
     }));
-    notify(`IPD medication marked as ${status}.`, 'info');
+    notify(`IPD medication marked as ${status}.`, "info");
   };
 
-  const updateOpdDispenseStatus = (prescriptionId: string, status: OpdDispenseStatus) => {
+  const updateOpdDispenseStatus = (
+    prescriptionId: string,
+    status: OpdDispenseStatus,
+  ) => {
     if (!canDispense) return;
     setOpdDispenseStore((previous) => ({
       ...previous,
@@ -719,18 +808,26 @@ export default function PharmacyDispensePage() {
         updatedAt: nowTimeStamp(),
       },
     }));
-    notify(`OPD prescription marked as ${status}.`, 'info');
+    notify(`OPD prescription marked as ${status}.`, "info");
   };
 
   const addRetailItem = () => {
     if (!retailItemDraft.medicineName.trim()) {
-      notify('Medicine name is required.', 'error');
+      notify("Medicine name is required.", "error");
       return;
     }
     const quantity = Number(retailItemDraft.quantity);
     const unitPrice = Number(retailItemDraft.unitPrice);
-    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice <= 0) {
-      notify('Quantity and unit price must be valid positive numbers.', 'error');
+    if (
+      !Number.isFinite(quantity) ||
+      quantity <= 0 ||
+      !Number.isFinite(unitPrice) ||
+      unitPrice <= 0
+    ) {
+      notify(
+        "Quantity and unit price must be valid positive numbers.",
+        "error",
+      );
       return;
     }
     const nextItem: RetailItemRow = {
@@ -741,7 +838,7 @@ export default function PharmacyDispensePage() {
       amount: quantity * unitPrice,
     };
     setRetailCart((previous) => [...previous, nextItem]);
-    setRetailItemDraft({ medicineName: '', quantity: '', unitPrice: '' });
+    setRetailItemDraft({ medicineName: "", quantity: "", unitPrice: "" });
   };
 
   const removeRetailItem = (itemId: string) => {
@@ -751,11 +848,11 @@ export default function PharmacyDispensePage() {
   const checkoutRetailSale = () => {
     if (!canDispense) return;
     if (!retailCustomerName.trim()) {
-      notify('Customer name is required for checkout.', 'error');
+      notify("Customer name is required for checkout.", "error");
       return;
     }
     if (retailCart.length === 0) {
-      notify('Add at least one medicine item before checkout.', 'error');
+      notify("Add at least one medicine item before checkout.", "error");
       return;
     }
     const sale: RetailSaleRecord = {
@@ -770,13 +867,16 @@ export default function PharmacyDispensePage() {
       createdAt: nowTimeStamp(),
     };
     setRetailSales((previous) => [sale, ...previous].slice(0, 40));
-    setRetailCustomerName('');
-    setRetailCustomerMobile('');
-    setRetailPrescriptionRef('');
+    setRetailCustomerName("");
+    setRetailCustomerMobile("");
+    setRetailPrescriptionRef("");
     setRetailPrescriptionVerified(false);
-    setRetailPaymentMode('Cash');
+    setRetailPaymentMode("Cash");
     setRetailCart([]);
-    notify(`Retail sale ${sale.id} completed for ${formatCurrency(sale.totalAmount)}.`, 'success');
+    notify(
+      `Retail sale ${sale.id} completed for ${formatCurrency(sale.totalAmount)}.`,
+      "success",
+    );
   };
 
   const compactBtnSx = {
@@ -784,16 +884,21 @@ export default function PharmacyDispensePage() {
     px: 1.35,
     py: 0.45,
     borderRadius: 1.1,
-    textTransform: 'none',
+    textTransform: "none",
     fontWeight: 600,
   };
 
   return (
-    <PageTemplate title="Pharmacy Dispense" subtitle={pageSubtitle} currentPageTitle="Dispense">
+    <PageTemplate
+      title="Pharmacy Dispense"
+      subtitle={pageSubtitle}
+      currentPageTitle="Dispense"
+    >
       <Stack spacing={2}>
         {!canDispense ? (
           <Alert severity="info">
-            You are in read-only mode for dispense operations. Request `pharmacy.dispense.write` access.
+            You are in read-only mode for dispense operations. Request
+            `pharmacy.dispense.write` access.
           </Alert>
         ) : null}
 
@@ -801,27 +906,30 @@ export default function PharmacyDispensePage() {
           elevation={0}
           sx={{
             borderRadius: 2.4,
-            border: '1px solid',
+            border: "1px solid",
             borderColor: alpha(theme.palette.primary.main, 0.16),
-            overflow: 'hidden',
+            overflow: "hidden",
           }}
         >
           <Box
             sx={{
               px: { xs: 1.3, md: 1.8 },
               py: 1.1,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
+              borderBottom: "1px solid",
+              borderColor: "divider",
               backgroundColor: alpha(theme.palette.primary.main, 0.05),
             }}
           >
             <Stack
-              direction={{ xs: 'column', sm: 'row' }}
+              direction={{ xs: "column", sm: "row" }}
               justifyContent="space-between"
-              alignItems={{ xs: 'flex-start', sm: 'center' }}
+              alignItems={{ xs: "flex-start", sm: "center" }}
               spacing={1}
             >
-              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'primary.main' }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 800, color: "primary.main" }}
+              >
                 Unified Pharmacy Workflow
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap">
@@ -840,10 +948,10 @@ export default function PharmacyDispensePage() {
               scrollButtons="auto"
               sx={{
                 minHeight: 42,
-                '& .MuiTabs-indicator': { height: 3 },
-                '& .MuiTab-root': {
+                "& .MuiTabs-indicator": { height: 3 },
+                "& .MuiTab-root": {
                   minHeight: 42,
-                  textTransform: 'none',
+                  textTransform: "none",
                   fontWeight: 700,
                 },
               }}
@@ -855,7 +963,7 @@ export default function PharmacyDispensePage() {
           </Box>
         </Card>
 
-        {activeTab === 'ipd' ? (
+        {activeTab === "ipd" ? (
           <Stack spacing={2}>
             <Grid container spacing={1.3}>
               <Grid item xs={12} sm={6} lg={3}>
@@ -885,8 +993,8 @@ export default function PharmacyDispensePage() {
               <Grid item xs={12} sm={6} lg={3}>
                 <IpdMetricCard
                   label="Pharmacy Clearance"
-                  value={ipdPharmacyReady ? 'Ready' : 'Pending'}
-                  tone={ipdPharmacyReady ? 'success' : 'danger'}
+                  value={ipdPharmacyReady ? "Ready" : "Pending"}
+                  tone={ipdPharmacyReady ? "success" : "danger"}
                   icon={<LocalPharmacyIcon sx={{ fontSize: 22 }} />}
                 />
               </Grid>
@@ -894,40 +1002,55 @@ export default function PharmacyDispensePage() {
 
             <Card
               elevation={0}
-              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.2, p: 1.2 }}
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2.2,
+                p: 1.2,
+              }}
             >
               {selectedIpdEncounter ? (
                 <Stack spacing={1.2}>
                   <Stack
-                    direction={{ xs: 'column', md: 'row' }}
+                    direction={{ xs: "column", md: "row" }}
                     spacing={1}
                     justifyContent="space-between"
-                    alignItems={{ xs: 'stretch', md: 'center' }}
+                    alignItems={{ xs: "stretch", md: "center" }}
                   >
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                       <TextField
                         select
                         size="small"
                         label="IPD Patient"
                         value={selectedIpdEncounter.patientId}
-                        onChange={(event) => setSelectedIpdPatientId(event.target.value)}
+                        onChange={(event) =>
+                          setSelectedIpdPatientId(event.target.value)
+                        }
                         sx={{ minWidth: 300 }}
                       >
                         {activeIpdEncounters.map((row) => (
                           <MenuItem key={row.patientId} value={row.patientId}>
-                            {row.patientName} ({row.mrn}) · {row.bed || '--'}
+                            {row.patientName} ({row.mrn}) · {row.bed || "--"}
                           </MenuItem>
                         ))}
                       </TextField>
-                      <Chip size="small" label={`Ward: ${selectedIpdEncounter.ward || '--'}`} variant="outlined" />
-                      <Chip size="small" label={`Bed: ${selectedIpdEncounter.bed || '--'}`} variant="outlined" />
+                      <Chip
+                        size="small"
+                        label={`Ward: ${selectedIpdEncounter.ward || "--"}`}
+                        variant="outlined"
+                      />
+                      <Chip
+                        size="small"
+                        label={`Bed: ${selectedIpdEncounter.bed || "--"}`}
+                        variant="outlined"
+                      />
                     </Stack>
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={() =>
                         router.push(
-                          `/ipd/charges?tab=drug${selectedIpdEncounter.mrn ? `&mrn=${selectedIpdEncounter.mrn}` : ''}`
+                          `/ipd/charges?tab=drug${selectedIpdEncounter.mrn ? `&mrn=${selectedIpdEncounter.mrn}` : ""}`,
                         )
                       }
                     >
@@ -949,7 +1072,14 @@ export default function PharmacyDispensePage() {
                       <TableBody>
                         {selectedIpdRows.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={5} sx={{ textAlign: 'center', py: 2.4, color: 'text.secondary' }}>
+                            <TableCell
+                              colSpan={5}
+                              sx={{
+                                textAlign: "center",
+                                py: 2.4,
+                                color: "text.secondary",
+                              }}
+                            >
                               No IPD prescription rows found for this patient.
                             </TableCell>
                           </TableRow>
@@ -957,26 +1087,36 @@ export default function PharmacyDispensePage() {
                           selectedIpdRows.map((row) => (
                             <TableRow key={row.id} hover>
                               <TableCell sx={{ minWidth: 220 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 700 }}
+                                >
                                   {row.medicationName}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
                                   {row.prescribedBy} · {row.updatedAt}
                                 </Typography>
                               </TableCell>
                               <TableCell>{`${row.dose} / ${row.route}`}</TableCell>
-                              <TableCell>{row.duration ? `${row.frequency} · ${row.duration}` : row.frequency}</TableCell>
+                              <TableCell>
+                                {row.duration
+                                  ? `${row.frequency} · ${row.duration}`
+                                  : row.frequency}
+                              </TableCell>
                               <TableCell>
                                 <Chip
                                   size="small"
                                   color={
-                                    row.status === 'Administered'
-                                      ? 'success'
-                                      : row.status === 'Dispensed'
-                                      ? 'info'
-                                      : row.status === 'Stopped'
-                                      ? 'default'
-                                      : 'warning'
+                                    row.status === "Administered"
+                                      ? "success"
+                                      : row.status === "Dispensed"
+                                        ? "info"
+                                        : row.status === "Stopped"
+                                          ? "default"
+                                          : "warning"
                                   }
                                   label={row.status}
                                 />
@@ -987,8 +1127,17 @@ export default function PharmacyDispensePage() {
                                     size="small"
                                     variant="outlined"
                                     sx={compactBtnSx}
-                                    disabled={!canDispense || row.status === 'Dispensed' || row.status === 'Administered'}
-                                    onClick={() => updateIpdMedicationStatus(row.id, 'Dispensed')}
+                                    disabled={
+                                      !canDispense ||
+                                      row.status === "Dispensed" ||
+                                      row.status === "Administered"
+                                    }
+                                    onClick={() =>
+                                      updateIpdMedicationStatus(
+                                        row.id,
+                                        "Dispensed",
+                                      )
+                                    }
                                   >
                                     Dispense
                                   </Button>
@@ -996,8 +1145,16 @@ export default function PharmacyDispensePage() {
                                     size="small"
                                     variant="outlined"
                                     sx={compactBtnSx}
-                                    disabled={!canDispense || row.status === 'Administered'}
-                                    onClick={() => updateIpdMedicationStatus(row.id, 'Administered')}
+                                    disabled={
+                                      !canDispense ||
+                                      row.status === "Administered"
+                                    }
+                                    onClick={() =>
+                                      updateIpdMedicationStatus(
+                                        row.id,
+                                        "Administered",
+                                      )
+                                    }
                                   >
                                     Given
                                   </Button>
@@ -1005,8 +1162,15 @@ export default function PharmacyDispensePage() {
                                     size="small"
                                     variant="text"
                                     sx={compactBtnSx}
-                                    disabled={!canDispense || row.status === 'Stopped'}
-                                    onClick={() => updateIpdMedicationStatus(row.id, 'Stopped')}
+                                    disabled={
+                                      !canDispense || row.status === "Stopped"
+                                    }
+                                    onClick={() =>
+                                      updateIpdMedicationStatus(
+                                        row.id,
+                                        "Stopped",
+                                      )
+                                    }
                                   >
                                     Stop
                                   </Button>
@@ -1020,55 +1184,80 @@ export default function PharmacyDispensePage() {
                   </TableContainer>
                 </Stack>
               ) : (
-                <Alert severity="info">No active IPD encounters available.</Alert>
+                <Alert severity="info">
+                  No active IPD encounters available.
+                </Alert>
               )}
             </Card>
           </Stack>
         ) : null}
 
-        {activeTab === 'opd' ? (
+        {activeTab === "opd" ? (
           <Stack spacing={2}>
-            {opdData.status === 'loading' ? <Alert severity="info">Loading OPD records…</Alert> : null}
-            {opdData.status === 'error' ? (
+            {opdData.status === "loading" ? (
+              <Alert severity="info">Loading OPD records…</Alert>
+            ) : null}
+            {opdData.status === "error" ? (
               <Alert severity="warning">
-                OPD server unavailable. Showing local fallback data. {opdData.error ?? ''}
+                OPD server unavailable. Showing local fallback data.{" "}
+                {opdData.error ?? ""}
               </Alert>
             ) : null}
 
             <Grid container spacing={1.3}>
               <Grid item xs={12} sm={4}>
-                <IpdMetricCard label="Pending OPD Rx" value={opdPendingCount} tone="warning" />
+                <IpdMetricCard
+                  label="Pending OPD Rx"
+                  value={opdPendingCount}
+                  tone="warning"
+                />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <IpdMetricCard label="Dispensed" value={opdDispensedCount} tone="info" />
+                <IpdMetricCard
+                  label="Dispensed"
+                  value={opdDispensedCount}
+                  tone="info"
+                />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <IpdMetricCard label="Collected" value={opdCollectedCount} tone="success" />
+                <IpdMetricCard
+                  label="Collected"
+                  value={opdCollectedCount}
+                  tone="success"
+                />
               </Grid>
             </Grid>
 
             <Card
               elevation={0}
-              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.2, p: 1.2 }}
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2.2,
+                p: 1.2,
+              }}
             >
               <Stack spacing={1.2}>
                 <Stack
-                  direction={{ xs: 'column', md: 'row' }}
+                  direction={{ xs: "column", md: "row" }}
                   spacing={1}
                   justifyContent="space-between"
-                  alignItems={{ xs: 'stretch', md: 'center' }}
+                  alignItems={{ xs: "stretch", md: "center" }}
                 >
                   <TextField
                     select
                     size="small"
                     label="OPD Encounter"
-                    value={selectedOpdEncounter?.id ?? ''}
-                    onChange={(event) => setSelectedOpdEncounterId(event.target.value)}
+                    value={selectedOpdEncounter?.id ?? ""}
+                    onChange={(event) =>
+                      setSelectedOpdEncounterId(event.target.value)
+                    }
                     sx={{ minWidth: 320 }}
                   >
                     {opdEncounterRows.map((encounter) => (
                       <MenuItem key={encounter.id} value={encounter.id}>
-                        {encounter.patientName} ({encounter.mrn}) · {encounter.doctor}
+                        {encounter.patientName} ({encounter.mrn}) ·{" "}
+                        {encounter.doctor}
                       </MenuItem>
                     ))}
                   </TextField>
@@ -1095,29 +1284,49 @@ export default function PharmacyDispensePage() {
                     <TableBody>
                       {selectedOpdRows.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} sx={{ textAlign: 'center', py: 2.4, color: 'text.secondary' }}>
+                          <TableCell
+                            colSpan={5}
+                            sx={{
+                              textAlign: "center",
+                              py: 2.4,
+                              color: "text.secondary",
+                            }}
+                          >
                             No OPD prescriptions available for this encounter.
                           </TableCell>
                         </TableRow>
                       ) : (
                         selectedOpdRows.map((row) => {
-                          const dispenseState = opdDispenseStore[row.id]?.status ?? 'Pending';
+                          const dispenseState =
+                            opdDispenseStore[row.id]?.status ?? "Pending";
                           return (
                             <TableRow key={row.id} hover>
                               <TableCell sx={{ minWidth: 220 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 700 }}
+                                >
                                   {row.medicationName}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
                                   Issued: {row.issuedAt}
                                 </Typography>
                               </TableCell>
                               <TableCell>{`${row.dose} / ${row.route}`}</TableCell>
                               <TableCell>
-                                {row.durationDays ? `${row.frequency} · ${row.durationDays} days` : row.frequency}
+                                {row.durationDays
+                                  ? `${row.frequency} · ${row.durationDays} days`
+                                  : row.frequency}
                               </TableCell>
                               <TableCell>
-                                <Chip size="small" color={opdStatusChipColor(dispenseState)} label={dispenseState} />
+                                <Chip
+                                  size="small"
+                                  color={opdStatusChipColor(dispenseState)}
+                                  label={dispenseState}
+                                />
                               </TableCell>
                               <TableCell>
                                 <Stack direction="row" spacing={0.7}>
@@ -1125,8 +1334,17 @@ export default function PharmacyDispensePage() {
                                     size="small"
                                     variant="outlined"
                                     sx={compactBtnSx}
-                                    disabled={!canDispense || dispenseState === 'Dispensed' || dispenseState === 'Collected'}
-                                    onClick={() => updateOpdDispenseStatus(row.id, 'Dispensed')}
+                                    disabled={
+                                      !canDispense ||
+                                      dispenseState === "Dispensed" ||
+                                      dispenseState === "Collected"
+                                    }
+                                    onClick={() =>
+                                      updateOpdDispenseStatus(
+                                        row.id,
+                                        "Dispensed",
+                                      )
+                                    }
                                   >
                                     Dispense
                                   </Button>
@@ -1134,8 +1352,16 @@ export default function PharmacyDispensePage() {
                                     size="small"
                                     variant="outlined"
                                     sx={compactBtnSx}
-                                    disabled={!canDispense || dispenseState === 'Collected'}
-                                    onClick={() => updateOpdDispenseStatus(row.id, 'Collected')}
+                                    disabled={
+                                      !canDispense ||
+                                      dispenseState === "Collected"
+                                    }
+                                    onClick={() =>
+                                      updateOpdDispenseStatus(
+                                        row.id,
+                                        "Collected",
+                                      )
+                                    }
                                   >
                                     Collect
                                   </Button>
@@ -1143,8 +1369,16 @@ export default function PharmacyDispensePage() {
                                     size="small"
                                     variant="text"
                                     sx={compactBtnSx}
-                                    disabled={!canDispense || dispenseState === 'Cancelled'}
-                                    onClick={() => updateOpdDispenseStatus(row.id, 'Cancelled')}
+                                    disabled={
+                                      !canDispense ||
+                                      dispenseState === "Cancelled"
+                                    }
+                                    onClick={() =>
+                                      updateOpdDispenseStatus(
+                                        row.id,
+                                        "Cancelled",
+                                      )
+                                    }
                                   >
                                     Cancel
                                   </Button>
@@ -1162,7 +1396,7 @@ export default function PharmacyDispensePage() {
           </Stack>
         ) : null}
 
-        {activeTab === 'retail' ? (
+        {activeTab === "retail" ? (
           <Stack spacing={2}>
             <Grid container spacing={1.3}>
               <Grid item xs={12} sm={6} md={4}>
@@ -1174,10 +1408,18 @@ export default function PharmacyDispensePage() {
                 />
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
-                <IpdMetricCard label="Cart Total" value={formatCurrency(retailCartTotal)} tone="success" />
+                <IpdMetricCard
+                  label="Cart Total"
+                  value={formatCurrency(retailCartTotal)}
+                  tone="success"
+                />
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
-                <IpdMetricCard label="Recent POS Bills" value={retailSales.length} tone="primary" />
+                <IpdMetricCard
+                  label="Recent POS Bills"
+                  value={retailSales.length}
+                  tone="primary"
+                />
               </Grid>
             </Grid>
 
@@ -1185,7 +1427,12 @@ export default function PharmacyDispensePage() {
               <Grid item xs={12} lg={7}>
                 <Card
                   elevation={0}
-                  sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.2, p: 1.2 }}
+                  sx={{
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 2.2,
+                    p: 1.2,
+                  }}
                 >
                   <Stack spacing={1.2}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
@@ -1198,7 +1445,9 @@ export default function PharmacyDispensePage() {
                           size="small"
                           label="Customer Name"
                           value={retailCustomerName}
-                          onChange={(event) => setRetailCustomerName(event.target.value)}
+                          onChange={(event) =>
+                            setRetailCustomerName(event.target.value)
+                          }
                         />
                       </Grid>
                       <Grid item xs={12} md={6}>
@@ -1207,7 +1456,9 @@ export default function PharmacyDispensePage() {
                           size="small"
                           label="Mobile"
                           value={retailCustomerMobile}
-                          onChange={(event) => setRetailCustomerMobile(event.target.value)}
+                          onChange={(event) =>
+                            setRetailCustomerMobile(event.target.value)
+                          }
                         />
                       </Grid>
                       <Grid item xs={12} md={6}>
@@ -1216,7 +1467,9 @@ export default function PharmacyDispensePage() {
                           size="small"
                           label="Prescription Ref (optional)"
                           value={retailPrescriptionRef}
-                          onChange={(event) => setRetailPrescriptionRef(event.target.value)}
+                          onChange={(event) =>
+                            setRetailPrescriptionRef(event.target.value)
+                          }
                         />
                       </Grid>
                       <Grid item xs={12} md={6}>
@@ -1226,13 +1479,19 @@ export default function PharmacyDispensePage() {
                           select
                           label="Payment"
                           value={retailPaymentMode}
-                          onChange={(event) => setRetailPaymentMode(event.target.value as PaymentMode)}
+                          onChange={(event) =>
+                            setRetailPaymentMode(
+                              event.target.value as PaymentMode,
+                            )
+                          }
                         >
-                          {(['Cash', 'Card', 'UPI'] as PaymentMode[]).map((mode) => (
-                            <MenuItem key={mode} value={mode}>
-                              {mode}
-                            </MenuItem>
-                          ))}
+                          {(["Cash", "Card", "UPI"] as PaymentMode[]).map(
+                            (mode) => (
+                              <MenuItem key={mode} value={mode}>
+                                {mode}
+                              </MenuItem>
+                            ),
+                          )}
                         </TextField>
                       </Grid>
                     </Grid>
@@ -1240,10 +1499,18 @@ export default function PharmacyDispensePage() {
                     <Stack direction="row" spacing={0.8}>
                       <Chip
                         size="small"
-                        color={retailPrescriptionVerified ? 'success' : 'warning'}
-                        label={retailPrescriptionVerified ? 'Prescription Verified' : 'Prescription Unverified'}
-                        onClick={() => setRetailPrescriptionVerified((previous) => !previous)}
-                        sx={{ cursor: 'pointer' }}
+                        color={
+                          retailPrescriptionVerified ? "success" : "warning"
+                        }
+                        label={
+                          retailPrescriptionVerified
+                            ? "Prescription Verified"
+                            : "Prescription Unverified"
+                        }
+                        onClick={() =>
+                          setRetailPrescriptionVerified((previous) => !previous)
+                        }
+                        sx={{ cursor: "pointer" }}
                       />
                     </Stack>
 
@@ -1259,7 +1526,10 @@ export default function PharmacyDispensePage() {
                           label="Medicine"
                           value={retailItemDraft.medicineName}
                           onChange={(event) =>
-                            setRetailItemDraft((previous) => ({ ...previous, medicineName: event.target.value }))
+                            setRetailItemDraft((previous) => ({
+                              ...previous,
+                              medicineName: event.target.value,
+                            }))
                           }
                         />
                       </Grid>
@@ -1270,7 +1540,10 @@ export default function PharmacyDispensePage() {
                           label="Qty"
                           value={retailItemDraft.quantity}
                           onChange={(event) =>
-                            setRetailItemDraft((previous) => ({ ...previous, quantity: event.target.value }))
+                            setRetailItemDraft((previous) => ({
+                              ...previous,
+                              quantity: event.target.value,
+                            }))
                           }
                         />
                       </Grid>
@@ -1281,7 +1554,10 @@ export default function PharmacyDispensePage() {
                           label="Unit Price"
                           value={retailItemDraft.unitPrice}
                           onChange={(event) =>
-                            setRetailItemDraft((previous) => ({ ...previous, unitPrice: event.target.value }))
+                            setRetailItemDraft((previous) => ({
+                              ...previous,
+                              unitPrice: event.target.value,
+                            }))
                           }
                         />
                       </Grid>
@@ -1291,7 +1567,7 @@ export default function PharmacyDispensePage() {
                           variant="contained"
                           disabled={!canDispense}
                           onClick={addRetailItem}
-                          sx={{ minWidth: '100%', height: 40 }}
+                          sx={{ minWidth: "100%", height: 40 }}
                         >
                           +
                         </Button>
@@ -1304,7 +1580,12 @@ export default function PharmacyDispensePage() {
               <Grid item xs={12} lg={5}>
                 <Card
                   elevation={0}
-                  sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.2, p: 1.2 }}
+                  sx={{
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 2.2,
+                    p: 1.2,
+                  }}
                 >
                   <Stack spacing={1.2}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
@@ -1324,7 +1605,14 @@ export default function PharmacyDispensePage() {
                         <TableBody>
                           {retailCart.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={5} sx={{ textAlign: 'center', py: 2, color: 'text.secondary' }}>
+                              <TableCell
+                                colSpan={5}
+                                sx={{
+                                  textAlign: "center",
+                                  py: 2,
+                                  color: "text.secondary",
+                                }}
+                              >
                                 Cart is empty.
                               </TableCell>
                             </TableRow>
@@ -1333,8 +1621,12 @@ export default function PharmacyDispensePage() {
                               <TableRow key={item.id}>
                                 <TableCell>{item.medicineName}</TableCell>
                                 <TableCell>{item.quantity}</TableCell>
-                                <TableCell>{formatCurrency(item.unitPrice)}</TableCell>
-                                <TableCell sx={{ fontWeight: 700 }}>{formatCurrency(item.amount)}</TableCell>
+                                <TableCell>
+                                  {formatCurrency(item.unitPrice)}
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 700 }}>
+                                  {formatCurrency(item.amount)}
+                                </TableCell>
                                 <TableCell align="right">
                                   <Button
                                     size="small"
@@ -1353,15 +1645,26 @@ export default function PharmacyDispensePage() {
                       </Table>
                     </TableContainer>
                     <Divider />
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
                       <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                         Total
                       </Typography>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'primary.main' }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 800, color: "primary.main" }}
+                      >
                         {formatCurrency(retailCartTotal)}
                       </Typography>
                     </Stack>
-                    <Button variant="contained" disabled={!canDispense} onClick={checkoutRetailSale}>
+                    <Button
+                      variant="contained"
+                      disabled={!canDispense}
+                      onClick={checkoutRetailSale}
+                    >
                       Complete Checkout
                     </Button>
                   </Stack>
@@ -1371,7 +1674,12 @@ export default function PharmacyDispensePage() {
 
             <Card
               elevation={0}
-              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.2, p: 1.2 }}
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2.2,
+                p: 1.2,
+              }}
             >
               <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
                 Recent Walk-in Sales
@@ -1391,23 +1699,39 @@ export default function PharmacyDispensePage() {
                   <TableBody>
                     {retailSales.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} sx={{ textAlign: 'center', py: 2, color: 'text.secondary' }}>
+                        <TableCell
+                          colSpan={6}
+                          sx={{
+                            textAlign: "center",
+                            py: 2,
+                            color: "text.secondary",
+                          }}
+                        >
                           No retail bills yet.
                         </TableCell>
                       </TableRow>
                     ) : (
                       retailSales.slice(0, 8).map((sale) => (
                         <TableRow key={sale.id} hover>
-                          <TableCell sx={{ fontWeight: 700 }}>{sale.id}</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>
+                            {sale.id}
+                          </TableCell>
                           <TableCell>
-                            <Typography variant="body2">{sale.customerName}</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {sale.mobile || '--'}
+                            <Typography variant="body2">
+                              {sale.customerName}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {sale.mobile || "--"}
                             </Typography>
                           </TableCell>
                           <TableCell>{sale.items.length}</TableCell>
                           <TableCell>{sale.paymentMode}</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>{formatCurrency(sale.totalAmount)}</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>
+                            {formatCurrency(sale.totalAmount)}
+                          </TableCell>
                           <TableCell>{sale.createdAt}</TableCell>
                         </TableRow>
                       ))
@@ -1423,12 +1747,16 @@ export default function PharmacyDispensePage() {
       <Snackbar
         open={snackbar.open}
         autoHideDuration={2400}
-        onClose={() => setSnackbar((previous) => ({ ...previous, open: false }))}
+        onClose={() =>
+          setSnackbar((previous) => ({ ...previous, open: false }))
+        }
       >
         <Alert
           severity={snackbar.severity}
           variant="filled"
-          onClose={() => setSnackbar((previous) => ({ ...previous, open: false }))}
+          onClose={() =>
+            setSnackbar((previous) => ({ ...previous, open: false }))
+          }
         >
           {snackbar.message}
         </Alert>

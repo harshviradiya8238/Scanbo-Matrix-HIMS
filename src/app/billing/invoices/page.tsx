@@ -1,5 +1,5 @@
-import IpdChargeDrugPage from '@/src/screens/ipd/IpdChargeDrugPage';
+import AllInvoicesPage from "@/src/screens/billing/AllInvoicesPage";
 
 export default function InvoicesPage() {
-  return <IpdChargeDrugPage defaultView="invoices" />;
+  return <AllInvoicesPage />;
 }

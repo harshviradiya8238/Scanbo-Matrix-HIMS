@@ -32,6 +32,7 @@ export {
   CardHeader,
   Collapse,
   Container,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,

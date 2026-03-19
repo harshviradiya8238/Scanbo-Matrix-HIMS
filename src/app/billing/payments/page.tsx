@@ -1,5 +1,5 @@
-import IpdChargeDrugPage from '@/src/screens/ipd/IpdChargeDrugPage';
+import PaymentReceiptsPage from "@/src/screens/billing/PaymentReceiptsPage";
 
-export default function PaymentsPage() {
-  return <IpdChargeDrugPage defaultView="payments" />;
+export default function PaymentsRoute() {
+  return <PaymentReceiptsPage />;
 }

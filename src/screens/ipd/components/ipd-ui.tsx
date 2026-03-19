@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { alpha } from '@/src/ui/theme';
-import { palette } from '@/src/core/theme/tokens';
-import { Box, Stack, Typography } from '@/src/ui/components/atoms';
-import { Card } from '@/src/ui/components/molecules';
+import * as React from "react";
+import { alpha } from "@/src/ui/theme";
+import { palette } from "@/src/core/theme/tokens";
+import { Box, Stack, Typography } from "@/src/ui/components/atoms";
+import { Card } from "@/src/ui/components/molecules";
 
 export const IPD_COLORS = {
   primary: palette.primary.main,
@@ -19,52 +19,49 @@ export const IPD_COLORS = {
   danger: palette.error.main,
 };
 
-export const IPD_FONT_SERIF = 'inherit';
-export const IPD_FONT_SANS = 'inherit';
+export const IPD_FONT_SERIF = "inherit";
+export const IPD_FONT_SANS = "inherit";
 
 export const ipdSurfaceCardSx = {
   borderRadius: 3,
-  border: '1px solid',
+  border: "1px solid",
   borderColor: alpha(IPD_COLORS.primary, 0.14),
-  boxShadow: '0 10px 28px rgba(10, 77, 104, 0.08)',
-  backgroundColor: '#FFFFFF',
+  boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
+  backgroundColor: "#FFFFFF",
 };
 
 export const ipdFormStylesSx = {
-  '& .MuiInputLabel-root': {
+  "& .MuiInputLabel-root": {
     fontSize: 13,
     fontWeight: 600,
     color: IPD_COLORS.textMain,
   },
-  '& .MuiInputBase-input': {
+  "& .MuiInputBase-input": {
     fontSize: 14,
     fontFamily: IPD_FONT_SANS,
   },
-  '& .MuiOutlinedInput-root': {
+  "& .MuiOutlinedInput-root": {
     borderRadius: 1.5,
-    backgroundColor: '#FFFFFF',
-    '& fieldset': {
+    backgroundColor: "#FFFFFF",
+    "& fieldset": {
       borderColor: IPD_COLORS.border,
     },
-    '&:hover fieldset': {
+    "&:hover fieldset": {
       borderColor: alpha(IPD_COLORS.primary, 0.55),
     },
-    '&.Mui-focused fieldset': {
+    "&.Mui-focused fieldset": {
       borderColor: IPD_COLORS.accent,
       boxShadow: `0 0 0 3px ${alpha(IPD_COLORS.accent, 0.14)}`,
     },
   },
-  '& .MuiFormHelperText-root': {
+  "& .MuiFormHelperText-root": {
     fontSize: 11,
   },
 };
 
-type MetricTone = 'primary' | 'success' | 'warning' | 'danger' | 'info';
+type MetricTone = "primary" | "success" | "warning" | "danger" | "info";
 
-const metricToneMap: Record<
-  MetricTone,
-  { accent: string }
-> = {
+const metricToneMap: Record<MetricTone, { accent: string }> = {
   primary: {
     accent: IPD_COLORS.primary,
   },
@@ -94,7 +91,7 @@ export function IpdMetricCard({
   label,
   value,
   trend,
-  tone = 'primary',
+  tone = "primary",
   icon,
 }: IpdMetricCardProps) {
   const toneConfig = metricToneMap[tone];
@@ -106,9 +103,9 @@ export function IpdMetricCard({
         ...ipdSurfaceCardSx,
         p: 2,
         borderRadius: 2,
-        border: '1px solid',
+        border: "1px solid",
         borderColor: alpha(palette.primary.main, 0.1),
-        boxShadow: 'none',
+        boxShadow: "none",
         backgroundColor: alpha(palette.primary.main, 0.06),
       }}
     >
@@ -117,9 +114,9 @@ export function IpdMetricCard({
           <Typography
             variant="body2"
             sx={{
-              display: 'block',
+              display: "block",
               fontWeight: 500,
-              color: 'text.secondary',
+              color: "text.secondary",
               fontFamily: IPD_FONT_SANS,
             }}
           >
@@ -131,7 +128,7 @@ export function IpdMetricCard({
               mt: 0.15,
               fontWeight: 700,
               lineHeight: 1.2,
-              color: 'text.primary',
+              color: "text.primary",
               fontFamily: IPD_FONT_SERIF,
             }}
           >
@@ -141,9 +138,9 @@ export function IpdMetricCard({
             <Typography
               variant="body2"
               sx={{
-                display: 'block',
+                display: "block",
                 mt: 0.1,
-                color: 'text.secondary',
+                color: "text.secondary",
                 fontFamily: IPD_FONT_SANS,
               }}
             >
@@ -157,9 +154,9 @@ export function IpdMetricCard({
             sx={{
               width: 54,
               height: 54,
-              borderRadius: '50%',
-              display: 'grid',
-              placeItems: 'center',
+              borderRadius: "50%",
+              display: "grid",
+              placeItems: "center",
               color: toneConfig.accent,
               backgroundColor: alpha(palette.primary.main, 0.12),
             }}
@@ -194,19 +191,19 @@ export function IpdSectionCard({
       elevation={0}
       sx={{
         ...ipdSurfaceCardSx,
-        overflow: 'hidden',
+        overflow: "hidden",
         ...sx,
       }}
     >
       <Stack
-        direction={{ xs: 'column', md: 'row' }}
+        direction={{ xs: "column", md: "row" }}
         spacing={1.25}
         justifyContent="space-between"
-        alignItems={{ xs: 'flex-start', md: 'center' }}
+        alignItems={{ xs: "flex-start", md: "center" }}
         sx={{
           px: { xs: 2, sm: 2.5 },
           py: { xs: 1.75, sm: 2 },
-          borderBottom: '1px solid',
+          borderBottom: "1px solid",
           borderColor: IPD_COLORS.border,
           background: `linear-gradient(135deg, ${alpha(IPD_COLORS.primary, 0.04)} 0%, ${alpha(IPD_COLORS.accent, 0.04)} 100%)`,
         }}
@@ -239,7 +236,9 @@ export function IpdSectionCard({
         {action ? <Box>{action}</Box> : null}
       </Stack>
 
-      <Box sx={{ px: { xs: 2, sm: 2.5 }, py: { xs: 2, sm: 2.5 }, ...bodySx }}>{children}</Box>
+      <Box sx={{ px: { xs: 2, sm: 2.5 }, py: { xs: 2, sm: 2.5 }, ...bodySx }}>
+        {children}
+      </Box>
     </Card>
   );
 }
@@ -254,7 +253,7 @@ export function IpdInfoBox({ title, description }: IpdInfoBoxProps) {
     <Box
       sx={{
         borderRadius: 1.75,
-        border: '1px solid',
+        border: "1px solid",
         borderColor: alpha(IPD_COLORS.accent, 0.35),
         borderLeftWidth: 4,
         px: 2,
@@ -264,13 +263,22 @@ export function IpdInfoBox({ title, description }: IpdInfoBoxProps) {
     >
       <Typography
         variant="body2"
-        sx={{ fontWeight: 700, color: IPD_COLORS.primary, fontFamily: IPD_FONT_SANS }}
+        sx={{
+          fontWeight: 700,
+          color: IPD_COLORS.primary,
+          fontFamily: IPD_FONT_SANS,
+        }}
       >
         {title}
       </Typography>
       <Typography
         variant="caption"
-        sx={{ display: 'block', mt: 0.4, color: IPD_COLORS.textMuted, fontFamily: IPD_FONT_SANS }}
+        sx={{
+          display: "block",
+          mt: 0.4,
+          color: IPD_COLORS.textMuted,
+          fontFamily: IPD_FONT_SANS,
+        }}
       >
         {description}
       </Typography>

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import type { SxProps, Theme } from '@/src/ui/theme';
-import { Box, Divider, Stack, Typography } from '@/src/ui/components/atoms';
-import { Card } from '@/src/ui/components/molecules';
+import * as React from "react";
+import type { SxProps, Theme } from "@/src/ui/theme";
+import { Box, Divider, Stack, Typography } from "@/src/ui/components/atoms";
+import { Card } from "@/src/ui/components/molecules";
 
 interface WorkflowSectionCardProps {
   title: string;
@@ -26,13 +26,18 @@ export default function WorkflowSectionCard({
       sx={{
         p: 0,
         borderRadius: 2.5,
-        border: '1px solid',
-        borderColor: 'divider',
+        border: "1px solid",
+        borderColor: "divider",
         ...sx,
       }}
     >
       <Box sx={{ px: 2, py: 1.5 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="flex-start"
+          spacing={1.5}
+        >
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
               {title}

@@ -62,6 +62,13 @@ import {
   EventNote,
   FamilyRestroom as FamilyRestroomIcon,
   Share as ShareIcon,
+  Pending as PendingIcon,
+  MenuBook as MenuBookIcon,
+  AccountBalance,
+  DashboardOutlined,
+  AccountBalanceWalletOutlined,
+  AssignmentReturnOutlined,
+  Shield,
 } from "@mui/icons-material";
 import { NAV_GROUPS } from "@/src/core/navigation/nav-config";
 import { MenuItem, UserRole } from "@/src/core/navigation/types";
@@ -132,6 +139,13 @@ const iconMap: Record<string, React.ComponentType> = {
   EventNote,
   FamilyRestroom: FamilyRestroomIcon,
   Share: ShareIcon,
+  Pending: PendingIcon,
+  MenuBook: MenuBookIcon,
+  AccountBalance,
+  DashboardOutlined,
+  AccountBalanceWalletOutlined,
+  AssignmentReturnOutlined,
+  Shield,
 };
 
 interface ModernSidebarProps {
@@ -175,7 +189,8 @@ export default function ModernSidebar({
         // Hide for excluded roles (e.g. doctor should not see Admission/Bed/Discharge menus)
         const isExcluded =
           item.excludedRoles?.some(
-            (r) => String(r).toUpperCase() === String(userRole ?? "").toUpperCase(),
+            (r) =>
+              String(r).toUpperCase() === String(userRole ?? "").toUpperCase(),
           ) ?? false;
         if (isExcluded) return false;
 
@@ -269,7 +284,8 @@ export default function ModernSidebar({
         // Hide for excluded roles (e.g. doctor should not see Admission & ADT in Recent)
         const isExcluded =
           item.excludedRoles?.some(
-            (r) => String(r).toUpperCase() === String(userRole ?? "").toUpperCase(),
+            (r) =>
+              String(r).toUpperCase() === String(userRole ?? "").toUpperCase(),
           ) ?? false;
 
         if (hasPerm && hasRole && !isExcluded) {

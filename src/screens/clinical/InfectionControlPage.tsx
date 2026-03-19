@@ -31,9 +31,14 @@ import {
   TextField,
   Typography,
 } from "@/src/ui/components/atoms";
+import CommonDataGrid, {
+  CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
+import { SelectChangeEvent } from "@mui/material";
 import {
   Card,
   CommonDialog,
+  StatTile,
   WorkspaceHeaderCard,
 } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
@@ -83,7 +88,6 @@ import {
   INFECTION_CONTROL_CASES,
   type InfectionCase,
 } from "@/src/mocks/infection-control";
-import { IpdMetricCard } from "@/src/screens/ipd/components/ipd-ui";
 
 type CaseStatus = "Active" | "Monitoring" | "Closed";
 type IcStatus = "Detected" | "Isolating" | "Notified" | "In Audit" | "Closed";
@@ -1003,6 +1007,11 @@ export default function InfectionControlPage() {
   const mrnParam = useMrnParam();
   const { permissions } = useUser();
   const can = usePermission();
+  const canWrite = can("clinical.infection_control.write");
+  const canNavigate = React.useCallback(
+    (route: string) => canAccessRoute(route, permissions),
+    [permissions],
+  );
   const [cases, setCases] = React.useState<InfectionCase[]>(INITIAL_CASES);
   const [isolations, setIsolations] =
     React.useState<IsolationRoom[]>(INITIAL_ISOLATIONS);
@@ -1082,8 +1091,6 @@ export default function InfectionControlPage() {
   const menuOpen = Boolean(menuAnchorEl);
 
   const [search, setSearch] = React.useState("");
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
   const [caseForm, setCaseForm] = React.useState<{
     patientSelect: string | null;
@@ -1274,6 +1281,49 @@ export default function InfectionControlPage() {
     });
   };
 
+  const stakeholderColumns = React.useMemo<
+    CommonColumn<StakeholderStatusItem>[]
+  >(
+    () => [
+      {
+        headerName: "Role",
+        field: "role",
+        width: 150,
+      },
+      {
+        headerName: "Channel",
+        field: "channel",
+        width: 120,
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 120,
+        renderCell: (row) => (
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Box
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                bgcolor:
+                  row.status === "sent"
+                    ? "success.main"
+                    : row.status === "pending" || row.status === "queued"
+                      ? "warning.main"
+                      : "grey.400",
+              }}
+            />
+            <Typography variant="body2" sx={{ textTransform: "capitalize" }}>
+              {row.status}
+            </Typography>
+          </Stack>
+        ),
+      },
+    ],
+    [],
+  );
+
   const handleCreateCase = () => {
     const sel = caseForm.patientSelect
       ? IPD_PATIENTS.find(
@@ -1437,11 +1487,305 @@ export default function InfectionControlPage() {
     });
   };
 
-  const canNavigate = React.useCallback(
-    (route: string) => canAccessRoute(route, permissions),
-    [permissions],
+  const columns = React.useMemo<CommonColumn<InfectionCase>[]>(
+    () => [
+      {
+        field: "patientName",
+        headerName: "Patient",
+        width: 250,
+        renderCell: (row) => {
+          const initials = row.patientName
+            .split(" ")
+            .map((p: string) => p[0])
+            .join("")
+            .substring(0, 2)
+            .toUpperCase();
+          return (
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Avatar
+                sx={{
+                  width: 36,
+                  height: 36,
+                  bgcolor: alpha(theme.palette.primary.main, 0.12),
+                  color: "primary.main",
+                  fontWeight: 800,
+                  fontSize: 14,
+                }}
+              >
+                {initials}
+              </Avatar>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                }}
+              >
+                <Typography
+                  component="button"
+                  variant="body2"
+                  sx={{
+                    fontWeight: 700,
+                    color: "text.primary",
+                    border: "none",
+                    background: "none",
+                    cursor: "pointer",
+                    p: 0,
+                    textAlign: "left",
+                    "&:hover": { color: "primary.main" },
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/patients/profile?mrn=${row.mrn}`);
+                  }}
+                >
+                  {row.patientName}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {row.mrn} · {row.unit}
+                </Typography>
+              </Box>
+            </Stack>
+          );
+        },
+      },
+      { field: "bed", headerName: "Bed" },
+      {
+        field: "organism",
+        headerName: "Pathogen",
+        renderCell: (row) => (
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                bgcolor:
+                  row.organism === "MRSA" || row.organism === "VRE"
+                    ? "error.main"
+                    : row.organism === "C. diff"
+                      ? "warning.main"
+                      : "info.main",
+              }}
+            />
+            {row.organism}
+          </Stack>
+        ),
+      },
+      {
+        field: "isolationType",
+        headerName: "Isolation",
+        renderCell: (row) => (
+          <Chip
+            size="small"
+            label={row.isolationType.toUpperCase()}
+            sx={{
+              fontWeight: 600,
+              bgcolor:
+                row.isolationType === "Airborne"
+                  ? alpha(theme.palette.error.main, 0.12)
+                  : row.isolationType === "Contact"
+                    ? alpha(theme.palette.warning.main, 0.12)
+                    : alpha(theme.palette.info.main, 0.12),
+              color:
+                row.isolationType === "Airborne"
+                  ? "error.dark"
+                  : row.isolationType === "Contact"
+                    ? "warning.dark"
+                    : "info.dark",
+            }}
+          />
+        ),
+      },
+      {
+        field: "ipdStatus",
+        headerName: "IPD Status",
+        renderCell: (row) => (
+          <Chip
+            size="small"
+            icon={
+              <Box
+                sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  bgcolor:
+                    row.ipdStatus === "Critical"
+                      ? "error.main"
+                      : row.ipdStatus === "Watch"
+                        ? "warning.main"
+                        : "success.main",
+                }}
+              />
+            }
+            label={row.ipdStatus}
+            sx={{
+              fontWeight: 600,
+              "& .MuiChip-icon": { ml: 0.5 },
+            }}
+          />
+        ),
+      },
+      {
+        field: "icStatus",
+        headerName: "IC Status",
+        renderCell: (row) => (
+          <Chip
+            size="small"
+            icon={
+              <Box
+                sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  bgcolor:
+                    row.icStatus === "Isolating"
+                      ? "error.main"
+                      : row.icStatus === "Notified" ||
+                          row.icStatus === "Detected"
+                        ? "warning.main"
+                        : row.icStatus === "In Audit"
+                          ? "secondary.main"
+                          : "success.main",
+                }}
+              />
+            }
+            label={row.icStatus}
+            sx={{
+              fontWeight: 600,
+              "& .MuiChip-icon": { ml: 0.5 },
+            }}
+          />
+        ),
+      },
+      {
+        field: "clinicalLinks",
+        headerName: "Clinical Links",
+        align: "center",
+        renderCell: (row) => (
+          <Tooltip title="Related Clinical Links">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMenuOpen(e, row.mrn);
+              }}
+              sx={{
+                color: "primary.main",
+                bgcolor: alpha(theme.palette.primary.main, 0.06),
+                "&:hover": {
+                  bgcolor: alpha(theme.palette.primary.main, 0.12),
+                },
+                border: "1px solid",
+                borderColor: alpha(theme.palette.primary.main, 0.2),
+              }}
+            >
+              <OpenInNewIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+        ),
+      },
+      {
+        field: "actions",
+        headerName: "Action",
+        align: "center",
+        renderCell: (row) => (
+          <Stack direction="row" spacing={0.5} justifyContent="center">
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedCaseId(row.id);
+                setCaseDetailOpen(true);
+              }}
+              sx={{ px: 2 }}
+            >
+              View
+            </Button>
+            {row.icStatus === "Detected" && (
+              <Button
+                size="small"
+                variant="contained"
+                disabled={!canWrite}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openIsolateDialog(row);
+                }}
+                sx={{ px: 2 }}
+              >
+                Isolate
+              </Button>
+            )}
+            {row.icStatus === "Isolating" && (
+              <Button
+                size="small"
+                variant="contained"
+                disabled={!canWrite}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCases((prev) =>
+                    prev.map((c) =>
+                      c.id === row.id
+                        ? {
+                            ...c,
+                            icStatus: "Notified" as IcStatus,
+                          }
+                        : c,
+                    ),
+                  );
+                }}
+                sx={{ px: 2 }}
+              >
+                Notify
+              </Button>
+            )}
+            {row.icStatus === "Notified" && (
+              <Button
+                size="small"
+                variant="contained"
+                color="secondary"
+                disabled={!canWrite}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCases((prev) =>
+                    prev.map((c) =>
+                      c.id === row.id
+                        ? {
+                            ...c,
+                            icStatus: "In Audit" as IcStatus,
+                          }
+                        : c,
+                    ),
+                  );
+                }}
+                sx={{ borderRadius: "20px", px: 2 }}
+              >
+                Audit
+              </Button>
+            )}
+            {row.icStatus === "In Audit" && (
+              <Button
+                size="small"
+                variant="contained"
+                color="success"
+                disabled={!canWrite}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openCloseCaseDialog(row);
+                }}
+                sx={{ px: 2 }}
+              >
+                Close?
+              </Button>
+            )}
+          </Stack>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [theme, router, handleMenuOpen, canWrite],
   );
-  const canWrite = can("clinical.infection_control.write");
 
   const tabCounts = React.useMemo(() => {
     const counts: Record<(typeof FLOW_TAB_IDS)[number], number> = {
@@ -1454,571 +1798,218 @@ export default function InfectionControlPage() {
     return counts;
   }, [cases]);
 
-  const filteredCases = React.useMemo(() => {
-    const targetStatus = IC_STATUS_BY_TAB[activeTab];
-    let list = cases.filter((c) => c.icStatus === targetStatus);
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (c) =>
-          c.patientName.toLowerCase().includes(q) ||
-          c.mrn.toLowerCase().includes(q) ||
-          c.organism.toLowerCase().includes(q),
-      );
-    }
-    return list;
-  }, [cases, activeTab, search]);
-
-  const pagedCases = React.useMemo(() => {
-    return filteredCases.slice(
-      page * rowsPerPage,
-      page * rowsPerPage + rowsPerPage,
-    );
-  }, [filteredCases, page, rowsPerPage]);
-
-  const handleChangePage = (_: any, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  React.useEffect(() => {
-    setPage(0);
-  }, [activeTab]);
-
   const flowTabs: CommonTabItem<(typeof FLOW_TAB_IDS)[number]>[] = [
-    { id: "detect", label: `Detect ${tabCounts.detect}`, icon: <SearchIcon /> },
+    {
+      id: "detect",
+      label: (
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            Detect
+          </Typography>
+          <Box
+            sx={{
+              px: 0.8,
+              py: 0.15,
+              borderRadius: "6px",
+              bgcolor:
+                activeTab === "detect"
+                  ? alpha("#fff", 0.2)
+                  : alpha(theme.palette.primary.main, 0.08),
+              color:
+                activeTab === "detect" ? "inherit" : theme.palette.primary.main,
+              fontSize: "0.7rem",
+              fontWeight: 800,
+              minWidth: 20,
+              textAlign: "center",
+            }}
+          >
+            {tabCounts.detect}
+          </Box>
+        </Stack>
+      ),
+      icon: <SearchIcon />,
+    },
     {
       id: "isolate",
-      label: `Isolate ${tabCounts.isolate}`,
+      label: (
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            Isolate
+          </Typography>
+          <Box
+            sx={{
+              px: 0.8,
+              py: 0.15,
+              borderRadius: "6px",
+              bgcolor:
+                activeTab === "isolate"
+                  ? alpha("#fff", 0.2)
+                  : alpha(theme.palette.primary.main, 0.08),
+              color:
+                activeTab === "isolate"
+                  ? "inherit"
+                  : theme.palette.primary.main,
+              fontSize: "0.7rem",
+              fontWeight: 800,
+              minWidth: 20,
+              textAlign: "center",
+            }}
+          >
+            {tabCounts.isolate}
+          </Box>
+        </Stack>
+      ),
       icon: <HealthAndSafetyIcon />,
     },
     {
       id: "notify",
-      label: `Notify ${tabCounts.notify}`,
+      label: (
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            Notify
+          </Typography>
+          <Box
+            sx={{
+              px: 0.8,
+              py: 0.15,
+              borderRadius: "6px",
+              bgcolor:
+                activeTab === "notify"
+                  ? alpha("#fff", 0.2)
+                  : alpha(theme.palette.primary.main, 0.08),
+              color:
+                activeTab === "notify" ? "inherit" : theme.palette.primary.main,
+              fontSize: "0.7rem",
+              fontWeight: 800,
+              minWidth: 20,
+              textAlign: "center",
+            }}
+          >
+            {tabCounts.notify}
+          </Box>
+        </Stack>
+      ),
       icon: <NotificationsIcon />,
     },
     {
       id: "audit",
-      label: `Audit ${tabCounts.audit}`,
+      label: (
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            Audit
+          </Typography>
+          <Box
+            sx={{
+              px: 0.8,
+              py: 0.15,
+              borderRadius: "6px",
+              bgcolor:
+                activeTab === "audit"
+                  ? alpha("#fff", 0.2)
+                  : alpha(theme.palette.primary.main, 0.08),
+              color:
+                activeTab === "audit" ? "inherit" : theme.palette.primary.main,
+              fontSize: "0.7rem",
+              fontWeight: 800,
+              minWidth: 20,
+              textAlign: "center",
+            }}
+          >
+            {tabCounts.audit}
+          </Box>
+        </Stack>
+      ),
       icon: <AssignmentTurnedInIcon />,
     },
     {
       id: "close",
-      label: `Close ${tabCounts.close}`,
+      label: (
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            Close
+          </Typography>
+          <Box
+            sx={{
+              px: 0.8,
+              py: 0.15,
+              borderRadius: "6px",
+              bgcolor:
+                activeTab === "close"
+                  ? alpha("#fff", 0.2)
+                  : alpha(theme.palette.primary.main, 0.08),
+              color:
+                activeTab === "close" ? "inherit" : theme.palette.primary.main,
+              fontSize: "0.7rem",
+              fontWeight: 800,
+              minWidth: 20,
+              textAlign: "center",
+            }}
+          >
+            {tabCounts.close}
+          </Box>
+        </Stack>
+      ),
       icon: <CheckCircleIcon />,
     },
   ];
 
-  const TABLE_HEADER_SX = {
-    fontWeight: 700,
-    textTransform: "uppercase" as const,
-    fontSize: "0.7rem",
-    letterSpacing: "0.06em",
-    color: "text.secondary",
-    py: 1.25,
-    borderBottom: "1px solid",
-    borderColor: alpha(theme.palette.primary.main, 0.12),
-    bgcolor: alpha(theme.palette.primary.main, 0.03),
-    whiteSpace: "nowrap" as const,
-  };
+  // const TABLE_HEADER_SX = {
+  //   fontWeight: 700,
+  //   textTransform: "uppercase" as const,
+  //   fontSize: "0.7rem",
+  //   letterSpacing: "0.06em",
+  //   color: "text.secondary",
+  //   py: 1.25,
+  //   borderBottom: "1px solid",
+  //   borderColor: alpha(theme.palette.primary.main, 0.12),
+  //   bgcolor: alpha(theme.palette.primary.main, 0.03),
+  //   whiteSpace: "nowrap" as const,
+  // };
 
-  const casesTableTitle =
-    activeTab === "isolate"
-      ? "Isolation Cases"
-      : activeTab === "audit"
-        ? "Audit Cases"
-        : activeTab === "close"
-          ? "Closed Cases"
-          : "Active Infection Cases";
+  // const casesTableTitle =
+  //   activeTab === "isolate"
+  //     ? "Isolation Cases"
+  //     : activeTab === "audit"
+  //       ? "Audit Cases"
+  //       : activeTab === "close"
+  //         ? "Closed Cases"
+  //         : "Active Infection Cases";
 
   const casesTableBlock = (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: 2,
-        border: "1px solid",
-        borderColor: alpha(theme.palette.primary.main, 0.14),
-        overflow: "hidden",
-        boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
-      }}
-    >
-      <Stack spacing={1.5}>
-        <Card
-          elevation={0}
+    // <Paper
+    //   elevation={0}
+    //   sx={{
+    //     borderRadius: 2,
+    //     border: "1px solid",
+    //     borderColor: alpha(theme.palette.primary.main, 0.14),
+    //     overflow: "hidden",
+    //     boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
+    //   }}
+    // >
+    <CommonDataGrid<InfectionCase>
+      rows={cases.filter((c) => c.icStatus === IC_STATUS_BY_TAB[activeTab])}
+      columns={columns}
+      getRowId={(row) => row.id}
+      showSerialNo={true}
+      searchPlaceholder="Search patient, MRN, organism..."
+      searchFields={["patientName", "mrn", "organism"]}
+      toolbarRight={
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<AddCircleIcon />}
+          disabled={!canWrite}
+          onClick={() => setCaseDialogOpen(true)}
           sx={{
-            p: 1.75,
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: "divider",
+            textTransform: "none",
+            fontWeight: 600,
+            px: 2,
           }}
         >
-          <Stack spacing={1.25}>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              justifyContent="space-between"
-              alignItems={{ xs: "flex-start", sm: "center" }}
-              flexWrap="wrap"
-              gap={1.5}
-              sx={{
-                pb: 1,
-                borderBottom: "1px solid",
-                borderColor: alpha(theme.palette.primary.main, 0.08),
-              }}
-            >
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  {casesTableTitle}
-                </Typography>
-                <Chip
-                  size="small"
-                  label="From IPD"
-                  variant="outlined"
-                  sx={{ fontWeight: 600 }}
-                />
-              </Stack>
-              <Stack
-                direction="row"
-                spacing={1.5}
-                alignItems="center"
-                flex={1}
-                justifyContent="flex-end"
-              >
-                <TextField
-                  placeholder="Search patient, MRN, organism..."
-                  size="small"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start" sx={{ pl: 0.5 }}>
-                        <SearchIcon
-                          sx={{ fontSize: 20, color: "text.secondary" }}
-                        />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    flex: 1,
-                    maxWidth: 350,
-                    "& .MuiOutlinedInput-root": {
-                      minHeight: 40,
-                      borderRadius: 2.5,
-                      fontSize: "0.875rem",
-                      backgroundColor: alpha(
-                        theme.palette.primary.main,
-                        0.04,
-                      ),
-                      "&:hover": {
-                        backgroundColor: alpha(
-                          theme.palette.primary.main,
-                          0.06,
-                        ),
-                      },
-                      "&.Mui-focused": {
-                        backgroundColor: "background.paper",
-                        "& fieldset": {
-                          borderColor: "primary.main",
-                        },
-                      },
-                    },
-                  }}
-                />
-                <Select
-                  size="small"
-                  value="all"
-                  sx={{
-                    minWidth: 120,
-                    "& .MuiSelect-select": { py: 0.75 },
-                    borderRadius: 2,
-                  }}
-                >
-                  <MenuItem value="all">All Status</MenuItem>
-                </Select>
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<AddCircleIcon />}
-                  disabled={!canWrite}
-                  onClick={() => setCaseDialogOpen(true)}
-                  sx={{
-                    textTransform: "none",
-                    fontWeight: 600,
-                    // borderRadius: "20px",
-                    px: 2,
-                  }}
-                >
-                  New Case
-                </Button>
-              </Stack>
-            </Stack>
-            <TableContainer
-              sx={{
-                borderRadius: 2,
-                overflow: "hidden",
-                border: "1px solid",
-                borderColor: alpha(theme.palette.primary.main, 0.1),
-              }}
-            >
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={TABLE_HEADER_SX}>MRN</TableCell>
-                    <TableCell sx={TABLE_HEADER_SX}>Patient</TableCell>
-                    <TableCell sx={TABLE_HEADER_SX}>Bed</TableCell>
-                    <TableCell sx={TABLE_HEADER_SX}>Pathogen</TableCell>
-                    <TableCell sx={TABLE_HEADER_SX}>Isolation</TableCell>
-                    <TableCell sx={TABLE_HEADER_SX}>IPD Status</TableCell>
-                    <TableCell sx={TABLE_HEADER_SX}>IC Status</TableCell>
-                    <TableCell align="center" sx={TABLE_HEADER_SX}>
-                      Clinical Links
-                    </TableCell>
-                    <TableCell
-                      sx={{ ...TABLE_HEADER_SX }}
-                      align="center"
-                    >
-                      Action
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {pagedCases.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      sx={{
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          bgcolor: alpha(
-                            theme.palette.primary.main,
-                            0.02,
-                          ),
-                          "& .MuiTableCell-root": {
-                            borderColor: alpha(
-                              theme.palette.primary.main,
-                              0.2,
-                            ),
-                          },
-                        },
-                      }}
-                    >
-                      <TableCell>
-                        <Typography
-                          component="button"
-                          variant="body2"
-                          sx={{
-                            fontWeight: 600,
-                            color: "primary.main",
-                            textDecoration: "underline",
-                            border: "none",
-                            background: "none",
-                            cursor: "pointer",
-                            p: 0,
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(
-                              `/patients/profile?mrn=${item.mrn}`,
-                            );
-                          }}
-                        >
-                          {item.mrn}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 600 }}
-                        >
-                          {item.patientName} · {item.unit}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{item.bed}</TableCell>
-                      <TableCell>
-                        <Stack
-                          direction="row"
-                          alignItems="center"
-                          spacing={0.5}
-                        >
-                          <Box
-                            sx={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: "50%",
-                              bgcolor:
-                                item.organism === "MRSA" ||
-                                item.organism === "VRE"
-                                  ? "error.main"
-                                  : item.organism === "C. diff"
-                                    ? "warning.main"
-                                    : "info.main",
-                            }}
-                          />
-                          {item.organism}
-                        </Stack>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={item.isolationType.toUpperCase()}
-                          sx={{
-                            fontWeight: 600,
-                            bgcolor:
-                              item.isolationType === "Airborne"
-                                ? alpha(
-                                    theme.palette.error.main,
-                                    0.12,
-                                  )
-                                : item.isolationType === "Contact"
-                                  ? alpha(
-                                      theme.palette.warning.main,
-                                      0.12,
-                                    )
-                                  : alpha(
-                                      theme.palette.info.main,
-                                      0.12,
-                                    ),
-                            color:
-                              item.isolationType === "Airborne"
-                                ? "error.dark"
-                                : item.isolationType === "Contact"
-                                  ? "warning.dark"
-                                  : "info.dark",
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          icon={
-                            <Box
-                              sx={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: "50%",
-                                bgcolor:
-                                  item.ipdStatus === "Critical"
-                                    ? "error.main"
-                                    : item.ipdStatus === "Watch"
-                                      ? "warning.main"
-                                      : "success.main",
-                              }}
-                            />
-                          }
-                          label={item.ipdStatus}
-                          sx={{
-                            fontWeight: 600,
-                            "& .MuiChip-icon": { ml: 0.5 },
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          icon={
-                            <Box
-                              sx={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: "50%",
-                                bgcolor:
-                                  item.icStatus === "Isolating"
-                                    ? "error.main"
-                                    : item.icStatus === "Notified" ||
-                                        item.icStatus === "Detected"
-                                      ? "warning.main"
-                                      : item.icStatus === "In Audit"
-                                        ? "secondary.main"
-                                        : "success.main",
-                              }}
-                            />
-                          }
-                          label={item.icStatus}
-                          sx={{
-                            fontWeight: 600,
-                            "& .MuiChip-icon": { ml: 0.5 },
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Related Clinical Links">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMenuOpen(e, item.mrn);
-                            }}
-                            sx={{
-                              color: "primary.main",
-                              bgcolor: alpha(
-                                theme.palette.primary.main,
-                                0.06,
-                              ),
-                              "&:hover": {
-                                bgcolor: alpha(
-                                  theme.palette.primary.main,
-                                  0.12,
-                                ),
-                              },
-                              border: "1px solid",
-                              borderColor: alpha(
-                                theme.palette.primary.main,
-                                0.2,
-                              ),
-                            }}
-                          >
-                            <OpenInNewIcon sx={{ fontSize: 18 }} />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Stack
-                          direction="row"
-                          spacing={0.5}
-                          justifyContent="center"
-                        >
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedCaseId(item.id);
-                              setCaseDetailOpen(true);
-                            }}
-                            sx={{ 
-                              // borderRadius: "20px",
-                               px: 2 }}
-                          >
-                            View
-                          </Button>
-                          {item.icStatus === "Detected" && (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              disabled={!canWrite}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openIsolateDialog(item);
-                              }}
-                              sx={{ 
-                                // borderRadius: "20px", 
-                                px: 2 }}
-                            >
-                              Isolate
-                            </Button>
-                          )}
-                          {item.icStatus === "Isolating" && (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              disabled={!canWrite}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCases((prev) =>
-                                  prev.map((c) =>
-                                    c.id === item.id
-                                      ? {
-                                          ...c,
-                                          icStatus:
-                                            "Notified" as IcStatus,
-                                        }
-                                      : c,
-                                  ),
-                                );
-                              }}
-                              sx={{ 
-                                // borderRadius: "20px",
-                                 px: 2 }}
-                            >
-                              Notify
-                            </Button>
-                          )}
-                          {item.icStatus === "Notified" && (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="secondary"
-                              disabled={!canWrite}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCases((prev) =>
-                                  prev.map((c) =>
-                                    c.id === item.id
-                                      ? {
-                                          ...c,
-                                          icStatus:
-                                            "In Audit" as IcStatus,
-                                        }
-                                      : c,
-                                  ),
-                                );
-                              }}
-                              sx={{ borderRadius: "20px", px: 2 }}
-                            >
-                              Audit
-                            </Button>
-                          )}
-                          {item.icStatus === "In Audit" && (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="success"
-                              disabled={!canWrite}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openCloseCaseDialog(item);
-                              }}
-                              sx={{ 
-                                // borderRadius: "20px",
-                                 px: 2 }}
-                            >
-                              Close?
-                            </Button>
-                          )}
-                          {item.icStatus === "Closed" && null}
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredCases.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={9}>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ py: 2, textAlign: "center" }}
-                        >
-                          No cases in this status.
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              <TablePagination
-                component="div"
-                count={filteredCases.length}
-                page={page}
-                onPageChange={handleChangePage}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-                rowsPerPageOptions={[5, 10, 25]}
-                sx={{
-                  borderTop: "1px solid",
-                  borderColor: "divider",
-                  bgcolor: alpha(theme.palette.primary.main, 0.02),
-                }}
-              />
-            </TableContainer>
-          </Stack>
-        </Card>
-      </Stack>
-    </Paper>
+          New Case
+        </Button>
+      }
+    />
   );
 
   return (
@@ -2030,11 +2021,6 @@ export default function InfectionControlPage() {
       <Stack spacing={1.5}>
         <WorkspaceHeaderCard>
           <Stack spacing={1.25}>
-            {/* <Stack direction="row" spacing={1} flexWrap="wrap">
-              <Chip size="small" label="Clinical" color="primary" />
-              <Chip size="small" label="Infection Prevention" variant="outlined" />
-              <Chip size="small" label="Implemented" color="success" variant="filled" />
-            </Stack> */}
             <Stack
               direction={{ xs: "column", md: "row" }}
               spacing={1.5}
@@ -2092,33 +2078,33 @@ export default function InfectionControlPage() {
             },
           }}
         >
-          <IpdMetricCard
+          <StatTile
             label="Active Cases"
             value={cases.filter((item) => item.status === "Active").length}
-            trend="Under investigation"
-            icon={<BugReportIcon sx={{ fontSize: 22 }} />}
-            tone="warning"
+            subtitle="Under investigation"
+            icon={<BugReportIcon sx={{ fontSize: 24 }} />}
+            tone="primary"
           />
-          <IpdMetricCard
+          <StatTile
             label="Isolation Rooms"
             value={isolations.filter((room) => room.status === "Active").length}
-            trend="Currently active"
-            icon={<HealthAndSafetyIcon sx={{ fontSize: 22 }} />}
-            tone="info"
+            subtitle="Currently active"
+            icon={<HealthAndSafetyIcon sx={{ fontSize: 24 }} />}
+            tone="primary"
           />
-          <IpdMetricCard
+          <StatTile
             label="Alerts"
             value={alerts.filter((alert) => !alert.acknowledged).length}
-            trend="Need attention"
-            icon={<WarningAmberIcon sx={{ fontSize: 22 }} />}
-            tone="danger"
+            subtitle="Need attention"
+            icon={<WarningAmberIcon sx={{ fontSize: 24 }} />}
+            tone="primary"
           />
-          <IpdMetricCard
+          <StatTile
             label="Compliance"
             value="92%"
-            trend="Last 7 days"
-            icon={<CheckCircleIcon sx={{ fontSize: 22 }} />}
-            tone="success"
+            subtitle="Last 7 days"
+            icon={<CheckCircleIcon sx={{ fontSize: 24 }} />}
+            tone="primary"
           />
         </Box>
 
@@ -2128,20 +2114,14 @@ export default function InfectionControlPage() {
           onChange={(v) => setActiveTab(v)}
           variant="scrollable"
           sx={{
-            borderTop: "1px solid",
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            py: 0.5,
-            "& .MuiTabs-flexContainer": { gap: 0 },
+            "& .MuiTabs-flexContainer": { gap: 1 },
             "& .MuiTab-root": {
-              // borderRight: '1px solid',
-              borderColor: "divider",
-              borderRadius: 1,
+              borderRadius: 2,
               minWidth: "auto",
+              minHeight: 44,
+              px: 2.5,
+              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
             },
-            // '& .MuiTab-root:last-of-type': {
-            //   borderRight: 'none',
-            // },
           }}
         />
 
@@ -2564,74 +2544,6 @@ export default function InfectionControlPage() {
                 >
                   <Stack spacing={1.25}>
                     <Stack direction="row" alignItems="center" spacing={0.75}>
-                      <GroupIcon sx={{ fontSize: 18, color: "primary.main" }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        Stakeholder Status
-                      </Typography>
-                    </Stack>
-                    <TableContainer
-                      sx={{ borderRadius: 1.5, overflow: "hidden" }}
-                    >
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell sx={TABLE_HEADER_SX}>Role</TableCell>
-                            <TableCell sx={TABLE_HEADER_SX}>Channel</TableCell>
-                            <TableCell sx={TABLE_HEADER_SX}>Status</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {STAKEHOLDER_STATUS.map((row) => (
-                            <TableRow key={row.id} hover>
-                              <TableCell>{row.role}</TableCell>
-                              <TableCell>{row.channel}</TableCell>
-                              <TableCell>
-                                <Stack
-                                  direction="row"
-                                  alignItems="center"
-                                  spacing={0.5}
-                                >
-                                  <Box
-                                    sx={{
-                                      width: 6,
-                                      height: 6,
-                                      borderRadius: "50%",
-                                      bgcolor:
-                                        row.status === "sent"
-                                          ? "success.main"
-                                          : row.status === "pending" ||
-                                              row.status === "queued"
-                                            ? "warning.main"
-                                            : "grey.400",
-                                    }}
-                                  />
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ textTransform: "capitalize" }}
-                                  >
-                                    {row.status}
-                                  </Typography>
-                                </Stack>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Stack>
-                </Card>
-                <Card
-                  elevation={0}
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    border: "1px solid",
-                    borderColor: alpha(theme.palette.primary.main, 0.14),
-                    boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
-                  }}
-                >
-                  <Stack spacing={1.25}>
-                    <Stack direction="row" alignItems="center" spacing={0.75}>
                       <SendIcon sx={{ fontSize: 18, color: "primary.main" }} />
                       <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                         Send To
@@ -2678,6 +2590,32 @@ export default function InfectionControlPage() {
                     >
                       Configure & Send
                     </Button>
+                  </Stack>
+                </Card>
+
+                <Card
+                  elevation={0}
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    // border: "1px solid",
+                    // borderColor: alpha(theme.palette.primary.main, 0.14),
+                    boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
+                  }}
+                >
+                  <Stack spacing={1.25}>
+                    <Stack direction="row" alignItems="center" spacing={0.75}>
+                      <GroupIcon sx={{ fontSize: 18, color: "primary.main" }} />
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        Stakeholder Status
+                      </Typography>
+                    </Stack>
+                    <CommonDataGrid<StakeholderStatusItem>
+                      rows={STAKEHOLDER_STATUS}
+                      columns={stakeholderColumns}
+                      getRowId={(row) => row.id}
+                      emptyTitle="No stakeholder status data found."
+                    />
                   </Stack>
                 </Card>
               </Stack>
