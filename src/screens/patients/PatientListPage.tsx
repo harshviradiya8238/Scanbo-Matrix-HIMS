@@ -130,9 +130,7 @@ export default function PatientListPage() {
   const [columnVisModel, setColumnVisModel] = React.useState<Record<string, boolean> | null>(null);
   const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = React.useState<number | null>(null);
-  const [viewsAnchor, setViewsAnchor] = React.useState<null | HTMLElement>(
-    null,
-  );
+  
   const [confirmAction, setConfirmAction] = React.useState<{
     title: string;
     description: string;
