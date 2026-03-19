@@ -357,60 +357,6 @@ export default function DoctorListPage() {
       {
         field: "actions",
         headerName: "Actions",
-        type: "actions",
-        width: 100,
-        getActions: (params) => [
-          <GridActionsCellItem
-            key="view"
-            label="View profile"
-            onClick={() =>
-              router.push(`/doctors/profile?doctorId=${encodeURIComponent(params.row.doctorId)}`)
-            }
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="edit"
-            label="Edit doctor"
-            onClick={() => setSnackbar("Edit doctor (stub)")}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="schedule"
-            label="View schedule"
-            onClick={() => setSnackbar("View schedule (stub)")}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="assign"
-            label="Assign patients"
-            onClick={() => setSnackbar("Assign patients (stub)")}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="leave"
-            label="Mark on leave"
-            onClick={() =>
-              setConfirmAction({
-                title: "Mark doctor on leave?",
-                description: `${params.row.name} will be marked as On Leave and unavailable for appointments.`,
-                onConfirm: () => setSnackbar("Marked on leave (stub)"),
-              })
-            }
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="deactivate"
-            label="Deactivate"
-            onClick={() =>
-              setConfirmAction({
-                title: "Deactivate doctor account?",
-                description: `This will deactivate ${params.row.name}'s account and prevent login.`,
-                onConfirm: () => setSnackbar("Deactivated (stub)"),
-              })
-            }
-            showInMenu
-          />,
-        ],
         width: 60,
         align: "center",
         renderCell: (row: DoctorRow) => (
