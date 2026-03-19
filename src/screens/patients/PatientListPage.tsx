@@ -3,20 +3,20 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/src/core/auth/UserContext';
-import { Avatar, Box, Button, Chip, Drawer, FormControl, IconButton, InputLabel, Menu, MenuItem, Select, SelectChangeEvent, Slider, Stack, TextField, Typography, Snackbar, Alert, Divider, Autocomplete } from '@/src/ui/components/atoms';
+import { Avatar, Box, Button, Chip, Drawer, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, SelectChangeEvent, Slider, Stack, TextField, Typography, Snackbar, Alert, Divider, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, Checkbox } from '@/src/ui/components/atoms';
 import { Card, CommonDialog, StatTile } from '@/src/ui/components/molecules';
+import { alpha } from '@mui/material';
 import {
   Add as AddIcon,
   AssignmentLate as AssignmentLateIcon,
-  CloudUpload as CloudUploadIcon,
-  FileDownload as FileDownloadIcon,
   FilterList as FilterListIcon,
   Hotel as HotelIcon,
-  MoreVert as MoreVertIcon,
   PeopleAlt as PeopleAltIcon,
   PersonAddAlt as PersonAddAltIcon,
   Close as CloseIcon,
+  DragHandle as DragHandleIcon,
 } from '@mui/icons-material';
+import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import {
   GridActionsCellItem,
   GridColDef,
@@ -37,6 +37,26 @@ const statusColors: Record<string, 'success' | 'warning' | 'error' | 'info' | 'd
 const tagOptions = ['VIP', 'High Risk', 'Diabetic', 'Hypertension', 'Pregnancy', 'Allergy'];
 
 const defaultFilterModel: GridFilterModel = { items: [], quickFilterValues: [] };
+const maskPhoneNumber = (phone: string) => {
+  const input = (phone || '').trim();
+  if (!input) return '—';
+
+  const allDigits = input.match(/\d/g) || [];
+  const totalDigits = allDigits.length;
+  if (totalDigits <= 4) return input;
+
+  // Keep country code visible when number starts with a + prefix (e.g. +91).
+  const countryMatch = input.match(/^\+(\d{1,3})/);
+  const keepPrefixDigits = countryMatch ? countryMatch[1].length : 0;
+  const localVisibleStart = totalDigits - 4 + 1;
+
+  let seen = 0;
+  return input.replace(/\d/g, (digit) => {
+    seen += 1;
+    if (seen <= keepPrefixDigits) return digit;
+    return seen >= localVisibleStart ? digit : 'X';
+  });
+};
 
 export default function PatientListPage() {
   const router = useRouter();
@@ -48,8 +68,11 @@ export default function PatientListPage() {
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [selectedPatient, setSelectedPatient] = React.useState<PatientRow | null>(null);
   const [snackbar, setSnackbar] = React.useState<string | null>(null);
-  const [viewsAnchor, setViewsAnchor] = React.useState<null | HTMLElement>(null);
   const [externalState, setExternalState] = React.useState<CommonDataGridState | null>(null);
+  const [columnsDialogOpen, setColumnsDialogOpen] = React.useState(false);
+  const [columnVisModel, setColumnVisModel] = React.useState<Record<string, boolean> | null>(null);
+  const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
+  const [draggedIndex, setDraggedIndex] = React.useState<number | null>(null);
   const [confirmAction, setConfirmAction] = React.useState<{
     title: string;
     description: string;
@@ -109,6 +132,11 @@ export default function PatientListPage() {
         field: 'phone',
         headerName: 'Phone',
         width: 140,
+        renderCell: (params: GridRenderCellParams<PatientRow>) => (
+          <Stack direction="row" alignItems="center" sx={{ height: '100%', width: '100%' }}>
+            <Typography variant="body2">{maskPhoneNumber(params.row.phone)}</Typography>
+          </Stack>
+        ),
       },
       {
         field: 'city',
@@ -273,37 +301,94 @@ export default function PatientListPage() {
     applyFilterStateToModel();
   }, [applyFilterStateToModel]);
 
+  React.useEffect(() => {
+    try {
+      const key = 'scanbo:grid:patient-list-v2';
+      const persisted = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+      if (persisted) {
+        const parsed = JSON.parse(persisted);
+        if (parsed?.columnVisibilityModel) {
+          setColumnVisModel(parsed.columnVisibilityModel as Record<string, boolean>);
+        }
+        if (parsed?.columnOrder) {
+          setColumnOrder(parsed.columnOrder as string[]);
+        }
+        if (parsed?.columnVisibilityModel || parsed?.columnOrder) return;
+      }
+    } catch {
+      // ignore
+    }
+
+    const defaultOrder = columns.map((column) => column.field);
+    setColumnOrder(defaultOrder);
+    setColumnVisModel(
+      defaultOrder.reduce(
+        (acc, field) => ({ ...acc, [field]: true }),
+        {} as Record<string, boolean>,
+      ),
+    );
+  }, [columns]);
+
+  React.useEffect(() => {
+    if (externalState?.columnVisibilityModel) {
+      setColumnVisModel(externalState.columnVisibilityModel as Record<string, boolean>);
+    }
+    if (externalState?.columnOrder) {
+      setColumnOrder(externalState.columnOrder);
+    }
+  }, [externalState?.columnOrder, externalState?.columnVisibilityModel]);
+
+  const applyColumnVisModel = (model: Record<string, boolean>, order?: string[]) => {
+    setColumnVisModel(model);
+    if (order) setColumnOrder(order);
+    setExternalState((prev) => ({
+      ...(prev ?? {}),
+      columnVisibilityModel: model,
+      columnOrder: order ?? columnOrder,
+    }));
+  };
+
+  const toggleColumn = (field: string) => {
+    const current =
+      columnVisModel ??
+      (columnOrder.length > 0 ? columnOrder : columns.map((column) => column.field)).reduce(
+        (acc, currentField) => ({ ...acc, [currentField]: true }),
+        {} as Record<string, boolean>,
+      );
+
+    const next = { ...current };
+    next[field] = current[field] === false ? true : false;
+    applyColumnVisModel(next);
+  };
+
+  const resetColumnVisibility = () => {
+    const allVisible = columns.reduce(
+      (acc, column) => ({ ...acc, [column.field]: true }),
+      {} as Record<string, boolean>,
+    );
+    const defaultOrder = columns.map((column) => column.field);
+    applyColumnVisModel(allVisible, defaultOrder);
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      status: 'All',
+      gender: 'All',
+      department: 'All',
+      doctor: 'All',
+      ageRange: [18, 80],
+      regDateFrom: '',
+      regDateTo: '',
+      lastVisitFrom: '',
+      lastVisitTo: '',
+      tags: [],
+    });
+    setFilterModel(defaultFilterModel);
+  };
+
   const handleBulkAction = (message: string) => {
     setSnackbar(message);
   };
-
-  const savedViews = [
-    {
-      label: 'Default View',
-      state: null,
-    },
-    {
-      label: 'Billing Risk',
-      state: {
-        filterModel: {
-          items: [
-            { id: 1, field: 'status', operator: 'equals', value: 'Billing Hold' },
-            { id: 2, field: 'outstandingBalance', operator: '>=', value: 500 },
-          ],
-        },
-        sortModel: [{ field: 'outstandingBalance', sort: 'desc' }],
-      } satisfies CommonDataGridState,
-    },
-    {
-      label: 'Recently Admitted',
-      state: {
-        filterModel: {
-          items: [{ id: 1, field: 'status', operator: 'equals', value: 'Admitted' }],
-        },
-        sortModel: [{ field: 'lastVisit', sort: 'desc' }],
-      } satisfies CommonDataGridState,
-    },
-  ];
 
   const statCards = [
     {
@@ -348,15 +433,22 @@ export default function PatientListPage() {
           alignItems={{ xs: 'flex-start', md: 'center' }}
         >
           <Box>
-            {!isDoctor && (
-              <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
-                <Chip size="small" color="primary" label="Patient Registry" />
-                <Chip size="small" color="info" variant="outlined" label="OPD + IPD Linked" />
-              </Stack>
-            )}
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              Patients
-            </Typography>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={{ xs: 0.8, sm: 1.25 }}
+              alignItems={{ xs: 'flex-start', sm: 'center' }}
+              sx={{ mb: 0.6 }}
+            >
+              <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                Patients
+              </Typography>
+              {!isDoctor && (
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip size="small" color="primary" label="Patient Registry" />
+                  <Chip size="small" color="info" variant="outlined" label="OPD + IPD Linked" />
+                </Stack>
+              )}
+            </Stack>
             {!isDoctor && (
               <Typography variant="body2" color="text.secondary">
                 Manage patient demographics, visits, admissions, and billing status in one place.
@@ -364,23 +456,6 @@ export default function PatientListPage() {
             )}
           </Box>
           <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
-            {!isDoctor && (
-              <>
-                <Button variant="outlined" startIcon={<CloudUploadIcon />}>
-                  Import
-                </Button>
-                <Button variant="outlined" startIcon={<FileDownloadIcon />}>
-                  Export
-                </Button>
-              </>
-            )}
-            <Button
-              variant="outlined"
-              endIcon={<MoreVertIcon />}
-              onClick={(event) => setViewsAnchor(event.currentTarget)}
-            >
-              Saved Views
-            </Button>
             {!isDoctor && (
               <Button
                 variant="contained"
@@ -437,24 +512,10 @@ export default function PatientListPage() {
             <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => setFilterDrawerOpen(true)}>
               Filters
             </Button>
-            <Button
-              variant="text"
-              onClick={() => {
-                setFilters({
-                  status: 'All',
-                  gender: 'All',
-                  department: 'All',
-                  doctor: 'All',
-                  ageRange: [18, 80],
-                  regDateFrom: '',
-                  regDateTo: '',
-                  lastVisitFrom: '',
-                  lastVisitTo: '',
-                  tags: [],
-                });
-                setFilterModel(defaultFilterModel);
-              }}
-            >
+            <Button variant="outlined" startIcon={<ViewColumnIcon />} onClick={() => setColumnsDialogOpen(true)}>
+              Columns
+            </Button>
+            <Button variant="text" onClick={resetFilters}>
               Clear filters
             </Button>
           </Stack>
@@ -462,17 +523,21 @@ export default function PatientListPage() {
 
         <DataTable
           tableId="patient-list"
+          persistKey="patient-list-v2"
           columns={columns}
           rows={rows}
+          autoHeight
           rowHeight={72}
+          pageSizeOptions={[10, 25, 50]}
+          initialState={{ paginationModel: { page: 0, pageSize: 10 } }}
           filterModel={filterModel}
           onFilterModelChange={setFilterModel}
           externalState={externalState}
           toolbarConfig={{
             title: 'Patients',
-            showSavedViews: true,
+            showSavedViews: false,
             showPrint: true,
-            showExport: !isDoctor,
+            showExport: false,
             ...(isDoctor
               ? {}
               : {
@@ -492,11 +557,6 @@ export default function PatientListPage() {
           }}
           renderBulkActions={() => (
             <Stack direction="row" spacing={1}>
-              {!isDoctor && (
-                <Button size="small" variant="outlined" onClick={() => handleBulkAction('Export selected (stub)')}>
-                  Export selected
-                </Button>
-              )}
               <Button
                 size="small"
                 variant="outlined"
@@ -533,6 +593,83 @@ export default function PatientListPage() {
             </Stack>
           )}
         />
+
+        <Dialog open={columnsDialogOpen} onClose={() => setColumnsDialogOpen(false)} fullWidth maxWidth="xs">
+          <DialogTitle>Choose columns</DialogTitle>
+          <DialogContent>
+            <Stack spacing={1} sx={{ mt: 1 }}>
+              {columnOrder.map((field, index) => {
+                const column = columns.find((item) => item.field === field);
+                if (!column) return null;
+
+                return (
+                  <Box
+                    key={field}
+                    draggable
+                    onDragStart={(event) => {
+                      setDraggedIndex(index);
+                      event.dataTransfer.effectAllowed = 'move';
+                    }}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      if (draggedIndex === null || draggedIndex === index) return;
+                      const newOrder = [...columnOrder];
+                      const item = newOrder.splice(draggedIndex, 1)[0];
+                      newOrder.splice(index, 0, item);
+                      setColumnOrder(newOrder);
+                      setDraggedIndex(index);
+                    }}
+                    onDragEnd={() => setDraggedIndex(null)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      p: 1,
+                      borderRadius: 1.5,
+                      border: '1px solid',
+                      borderColor: draggedIndex === index ? 'primary.main' : 'divider',
+                      bgcolor: draggedIndex === index ? alpha('#1976d2', 0.05) : 'transparent',
+                      cursor: 'grab',
+                      '&:active': { cursor: 'grabbing' },
+                      gap: 1,
+                    }}
+                  >
+                    <DragHandleIcon sx={{ color: 'text.disabled', fontSize: 18 }} />
+                    <FormControlLabel
+                      sx={{ flex: 1, m: 0 }}
+                      control={(
+                        <Checkbox
+                          size="small"
+                          checked={columnVisModel?.[field] !== false}
+                          onChange={() => toggleColumn(field)}
+                          sx={{ p: 0.5 }}
+                        />
+                      )}
+                      label={(
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {column.headerName ?? field}
+                        </Typography>
+                      )}
+                    />
+                  </Box>
+                );
+              })}
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => resetColumnVisibility()}>
+              Reset
+            </Button>
+            <Button
+              onClick={() => {
+                applyColumnVisModel(columnVisModel ?? {}, columnOrder);
+                setColumnsDialogOpen(false);
+              }}
+              variant="contained"
+            >
+              Done
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Card>
 
       <Drawer anchor="right" open={filterDrawerOpen} onClose={() => setFilterDrawerOpen(false)}>
@@ -710,7 +847,7 @@ export default function PatientListPage() {
               <Box>
                 <Typography variant="caption" color="text.secondary">Demographics</Typography>
                 <Typography variant="body2">{selectedPatient.age} years · {selectedPatient.gender}</Typography>
-                <Typography variant="body2">{selectedPatient.phone}</Typography>
+                <Typography variant="body2">{maskPhoneNumber(selectedPatient.phone)}</Typography>
                 <Typography variant="body2">{selectedPatient.city}</Typography>
               </Box>
 
@@ -746,26 +883,6 @@ export default function PatientListPage() {
           )}
         </Box>
       </Drawer>
-
-      <Menu anchorEl={viewsAnchor} open={Boolean(viewsAnchor)} onClose={() => setViewsAnchor(null)}>
-        {savedViews.map((view) => (
-          <MenuItem
-            key={view.label}
-            onClick={() => {
-              if (view.state?.filterModel) {
-                setFilterModel(view.state.filterModel as GridFilterModel);
-              }
-              if (!view.state) {
-                setFilterModel(defaultFilterModel);
-              }
-              setExternalState(view.state ?? { filterModel: defaultFilterModel, sortModel: [] });
-              setViewsAnchor(null);
-            }}
-          >
-            {view.label}
-          </MenuItem>
-        ))}
-      </Menu>
 
       <Snackbar
         open={Boolean(snackbar)}

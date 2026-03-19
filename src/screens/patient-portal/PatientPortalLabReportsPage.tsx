@@ -15,16 +15,22 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Divider from '@mui/material/Divider';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import {
   CalendarMonth as CalendarMonthIcon,
-  Chat as ChatIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
-  Download as DownloadIcon,
+  CloudUpload as CloudUploadIcon,
+  ContentCopy as ContentCopyIcon,
+  DocumentScanner as DocumentScannerIcon,
   FavoriteBorder as HeartIcon,
   MonitorHeart as MonitorHeartIcon,
-  Print as PrintIcon,
+  Psychology as PsychologyIcon,
   Science as ScienceIcon,
   Search as SearchIcon,
+  Share as ShareIcon,
   TrendingDown as TrendingDownIcon,
   TrendingUp as TrendingUpIcon,
   WarningAmber as WarningAmberIcon,
@@ -32,6 +38,7 @@ import {
 import PatientPortalWorkspaceCard from './components/PatientPortalWorkspaceCard';
 import { ppSectionCard } from './patient-portal-styles';
 import { useRouter } from 'next/navigation';
+import type { PatientPortalTabId } from './patient-portal-types';
 
 /* ─── Rich lab data ─────────────────────────────────────────── */
 interface LabResult {
@@ -44,18 +51,24 @@ interface LabResult {
 interface LabReport {
   id: string;
   date: string;
+  time: string;
   type: string;
   doctor: string;
+  lab: string;
   status: 'Normal' | 'Review' | 'Abnormal';
   category: string;
   results: LabResult[];
   notes: string;
+  uploadType: 'digital' | 'scan' | 'manual';
+  sharedWith: string[];
+  ocrExtracted?: boolean;
 }
 
 const LAB_DATA: LabReport[] = [
   {
-    id: 'LR-2026-001', date: '2026-02-20', type: 'Complete Blood Count (CBC)',
-    doctor: 'Dr. Sneha Rao', status: 'Normal', category: 'Hematology',
+    id: 'LR-2026-001', date: '2026-02-20', time: '08:15 AM', type: 'Complete Blood Count (CBC)',
+    doctor: 'Dr. Sneha Rao', lab: 'SRL Diagnostics', status: 'Normal', category: 'Hematology',
+    uploadType: 'digital', sharedWith: ['Dr. Sneha Rao'],
     results: [
       { name: 'WBC',        value: 7.2,  unit: 'K/uL',  range: '4.5–11.0', status: 'normal' },
       { name: 'RBC',        value: 4.8,  unit: 'M/uL',  range: '4.2–5.4',  status: 'normal' },
@@ -67,8 +80,9 @@ const LAB_DATA: LabReport[] = [
     notes: 'All values within normal range. No concerns.',
   },
   {
-    id: 'LR-2026-002', date: '2026-02-20', type: 'Comprehensive Metabolic Panel',
-    doctor: 'Dr. Sneha Rao', status: 'Review', category: 'Chemistry',
+    id: 'LR-2026-002', date: '2026-02-20', time: '09:40 AM', type: 'Comprehensive Metabolic Panel',
+    doctor: 'Dr. Sneha Rao', lab: 'SRL Diagnostics', status: 'Review', category: 'Chemistry',
+    uploadType: 'digital', sharedWith: ['Dr. Sneha Rao'],
     results: [
       { name: 'Glucose (F)',  value: 108, unit: 'mg/dL', range: '70–99',   status: 'high'   },
       { name: 'BUN',          value: 18,  unit: 'mg/dL', range: '7–25',    status: 'normal' },
@@ -80,8 +94,9 @@ const LAB_DATA: LabReport[] = [
     notes: 'Glucose mildly elevated. Monitor fasting glucose. Lifestyle modifications advised.',
   },
   {
-    id: 'LR-2026-003', date: '2026-02-20', type: 'Lipid Panel',
-    doctor: 'Dr. Priya Sharma', status: 'Abnormal', category: 'Cardiology',
+    id: 'LR-2026-003', date: '2026-02-20', time: '10:00 AM', type: 'Lipid Panel',
+    doctor: 'Dr. Priya Sharma', lab: 'SRL Diagnostics', status: 'Abnormal', category: 'Cardiology',
+    uploadType: 'scan', sharedWith: ['Dr. Priya Sharma'], ocrExtracted: true,
     results: [
       { name: 'Total Cholesterol', value: 185, unit: 'mg/dL', range: '<200',  status: 'normal' },
       { name: 'LDL',               value: 102, unit: 'mg/dL', range: '<100',  status: 'high'   },
@@ -91,8 +106,9 @@ const LAB_DATA: LabReport[] = [
     notes: 'LDL slightly elevated. Continue Atorvastatin. Recheck in 3 months.',
   },
   {
-    id: 'LR-2026-004', date: '2026-02-20', type: 'Diabetes Panel (HbA1c)',
-    doctor: 'Dr. Arvind Mehta', status: 'Review', category: 'Diabetes',
+    id: 'LR-2026-004', date: '2026-02-20', time: '11:15 AM', type: 'Diabetes Panel (HbA1c)',
+    doctor: 'Dr. Arvind Mehta', lab: 'Metropolis', status: 'Review', category: 'Diabetes',
+    uploadType: 'digital', sharedWith: ['Dr. Arvind Mehta'],
     results: [
       { name: 'HbA1c',              value: '7.1%', unit: '%',     range: '<5.7%',    status: 'high'   },
       { name: 'Fasting Glucose',    value: 108,    unit: 'mg/dL', range: '70–100',   status: 'high'   },
@@ -102,8 +118,9 @@ const LAB_DATA: LabReport[] = [
     notes: 'HbA1c elevated — diabetes not well controlled. Adjust Metformin dosage and recheck in 6 weeks.',
   },
   {
-    id: 'LR-2025-005', date: '2025-11-10', type: 'Vitamin & Mineral Panel',
-    doctor: 'Dr. Sneha Rao', status: 'Review', category: 'Vitamins',
+    id: 'LR-2025-005', date: '2025-11-10', time: '09:00 AM', type: 'Vitamin & Mineral Panel',
+    doctor: 'Dr. Sneha Rao', lab: 'Dr. Lal PathLabs', status: 'Review', category: 'Vitamins',
+    uploadType: 'manual', sharedWith: [],
     results: [
       { name: 'Vitamin D',   value: 18,  unit: 'ng/mL', range: '20–50',  status: 'low'    },
       { name: 'Vitamin B12', value: 310, unit: 'pg/mL', range: '200–900',status: 'normal' },
@@ -113,8 +130,9 @@ const LAB_DATA: LabReport[] = [
     notes: 'Vitamin D deficient. Continue supplementation 60,000 IU weekly for 8 weeks.',
   },
   {
-    id: 'LR-2025-006', date: '2025-08-12', type: 'Thyroid Function Panel',
-    doctor: 'Dr. Sneha Rao', status: 'Normal', category: 'Endocrinology',
+    id: 'LR-2025-006', date: '2025-08-12', time: '10:30 AM', type: 'Thyroid Function Panel',
+    doctor: 'Dr. Sneha Rao', lab: 'Thyrocare', status: 'Normal', category: 'Endocrinology',
+    uploadType: 'digital', sharedWith: ['Dr. Sneha Rao'],
     results: [
       { name: 'TSH',     value: 2.1, unit: 'mIU/L', range: '0.4–4.0', status: 'normal' },
       { name: 'Free T4', value: 1.2, unit: 'ng/dL', range: '0.8–1.8', status: 'normal' },
@@ -184,12 +202,53 @@ interface VitalSign {
 
 const BP_NOTES = ['Morning reading', 'Evening reading', 'Post-exercise', 'Resting', 'Clinic visit', 'Stress reported', 'After medication', 'Fasting'];
 const HR_NOTES = ['Resting', 'Post-meal', 'Morning', 'Evening', 'After walk', 'Clinic visit', 'Pre-sleep', 'Waking'];
-const SPO2_NOTES = ['Resting', 'After activity', 'Morning', 'Evening', 'Cold reported', 'Clinic visit', 'Post-walk', 'Night reading'];
+const OXY_NOTES = ['Resting', 'After activity', 'Morning', 'Evening', 'Cold reported', 'Clinic visit', 'Post-walk', 'Night reading'];
 const TEMP_NOTES = ['Morning', 'Evening', 'Mild fever', 'Normal', 'After bath', 'Clinic visit', 'Night', 'After meal'];
 const GLUC_NOTES = ['Fasting', 'Post-meal 2h', 'Pre-meal', 'Morning fasting', 'After exercise', 'Clinic — fasting', 'Evening fasting', 'Random'];
-const WT_NOTES   = ['Morning', 'After breakfast', 'Post holidays', 'Clinic weigh-in', 'Evening', 'After gym', 'Weekly check', 'Doctor visit'];
+const ECG_NOTES = ['Normal sinus rhythm', 'Clinic strip', 'Post-exercise', 'Resting strip', 'Routine check', 'Cardio OPD', 'Follow-up ECG', 'Review done'];
+const HRV_NOTES = ['Morning resting', 'Post meditation', 'After exercise', 'Clinic review', 'Pre-sleep', 'Morning', 'After walk', 'Stress day'];
+const BREATH_NOTES = ['Resting', 'Post-nebulization', 'Morning', 'After walk', 'Clinic visit', 'Evening', 'Night', 'Mild breathlessness'];
 
 const VITALS_DATA: VitalSign[] = [
+  {
+    id: 'hr', name: 'Heart Rate', unit: 'bpm', icon: '❤️',
+    current: '72 bpm', currentNum: 72, status: 'normal', category: 'Cardiovascular',
+    range: '60 – 100 bpm', rangeMin: 60, rangeMax: 100,
+    history: extendHistory([
+      { date: '2026-02-20', value: 72, label: '72', note: 'Resting' },
+      { date: '2026-02-13', value: 78, label: '78', note: 'Post-meal' },
+      { date: '2026-02-06', value: 68, label: '68', note: 'Morning' },
+      { date: '2026-01-30', value: 74, label: '74', note: 'Evening' },
+      { date: '2026-01-23', value: 80, label: '80', note: 'Clinic visit' },
+      { date: '2026-01-10', value: 70, label: '70', note: 'Waking' },
+    ], 46, 74, 8, (v) => `${Math.round(v)}`, HR_NOTES),
+  },
+  {
+    id: 'temp', name: 'Body Temperature', unit: '°F', icon: '🌡️',
+    current: '98.6°F', currentNum: 98.6, status: 'normal', category: 'General',
+    range: '97.0 – 99.0°F', rangeMin: 97.0, rangeMax: 99.0,
+    history: extendHistory([
+      { date: '2026-02-20', value: 98.6, label: '98.6°F', note: 'Morning' },
+      { date: '2026-02-13', value: 98.4, label: '98.4°F', note: 'Evening' },
+      { date: '2026-02-06', value: 99.1, label: '99.1°F', note: 'Mild fever' },
+      { date: '2026-01-30', value: 98.6, label: '98.6°F', note: 'Normal' },
+      { date: '2026-01-23', value: 98.2, label: '98.2°F', note: 'Morning' },
+      { date: '2026-01-10', value: 98.6, label: '98.6°F', note: 'Clinic visit' },
+    ], 46, 98.6, 0.6, (v) => `${v.toFixed(1)}°F`, TEMP_NOTES),
+  },
+  {
+    id: 'oxygen', name: 'Blood Oxygen', unit: '%', icon: '🫁',
+    current: '98%', currentNum: 98, status: 'normal', category: 'Respiratory',
+    range: '95 – 100%', rangeMin: 95, rangeMax: 100,
+    history: extendHistory([
+      { date: '2026-02-20', value: 98, label: '98%', note: 'Resting' },
+      { date: '2026-02-13', value: 97, label: '97%', note: 'After activity' },
+      { date: '2026-02-06', value: 99, label: '99%', note: 'Morning' },
+      { date: '2026-01-30', value: 98, label: '98%', note: 'Evening' },
+      { date: '2026-01-23', value: 97, label: '97%', note: 'Cold reported' },
+      { date: '2026-01-10', value: 98, label: '98%', note: 'Clinic visit' },
+    ], 46, 98, 1.5, (v) => `${Math.min(100, Math.round(v))}%`, OXY_NOTES),
+  },
   {
     id: 'bp', name: 'Blood Pressure', unit: 'mmHg', icon: '🩸',
     current: '138/90', currentNum: 138, status: 'elevated', category: 'Cardiovascular',
@@ -205,82 +264,56 @@ const VITALS_DATA: VitalSign[] = [
     ], 46, 140, 8, (v) => `${v}/${Math.round(v * 0.65)}`, BP_NOTES),
   },
   {
-    id: 'hr', name: 'Heart Rate', unit: 'bpm', icon: '❤️',
-    current: '72 bpm', currentNum: 72, status: 'normal', category: 'Cardiovascular',
-    range: '60 – 100 bpm', rangeMin: 60, rangeMax: 100,
-    history: extendHistory([
-      { date: '2026-02-20', value: 72, label: '72', note: 'Resting' },
-      { date: '2026-02-13', value: 78, label: '78', note: 'Post-meal' },
-      { date: '2026-02-06', value: 68, label: '68', note: 'Morning' },
-      { date: '2026-01-30', value: 74, label: '74', note: 'Evening' },
-      { date: '2026-01-23', value: 80, label: '80', note: 'Anxious' },
-      { date: '2026-01-10', value: 70, label: '70', note: 'Clinic visit' },
-    ], 46, 74, 8, (v) => `${Math.round(v)}`, HR_NOTES),
-  },
-  {
-    id: 'spo2', name: 'SpO₂', unit: '%', icon: '🫁',
-    current: '98%', currentNum: 98, status: 'normal', category: 'Respiratory',
-    range: '95 – 100%', rangeMin: 95, rangeMax: 100,
-    history: extendHistory([
-      { date: '2026-02-20', value: 98, label: '98%', note: 'Resting' },
-      { date: '2026-02-13', value: 97, label: '97%', note: 'After activity' },
-      { date: '2026-02-06', value: 99, label: '99%', note: 'Morning' },
-      { date: '2026-01-30', value: 98, label: '98%', note: 'Evening' },
-      { date: '2026-01-23', value: 97, label: '97%', note: 'Cold reported' },
-      { date: '2026-01-10', value: 98, label: '98%', note: 'Clinic visit' },
-    ], 46, 98, 1.5, (v) => `${Math.min(100, Math.round(v))}%`, SPO2_NOTES),
-  },
-  {
-    id: 'temp', name: 'Temperature', unit: '°F', icon: '🌡️',
-    current: '98.6°F', currentNum: 98.6, status: 'normal', category: 'General',
-    range: '97.0 – 99.0°F', rangeMin: 97.0, rangeMax: 99.0,
-    history: extendHistory([
-      { date: '2026-02-20', value: 98.6, label: '98.6°F', note: 'Morning' },
-      { date: '2026-02-13', value: 98.4, label: '98.4°F', note: 'Evening' },
-      { date: '2026-02-06', value: 99.1, label: '99.1°F', note: 'Mild fever' },
-      { date: '2026-01-30', value: 98.6, label: '98.6°F', note: 'Normal' },
-      { date: '2026-01-23', value: 98.2, label: '98.2°F', note: 'Morning' },
-      { date: '2026-01-10', value: 98.6, label: '98.6°F', note: 'Clinic visit' },
-    ], 46, 98.6, 0.6, (v) => `${v.toFixed(1)}°F`, TEMP_NOTES),
-  },
-  {
     id: 'glucose', name: 'Blood Glucose', unit: 'mg/dL', icon: '🩻',
-    current: '108 mg/dL', currentNum: 108, status: 'elevated', category: 'Metabolic',
+    current: '114.8 mg/dL', currentNum: 114.8, status: 'high', category: 'Metabolic',
     range: '70 – 99 mg/dL (Fasting)', rangeMin: 70, rangeMax: 99,
     history: extendHistory([
-      { date: '2026-02-20', value: 108, label: '108', note: 'Fasting' },
+      { date: '2026-02-20', value: 114.8, label: '114.8', note: 'Fasting' },
       { date: '2026-02-13', value: 112, label: '112', note: 'Fasting' },
-      { date: '2026-02-06', value: 105, label: '105', note: 'Fasting' },
-      { date: '2026-01-30', value: 115, label: '115', note: 'After exercise miss' },
+      { date: '2026-02-06', value: 109, label: '109', note: 'Fasting' },
+      { date: '2026-01-30', value: 115, label: '115', note: 'Post-meal 2h' },
       { date: '2026-01-23', value: 110, label: '110', note: 'Fasting' },
       { date: '2026-01-10', value: 118, label: '118', note: 'Clinic — fasting' },
     ], 46, 110, 10, (v) => `${Math.round(v)}`, GLUC_NOTES),
   },
   {
-    id: 'weight', name: 'Weight', unit: 'kg', icon: '⚖️',
-    current: '78 kg', currentNum: 78, status: 'normal', category: 'Anthropometric',
-    range: 'Target: 70 – 75 kg', rangeMin: 70, rangeMax: 75,
+    id: 'ecg', name: 'ECG', unit: 'mV', icon: '🖥️',
+    current: '0.98 mV', currentNum: 0.98, status: 'normal', category: 'Cardiovascular',
+    range: '0.6 – 1.3 mV', rangeMin: 0.6, rangeMax: 1.3,
     history: extendHistory([
-      { date: '2026-02-20', value: 78, label: '78 kg', note: 'Morning' },
-      { date: '2026-02-13', value: 78.5, label: '78.5 kg', note: 'Morning' },
-      { date: '2026-02-06', value: 79, label: '79 kg', note: 'Morning' },
-      { date: '2026-01-30', value: 79.2, label: '79.2 kg', note: 'Post holidays' },
-      { date: '2026-01-23', value: 79.5, label: '79.5 kg', note: 'Morning' },
-      { date: '2026-01-10', value: 80, label: '80 kg', note: 'Clinic visit' },
-    ], 46, 79, 1, (v) => `${v.toFixed(1)} kg`, WT_NOTES),
+      { date: '2026-02-20', value: 0.98, label: '0.98', note: 'Normal sinus rhythm' },
+      { date: '2026-02-13', value: 1.01, label: '1.01', note: 'Clinic strip' },
+      { date: '2026-02-06', value: 0.95, label: '0.95', note: 'Resting strip' },
+      { date: '2026-01-30', value: 1.04, label: '1.04', note: 'Post-exercise' },
+      { date: '2026-01-23', value: 0.97, label: '0.97', note: 'Routine check' },
+      { date: '2026-01-10', value: 1.00, label: '1.00', note: 'Cardio OPD' },
+    ], 46, 0.98, 0.09, (v) => `${v.toFixed(2)}`, ECG_NOTES),
   },
   {
-    id: 'bmi', name: 'BMI', unit: 'kg/m²', icon: '📊',
-    current: '26.4', currentNum: 26.4, status: 'elevated', category: 'Anthropometric',
-    range: '18.5 – 24.9 (Normal)', rangeMin: 18.5, rangeMax: 24.9,
+    id: 'hrv', name: 'Heart Rate Variability', unit: 'ms', icon: '📈',
+    current: '42 ms', currentNum: 42, status: 'normal', category: 'Cardiovascular',
+    range: '25 – 65 ms', rangeMin: 25, rangeMax: 65,
     history: extendHistory([
-      { date: '2026-02-20', value: 26.4, label: '26.4', note: 'Calculated' },
-      { date: '2026-02-13', value: 26.6, label: '26.6', note: 'Calculated' },
-      { date: '2026-02-06', value: 26.8, label: '26.8', note: 'Calculated' },
-      { date: '2026-01-30', value: 26.9, label: '26.9', note: 'Calculated' },
-      { date: '2026-01-23', value: 27.0, label: '27.0', note: 'Calculated' },
-      { date: '2026-01-10', value: 27.1, label: '27.1', note: 'Clinic visit' },
-    ], 46, 26.8, 0.4, (v) => `${v.toFixed(1)}`, WT_NOTES),
+      { date: '2026-02-20', value: 42, label: '42', note: 'Morning resting' },
+      { date: '2026-02-13', value: 39, label: '39', note: 'Post meditation' },
+      { date: '2026-02-06', value: 44, label: '44', note: 'After exercise' },
+      { date: '2026-01-30', value: 40, label: '40', note: 'Clinic review' },
+      { date: '2026-01-23', value: 37, label: '37', note: 'Stress day' },
+      { date: '2026-01-10', value: 41, label: '41', note: 'Pre-sleep' },
+    ], 46, 41, 6, (v) => `${Math.round(v)}`, HRV_NOTES),
+  },
+  {
+    id: 'breath', name: 'Breath Rate', unit: 'breaths/min', icon: '💨',
+    current: '18 /min', currentNum: 18, status: 'normal', category: 'Respiratory',
+    range: '12 – 20 breaths/min', rangeMin: 12, rangeMax: 20,
+    history: extendHistory([
+      { date: '2026-02-20', value: 18, label: '18', note: 'Resting' },
+      { date: '2026-02-13', value: 19, label: '19', note: 'After walk' },
+      { date: '2026-02-06', value: 17, label: '17', note: 'Morning' },
+      { date: '2026-01-30', value: 20, label: '20', note: 'Clinic visit' },
+      { date: '2026-01-23', value: 18, label: '18', note: 'Evening' },
+      { date: '2026-01-10', value: 19, label: '19', note: 'Post-nebulization' },
+    ], 46, 18, 2, (v) => `${Math.round(v)}`, BREATH_NOTES),
   },
 ];
 
@@ -325,18 +358,51 @@ function Sparkline({ values, color, width = 280, height = 60 }: { values: number
   );
 }
 
-export default function PatientPortalLabReportsPage() {
+interface PatientPortalLabReportsPageProps {
+  embedded?: boolean;
+  forcedTab?: 0 | 1 | 2;
+  showTopTabs?: boolean;
+  current?: PatientPortalTabId;
+}
+
+export default function PatientPortalLabReportsPage({
+  embedded = false,
+  forcedTab,
+  showTopTabs = true,
+  current = 'lab-reports',
+}: PatientPortalLabReportsPageProps = {}) {
   const theme = useTheme();
   const router = useRouter();
 
   /* tab */
-  const [activeTab, setActiveTab] = React.useState(0);
+  const [activeTab, setActiveTab] = React.useState(forcedTab ?? 0);
 
   /* lab reports state */
   const [selected, setSelected] = React.useState<string | null>(LAB_DATA[0].id);
   const [search, setSearch] = React.useState('');
   const [filter, setFilter] = React.useState('All');
   const [expandedRow, setExpandedRow] = React.useState<string | null>(null);
+  const [labUploadOpen, setLabUploadOpen] = React.useState(false);
+  const [labShareOpen, setLabShareOpen] = React.useState(false);
+  const [labShareTarget, setLabShareTarget] = React.useState('');
+  const [ocrRunning, setOcrRunning] = React.useState(false);
+  const [labData, setLabData] = React.useState<LabReport[]>(LAB_DATA);
+
+  const handleRunOCR = () => {
+    setOcrRunning(true);
+    setTimeout(() => {
+      setOcrRunning(false);
+      setLabData(prev => prev.map(r => r.id === selected ? { ...r, ocrExtracted: true } : r));
+      setSnack({ open: true, msg: 'OCR extraction complete', severity: 'success' });
+    }, 2000);
+  };
+
+  const handleLabShare = () => {
+    if (!labShareTarget.trim()) return;
+    setLabShareOpen(false);
+    setLabShareTarget('');
+    setSnack({ open: true, msg: `Report shared with ${labShareTarget}`, severity: 'success' });
+  };
 
   /* vitals state */
   const [selectedVital, setSelectedVital] = React.useState<VitalSign>(VITALS_DATA[0]);
@@ -352,7 +418,7 @@ export default function PatientPortalLabReportsPage() {
 
   const sectionCard = ppSectionCard(theme);
 
-  const filtered = LAB_DATA.filter((r) => {
+  const filtered = labData.filter((r) => {
     const matchSearch =
       r.type.toLowerCase().includes(search.toLowerCase()) ||
       r.doctor.toLowerCase().includes(search.toLowerCase()) ||
@@ -361,11 +427,11 @@ export default function PatientPortalLabReportsPage() {
     return matchSearch && matchFilter;
   });
 
-  const selectedReport = LAB_DATA.find((r) => r.id === selected) ?? null;
+  const selectedReport = labData.find((r) => r.id === selected) ?? null;
 
   const totalReports = LAB_DATA.length;
-  const needsReview = LAB_DATA.filter((r) => r.status !== 'Normal').length;
-  const normalCount = LAB_DATA.filter((r) => r.status === 'Normal').length;
+  const needsReview = labData.filter((r) => r.status !== 'Normal').length;
+  const normalCount = labData.filter((r) => r.status === 'Normal').length;
 
   /* shared scrollbar style */
   const scrollbar = {
@@ -374,7 +440,13 @@ export default function PatientPortalLabReportsPage() {
   };
 
   const pr = theme.palette.primary;
-  const PANEL_H = 'calc(100vh - 240px)';
+  React.useEffect(() => {
+    if (typeof forcedTab === 'number') {
+      setActiveTab(forcedTab);
+    }
+  }, [forcedTab]);
+
+  const PANEL_H = embedded ? 'min(76vh, 760px)' : 'calc(100vh - 240px)';
 
   const filteredVitals = VITALS_DATA.filter((v) =>
     v.name.toLowerCase().includes(vitalSearch.toLowerCase()) || v.category.toLowerCase().includes(vitalSearch.toLowerCase())
@@ -408,17 +480,20 @@ export default function PatientPortalLabReportsPage() {
     return 'normal';
   };
 
-  return (
-    <PatientPortalWorkspaceCard current="lab-reports">
+  const content = (
+    <>
 
       {/* ── Tab bar ── */}
-      <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', mx: { xs: -2, sm: -3 }, bgcolor: 'background.paper' }}>
-        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}
-          sx={{ px: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: 13.5, minHeight: 44 }, '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' } }}>
-          <Tab label="Lab Reports" icon={<ScienceIcon sx={{ fontSize: 17 }} />} iconPosition="start" />
-          <Tab label="Vitals" icon={<MonitorHeartIcon sx={{ fontSize: 17 }} />} iconPosition="start" />
-        </Tabs>
-      </Box>
+      {showTopTabs && (
+        <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', ...(embedded ? {} : { mx: { xs: -2, sm: -3 } }), bgcolor: 'background.paper' }}>
+          <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}
+            sx={{ px: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: 13.5, minHeight: 44 }, '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' } }}>
+            <Tab label="Lab Reports" icon={<ScienceIcon sx={{ fontSize: 17 }} />} iconPosition="start" />
+            <Tab label="Vitals" icon={<MonitorHeartIcon sx={{ fontSize: 17 }} />} iconPosition="start" />
+            <Tab label="Smart Scale" icon={<HeartIcon sx={{ fontSize: 17 }} />} iconPosition="start" />
+          </Tabs>
+        </Box>
+      )}
 
       {/* ══════════════ TAB 0 — LAB REPORTS ══════════════ */}
       {activeTab === 0 && (
@@ -428,8 +503,7 @@ export default function PatientPortalLabReportsPage() {
         gap: 2,
         height: PANEL_H,
         overflow: 'hidden',
-        mx: { xs: -2, sm: -3 },
-        px: { xs: 2, sm: 3 },
+        ...(embedded ? {} : { mx: { xs: -2, sm: -3 }, px: { xs: 2, sm: 3 } }),
       }}>
 
         {/* ══ LEFT PANEL ══ */}
@@ -510,12 +584,18 @@ export default function PatientPortalLabReportsPage() {
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box sx={{ flex: 1, minWidth: 0, mr: 1.5 }}>
                         <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.4 }} noWrap>{report.type}</Typography>
-                        <Stack direction="row" spacing={0.75} alignItems="center">
+                        <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
                           <Typography variant="caption" color="text.secondary">{formatDate(report.date)}</Typography>
+                          <Typography variant="caption" color="text.disabled">·</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>{report.time}</Typography>
                           <Typography variant="caption" color="text.disabled">·</Typography>
                           <Typography variant="caption" color="text.secondary">{report.doctor}</Typography>
                         </Stack>
-                        <Typography variant="caption" sx={{ color: 'text.disabled', mt: 0.5, display: 'block', fontFamily: 'monospace' }}>{report.id}</Typography>
+                        <Stack direction="row" spacing={0.6} alignItems="center" sx={{ mt: 0.3 }}>
+                          <Typography variant="caption" sx={{ color: 'text.disabled', fontFamily: 'monospace' }}>{report.id}</Typography>
+                          <Typography variant="caption" color="text.disabled">·</Typography>
+                          <Typography variant="caption" color="text.disabled">{report.lab}</Typography>
+                        </Stack>
                       </Box>
                       <Chip size="small" label={report.status}
                         sx={{ fontWeight: 700, fontSize: 11, flexShrink: 0, bgcolor: s.bg, color: s.color, border: `1px solid ${s.border}` }} />
@@ -542,21 +622,31 @@ export default function PatientPortalLabReportsPage() {
 
             {/* ── Fixed detail header (never scrolls) ── */}
             <Box sx={{ px: 2.5, pt: 2.5, pb: 1.5, flexShrink: 0, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1} flexWrap="wrap">
                 <Box>
                   <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main', letterSpacing: 1.2, textTransform: 'uppercase' }}>
                     {selectedReport.category}
                   </Typography>
                   <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.3, mt: 0.25 }}>{selectedReport.type}</Typography>
-                  <Typography variant="caption" color="text.secondary">{formatDate(selectedReport.date)} · {selectedReport.doctor}</Typography>
+                  <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
+                    <Typography variant="caption" color="text.secondary">{formatDate(selectedReport.date)}</Typography>
+                    <Typography variant="caption" color="text.disabled">·</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>{selectedReport.time}</Typography>
+                    <Typography variant="caption" color="text.disabled">·</Typography>
+                    <Typography variant="caption" color="text.secondary">{selectedReport.doctor}</Typography>
+                    <Typography variant="caption" color="text.disabled">·</Typography>
+                    <Typography variant="caption" color="text.secondary">{selectedReport.lab}</Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.4 }}>
+                    <Chip size="small" label={selectedReport.uploadType === 'digital' ? 'Digital' : selectedReport.uploadType === 'scan' ? 'Scanned' : 'Manual'} sx={{ height: 18, fontSize: 10, fontWeight: 700, bgcolor: alpha(theme.palette.info.main, 0.1), color: 'info.dark' }} />
+                    {selectedReport.ocrExtracted && <Chip size="small" label="OCR Extracted" sx={{ height: 18, fontSize: 10, fontWeight: 700, bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.dark' }} />}
+                    {selectedReport.sharedWith.length > 0 && <Chip size="small" label={`Shared (${selectedReport.sharedWith.length})`} sx={{ height: 18, fontSize: 10, fontWeight: 700, bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.dark' }} />}
+                  </Stack>
                 </Box>
-                <Stack direction="row" spacing={0.75} sx={{ flexShrink: 0, mt: 0.5 }}>
-                  <Tooltip title="Print report">
-                    <Button size="small" variant="outlined"
-                      startIcon={<PrintIcon sx={{ fontSize: 14 }} />}
-                      onClick={() => typeof window !== 'undefined' && window.print()}
-                      sx={{ textTransform: 'none', fontWeight: 600, fontSize: 12 }}>Print</Button>
-                  </Tooltip>
+                <Stack direction="row" spacing={0.75} sx={{ flexShrink: 0, mt: 0.5 }} flexWrap="wrap">
+                  <Button size="small" variant="outlined" startIcon={<CloudUploadIcon sx={{ fontSize: 13 }} />} onClick={() => setLabUploadOpen(true)} sx={{ textTransform: 'none', fontWeight: 600, fontSize: 11 }}>Upload / Scan</Button>
+                  <Button size="small" variant="outlined" startIcon={<ShareIcon sx={{ fontSize: 13 }} />} onClick={() => setLabShareOpen(true)} sx={{ textTransform: 'none', fontWeight: 600, fontSize: 11 }}>Share</Button>
+                  {!selectedReport.ocrExtracted && <Button size="small" variant="outlined" startIcon={<PsychologyIcon sx={{ fontSize: 13 }} />} onClick={handleRunOCR} disabled={ocrRunning} sx={{ textTransform: 'none', fontWeight: 600, fontSize: 11 }}>{ocrRunning ? 'OCR…' : 'Run OCR'}</Button>}
                 </Stack>
               </Stack>
             </Box>
@@ -648,27 +738,15 @@ export default function PatientPortalLabReportsPage() {
 
             {/* ── Fixed footer actions (always visible) ── */}
             <Box sx={{ px: 2.5, py: 1.75, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 1 }}>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
                 <Button variant="contained" disableElevation size="small"
                   startIcon={<CalendarMonthIcon sx={{ fontSize: 14 }} />}
-                  onClick={() => router.push('/patient-portal/appointments')}
+                  onClick={() => router.push('/patient-portal/my-appointments')}
                   sx={{ textTransform: 'none', fontWeight: 700, py: 1.1 }}>
                   Book Follow-up
                 </Button>
-                <Button variant="outlined" size="small"
-                  startIcon={<ChatIcon sx={{ fontSize: 14 }} />}
-                  onClick={() => router.push('/patient-portal/chat')}
-                  sx={{ textTransform: 'none', fontWeight: 700, py: 1.1 }}>
-                  Message Doctor
-                </Button>
-                <Tooltip title="Download PDF">
-                  <Button variant="outlined" size="small"
-                    onClick={() => setSnack({ open: true, msg: `Downloaded: ${selectedReport.type}`, severity: 'success' })}
-                    sx={{ minWidth: 40, width: 40, height: 40, p: 0, borderRadius: 1.5 }}>
-                    <DownloadIcon sx={{ fontSize: 18 }} />
-                  </Button>
-                </Tooltip>
-              </Box>
+                <Button variant="outlined" size="small" startIcon={<ContentCopyIcon sx={{ fontSize: 14 }} />} onClick={() => { navigator.clipboard?.writeText(selectedReport?.id ?? ''); setSnack({ open: true, msg: 'Report ID copied', severity: 'info' }); }} sx={{ textTransform: 'none', fontWeight: 700 }}>Copy ID</Button>
+              </Stack>
             </Box>
           </Box>
         )}
@@ -676,9 +754,54 @@ export default function PatientPortalLabReportsPage() {
       </Box>
       )}
 
+      {/* ── Upload / Scan Dialog ── */}
+      <Dialog open={labUploadOpen} onClose={() => setLabUploadOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 800, borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>Upload or Scan Report</DialogTitle>
+        <DialogContent sx={{ pt: '16px !important' }}>
+          <Stack spacing={2}>
+            <Box sx={{ border: '2px dashed', borderColor: alpha(theme.palette.primary.main, 0.35), borderRadius: 2, p: 3, textAlign: 'center', bgcolor: alpha(theme.palette.primary.main, 0.03), cursor: 'pointer' }}>
+              <CloudUploadIcon sx={{ fontSize: 36, color: 'primary.main', mb: 1 }} />
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>Click to upload or drag & drop</Typography>
+              <Typography variant="caption" color="text.secondary">PDF, JPG, PNG up to 10 MB</Typography>
+            </Box>
+            <Box sx={{ border: '2px dashed', borderColor: alpha(theme.palette.warning.main, 0.4), borderRadius: 2, p: 2.5, textAlign: 'center', bgcolor: alpha(theme.palette.warning.main, 0.03), cursor: 'pointer' }}>
+              <DocumentScannerIcon sx={{ fontSize: 32, color: 'warning.main', mb: 1 }} />
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>Scan physical copy with camera</Typography>
+              <Typography variant="caption" color="text.secondary">After scanning, OCR will extract data automatically</Typography>
+            </Box>
+            <Alert severity="info" icon={<PsychologyIcon fontSize="small" />} sx={{ borderRadius: 2 }}>
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>OCR will automatically extract test values from uploaded documents.</Typography>
+            </Alert>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 2.5, pb: 2 }}>
+          <Button onClick={() => setLabUploadOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" disableElevation onClick={() => { setLabUploadOpen(false); setSnack({ open: true, msg: 'Document uploaded successfully', severity: 'success' }); }} sx={{ textTransform: 'none', fontWeight: 700 }}>Upload</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Share Dialog ── */}
+      <Dialog open={labShareOpen} onClose={() => setLabShareOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 800, borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>Share Lab Report</DialogTitle>
+        <DialogContent sx={{ pt: '16px !important' }}>
+          <Stack spacing={2}>
+            <TextField size="small" fullWidth label="Share with (Doctor / Lab)" placeholder="e.g. Dr. Priya Sharma" value={labShareTarget} onChange={e => setLabShareTarget(e.target.value)} />
+            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+              {['Dr. Priya Sharma', 'Dr. Arvind Mehta', 'SRL Diagnostics'].map(name => (
+                <Chip key={name} label={name} size="small" onClick={() => setLabShareTarget(name)} sx={{ cursor: 'pointer', fontWeight: 600 }} variant="outlined" />
+              ))}
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 2.5, pb: 2 }}>
+          <Button onClick={() => setLabShareOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" disableElevation onClick={handleLabShare} sx={{ textTransform: 'none', fontWeight: 700 }}>Share</Button>
+        </DialogActions>
+      </Dialog>
+
       {/* ══════════════ TAB 1 — VITALS ══════════════ */}
       {activeTab === 1 && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '300px 1fr' }, height: PANEL_H, overflow: 'hidden', mx: { xs: -2, sm: -3 } }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '300px 1fr' }, height: PANEL_H, overflow: 'hidden', ...(embedded ? {} : { mx: { xs: -2, sm: -3 } }) }}>
 
           {/* ── Left: vital list ── */}
           <Box sx={{ borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -762,7 +885,14 @@ export default function PatientPortalLabReportsPage() {
                     <Chip key={r} label={r} size="small" onClick={() => setDateRange(r)}
                       variant={dateRange === r ? 'filled' : 'outlined'}
                       color={dateRange === r ? 'primary' : 'default'}
-                      sx={{ fontWeight: 700, fontSize: 11, cursor: 'pointer', height: 24 }}
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: 10.5,
+                        cursor: 'pointer',
+                        height: 22,
+                        borderRadius: 1.5,
+                        '& .MuiChip-label': { px: 0.85 },
+                      }}
                     />
                   ))}
                 </Stack>
@@ -896,13 +1026,6 @@ export default function PatientPortalLabReportsPage() {
                         sx={{ fontWeight: 700, fontSize: 11, height: 22 }}
                       />
                     ))}
-                    <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-                    <Tooltip title="Download all history">
-                      <Button size="small" variant="text" onClick={() => setSnack({ open: true, msg: `${selectedVital.name} history downloaded!`, severity: 'success' })}
-                        sx={{ minWidth: 28, p: 0.5, color: 'text.secondary' }}>
-                        <DownloadIcon sx={{ fontSize: 15 }} />
-                      </Button>
-                    </Tooltip>
                   </Stack>
                 </Stack>
               </Box>
@@ -983,21 +1106,100 @@ export default function PatientPortalLabReportsPage() {
             </Box>
             )}
 
-            {/* Fixed footer */}
-            <Box sx={{ px: 2.5, py: 1.25, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', display: 'flex', gap: 1, flexShrink: 0 }}>
-              <Button variant="contained" disableElevation size="small"
-                startIcon={<CalendarMonthIcon sx={{ fontSize: 14 }} />}
-                onClick={() => router.push('/patient-portal/appointments')}
-                sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12, borderRadius: 2 }}>
-                Book Appointment
-              </Button>
-              <Button variant="outlined" size="small"
-                startIcon={<ChatIcon sx={{ fontSize: 14 }} />}
-                onClick={() => router.push('/patient-portal/chat')}
-                sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12, borderRadius: 2 }}>
-                Message Doctor
-              </Button>
-            </Box>
+          </Box>
+        </Box>
+      )}
+
+      {/* ══════════════ TAB 2 — SMART SCALE ══════════════ */}
+      {activeTab === 2 && (
+        <Box sx={{ py: 2 }}>
+          {/* Summary stat tiles */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: 1.5, mb: 2.5 }}>
+            {[
+              { label: 'Current Weight', value: '72.4 kg', sub: '↓ 1.2 kg this month', color: pr.main },
+              { label: 'BMI',            value: '24.8',    sub: 'Normal range',          color: theme.palette.success.main },
+              { label: 'Body Fat',       value: '18.6%',   sub: '↓ 0.4% this month',    color: theme.palette.warning.main },
+              { label: 'Muscle Mass',    value: '54.1 kg', sub: '↑ 0.3 kg this month',  color: theme.palette.info.main },
+            ].map((s) => (
+              <Card key={s.label} elevation={0} sx={{ boxShadow: cardShadow, border: 'none', p: 1.75, borderRadius: 2 }}>
+                <Typography sx={{ fontWeight: 800, fontSize: 22, color: s.color, lineHeight: 1.1 }}>{s.value}</Typography>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', fontSize: 11.5, display: 'block', mt: 0.25 }}>{s.label}</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10.5 }}>{s.sub}</Typography>
+              </Card>
+            ))}
+          </Box>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2 }}>
+            {/* Body composition breakdown */}
+            <Card elevation={0} sx={{ boxShadow: cardShadow, border: 'none', borderRadius: 2, p: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.75 }}>Body Composition</Typography>
+              <Stack spacing={1.5}>
+                {[
+                  { label: 'Muscle Mass',   value: 54.1, max: 100, unit: 'kg',  color: theme.palette.info.main     },
+                  { label: 'Body Fat',      value: 18.6, max: 40,  unit: '%',   color: theme.palette.warning.main  },
+                  { label: 'Bone Mass',     value: 3.1,  max: 5,   unit: 'kg',  color: theme.palette.success.main  },
+                  { label: 'Body Water',    value: 58.2, max: 80,  unit: '%',   color: theme.palette.primary.main  },
+                  { label: 'Visceral Fat',  value: 8,    max: 15,  unit: 'lvl', color: theme.palette.error.main    },
+                ].map((item) => (
+                  <Box key={item.label}>
+                    <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.4 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 12 }}>{item.label}</Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 800, color: item.color, fontSize: 12 }}>
+                        {item.value} {item.unit}
+                      </Typography>
+                    </Stack>
+                    <LinearProgress variant="determinate" value={(item.value / item.max) * 100}
+                      sx={{ height: 7, borderRadius: 99, bgcolor: alpha(item.color, 0.12),
+                        '& .MuiLinearProgress-bar': { bgcolor: item.color, borderRadius: 99 } }} />
+                  </Box>
+                ))}
+              </Stack>
+            </Card>
+
+            {/* Weight trend (last 8 readings) */}
+            <Card elevation={0} sx={{ boxShadow: cardShadow, border: 'none', borderRadius: 2, p: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.75 }}>Weight History</Typography>
+              <Stack spacing={0}>
+                {[
+                  { date: 'Mar 15, 2026', weight: '72.4', bmi: '24.8', fat: '18.6%', note: 'Post-breakfast' },
+                  { date: 'Mar 08, 2026', weight: '72.9', bmi: '25.0', fat: '18.9%', note: 'Morning' },
+                  { date: 'Mar 01, 2026', weight: '73.1', bmi: '25.1', fat: '19.0%', note: 'Morning' },
+                  { date: 'Feb 22, 2026', weight: '73.4', bmi: '25.2', fat: '19.2%', note: 'Morning' },
+                  { date: 'Feb 15, 2026', weight: '73.6', bmi: '25.3', fat: '19.4%', note: 'Morning' },
+                  { date: 'Feb 08, 2026', weight: '73.8', bmi: '25.3', fat: '19.5%', note: 'Post-breakfast' },
+                ].map((row, i) => (
+                  <Box key={row.date} sx={{ display: 'grid', gridTemplateColumns: '1.4fr 0.8fr 0.7fr 0.8fr', gap: 1, py: 0.85, alignItems: 'center',
+                    borderBottom: i < 5 ? '1px solid' : 'none', borderColor: 'divider' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 11.5 }}>{row.date}</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: pr.main, fontSize: 11.5 }}>{row.weight} kg</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 11 }}>BMI {row.bmi}</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 11 }}>{row.fat}</Typography>
+                  </Box>
+                ))}
+              </Stack>
+            </Card>
+
+            {/* Device info */}
+            <Card elevation={0} sx={{ boxShadow: cardShadow, border: 'none', borderRadius: 2, p: 2, gridColumn: { xs: '1', lg: '1 / -1' } }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}>
+                <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: alpha(pr.main, 0.1), color: pr.main,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <HeartIcon sx={{ fontSize: 24 }} />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Scanbo Smart Scale</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Model: SSC-200 · Bluetooth · Last sync: Today, 7:32 AM · Battery: 87%
+                  </Typography>
+                </Box>
+                <Stack direction="row" spacing={1}>
+                  <Chip size="small" label="Connected" sx={{ fontWeight: 700, fontSize: 10.5, bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.dark' }} />
+                  <Button size="small" variant="outlined" sx={{ textTransform: 'none', fontWeight: 700, fontSize: 11.5, borderRadius: 2 }}>
+                    Sync Now
+                  </Button>
+                </Stack>
+              </Stack>
+            </Card>
           </Box>
         </Box>
       )}
@@ -1008,6 +1210,12 @@ export default function PatientPortalLabReportsPage() {
           {snack.msg}
         </Alert>
       </Snackbar>
-    </PatientPortalWorkspaceCard>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <PatientPortalWorkspaceCard current={current}>{content}</PatientPortalWorkspaceCard>;
 }

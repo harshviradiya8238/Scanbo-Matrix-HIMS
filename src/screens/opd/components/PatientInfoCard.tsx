@@ -112,9 +112,10 @@ export default function PatientInfoCard({ encounter }: PatientInfoCardProps) {
           {[
             ['BP', encounter.vitals.bp],
             ['HR', encounter.vitals.hr],
+            ['Breath', encounter.vitals.rr],
             ['Temp', encounter.vitals.temp],
             ['SpO2', encounter.vitals.spo2],
-            ['RR', encounter.vitals.rr],
+            ['ECG', encounter.vitals.ecg ?? ''],
             ['Wt', encounter.vitals.weightKg],
           ].map(([label, value]) => (
             <Stack

@@ -35,12 +35,15 @@ import {
   CARE_COMPANION_ENROLLED,
   type CareCompanionEnrolled,
 } from "@/src/mocks/care-companion";
-import EnrollPatientDialog from "./components/EnrollPatientDialog";
+import EnrollPatientDialog, {
+  type CareProgramTemplate,
+} from "./components/EnrollPatientDialog";
 import PatientDetailDrawer from "./components/PatientDetailDrawer";
 import { alpha, useTheme } from "@/src/ui/theme";
 import type { Theme } from "@mui/material";
 import { usePermission } from "@/src/core/auth/usePermission";
 import {
+  Add as AddIcon,
   CalendarToday as CalendarTodayIcon,
   CheckCircle as CheckCircleIcon,
   Close as CloseIcon,
@@ -52,6 +55,7 @@ import {
   PersonAdd as PersonAddIcon,
   Phone as PhoneIcon,
   Search as SearchIcon,
+  Videocam as VideocamIcon,
   Visibility as VisibilityIcon,
   WarningAmber as WarningAmberIcon,
 } from "@mui/icons-material";
@@ -193,6 +197,12 @@ export default function CareCompanionPage() {
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [patients, setPatients] = React.useState<EnrolledPatient[]>(MOCK_PATIENTS);
   const [isEnrollDialogOpen, setIsEnrollDialogOpen] = React.useState(false);
+  const [customProgramTemplates, setCustomProgramTemplates] = React.useState<
+    CareProgramTemplate[]
+  >([]);
+  const [enrollDialogLaunchMode, setEnrollDialogLaunchMode] = React.useState<
+    "enroll" | "create-template"
+  >("enroll");
   const [drawerPatient, setDrawerPatient] = React.useState<EnrolledPatient | null>(null);
   const [drawerEditMode, setDrawerEditMode] = React.useState(false);
   const [closePlanDialogOpen, setClosePlanDialogOpen] = React.useState(false);
@@ -261,15 +271,32 @@ export default function CareCompanionPage() {
                 remote health management.
               </Typography>
             </Box>
-            <Button
-              variant="contained"
-              startIcon={<PersonAddIcon />}
-              disabled={!canWrite}
-              onClick={() => setIsEnrollDialogOpen(true)}
-              sx={{ textTransform: "none", fontWeight: 600, flexShrink: 0 }}
-            >
-              Enroll Patient
-            </Button>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                disabled={!canWrite}
+                onClick={() => {
+                  setEnrollDialogLaunchMode("create-template");
+                  setIsEnrollDialogOpen(true);
+                }}
+                sx={{ textTransform: "none", fontWeight: 600, flexShrink: 0 }}
+              >
+                Add New Care Plan
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<PersonAddIcon />}
+                disabled={!canWrite}
+                onClick={() => {
+                    setEnrollDialogLaunchMode("enroll");
+                  setIsEnrollDialogOpen(true);
+                }}
+                sx={{ textTransform: "none", fontWeight: 600, flexShrink: 0 }}
+              >
+                Enroll Patient
+              </Button>
+            </Stack>
           </Stack>
         </WorkspaceHeaderCard>
 
@@ -670,27 +697,52 @@ export default function CareCompanionPage() {
                               Urgent
                             </Button>
                           ) : p.status !== "closed" ? (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              sx={{
-                                textTransform: "none",
-                                fontWeight: 700,
-                                borderRadius: "20px",
-                                fontSize: "0.75rem",
-                                py: 0.3,
-                                
-                                px: 1.25,
-                                minWidth: 0,
-                                borderColor: "rgba(17, 114, 186, 0.3)",
-                                color: "primary.main",
-                                "&:hover": {
-                                  bgcolor: "rgba(17, 114, 186, 0.05)",
-                                },
-                              }}
-                            >
-                              Call
-                            </Button>
+                            <>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<PhoneIcon sx={{ fontSize: 14 }} />}
+                                sx={{
+                                  textTransform: "none",
+                                  fontWeight: 700,
+                                  borderRadius: "20px",
+                                  fontSize: "0.72rem",
+                                  py: 0.3,
+                                  px: 1,
+                                  minWidth: 0,
+                                  borderColor: "rgba(17, 114, 186, 0.3)",
+                                  color: "primary.main",
+                                  "& .MuiButton-startIcon": { mr: 0.5 },
+                                  "&:hover": {
+                                    bgcolor: "rgba(17, 114, 186, 0.05)",
+                                  },
+                                }}
+                              >
+                                Audio
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<VideocamIcon sx={{ fontSize: 14 }} />}
+                                sx={{
+                                  textTransform: "none",
+                                  fontWeight: 700,
+                                  borderRadius: "20px",
+                                  fontSize: "0.72rem",
+                                  py: 0.3,
+                                  px: 1,
+                                  minWidth: 0,
+                                  borderColor: "rgba(17, 114, 186, 0.3)",
+                                  color: "primary.main",
+                                  "& .MuiButton-startIcon": { mr: 0.5 },
+                                  "&:hover": {
+                                    bgcolor: "rgba(17, 114, 186, 0.05)",
+                                  },
+                                }}
+                              >
+                                Video
+                              </Button>
+                            </>
                           ) : null}
                           {p.status !== "closed" && (
                             <IconButton
@@ -840,6 +892,11 @@ export default function CareCompanionPage() {
       <EnrollPatientDialog
         open={isEnrollDialogOpen}
         onClose={() => setIsEnrollDialogOpen(false)}
+        customProgramTemplates={customProgramTemplates}
+        onCreateProgramTemplate={(template) =>
+          setCustomProgramTemplates((prev) => [template, ...prev])
+        }
+        launchMode={enrollDialogLaunchMode}
       />
 
       <PatientDetailDrawer

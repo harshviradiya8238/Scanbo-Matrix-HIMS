@@ -60,6 +60,8 @@ import {
   CreditCard as CreditCardIcon,
   Chat as ChatIcon,
   EventNote,
+  FamilyRestroom as FamilyRestroomIcon,
+  Share as ShareIcon,
 } from "@mui/icons-material";
 import { NAV_GROUPS } from "@/src/core/navigation/nav-config";
 import { MenuItem, UserRole } from "@/src/core/navigation/types";
@@ -128,6 +130,8 @@ const iconMap: Record<string, React.ComponentType> = {
   CreditCard: CreditCardIcon,
   Chat: ChatIcon,
   EventNote,
+  FamilyRestroom: FamilyRestroomIcon,
+  Share: ShareIcon,
 };
 
 interface ModernSidebarProps {

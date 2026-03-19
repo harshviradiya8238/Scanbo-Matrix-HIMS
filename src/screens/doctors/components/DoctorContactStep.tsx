@@ -1,7 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { Alert, Box, Chip, FormControlLabel, Checkbox, Stack, Typography } from '@/src/ui/components/atoms';
+import {
+  Alert,
+  Box,
+  Chip,
+  FormControlLabel,
+  Checkbox,
+  Stack,
+  Typography,
+} from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
 import { useTheme } from '@/src/ui/theme';
 import { getPrimaryChipSx, getSoftSurface } from '@/src/core/theme/surfaces';
@@ -27,69 +35,123 @@ const countryCodeOptions = [
   { value: '+33', label: '🇫🇷 +33 (France)' },
 ];
 
-const indiaStateOptions = [
-  { value: '', label: '-- Select State --' },
-  { value: 'andhra_pradesh', label: 'Andhra Pradesh' },
-  { value: 'assam', label: 'Assam' },
-  { value: 'bihar', label: 'Bihar' },
-  { value: 'delhi', label: 'Delhi (NCT)' },
-  { value: 'gujarat', label: 'Gujarat' },
-  { value: 'haryana', label: 'Haryana' },
-  { value: 'himachal_pradesh', label: 'Himachal Pradesh' },
-  { value: 'jammu_kashmir', label: 'Jammu & Kashmir' },
-  { value: 'jharkhand', label: 'Jharkhand' },
-  { value: 'karnataka', label: 'Karnataka' },
-  { value: 'kerala', label: 'Kerala' },
-  { value: 'madhya_pradesh', label: 'Madhya Pradesh' },
-  { value: 'maharashtra', label: 'Maharashtra' },
-  { value: 'manipur', label: 'Manipur' },
-  { value: 'meghalaya', label: 'Meghalaya' },
-  { value: 'odisha', label: 'Odisha' },
-  { value: 'punjab', label: 'Punjab' },
-  { value: 'rajasthan', label: 'Rajasthan' },
-  { value: 'tamil_nadu', label: 'Tamil Nadu' },
-  { value: 'telangana', label: 'Telangana' },
-  { value: 'uttar_pradesh', label: 'Uttar Pradesh' },
-  { value: 'uttarakhand', label: 'Uttarakhand' },
-  { value: 'west_bengal', label: 'West Bengal' },
-  { value: 'other', label: 'Other' },
-];
-
-const intlCountryOptions = [
-  { value: '', label: '-- Select Country --' },
-  { value: 'india', label: 'India' },
-  { value: 'uae', label: 'United Arab Emirates' },
-  { value: 'usa', label: 'United States' },
-  { value: 'uk', label: 'United Kingdom' },
-  { value: 'canada', label: 'Canada' },
-  { value: 'australia', label: 'Australia' },
-  { value: 'singapore', label: 'Singapore' },
-  { value: 'malaysia', label: 'Malaysia' },
-  { value: 'germany', label: 'Germany' },
-  { value: 'france', label: 'France' },
-  { value: 'sri_lanka', label: 'Sri Lanka' },
-  { value: 'nepal', label: 'Nepal' },
-  { value: 'bangladesh', label: 'Bangladesh' },
-  { value: 'other', label: 'Other' },
-];
+const ZIP_DIRECTORY: Record<
+  string,
+  { city: string; state: string; county: string; country: string }
+> = {
+  '400001': {
+    city: 'Mumbai',
+    state: 'Maharashtra',
+    county: 'Mumbai',
+    country: 'India',
+  },
+  '411001': {
+    city: 'Pune',
+    state: 'Maharashtra',
+    county: 'Pune',
+    country: 'India',
+  },
+  '560001': {
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    county: 'Bengaluru Urban',
+    country: 'India',
+  },
+  '600001': {
+    city: 'Chennai',
+    state: 'Tamil Nadu',
+    county: 'Chennai',
+    country: 'India',
+  },
+  '110001': {
+    city: 'New Delhi',
+    state: 'Delhi',
+    county: 'New Delhi',
+    country: 'India',
+  },
+  '500001': {
+    city: 'Hyderabad',
+    state: 'Telangana',
+    county: 'Hyderabad',
+    country: 'India',
+  },
+  '700001': {
+    city: 'Kolkata',
+    state: 'West Bengal',
+    county: 'Kolkata',
+    country: 'India',
+  },
+  '380001': {
+    city: 'Ahmedabad',
+    state: 'Gujarat',
+    county: 'Ahmedabad',
+    country: 'India',
+  },
+};
 
 export default function DoctorContactStep({ values, setFieldValue }: DoctorContactStepProps) {
   const theme = useTheme();
   const softSurface = getSoftSurface(theme);
   const chipSx = getPrimaryChipSx(theme);
   const isIndia = values.registrationCountry === 'india';
+  const lastProcessedZipRef = React.useRef('');
+  const [zipLookupState, setZipLookupState] = React.useState<{
+    status: 'idle' | 'found' | 'not_found';
+    zip: string;
+  }>({ status: 'idle', zip: '' });
 
   const handleSameAddressChange = (checked: boolean) => {
     setFieldValue('permanentAddressSame', checked);
     if (checked) {
       setFieldValue('permanentAddressLine1', values.clinicAddressLine1);
       setFieldValue('permanentAddressLine2', values.clinicAddressLine2);
+      setFieldValue('permanentCounty', values.clinicCounty);
       setFieldValue('permanentCity', values.clinicCity);
       setFieldValue('permanentState', values.clinicState);
       setFieldValue('permanentCountry', values.clinicCountry);
       setFieldValue('permanentPinCode', values.clinicPinCode);
     }
   };
+
+  React.useEffect(() => {
+    const normalizedZip = values.clinicPinCode.replace(/\s+/g, '').trim();
+    if (normalizedZip.length < 5) {
+      lastProcessedZipRef.current = '';
+      if (zipLookupState.status !== 'idle') {
+        setZipLookupState({ status: 'idle', zip: '' });
+      }
+      return;
+    }
+
+    if (normalizedZip === lastProcessedZipRef.current) return;
+    lastProcessedZipRef.current = normalizedZip;
+
+    const lookup = ZIP_DIRECTORY[normalizedZip];
+    if (!lookup) {
+      setZipLookupState({ status: 'not_found', zip: normalizedZip });
+      return;
+    }
+
+    setFieldValue('clinicCity', lookup.city, false);
+    setFieldValue('clinicState', lookup.state, false);
+    setFieldValue('clinicCounty', lookup.county, false);
+    setFieldValue('clinicCountry', lookup.country, false);
+
+    if (values.permanentAddressSame) {
+      setFieldValue('permanentCity', lookup.city, false);
+      setFieldValue('permanentState', lookup.state, false);
+      setFieldValue('permanentCounty', lookup.county, false);
+      setFieldValue('permanentCountry', lookup.country, false);
+      setFieldValue('permanentPinCode', normalizedZip, false);
+    }
+
+    setZipLookupState({ status: 'found', zip: normalizedZip });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.clinicPinCode, values.permanentAddressSame]);
+
+  const isZipAutofilled =
+    zipLookupState.status === 'found'
+    && zipLookupState.zip === values.clinicPinCode.replace(/\s+/g, '').trim();
 
   return (
     <Stack spacing={2}>
@@ -113,7 +175,7 @@ export default function DoctorContactStep({ values, setFieldValue }: DoctorConta
 
         <Box sx={{ p: 2.25 }}>
           <Grid container spacing={1.35}>
-            <Grid xs={12} md={2} >
+            <Grid xs={12} md={2}>
               <FormSelect
                 name="countryCode"
                 label="Country Code"
@@ -167,6 +229,50 @@ export default function DoctorContactStep({ values, setFieldValue }: DoctorConta
 
         <Box sx={{ p: 2.25 }}>
           <Grid container spacing={1.35}>
+            <Grid xs={12} md={3}>
+              <FormTextField
+                name="clinicPinCode"
+                label="ZIP Code"
+                placeholder={isIndia ? '6-digit ZIP' : 'ZIP / Postal Code'}
+                helperText="Enter ZIP first to auto-fill city/state/county/country"
+                required
+              />
+            </Grid>
+            <Grid xs={12} md={3}>
+              <FormTextField
+                name="clinicCity"
+                label="City"
+                placeholder="e.g. Mumbai"
+                required
+                disabled={isZipAutofilled}
+              />
+            </Grid>
+            <Grid xs={12} md={3}>
+              <FormTextField
+                name="clinicState"
+                label="State / Province"
+                placeholder="e.g. Maharashtra"
+                required
+                disabled={isZipAutofilled}
+              />
+            </Grid>
+            <Grid xs={12} md={3}>
+              <FormTextField
+                name="clinicCounty"
+                label="County"
+                placeholder="e.g. Mumbai"
+                disabled={isZipAutofilled}
+              />
+            </Grid>
+            <Grid xs={12} md={6}>
+              <FormTextField
+                name="clinicCountry"
+                label="Country"
+                placeholder={isIndia ? 'India' : 'e.g. United Arab Emirates'}
+                required
+                disabled={isZipAutofilled}
+              />
+            </Grid>
             <Grid xs={12} md={6}>
               <FormTextField
                 name="clinicAddressLine1"
@@ -175,52 +281,25 @@ export default function DoctorContactStep({ values, setFieldValue }: DoctorConta
                 required
               />
             </Grid>
-            <Grid xs={12} md={6}>
+            <Grid xs={12}>
               <FormTextField
                 name="clinicAddressLine2"
                 label="Address Line 2"
                 placeholder="Street, Locality, Area"
               />
             </Grid>
-            <Grid xs={12} md={3}>
-              <FormTextField name="clinicCity" label="City" placeholder="e.g. Mumbai" required />
-            </Grid>
-
-            {isIndia ? (
-              <>
-                <Grid xs={12} md={3}>
-                  <FormSelect name="clinicState" label="State / UT" options={indiaStateOptions} required />
-                </Grid>
-                <Grid xs={12} md={3}>
-                  <FormTextField name="clinicCountry" label="Country" placeholder="India" />
-                </Grid>
-                <Grid xs={12} md={3}>
-                  <FormTextField
-                    name="clinicPinCode"
-                    label="PIN Code"
-                    placeholder="6-digit PIN"
-                    helperText="India postal code"
-                  />
-                </Grid>
-              </>
-            ) : (
-              <>
-                <Grid xs={12} md={3}>
-                  <FormTextField name="clinicState" label="State / Province / Emirate" placeholder="e.g. Dubai" required />
-                </Grid>
-                <Grid xs={12} md={3}>
-                  <FormSelect name="clinicCountry" label="Country" options={intlCountryOptions} required />
-                </Grid>
-                <Grid xs={12} md={3}>
-                  <FormTextField
-                    name="clinicPinCode"
-                    label="ZIP / Postal Code"
-                    placeholder="e.g. 00000"
-                  />
-                </Grid>
-              </>
-            )}
           </Grid>
+
+          {zipLookupState.status === 'found' ? (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              ZIP code verified. City, state, county, and country were auto-filled.
+            </Alert>
+          ) : null}
+          {zipLookupState.status === 'not_found' ? (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              ZIP code not found in directory. Please enter city/state/county/country manually.
+            </Alert>
+          ) : null}
         </Box>
       </Card>
 
@@ -237,18 +316,18 @@ export default function DoctorContactStep({ values, setFieldValue }: DoctorConta
               Permanent / Home Address
             </Typography>
             <FormControlLabel
-              control={
+              control={(
                 <Checkbox
                   checked={values.permanentAddressSame}
                   onChange={(e) => handleSameAddressChange(e.target.checked)}
                   size="small"
                 />
-              }
-              label={
+              )}
+              label={(
                 <Typography variant="caption" sx={{ fontWeight: 600 }}>
                   Same as clinic address
                 </Typography>
-              }
+              )}
             />
           </Stack>
         </Box>
@@ -262,6 +341,21 @@ export default function DoctorContactStep({ values, setFieldValue }: DoctorConta
         ) : (
           <Box sx={{ p: 2.25 }}>
             <Grid container spacing={1.35}>
+              <Grid xs={12} md={3}>
+                <FormTextField name="permanentPinCode" label="ZIP Code" placeholder="ZIP / Postal Code" />
+              </Grid>
+              <Grid xs={12} md={3}>
+                <FormTextField name="permanentCity" label="City" placeholder="e.g. Delhi" />
+              </Grid>
+              <Grid xs={12} md={3}>
+                <FormTextField name="permanentState" label="State / Province" placeholder="e.g. Delhi" />
+              </Grid>
+              <Grid xs={12} md={3}>
+                <FormTextField name="permanentCounty" label="County" placeholder="e.g. New Delhi" />
+              </Grid>
+              <Grid xs={12} md={6}>
+                <FormTextField name="permanentCountry" label="Country" placeholder={isIndia ? 'India' : 'Country'} />
+              </Grid>
               <Grid xs={12} md={6}>
                 <FormTextField
                   name="permanentAddressLine1"
@@ -269,42 +363,13 @@ export default function DoctorContactStep({ values, setFieldValue }: DoctorConta
                   placeholder="Building, Floor, Unit No."
                 />
               </Grid>
-              <Grid xs={12} md={6}>
+              <Grid xs={12}>
                 <FormTextField
                   name="permanentAddressLine2"
                   label="Address Line 2"
                   placeholder="Street, Locality, Area"
                 />
               </Grid>
-              <Grid xs={12} md={3}>
-                <FormTextField name="permanentCity" label="City" placeholder="e.g. Delhi" />
-              </Grid>
-
-              {isIndia ? (
-                <>
-                  <Grid xs={12} md={3}>
-                    <FormSelect name="permanentState" label="State / UT" options={indiaStateOptions} />
-                  </Grid>
-                  <Grid xs={12} md={3}>
-                    <FormTextField name="permanentCountry" label="Country" placeholder="India" />
-                  </Grid>
-                  <Grid xs={12} md={3}>
-                    <FormTextField name="permanentPinCode" label="PIN Code" placeholder="6-digit PIN" />
-                  </Grid>
-                </>
-              ) : (
-                <>
-                  <Grid xs={12} md={3}>
-                    <FormTextField name="permanentState" label="State / Province" placeholder="e.g. Abu Dhabi" />
-                  </Grid>
-                  <Grid xs={12} md={3}>
-                    <FormSelect name="permanentCountry" label="Country" options={intlCountryOptions} />
-                  </Grid>
-                  <Grid xs={12} md={3}>
-                    <FormTextField name="permanentPinCode" label="ZIP / Postal Code" placeholder="e.g. 00000" />
-                  </Grid>
-                </>
-              )}
             </Grid>
           </Box>
         )}

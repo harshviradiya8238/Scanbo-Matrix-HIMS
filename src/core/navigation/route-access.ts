@@ -29,6 +29,14 @@ const ROUTE_PERMISSION_OVERRIDES: Array<{
     requiredPermissions: ['clinical.ambulatory.write'],
   },
   {
+    pattern: /^\/patients\/registration(?:\/|$)/,
+    requiredPermissions: ['patients.create', 'patient-portal.read'],
+  },
+  {
+    pattern: /^\/doctors\/profile(?:\/|$)/,
+    requiredPermissions: ['doctors.read'],
+  },
+  {
     pattern: /^\/encounters\/[^/]+$/,
     requiredPermissions: ['clinical.ambulatory.write'],
   },

@@ -275,7 +275,7 @@ export const CLINICAL_MODULES: ClinicalModuleDefinition[] = [
       'Operating Room management for scheduling surgeries, documenting procedures, tracking OR utilization.',
     audience: ['Surgeons', 'OR Nurses', 'OT Coordinators'],
     appRoute: '/clinical/modules/optime',
-    status: 'Planned',
+    status: 'Implemented',
     requiredPermissions: buildPermissions('surgery', 'optime'),
     videoUrl: 'https://www.youtube.com/watch?v=EJ9Dvs_gE6s',
     referenceUrl: 'https://www.epic.com/software/specialties/',

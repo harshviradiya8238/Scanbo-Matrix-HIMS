@@ -15,9 +15,12 @@ import {
   Button,
   Chip,
   Divider,
+  FormControl,
   IconButton,
+  InputLabel,
   MenuItem,
   Popover,
+  Select,
   Snackbar,
   Stack,
   TextField,
@@ -42,7 +45,9 @@ import {
   MedicalServicesOutlined as MedicalServicesOutlinedIcon,
   NightsStayRounded as NightsStayRoundedIcon,
   VideocamOutlined as VideocamOutlinedIcon,
+  Phone as PhoneOutlinedIcon,
   WbSunnyRounded as WbSunnyRoundedIcon,
+  CreditCard as CreditCardIcon,
 } from '@mui/icons-material';
 import PatientPortalWorkspaceCard from './components/PatientPortalWorkspaceCard';
 import { APPOINTMENTS, PATIENT } from './patient-portal-mock-data';
@@ -61,8 +66,17 @@ import { ppSectionCard } from './patient-portal-styles';
 
 type TabId = 'upcoming' | 'completed' | 'cancelled';
 type BookingStep = 1 | 2 | 3 | 4;
-type ConsultationType = 'video' | 'home' | 'clinic';
+type ConsultationType = 'video' | 'audio' | 'home' | 'clinic';
 type CalendarView = 'timeGridWeek' | 'timeGridDay';
+
+/* ── Hospitals: some require payment, some free ── */
+const HOSPITALS = [
+  { id: 'h1', name: 'Scanbo City Hospital',    requiresPay: true,  fee: 800  },
+  { id: 'h2', name: 'Apollo Multispecialty',   requiresPay: true,  fee: 1200 },
+  { id: 'h3', name: 'Govt. General Hospital',  requiresPay: false, fee: 0    },
+  { id: 'h4', name: 'Wellness Care Clinic',    requiresPay: false, fee: 500  },
+  { id: 'h5', name: 'MedLife Diagnostics',     requiresPay: true,  fee: 950  },
+];
 
 const BOOKING_STEPS: Array<{ id: BookingStep; label: string }> = [
   { id: 1, label: 'Type' },
@@ -170,12 +184,14 @@ const statusColor = (status: AppointmentStatus, palette: any) => {
 const consultationToPatientType: Record<ConsultationType, Appointment['type']> = {
   clinic: 'in-person',
   video: 'video',
+  audio: 'video',
   home: 'home-visit',
 };
 
 const consultationToVisitType: Record<ConsultationType, VisitType> = {
   clinic: 'New',
   video: 'Follow-up',
+  audio: 'Follow-up',
   home: 'Review',
 };
 
@@ -204,6 +220,8 @@ export default function PatientPortalAppointmentsPage() {
   const [homeAddress, setHomeAddress] = React.useState(PATIENT.address);
   const [selectedCalendarAppointment, setSelectedCalendarAppointment] = React.useState<OpdAppointment | null>(null);
   const [eventAnchor, setEventAnchor] = React.useState<HTMLElement | null>(null);
+  const [selectedHospital, setSelectedHospital] = React.useState(HOSPITALS[0].id);
+  const [paying, setPaying] = React.useState(false);
   const [doctorSearch, setDoctorSearch] = React.useState('');
   const [specialtyFilter, setSpecialtyFilter] = React.useState('All');
   const [snackbar, setSnackbar] = React.useState<{
@@ -795,7 +813,9 @@ export default function PatientPortalAppointmentsPage() {
           ? 'Home Visit'
           : consultationType === 'video'
             ? 'Virtual Consultation'
-            : doctor.location,
+            : consultationType === 'audio'
+              ? 'Audio Consultation'
+              : hospital.name,
       date: selectedDate,
       day: `${bookedDate.getDate()}`.padStart(2, '0'),
       month: bookedDate.toLocaleDateString('en-US', { month: 'short' }),
@@ -809,6 +829,8 @@ export default function PatientPortalAppointmentsPage() {
     setPortalAppointments((prev) => [createdPortalAppointment, ...prev]);
     setBookingStep(1);
     setConsultationType(null);
+    setSelectedHospital(HOSPITALS[0].id);
+    setPaying(false);
     setSelectedSlot('');
     setReason('');
     setNotes('');
@@ -860,6 +882,8 @@ export default function PatientPortalAppointmentsPage() {
     return { checkedIn, inTriageConsult, noShow };
   }, [appointments, selectedDate, selectedDoctor]);
 
+  const hospital = HOSPITALS.find((h) => h.id === selectedHospital) ?? HOSPITALS[0];
+
   const consultationOptions: Array<{
     id: ConsultationType;
     label: string;
@@ -867,22 +891,28 @@ export default function PatientPortalAppointmentsPage() {
     icon: React.ReactNode;
   }> = [
     {
+      id: 'clinic',
+      label: 'In-Clinic',
+      description: 'Visit hospital OPD for consultation',
+      icon: <LocalHospitalOutlinedIcon fontSize="small" />,
+    },
+    {
       id: 'video',
       label: 'Video Call',
       description: 'Consult online in secure session',
       icon: <VideocamOutlinedIcon fontSize="small" />,
     },
     {
+      id: 'audio',
+      label: 'Audio Call',
+      description: 'Voice call with your doctor',
+      icon: <PhoneOutlinedIcon fontSize="small" />,
+    },
+    {
       id: 'home',
       label: 'Home Visit',
       description: 'Doctor visits your home address',
       icon: <HomeRoundedIcon fontSize="small" />,
-    },
-    {
-      id: 'clinic',
-      label: 'In-Clinic',
-      description: 'Visit hospital OPD for consultation',
-      icon: <LocalHospitalOutlinedIcon fontSize="small" />,
     },
   ];
 
@@ -1263,6 +1293,40 @@ export default function PatientPortalAppointmentsPage() {
                     {bookingStep === 1 ? (
                       <Stack spacing={1}>
                         <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: 0.5, color: 'text.secondary' }}>
+                          SELECT HOSPITAL
+                        </Typography>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Hospital</InputLabel>
+                          <Select
+                            value={selectedHospital}
+                            label="Hospital"
+                            onChange={(e) => setSelectedHospital(e.target.value as string)}
+                          >
+                            {HOSPITALS.map((h) => (
+                              <MenuItem key={h.id} value={h.id}>
+                                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }}>
+                                  <Typography variant="body2">{h.name}</Typography>
+                                  <Chip size="small"
+                                    label={h.requiresPay ? `₹${h.fee}` : 'Free'}
+                                    sx={{ ml: 1, fontWeight: 700, fontSize: 10,
+                                      bgcolor: h.requiresPay ? alpha(theme.palette.warning.main, 0.12) : alpha(theme.palette.success.main, 0.12),
+                                      color: h.requiresPay ? 'warning.dark' : 'success.dark' }}
+                                  />
+                                </Stack>
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        {hospital.requiresPay && (
+                          <Box sx={{ px: 1.25, py: 0.75, borderRadius: 1.5,
+                            bgcolor: alpha(theme.palette.warning.main, 0.07),
+                            border: '1px solid', borderColor: alpha(theme.palette.warning.main, 0.25) }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'warning.dark' }}>
+                              Consultation fee: <strong>₹{hospital.fee}</strong> — payment required at confirmation
+                            </Typography>
+                          </Box>
+                        )}
+                        <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: 0.5, color: 'text.secondary', pt: 0.5 }}>
                           CONSULTATION TYPE
                         </Typography>
                         {consultationOptions.map((option) => {
@@ -1751,6 +1815,26 @@ export default function PatientPortalAppointmentsPage() {
                             minRows={2}
                           />
                         ) : null}
+                        {hospital.requiresPay ? (
+                          <Box sx={{ p: 1.25, borderRadius: 1.5,
+                            bgcolor: alpha(theme.palette.warning.main, 0.07),
+                            border: '1px solid', borderColor: alpha(theme.palette.warning.main, 0.25) }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'warning.dark', display: 'block', mb: 0.25 }}>
+                              Payment Required — {hospital.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Consultation fee: <strong>₹{hospital.fee}</strong>. Click "Pay & Confirm" to complete booking.
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Box sx={{ p: 1.25, borderRadius: 1.5,
+                            bgcolor: alpha(theme.palette.success.main, 0.06),
+                            border: '1px solid', borderColor: alpha(theme.palette.success.main, 0.2) }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'success.dark' }}>
+                              No payment required — confirm your appointment directly.
+                            </Typography>
+                          </Box>
+                        )}
                       </Stack>
                     ) : null}
 
@@ -1763,6 +1847,23 @@ export default function PatientPortalAppointmentsPage() {
                       {bookingStep < 4 ? (
                         <Button variant="contained" onClick={proceedToNextStep} sx={{ flex: 1, textTransform: 'none', fontWeight: 700 }}>
                           Continue
+                        </Button>
+                      ) : hospital.requiresPay ? (
+                        <Button
+                          variant="contained"
+                          color="warning"
+                          disabled={paying}
+                          onClick={() => {
+                            setPaying(true);
+                            setTimeout(() => {
+                              setPaying(false);
+                              handleConfirmBooking();
+                            }, 1000);
+                          }}
+                          startIcon={<CreditCardIcon sx={{ fontSize: 15 }} />}
+                          sx={{ flex: 1, textTransform: 'none', fontWeight: 700 }}
+                        >
+                          {paying ? 'Processing…' : `Pay ₹${hospital.fee} & Confirm`}
                         </Button>
                       ) : (
                         <Button

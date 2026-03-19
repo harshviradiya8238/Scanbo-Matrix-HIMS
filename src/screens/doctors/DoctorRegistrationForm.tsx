@@ -6,22 +6,17 @@ import StepperForm from '@/src/ui/components/forms/StepperForm';
 import { Box, Chip, Stack, Typography } from '@/src/ui/components/atoms';
 import { DoctorRegistrationFormData } from './types/doctor-registration.types';
 import {
-  doctorIdentitySchema,
-  doctorPersonalSchema,
-  doctorProfessionalSchema,
-  doctorContactSchema,
+  doctorAvailabilitySchema,
   doctorDocumentsSchema,
+  doctorPersonalCombinedSchema,
 } from './schemas/doctor-registration.schema';
-import DoctorIdentityStep from './components/DoctorIdentityStep';
-import DoctorPersonalStep from './components/DoctorPersonalStep';
-import DoctorProfessionalStep from './components/DoctorProfessionalStep';
-import DoctorContactStep from './components/DoctorContactStep';
+import DoctorPersonalInfoStep from './components/DoctorPersonalInfoStep';
 import DoctorDocumentsStep from './components/DoctorDocumentsStep';
+import DoctorAvailabilityStep from './components/DoctorAvailabilityStep';
 
 const initialValues: DoctorRegistrationFormData = {
   // Registration Context
   registrationCountry: 'india',
-  doctorId: '',
   doctorType: '',
   regDate: new Date().toISOString().split('T')[0],
 
@@ -69,7 +64,16 @@ const initialValues: DoctorRegistrationFormData = {
   consultationFeeOPD: '',
   consultationDurationMins: '15',
   telemedicineAvailable: false,
-  availableDays: 'Mon,Tue,Wed,Thu,Fri',
+  availableDays: '',
+  weeklySchedule: [
+    { on: true,  hol: false, work: [{ s: '09:00', e: '18:00' }], breaks: [{ s: '13:00', e: '13:30' }] },
+    { on: true,  hol: false, work: [{ s: '09:00', e: '18:00' }], breaks: [{ s: '13:00', e: '13:30' }] },
+    { on: true,  hol: false, work: [{ s: '09:00', e: '18:00' }], breaks: [{ s: '13:00', e: '13:30' }] },
+    { on: true,  hol: false, work: [{ s: '09:00', e: '18:00' }], breaks: [{ s: '13:00', e: '13:30' }] },
+    { on: true,  hol: false, work: [{ s: '09:00', e: '17:00' }], breaks: [] },
+    { on: true,  hol: false, work: [{ s: '10:00', e: '14:00' }], breaks: [] },
+    { on: false, hol: false, work: [], breaks: [] },
+  ],
 
   // Contact & Address
   countryCode: '+91',
@@ -78,13 +82,15 @@ const initialValues: DoctorRegistrationFormData = {
   email: '',
   clinicAddressLine1: '',
   clinicAddressLine2: '',
+  clinicCounty: '',
   clinicCity: '',
   clinicState: '',
-  clinicCountry: 'india',
+  clinicCountry: 'India',
   clinicPinCode: '',
   permanentAddressSame: true,
   permanentAddressLine1: '',
   permanentAddressLine2: '',
+  permanentCounty: '',
   permanentCity: '',
   permanentState: '',
   permanentCountry: '',
@@ -112,29 +118,24 @@ interface DoctorRegistrationFormProps {
 export default function DoctorRegistrationForm({ onSubmit, onCancel }: DoctorRegistrationFormProps) {
   const steps = [
     {
-      label: 'License & ID',
-      component: (props: any) => <DoctorIdentityStep {...props} />,
-      validationSchema: doctorIdentitySchema,
-    },
-    {
-      label: 'Personal',
-      component: (props: any) => <DoctorPersonalStep {...props} />,
-      validationSchema: doctorPersonalSchema,
-    },
-    {
-      label: 'Professional',
-      component: (props: any) => <DoctorProfessionalStep {...props} />,
-      validationSchema: doctorProfessionalSchema,
-    },
-    {
-      label: 'Contact & Address',
-      component: (props: any) => <DoctorContactStep {...props} />,
-      validationSchema: doctorContactSchema,
+      label: 'Personal Info',
+      component: (props: any) => <DoctorPersonalInfoStep {...props} />,
+      validationSchema: doctorPersonalCombinedSchema,
     },
     {
       label: 'Documents & Consent',
       component: (props: any) => <DoctorDocumentsStep {...props} />,
       validationSchema: doctorDocumentsSchema,
+    },
+    {
+      label: 'Availability',
+      component: (props: any) => <DoctorAvailabilityStep {...props} />,
+      validationSchema: doctorAvailabilitySchema,
+      isOptional: true,
+      onSkip: async (formik: any) => {
+        await formik.setFieldValue('availableDays', '', false);
+        await formik.setFieldValue('telemedicineAvailable', false, false);
+      },
     },
   ];
 
@@ -154,12 +155,12 @@ export default function DoctorRegistrationForm({ onSubmit, onCancel }: DoctorReg
             alignItems={{ xs: 'flex-start', sm: 'center' }}
           >
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Doctor Registration &amp; Credentialing
+              Doctor Registration
             </Typography>
             <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
               <Chip size="small" color="primary" label="Doctor" />
-              <Chip size="small" variant="outlined" color="primary" label="Onboarding" />
-              <Chip size="small" variant="outlined" color="success" label="India &amp; International" />
+              <Chip size="small" variant="outlined" color="primary" label="3-Step Flow" />
+              <Chip size="small" variant="outlined" color="success" label="Personal + Documents + Availability" />
             </Box>
           </Stack>
         }

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Alert, Box, Chip, Stack, Typography } from '@/src/ui/components/atoms';
+import { Alert, Box, Button, Chip, Stack, Typography } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
 import { useTheme, alpha } from '@/src/ui/theme';
 import { getPrimaryChipSx, getSoftSurface } from '@/src/core/theme/surfaces';
@@ -9,7 +9,7 @@ import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { FormikProps } from 'formik';
 import { FormDatePicker, FormSelect, FormTextField } from '@/src/ui/components/forms';
 import { DoctorRegistrationFormData } from '../types/doctor-registration.types';
-import { Badge as BadgeIcon, VerifiedUser as VerifiedUserIcon } from '@mui/icons-material';
+import { Sync as SyncIcon, VerifiedUser as VerifiedUserIcon } from '@mui/icons-material';
 
 interface DoctorIdentityStepProps extends FormikProps<DoctorRegistrationFormData> {}
 
@@ -58,14 +58,89 @@ const issuingCountryOptions = [
   { value: 'other', label: 'Other' },
 ];
 
+const MCI_MOCK_DIRECTORY = [
+  {
+    regNumber: 'MCI-2024-12873',
+    firstName: 'Arjun',
+    lastName: 'Rao',
+    gender: 'male',
+    primarySpecialization: 'cardiology',
+    designation: 'consultant',
+    department: 'cardiology',
+    yearsOfExperience: '10',
+    qualifications: 'MBBS, MD (Medicine), DM (Cardiology)',
+    stateMedicalCouncil: 'maharashtra',
+    licenseState: 'Maharashtra',
+  },
+  {
+    regNumber: 'MCI-2024-44218',
+    firstName: 'Nivedita',
+    lastName: 'Sharma',
+    gender: 'female',
+    primarySpecialization: 'pediatrics',
+    designation: 'senior_consultant',
+    department: 'pediatrics',
+    yearsOfExperience: '15',
+    qualifications: 'MBBS, MD (Pediatrics)',
+    stateMedicalCouncil: 'delhi',
+    licenseState: 'Delhi',
+  },
+] as const;
+
 export default function DoctorIdentityStep({ values, setFieldValue }: DoctorIdentityStepProps) {
   const theme = useTheme();
   const softSurface = getSoftSurface(theme);
   const chipSx = getPrimaryChipSx(theme);
   const isIndia = values.registrationCountry === 'india';
+  const [isPullingFromMci, setIsPullingFromMci] = React.useState(false);
+  const [mciSyncMessage, setMciSyncMessage] = React.useState<{
+    severity: 'success' | 'error' | 'info';
+    text: string;
+  } | null>(null);
 
   const handleCountryChange = (country: 'india' | 'international') => {
     setFieldValue('registrationCountry', country);
+    setMciSyncMessage(null);
+  };
+
+  const handlePullFromMci = async () => {
+    const normalizedReg = values.nmcRegNumber.trim().toUpperCase();
+    if (!normalizedReg) {
+      setMciSyncMessage({
+        severity: 'error',
+        text: 'Enter NMC / SMC registration number first to pull doctor details.',
+      });
+      return;
+    }
+
+    setIsPullingFromMci(true);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const profile = MCI_MOCK_DIRECTORY.find((item) => item.regNumber === normalizedReg);
+    if (!profile) {
+      setMciSyncMessage({
+        severity: 'error',
+        text: 'No matching record found on MCI directory for this registration number.',
+      });
+      setIsPullingFromMci(false);
+      return;
+    }
+
+    setFieldValue('firstName', profile.firstName);
+    setFieldValue('lastName', profile.lastName);
+    setFieldValue('gender', profile.gender);
+    setFieldValue('primarySpecialization', profile.primarySpecialization);
+    setFieldValue('designation', profile.designation);
+    setFieldValue('department', profile.department);
+    setFieldValue('yearsOfExperience', profile.yearsOfExperience);
+    setFieldValue('qualifications', profile.qualifications);
+    setFieldValue('stateMedicalCouncil', profile.stateMedicalCouncil);
+    setFieldValue('licenseState', profile.licenseState);
+
+    setMciSyncMessage({
+      severity: 'success',
+      text: 'Doctor details pulled from MCI and prefilled in Personal Info.',
+    });
+    setIsPullingFromMci(false);
   };
 
   return (
@@ -175,26 +250,10 @@ export default function DoctorIdentityStep({ values, setFieldValue }: DoctorIden
             </Alert>
           )}
 
-          <Grid container spacing={1.35}>
-            <Grid xs={12} md={3}>
-              <FormTextField
-                name="doctorId"
-                label="Doctor ID"
-                placeholder="DOC-001"
-                startIcon={<BadgeIcon fontSize="small" color="action" />}
-                helperText="Auto-generated on save"
-              />
-            </Grid>
-            <Grid xs={12} md={3}>
-              <FormSelect name="doctorType" label="Doctor Type" options={doctorTypeOptions} required />
-            </Grid>
-            <Grid xs={12} md={3}>
-              <FormDatePicker name="regDate" label="Registration Date" required />
-            </Grid>
-
-            {isIndia ? (
-              <>
-                <Grid xs={12} md={3}>
+          {isIndia ? (
+            <Box sx={{ mb: 2 }}>
+              <Grid container spacing={1.35} alignItems="center">
+                <Grid xs={12} md={5}>
                   <FormTextField
                     name="nmcRegNumber"
                     label="NMC / SMC Reg. Number"
@@ -202,6 +261,48 @@ export default function DoctorIdentityStep({ values, setFieldValue }: DoctorIden
                     required
                   />
                 </Grid>
+                <Grid xs={12} md={5}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', pt: { md: 0.5 } }}>
+                    Enter NMC / SMC number first, then pull details.
+                  </Typography>
+                </Grid>
+                <Grid xs={12} md={2} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                  <Button
+                    variant="contained"
+                    startIcon={<SyncIcon />}
+                    onClick={() => void handlePullFromMci()}
+                    disabled={isPullingFromMci}
+                    size="small"
+                    sx={{
+                      minHeight: 34,
+                      px: 1.6,
+                      boxShadow: `0 8px 18px ${alpha(theme.palette.primary.main, 0.28)}`,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {isPullingFromMci ? 'Pulling...' : 'Pull from MCI'}
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
+          ) : null}
+
+          {mciSyncMessage ? (
+            <Alert severity={mciSyncMessage.severity} sx={{ mb: 2 }}>
+              {mciSyncMessage.text}
+            </Alert>
+          ) : null}
+
+          <Grid container spacing={1.35}>
+            <Grid xs={12} md={4}>
+              <FormSelect name="doctorType" label="Doctor Type" options={doctorTypeOptions} required />
+            </Grid>
+            <Grid xs={12} md={4}>
+              <FormDatePicker name="regDate" label="Registration Date" required />
+            </Grid>
+
+            {isIndia ? (
+              <>
                 <Grid xs={12} md={4}>
                   <FormSelect
                     name="stateMedicalCouncil"

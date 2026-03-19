@@ -73,6 +73,7 @@ export interface OpdEncounterCase {
     rr: string;
     temp: string;
     spo2: string;
+    ecg?: string;
     weightKg: string;
     bmi: string;
   };
@@ -112,6 +113,7 @@ export interface VitalTrendRecord {
   rr: string;
   temp: string;
   spo2: string;
+  ecg?: string;
   painScore: number;
   nurse: string;
 }

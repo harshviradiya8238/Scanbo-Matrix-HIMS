@@ -91,7 +91,12 @@ export default function ContactDetailsStep({
           color: 'text.primary',
         }}
       >
-        <Stack spacing={0.8}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={{ xs: 0.8, sm: 1.5 }}
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
+          justifyContent="space-between"
+        >
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
             Contact & Address
           </Typography>
@@ -147,9 +152,6 @@ export default function ContactDetailsStep({
               </Grid>
               <Grid xs={12} md={4}>
                 <FormSelect name="areaType" label="Area Type" options={areaTypeOptions} />
-              </Grid>
-              <Grid xs={12} md={4}>
-                <FormPhoneInput name="landline" label="Landline Number" countryCode="+91" />
               </Grid>
             </Grid>
           </Box>
@@ -213,9 +215,6 @@ export default function ContactDetailsStep({
               </Grid>
               <Grid xs={12} md={4}>
                 <FormPhoneInput name="mobile" label="International Phone" required countryCode={phoneCode} />
-              </Grid>
-              <Grid xs={12} md={4}>
-                <FormPhoneInput name="landline" label="Additional Phone" countryCode={phoneCode} />
               </Grid>
             </Grid>
           </Box>

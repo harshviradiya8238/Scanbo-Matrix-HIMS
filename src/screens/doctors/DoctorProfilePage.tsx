@@ -34,15 +34,10 @@ import {
   Description as DescriptionIcon,
   Email as EmailIcon,
   EventNote as EventNoteIcon,
-  Favorite as FavoriteIcon,
-  FiberManualRecord as FiberManualRecordIcon,
   Language as LanguageIcon,
-  LocalHospital as LocalHospitalIcon,
   MedicalServices as MedicalServicesIcon,
-  MonitorHeart as MonitorHeartIcon,
   People as PeopleIcon,
   Phone as PhoneIcon,
-  PriorityHigh as PriorityHighIcon,
   School as SchoolIcon,
   Star as StarIcon,
   VerifiedUser as VerifiedUserIcon,
@@ -50,14 +45,6 @@ import {
   WorkHistory as WorkHistoryIcon,
 } from "@mui/icons-material";
 import { getSoftSurface } from "@/src/core/theme/surfaces";
-import {
-  OPD_APPOINTMENTS,
-  OPD_ENCOUNTERS,
-  OpdAppointment,
-  OpdEncounterCase,
-  AppointmentStatus,
-  EncounterStatus,
-} from "../opd/opd-mock-data";
 import { doctorData, DoctorRow } from "@/src/mocks/doctorServer";
 
 /* ─────────────────── helpers ─────────────────── */
@@ -183,7 +170,7 @@ const mockConsultations = [
   {
     id: "C001",
     patient: "Aarav Singh",
-    type: "OPD Consultation",
+    type: "OPD Appointment",
     date: "2026-02-28",
     complaint: "Chest pain follow-up",
     outcome: "Completed",
@@ -199,7 +186,7 @@ const mockConsultations = [
   {
     id: "C003",
     patient: "Rahul Verma",
-    type: "OPD Consultation",
+    type: "OPD Appointment",
     date: "2026-02-24",
     complaint: "ECG abnormality",
     outcome: "Referred",
@@ -215,7 +202,7 @@ const mockConsultations = [
   {
     id: "C005",
     patient: "Anil Kumar",
-    type: "OPD Consultation",
+    type: "OPD Appointment",
     date: "2026-02-20",
     complaint: "Breathlessness on exertion",
     outcome: "Completed",
@@ -319,252 +306,11 @@ export default function DoctorProfilePage() {
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "schedule", label: "Schedule" },
-    { id: "consultations", label: "Consultations" },
+    { id: "consultations", label: "Appointments" },
     { id: "documents", label: "Documents" },
     { id: "reviews", label: "Reviews" },
-    { id: "cases", label: "Patient Cases" },
   ];
 
-  /* ── Patient Cases — seeded mock data per doctor ── */
-
-  // Static pools for generating realistic cases
-  const MOCK_PATIENT_NAMES = [
-    "Aarav Singh",
-    "Priya Sharma",
-    "Rahul Verma",
-    "Sunita Patel",
-    "Karan Mehta",
-    "Deepa Iyer",
-    "Anil Reddy",
-    "Meena Joshi",
-    "Vijay Nair",
-    "Lakshmi Kumar",
-    "Sameer Gupta",
-    "Pooja Agarwal",
-    "Ravi Malhotra",
-    "Anjali Bose",
-    "Nikhil Shah",
-    "Shreya Rao",
-    "Dinesh Pillai",
-    "Kavita Sinha",
-    "Arjun Tiwari",
-    "Rekha Desai",
-  ];
-  const MOCK_COMPLAINTS = [
-    "Chest pain and shortness of breath",
-    "Persistent headache and dizziness",
-    "Fever with body ache for 3 days",
-    "Knee pain and swelling after fall",
-    "Abdominal pain and nausea",
-    "High blood pressure — routine check",
-    "Diabetes medication review",
-    "Post-op wound assessment",
-    "Sore throat and ear pain",
-    "Back pain radiating to left leg",
-    "Skin rash with itching",
-    "Vision blurring for 2 weeks",
-    "Palpitations and anxiety",
-    "Joint stiffness — morning onset",
-    "Cough with blood-tinged sputum",
-  ];
-  const MOCK_TRIAGE = [
-    "Patient stable, vitals reviewed, awaiting consultation.",
-    "Elevated BP noted. ECG ordered on priority.",
-    "Fasting sugar high. Endocrinology review pending.",
-    "Mild tachycardia. IV access established.",
-    "Patient anxious. Reassured and settled in queue.",
-    "SpO₂ borderline at 94%, oxygen support initiated.",
-    "No acute distress. Scheduled routine follow-up.",
-    "Post-operative site inspected; no signs of infection.",
-    "Severe pain score 7/10. Analgesia given.",
-  ];
-  const MOCK_STATUSES: AppointmentStatus[] = [
-    "In Consultation",
-    "Checked-In",
-    "In Triage",
-    "Scheduled",
-    "Completed",
-    "Scheduled",
-    "No Show",
-    "Checked-In",
-    "Completed",
-  ];
-  const MOCK_VISIT_TYPES: ("New" | "Follow-up" | "Review")[] = [
-    "New",
-    "Follow-up",
-    "Review",
-  ];
-  const MOCK_PAYERS: ("General" | "Insurance" | "Corporate")[] = [
-    "General",
-    "Insurance",
-    "Corporate",
-  ];
-  const MOCK_PRIORITIES: ("Routine" | "Urgent")[] = [
-    "Routine",
-    "Urgent",
-    "Routine",
-    "Routine",
-  ];
-  const MOCK_ENC_STATUSES: EncounterStatus[] = [
-    "IN_PROGRESS",
-    "ARRIVED",
-    "IN_QUEUE",
-    "BOOKED",
-    "COMPLETED",
-    "ARRIVED",
-    "CANCELLED",
-    "ARRIVED",
-    "COMPLETED",
-  ];
-
-  // Seeded random based on doctor id to ensure stable display per doctor
-  const seedStr = doctor?.id ?? "default";
-  const seedNum = seedStr
-    .split("")
-    .reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const rng = (() => {
-    let s = seedNum % 2147483647 || 17;
-    return () => {
-      s = (s * 16807) % 2147483647;
-      return (s - 1) / 2147483646;
-    };
-  })();
-
-  // Generate 4-8 mock cases for this doctor
-  const mockCaseCount = 4 + Math.floor(rng() * 5);
-  const today = new Date();
-  const formatD = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-  type MockCase = {
-    id: string;
-    patientName: string;
-    mrn: string;
-    ageGender: string;
-    status: AppointmentStatus;
-    visitType: "New" | "Follow-up" | "Review";
-    payerType: "General" | "Insurance" | "Corporate";
-    chiefComplaint: string;
-    time: string;
-    date: string;
-    isUrgent: boolean;
-    encounterStatus: EncounterStatus;
-    vitals: { bp: string; hr: string; spo2: string; temp: string } | null;
-    triageNote: string | null;
-    department: string;
-  };
-
-  const doctorCases: MockCase[] = Array.from(
-    { length: mockCaseCount },
-    (_, i) => {
-      const nameIdx = Math.floor(rng() * MOCK_PATIENT_NAMES.length);
-      const complaintIdx = Math.floor(rng() * MOCK_COMPLAINTS.length);
-      const triageIdx = Math.floor(rng() * MOCK_TRIAGE.length);
-      const statusIdx = i % MOCK_STATUSES.length;
-      const visitIdx = Math.floor(rng() * MOCK_VISIT_TYPES.length);
-      const payerIdx = Math.floor(rng() * MOCK_PAYERS.length);
-      const priorityIdx = Math.floor(rng() * MOCK_PRIORITIES.length);
-      const encStatusIdx = i % MOCK_ENC_STATUSES.length;
-      const ageDays = Math.floor(rng() * 10) - 3;
-      const date = new Date(today);
-      date.setDate(date.getDate() + ageDays);
-      const hour = 9 + Math.floor(rng() * 8);
-      const min = [0, 15, 30, 45][Math.floor(rng() * 4)];
-      const hasVitals = rng() > 0.3;
-      const age = 20 + Math.floor(rng() * 55);
-      const gender = rng() > 0.5 ? "Male" : "Female";
-      const mrnNum = 200000 + Math.floor(rng() * 80000);
-
-      return {
-        id: `mc-${seedNum}-${i}`,
-        patientName: MOCK_PATIENT_NAMES[nameIdx],
-        mrn: `MRN-${mrnNum}`,
-        ageGender: `${age} / ${gender}`,
-        status: MOCK_STATUSES[statusIdx],
-        visitType: MOCK_VISIT_TYPES[visitIdx],
-        payerType: MOCK_PAYERS[payerIdx],
-        chiefComplaint: MOCK_COMPLAINTS[complaintIdx],
-        time: `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`,
-        date: formatD(date),
-        isUrgent: MOCK_PRIORITIES[priorityIdx] === "Urgent",
-        encounterStatus: MOCK_ENC_STATUSES[encStatusIdx],
-        vitals: hasVitals
-          ? {
-              bp: `${110 + Math.floor(rng() * 50)}/${70 + Math.floor(rng() * 20)}`,
-              hr: `${62 + Math.floor(rng() * 45)} bpm`,
-              spo2: `${94 + Math.floor(rng() * 6)}%`,
-              temp: `${(98 + rng() * 2).toFixed(1)} F`,
-            }
-          : null,
-        triageNote: rng() > 0.35 ? MOCK_TRIAGE[triageIdx] : null,
-        department: doctor?.department ?? "General",
-      };
-    },
-  );
-
-  // Merge with real OPD data if any, real data comes first
-  const realAppts = OPD_APPOINTMENTS.filter((a) => a.provider === doctor?.name);
-  const realEncounters = OPD_ENCOUNTERS.filter(
-    (e) => e.doctor === doctor?.name,
-  );
-
-  const appointmentStatusColorMap: Record<
-    AppointmentStatus,
-    "default" | "info" | "warning" | "success" | "error"
-  > = {
-    Scheduled: "default",
-    "Checked-In": "info",
-    "In Triage": "warning",
-    "In Consultation": "warning",
-    Completed: "success",
-    "No Show": "error",
-    Cancelled: "error",
-  };
-
-  const encounterStatusLabel: Record<EncounterStatus, string> = {
-    BOOKED: "Booked",
-    ARRIVED: "Arrived",
-    IN_QUEUE: "In Queue",
-    IN_PROGRESS: "In Progress",
-    COMPLETED: "Completed",
-    CANCELLED: "Cancelled",
-  };
-
-  // Use real data if matched, else use mock cases
-  const displayCases =
-    realAppts.length > 0
-      ? realAppts.map((appt) => {
-          const enc = realEncounters.find((e) => e.appointmentId === appt.id);
-          return {
-            id: appt.id,
-            patientName: appt.patientName,
-            mrn: appt.mrn,
-            ageGender: appt.ageGender,
-            status: appt.status,
-            visitType: appt.visitType,
-            payerType: appt.payerType,
-            chiefComplaint: appt.chiefComplaint,
-            time: appt.time,
-            date: appt.date,
-            isUrgent: enc?.queuePriority === "Urgent",
-            encounterStatus: enc?.status ?? null,
-            vitals: enc ? enc.vitals : null,
-            triageNote: enc?.triageNote ?? null,
-            department: appt.department,
-          };
-        })
-      : doctorCases;
-
-  const caseKpis = {
-    total: displayCases.length,
-    active: displayCases.filter((c) =>
-      ["In Triage", "In Consultation", "Checked-In"].includes(
-        c.status as string,
-      ),
-    ).length,
-    completed: displayCases.filter((c) => c.status === "Completed").length,
-    noShow: displayCases.filter((c) => c.status === "No Show").length,
-  };
   const [activeTab, setActiveTab] = React.useState("overview");
 
   const activeDays = doctor?.availableDays?.split(",").filter(Boolean) ?? [];
@@ -801,7 +547,7 @@ export default function DoctorProfilePage() {
           <StatTile
             label="OPD Fee"
             value={`₹${doctor.consultationFee}`}
-            subtitle="Per consultation"
+            subtitle="Per appointment"
             icon={<MedicalServicesIcon fontSize="small" />}
             tone="success"
             sx={{ boxShadow: cardShadow }}
@@ -1067,7 +813,7 @@ export default function DoctorProfilePage() {
                       patients and holds a patient satisfaction rating of{" "}
                       <strong>{doctor.rating}/5</strong>.{" "}
                       {doctor.telemedicine &&
-                        "Also available for telemedicine consultations."}
+                        "Also available for telemedicine appointments."}
                     </Typography>
                   </Box>
 
@@ -1149,7 +895,7 @@ export default function DoctorProfilePage() {
 
                   <SectionTitle
                     icon={<CalendarMonthIcon fontSize="small" />}
-                    title="Recent Consultations"
+                    title="Recent Appointments"
                   />
                   <Stack spacing={1.25}>
                     {mockConsultations.slice(0, 3).map((c) => (
@@ -1439,7 +1185,7 @@ export default function DoctorProfilePage() {
                 <TabPanel value={activeTab} tab="consultations">
                   <SectionTitle
                     icon={<AssignmentIcon fontSize="small" />}
-                    title="Consultation History"
+                    title="Appointment History"
                   />
                   <Stack spacing={1.5}>
                     {mockConsultations.map((c) => (
@@ -1784,465 +1530,6 @@ export default function DoctorProfilePage() {
                   </Stack>
                 </TabPanel>
 
-                {/* ── PATIENT CASES TAB ── */}
-                <TabPanel value={activeTab} tab="cases">
-                  {/* KPI Strip */}
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: {
-                        xs: "1fr 1fr",
-                        sm: "repeat(4, 1fr)",
-                      },
-                      gap: 1.5,
-                      mb: 3,
-                    }}
-                  >
-                    {[
-                      {
-                        label: "Total Patients",
-                        value: caseKpis.total,
-                        icon: <PeopleIcon fontSize="small" />,
-                        color: theme.palette.primary.main,
-                        bg: alpha(theme.palette.primary.main, 0.08),
-                      },
-                      {
-                        label: "Active Now",
-                        value: caseKpis.active,
-                        icon: (
-                          <FiberManualRecordIcon
-                            fontSize="small"
-                            sx={{ color: theme.palette.warning.main }}
-                          />
-                        ),
-                        color: theme.palette.warning.main,
-                        bg: alpha(theme.palette.warning.main, 0.08),
-                      },
-                      {
-                        label: "Completed",
-                        value: caseKpis.completed,
-                        icon: <LocalHospitalIcon fontSize="small" />,
-                        color: theme.palette.success.main,
-                        bg: alpha(theme.palette.success.main, 0.08),
-                      },
-                      {
-                        label: "No Show",
-                        value: caseKpis.noShow,
-                        icon: <PriorityHighIcon fontSize="small" />,
-                        color: theme.palette.error.main,
-                        bg: alpha(theme.palette.error.main, 0.08),
-                      },
-                    ].map((kpi) => (
-                      <Box
-                        key={kpi.label}
-                        sx={{
-                          p: 2,
-                          borderRadius: 2,
-                          backgroundColor: kpi.bg,
-                          border: `1px solid ${alpha(kpi.color, 0.18)}`,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 1.5,
-                          transition:
-                            "transform 0.18s ease, box-shadow 0.18s ease",
-                          "&:hover": {
-                            transform: "translateY(-2px)",
-                            boxShadow: `0 6px 20px ${alpha(kpi.color, 0.14)}`,
-                          },
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 1.5,
-                            display: "grid",
-                            placeItems: "center",
-                            bgcolor: kpi.color,
-                            color: "#fff",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {kpi.icon}
-                        </Box>
-                        <Box>
-                          <Typography
-                            variant="h5"
-                            sx={{
-                              fontWeight: 800,
-                              color: kpi.color,
-                              lineHeight: 1,
-                            }}
-                          >
-                            {kpi.value}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ fontWeight: 500 }}
-                          >
-                            {kpi.label}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    ))}
-                  </Box>
-
-                  {/* Case Cards */}
-                  <SectionTitle
-                    icon={<FavoriteIcon fontSize="small" />}
-                    title="Patient Case List"
-                  />
-
-                  <Stack spacing={1.5}>
-                    {displayCases.map((c) => {
-                      const statusColor =
-                        appointmentStatusColorMap[
-                          c.status as AppointmentStatus
-                        ] ?? "default";
-                      return (
-                        <Box
-                          key={c.id}
-                          sx={{
-                            borderRadius: 2.5,
-                            border: lightBorder,
-                            backgroundColor: "background.paper",
-                            overflow: "hidden",
-                            boxShadow: "0 2px 12px rgba(15,23,42,0.05)",
-                            transition:
-                              "transform 0.18s ease, box-shadow 0.18s ease",
-                            "&:hover": {
-                              transform: "translateY(-2px)",
-                              boxShadow: "0 8px 28px rgba(15,23,42,0.10)",
-                            },
-                            position: "relative",
-                          }}
-                        >
-                          {/* Colored left accent bar */}
-                          <Box
-                            sx={{
-                              position: "absolute",
-                              left: 0,
-                              top: 0,
-                              width: 4,
-                              height: "100%",
-                              borderTopLeftRadius: 10,
-                              borderBottomLeftRadius: 10,
-                              backgroundColor:
-                                statusColor === "warning"
-                                  ? theme.palette.warning.main
-                                  : statusColor === "success"
-                                    ? theme.palette.success.main
-                                    : statusColor === "error"
-                                      ? theme.palette.error.main
-                                      : statusColor === "info"
-                                        ? theme.palette.info.main
-                                        : theme.palette.divider,
-                            }}
-                          />
-
-                          <Box sx={{ pl: 2.5, pr: 2, pt: 2, pb: 1.5 }}>
-                            {/* Header row — patient + status */}
-                            <Stack
-                              direction={{ xs: "column", sm: "row" }}
-                              spacing={2}
-                              alignItems={{ xs: "flex-start", sm: "center" }}
-                              justifyContent="space-between"
-                            >
-                              {/* Patient identity */}
-                              <Stack
-                                direction="row"
-                                spacing={1.5}
-                                alignItems="center"
-                              >
-                                <Avatar
-                                  sx={{
-                                    width: 44,
-                                    height: 44,
-                                    fontWeight: 800,
-                                    fontSize: 15,
-                                    bgcolor: alpha(
-                                      theme.palette.primary.main,
-                                      0.15,
-                                    ),
-                                    color: "primary.main",
-                                    border: `2px solid ${alpha(theme.palette.primary.main, 0.25)}`,
-                                  }}
-                                >
-                                  {c.patientName
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")
-                                    .slice(0, 2)}
-                                </Avatar>
-                                <Box>
-                                  <Stack
-                                    direction="row"
-                                    spacing={0.75}
-                                    alignItems="center"
-                                    flexWrap="wrap"
-                                    useFlexGap
-                                  >
-                                    <Typography
-                                      variant="subtitle2"
-                                      sx={{ fontWeight: 800 }}
-                                    >
-                                      {c.patientName}
-                                    </Typography>
-                                    {c.isUrgent && (
-                                      <Chip
-                                        label="Urgent"
-                                        size="small"
-                                        color="error"
-                                        icon={
-                                          <PriorityHighIcon
-                                            sx={{ fontSize: "12px !important" }}
-                                          />
-                                        }
-                                        sx={{
-                                          fontWeight: 700,
-                                          fontSize: "0.65rem",
-                                          height: 18,
-                                        }}
-                                      />
-                                    )}
-                                  </Stack>
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                  >
-                                    {c.mrn} · {c.ageGender}
-                                  </Typography>
-                                </Box>
-                              </Stack>
-
-                              {/* Status & time */}
-                              <Stack
-                                direction="row"
-                                spacing={1}
-                                alignItems="center"
-                                flexWrap="wrap"
-                                useFlexGap
-                              >
-                                <Chip
-                                  label={c.status}
-                                  size="small"
-                                  color={statusColor}
-                                  sx={{ fontWeight: 700, fontSize: "0.7rem" }}
-                                />
-                                <Chip
-                                  label={c.visitType}
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{ fontSize: "0.7rem" }}
-                                />
-                                <Stack
-                                  direction="row"
-                                  spacing={0.4}
-                                  alignItems="center"
-                                >
-                                  <AccessTimeIcon
-                                    sx={{
-                                      fontSize: 13,
-                                      color: "text.secondary",
-                                    }}
-                                  />
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    sx={{ fontWeight: 600 }}
-                                  >
-                                    {c.time} · {c.date}
-                                  </Typography>
-                                </Stack>
-                              </Stack>
-                            </Stack>
-
-                            {/* Chief complaint */}
-                            <Box
-                              sx={{
-                                mt: 1.5,
-                                p: 1.25,
-                                borderRadius: 1.5,
-                                backgroundColor: alpha(
-                                  theme.palette.primary.main,
-                                  0.04,
-                                ),
-                                border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 1,
-                              }}
-                            >
-                              <MedicalServicesIcon
-                                sx={{
-                                  fontSize: 16,
-                                  color: "primary.main",
-                                  flexShrink: 0,
-                                }}
-                              />
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  color: "text.secondary",
-                                  lineHeight: 1.5,
-                                }}
-                              >
-                                <strong>Chief Complaint:</strong>{" "}
-                                {c.chiefComplaint}
-                              </Typography>
-                            </Box>
-
-                            {/* Vitals + triage note */}
-                            {c.vitals && (
-                              <Box sx={{ mt: 1.5 }}>
-                                <Stack
-                                  direction="row"
-                                  spacing={1}
-                                  flexWrap="wrap"
-                                  useFlexGap
-                                  sx={{ mb: 1 }}
-                                >
-                                  {[
-                                    { label: "BP", value: c.vitals.bp },
-                                    { label: "HR", value: c.vitals.hr },
-                                    { label: "SpO₂", value: c.vitals.spo2 },
-                                    { label: "Temp", value: c.vitals.temp },
-                                  ].map((vital) => (
-                                    <Box
-                                      key={vital.label}
-                                      sx={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 0.6,
-                                        px: 1,
-                                        py: 0.4,
-                                        borderRadius: 1,
-                                        backgroundColor: alpha(
-                                          theme.palette.text.primary,
-                                          0.04,
-                                        ),
-                                        border: lightBorder,
-                                      }}
-                                    >
-                                      <MonitorHeartIcon
-                                        sx={{
-                                          fontSize: 13,
-                                          color: "primary.main",
-                                        }}
-                                      />
-                                      <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                      >
-                                        {vital.label}:
-                                      </Typography>
-                                      <Typography
-                                        variant="caption"
-                                        sx={{ fontWeight: 700 }}
-                                      >
-                                        {vital.value}
-                                      </Typography>
-                                    </Box>
-                                  ))}
-                                </Stack>
-
-                                {c.triageNote && (
-                                  <Box
-                                    sx={{
-                                      p: 1.25,
-                                      borderRadius: 1.5,
-                                      backgroundColor: alpha(
-                                        theme.palette.info.main,
-                                        0.05,
-                                      ),
-                                      border: `1px solid ${alpha(theme.palette.info.main, 0.15)}`,
-                                    }}
-                                  >
-                                    <Typography
-                                      variant="caption"
-                                      color="text.secondary"
-                                      sx={{ lineHeight: 1.6 }}
-                                    >
-                                      <strong
-                                        style={{
-                                          color: theme.palette.info.main,
-                                        }}
-                                      >
-                                        Triage Note:
-                                      </strong>{" "}
-                                      {c.triageNote}
-                                    </Typography>
-                                  </Box>
-                                )}
-                              </Box>
-                            )}
-
-                            {/* Footer */}
-                            <Stack
-                              direction="row"
-                              justifyContent="space-between"
-                              alignItems="center"
-                              sx={{
-                                mt: 1.5,
-                                pt: 1.25,
-                                borderTop: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-                              }}
-                            >
-                              <Stack
-                                direction="row"
-                                spacing={0.75}
-                                alignItems="center"
-                                flexWrap="wrap"
-                                useFlexGap
-                              >
-                                <Chip
-                                  label={c.payerType}
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{ fontSize: "0.65rem", height: 20 }}
-                                />
-                                {c.encounterStatus && (
-                                  <Chip
-                                    label={
-                                      encounterStatusLabel[
-                                        c.encounterStatus as EncounterStatus
-                                      ]
-                                    }
-                                    size="small"
-                                    color={
-                                      c.encounterStatus === "IN_PROGRESS"
-                                        ? "warning"
-                                        : c.encounterStatus === "COMPLETED"
-                                          ? "success"
-                                          : c.encounterStatus === "CANCELLED"
-                                            ? "error"
-                                            : "default"
-                                    }
-                                    variant="outlined"
-                                    sx={{ fontSize: "0.65rem", height: 20 }}
-                                  />
-                                )}
-                              </Stack>
-
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                startIcon={<EventNoteIcon />}
-                                onClick={() =>
-                                  router.push(`/encounters/enc-${c.id}?mrn=${c.mrn}`)
-                                }
-                                sx={{ fontSize: "0.72rem" }}
-                              >
-                                View Encounter
-                              </Button>
-                            </Stack>
-                          </Box>
-                        </Box>
-                      );
-                    })}
-                  </Stack>
-                </TabPanel>
               </Box>
             </Card>
           </Stack>
@@ -2251,4 +1538,3 @@ export default function DoctorProfilePage() {
     </PageTemplate>
   );
 }
-

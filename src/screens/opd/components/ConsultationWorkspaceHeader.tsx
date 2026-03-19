@@ -11,8 +11,8 @@ import { Card, CommandCenterChips } from '@/src/ui/components/molecules';
 import {
   CheckCircle as CheckCircleIcon,
   Logout as LogoutIcon,
+  Mic as MicIcon,
   PlayArrow as PlayArrowIcon,
-  Save as SaveIcon,
   Timer as TimerIcon,
 } from '@mui/icons-material';
 import type { EncounterStatus } from '../opd-mock-data';
@@ -21,12 +21,11 @@ interface ConsultationWorkspaceHeaderProps {
   status: EncounterStatus;
   elapsedLabel: string;
   dateLabel: string;
-  surfaceColor: string;
-  onSaveDraft: () => void;
+  onAmbientConsult?: () => void;
   onExit: () => void;
   onComplete: () => void;
   onStart: () => void;
-  canSaveDraft?: boolean;
+  canAmbientConsult?: boolean;
   canStart?: boolean;
   canComplete?: boolean;
 }
@@ -35,12 +34,11 @@ export default function ConsultationWorkspaceHeader({
   status,
   elapsedLabel,
   dateLabel,
-  surfaceColor,
-  onSaveDraft,
+  onAmbientConsult,
   onExit,
   onComplete,
   onStart,
-  canSaveDraft = true,
+  canAmbientConsult = true,
   canStart = true,
   canComplete = true,
 }: ConsultationWorkspaceHeaderProps) {
@@ -87,9 +85,16 @@ export default function ConsultationWorkspaceHeader({
 
           {status === 'IN_PROGRESS' ? (
             <>
-              <Button variant="outlined" startIcon={<SaveIcon />} onClick={onSaveDraft} disabled={!canSaveDraft}>
-                Save Draft
-              </Button>
+              {onAmbientConsult ? (
+                <Button
+                  variant="outlined"
+                  startIcon={<MicIcon />}
+                  onClick={onAmbientConsult}
+                  disabled={!canAmbientConsult}
+                >
+                  Ambient Consult
+                </Button>
+              ) : null}
               <Button variant="contained" color="error" startIcon={<LogoutIcon />} onClick={onExit} sx={{ color: 'white' }}>
                 Exit
               </Button>

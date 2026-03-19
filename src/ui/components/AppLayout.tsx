@@ -167,7 +167,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
             flexDirection: "column",
           }}
         >
-          <Box sx={{ flex: "1 0 auto" }}>
+          <Box
+            sx={{
+              flex: "1 0 auto",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
             {hasAccess ? (
               children
             ) : (

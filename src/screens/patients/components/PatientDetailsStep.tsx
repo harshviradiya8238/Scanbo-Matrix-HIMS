@@ -12,6 +12,8 @@ import { PatientRegistrationFormData } from '../types/patient-registration.types
 
 interface PatientDetailsStepProps extends FormikProps<PatientRegistrationFormData> {
   onAddPrefix?: () => void;
+  showFamilyRelation?: boolean;
+  familyRelationLabel?: string;
 }
 
 function calculateAgeFromDate(dateValue: string): string {
@@ -32,6 +34,8 @@ export default function PatientDetailsStep({
   values,
   setFieldValue,
   onAddPrefix,
+  showFamilyRelation = false,
+  familyRelationLabel = 'Relation',
 }: PatientDetailsStepProps) {
   const theme = useTheme();
   const softSurface = getSoftSurface(theme);
@@ -52,6 +56,21 @@ export default function PatientDetailsStep({
     { value: 'dr', label: 'Dr.' },
     { value: 'master', label: 'Master' },
     { value: 'baby', label: 'Baby' },
+  ];
+
+  const familyRelationOptions = [
+    { value: '', label: 'Select relation...' },
+    { value: 'spouse_wife', label: 'Spouse / Wife' },
+    { value: 'spouse_husband', label: 'Spouse / Husband' },
+    { value: 'father', label: 'Father' },
+    { value: 'mother', label: 'Mother' },
+    { value: 'brother', label: 'Brother' },
+    { value: 'sister', label: 'Sister' },
+    { value: 'son', label: 'Son' },
+    { value: 'daughter', label: 'Daughter' },
+    { value: 'grandfather', label: 'Grandfather' },
+    { value: 'grandmother', label: 'Grandmother' },
+    { value: 'other', label: 'Other' },
   ];
 
   const genderOptions = [
@@ -121,15 +140,6 @@ export default function PatientDetailsStep({
     { value: 'post_graduate', label: 'Post Graduate' },
   ];
 
-  const annualIncomeOptions = [
-    { value: '', label: 'Not Disclosed' },
-    { value: 'below_1_lakh', label: 'Below ₹1 Lakh' },
-    { value: '1_to_3_lakh', label: '₹1-3 Lakh' },
-    { value: '3_to_6_lakh', label: '₹3-6 Lakh' },
-    { value: '6_to_10_lakh', label: '₹6-10 Lakh' },
-    { value: 'above_10_lakh', label: 'Above ₹10 Lakh' },
-  ];
-
   return (
     <Card
       elevation={0}
@@ -147,7 +157,12 @@ export default function PatientDetailsStep({
           color: 'text.primary',
         }}
       >
-        <Stack spacing={0.8}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={{ xs: 0.8, sm: 1.5 }}
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
+          justifyContent="space-between"
+        >
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
             Personal Details
           </Typography>
@@ -161,8 +176,18 @@ export default function PatientDetailsStep({
       <Box sx={{ p: 2.25 }}>
         <Grid container spacing={1.35}>
           <Grid xs={12} md={3}>
-            <FormSelect name="prefix" label="Title" options={titleOptions} required onAddClick={onAddPrefix} />
+            <FormSelect name="prefix" label="Title" options={titleOptions} onAddClick={onAddPrefix} />
           </Grid>
+          {showFamilyRelation ? (
+            <Grid xs={12} md={3}>
+              <FormSelect
+                name="familyRelation"
+                label={familyRelationLabel}
+                options={familyRelationOptions}
+                required
+              />
+            </Grid>
+          ) : null}
           <Grid xs={12} md={3}>
             <FormTextField name="patientName" label="First Name" required />
           </Grid>
@@ -198,9 +223,6 @@ export default function PatientDetailsStep({
           <Grid xs={12} md={2}>
             <FormSelect name="bloodGroup" label="Blood Group" options={bloodGroupOptions} />
           </Grid>
-          <Grid xs={12} md={3}>
-            <FormTextField name="aliasName" label="Alias Name" />
-          </Grid>
 
           <Grid xs={12} md={3}>
             <FormSelect name="religion" label="Religion" options={religionOptions} />
@@ -210,9 +232,6 @@ export default function PatientDetailsStep({
           </Grid>
           <Grid xs={12} md={3}>
             <FormSelect name="educationLevel" label="Education Level" options={educationLevelOptions} />
-          </Grid>
-          <Grid xs={12} md={3}>
-            <FormSelect name="annualIncomeRange" label="Annual Income Range" options={annualIncomeOptions} />
           </Grid>
 
           <Grid xs={12} md={6}>
@@ -226,4 +245,3 @@ export default function PatientDetailsStep({
     </Card>
   );
 }
-

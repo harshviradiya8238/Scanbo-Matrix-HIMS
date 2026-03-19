@@ -1,7 +1,20 @@
+export interface TimeSlot {
+  s: string; // "09:00"
+  e: string; // "17:00"
+}
+
+export interface DaySchedule {
+  on: boolean;
+  hol: boolean;
+  work: TimeSlot[];
+  breaks: TimeSlot[];
+}
+
+export type WeeklySchedule = DaySchedule[]; // index 0 = Mon … 6 = Sun
+
 export interface DoctorRegistrationFormData {
   // Registration Context
   registrationCountry: 'india' | 'international';
-  doctorId: string;
   doctorType: string;
   regDate: string;
 
@@ -50,6 +63,7 @@ export interface DoctorRegistrationFormData {
   consultationDurationMins: string;
   telemedicineAvailable: boolean;
   availableDays: string;
+  weeklySchedule: WeeklySchedule;
 
   // Contact & Address
   countryCode: string;
@@ -58,6 +72,7 @@ export interface DoctorRegistrationFormData {
   email: string;
   clinicAddressLine1: string;
   clinicAddressLine2: string;
+  clinicCounty: string;
   clinicCity: string;
   clinicState: string;
   clinicCountry: string;
@@ -65,6 +80,7 @@ export interface DoctorRegistrationFormData {
   permanentAddressSame: boolean;
   permanentAddressLine1: string;
   permanentAddressLine2: string;
+  permanentCounty: string;
   permanentCity: string;
   permanentState: string;
   permanentCountry: string;

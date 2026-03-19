@@ -23,7 +23,6 @@ import {
   Add as AddIcon,
   AssignmentInd as AssignmentIndIcon,
   Bolt as BoltIcon,
-  FileDownload as FileDownloadIcon,
   History as HistoryIcon,
   LocalHospital as LocalHospitalIcon,
   PlayArrow as PlayArrowIcon,
@@ -613,19 +612,6 @@ export default function OpdQueuePage() {
                   onClick={() => router.push('/patients/registration')}
                 >
                   New Patient Registration
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<FileDownloadIcon />}
-                  onClick={() =>
-                    setSnackbar({
-                      open: true,
-                      message: 'Report export started.',
-                      severity: 'info',
-                    })
-                  }
-                >
-                  Export Reports
                 </Button>
               </ActionBar>
             ) : null

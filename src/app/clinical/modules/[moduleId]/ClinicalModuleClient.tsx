@@ -7,6 +7,7 @@ import CareCompanionPage from '@/src/screens/clinical/CareCompanionPage';
 import InfectionControlPage from '@/src/screens/clinical/InfectionControlPage';
 import RegistrationAdtPage from '@/src/screens/clinical/RegistrationAdtPage';
 import WelcomeKioskPage from '@/src/screens/clinical/WelcomeKioskPage';
+import OpTimeSurgeryPage from '@/src/screens/clinical/OpTimeSurgeryPage';
 import OpdCalendarPage from '@/src/screens/opd/OpdCalendarPage';
 import RadiantImagingPage from '@/src/screens/clinical/RadiantImagingPage';
 import IpdRoundsPage from '@/src/screens/ipd/IpdRoundsPage';
@@ -48,6 +49,10 @@ export default function ClinicalModuleClient({ moduleDefinition }: ClinicalModul
 
   if (moduleDefinition.slug === 'open-scheduling') {
     return <OpdCalendarPage />;
+  }
+
+  if (moduleDefinition.slug === 'optime') {
+    return <OpTimeSurgeryPage />;
   }
 
   if (moduleDefinition.slug === 'radiant') {

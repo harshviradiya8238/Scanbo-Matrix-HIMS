@@ -10,7 +10,6 @@ import {
   Button,
   Chip,
   Divider,
-  IconButton,
   MenuItem,
   Snackbar,
   Stack,
@@ -49,7 +48,6 @@ import {
 import {
   AssignmentTurnedIn as AssignmentTurnedInIcon,
   Checklist as ChecklistIcon,
-  CloseRounded as CloseRoundedIcon,
   LocalHospital as LocalHospitalIcon,
   Medication as MedicationIcon,
   MonitorHeart as MonitorHeartIcon,
@@ -234,6 +232,64 @@ const ORDER_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'Procedure', label: 'Procedure' },
   { value: 'Consult', label: 'Consult' },
 ];
+
+const RX_SHIELD_INTERACTION_RULES: Array<{
+  id: string;
+  pair: [string, string];
+  message: string;
+}> = [
+  {
+    id: 'rx-rule-paracetamol-atorvastatin',
+    pair: ['paracetamol', 'atorvastatin'],
+    message: 'Configured Rx Shield interaction matched. Please review this combination before prescribing.',
+  },
+];
+
+const normalizeRxShieldMedicationKey = (value: string): string =>
+  value.toLowerCase().replace(/[^a-z0-9+ ]/g, ' ').replace(/\s+/g, ' ').trim();
+
+const extractRxShieldIngredients = (value: string): string[] => {
+  const normalized = normalizeRxShieldMedicationKey(value);
+  if (!normalized) return [];
+  const [base] = normalized.split(/ \d/);
+  return base
+    .split('+')
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+};
+
+const analyzeRxShieldComparisons = (medicationNames: string[]): string[] => {
+  const findings = new Set<string>();
+
+  for (let leftIndex = 0; leftIndex < medicationNames.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < medicationNames.length; rightIndex += 1) {
+      const leftMedication = medicationNames[leftIndex];
+      const rightMedication = medicationNames[rightIndex];
+      const leftIngredients = extractRxShieldIngredients(leftMedication);
+      const rightIngredients = extractRxShieldIngredients(rightMedication);
+      const duplicateIngredient = leftIngredients.find((ingredient) => rightIngredients.includes(ingredient));
+
+      if (duplicateIngredient) {
+        findings.add(
+          `Duplicate ingredient "${duplicateIngredient}" found in ${leftMedication} and ${rightMedication}.`
+        );
+      }
+
+      const leftKey = normalizeRxShieldMedicationKey(leftMedication);
+      const rightKey = normalizeRxShieldMedicationKey(rightMedication);
+      for (const rule of RX_SHIELD_INTERACTION_RULES) {
+        const [first, second] = rule.pair;
+        const firstMatched = leftKey.includes(first) || rightKey.includes(first);
+        const secondMatched = leftKey.includes(second) || rightKey.includes(second);
+        if (firstMatched && secondMatched) {
+          findings.add(`${leftMedication} + ${rightMedication}: ${rule.message}`);
+        }
+      }
+    }
+  }
+
+  return Array.from(findings);
+};
 
 const PATIENT_EXTRA: Record<
   string,
@@ -1394,36 +1450,6 @@ export default function IpdRoundsPage() {
   const [checklistsByPatient, setChecklistsByPatient] = React.useState<
     Record<string, ChecklistItem[]>
   >(() => cloneChecklists(INITIAL_CHECKLISTS));
-  const [quickOrder, setQuickOrder] = React.useState<{
-    type: string;
-    priority: OrderPriority;
-    description: string;
-    frequency: string;
-    duration: string;
-  }>({
-    type: 'Lab',
-    priority: 'Routine',
-    description: '',
-    frequency: 'Once',
-    duration: '',
-  });
-  const [quickOrderError, setQuickOrderError] = React.useState('');
-  const [quickNote, setQuickNote] = React.useState<{
-    type: NoteKind;
-    severity: NoteSeverity;
-    subjective: string;
-    objective: string;
-    assessment: string;
-    plan: string;
-  }>({
-    type: 'Physician Note',
-    severity: 'Routine',
-    subjective: '',
-    objective: '',
-    assessment: '',
-    plan: '',
-  });
-  const [quickNoteError, setQuickNoteError] = React.useState('');
   const [vitalsDialogOpen, setVitalsDialogOpen] = React.useState(false);
   const [vitalsDialogError, setVitalsDialogError] = React.useState('');
   const [vitalsDraft, setVitalsDraft] = React.useState({
@@ -1480,6 +1506,7 @@ export default function IpdRoundsPage() {
     details: '',
     status: 'Pending',
   });
+  const [rxShieldDialogOpen, setRxShieldDialogOpen] = React.useState(false);
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
@@ -1666,6 +1693,10 @@ export default function IpdRoundsPage() {
   const patientOrders = ordersByPatient[selectedPatient.id] ?? [];
   const patientBillingEntries = billingByPatient[selectedPatient.id] ?? [];
   const patientMeds = medicationsByPatient[selectedPatient.id] ?? [];
+  const rxShieldFindings = React.useMemo(
+    () => analyzeRxShieldComparisons(patientMeds.map((row) => row.medication)),
+    [patientMeds]
+  );
   const patientNotes = notesByPatient[selectedPatient.id] ?? [];
   const patientProcedures = proceduresByPatient[selectedPatient.id] ?? [];
   const patientChecklist = checklistsByPatient[selectedPatient.id] ?? [];
@@ -2136,6 +2167,14 @@ export default function IpdRoundsPage() {
     showSnack('Medication removed.', 'warning');
   };
 
+  const openRxShieldComparison = () => {
+    if (patientMeds.length < 2) {
+      showSnack('Add at least 2 medicines to run Rx Shield.', 'info');
+      return;
+    }
+    setRxShieldDialogOpen(true);
+  };
+
   const openProcedureDialog = (type: 'Procedure' | 'Consult' = 'Procedure') => {
     setProcedureDialogError('');
     setProcedureDraft({
@@ -2180,36 +2219,6 @@ export default function IpdRoundsPage() {
     showSnack('Order cancelled. Linked billing entry was cancelled.', 'warning');
   };
 
-  const placeQuickOrder = () => {
-    if (!quickOrder.description.trim()) {
-      setQuickOrderError('Order description is required.');
-      return;
-    }
-    setQuickOrderError('');
-
-    const frequency = quickOrder.duration.trim()
-      ? `${quickOrder.frequency.trim() || 'Once'} | ${quickOrder.duration.trim()}`
-      : quickOrder.frequency.trim() || 'Once';
-
-    const { newOrder, newBillingEntry } = appendOrderWithAutoBilling({
-      type: quickOrder.type,
-      description: quickOrder.description.trim(),
-      frequency,
-      priority: quickOrder.priority,
-      orderedBy: selectedPatient.consultant,
-    });
-
-    setQuickOrder((previous) => ({ ...previous, description: '', duration: '' }));
-    showSnack(
-      `Quick order placed (${newOrder.id}). Billing ${newBillingEntry.id} generated for ${formatBillingAmount(newBillingEntry.amount)}.`,
-      'success'
-    );
-    if (activeTab !== 'orders') {
-      setActiveTab('orders');
-      replaceWorkspaceQuery('orders', selectedPatient.mrn);
-    }
-  };
-
   const toggleMedicationSlot = (rowId: string, slot: MedicationSlot) => {
     setMedicationsByPatient((previous) => ({
       ...previous,
@@ -2224,51 +2233,6 @@ export default function IpdRoundsPage() {
         };
       }),
     }));
-  };
-
-  const saveQuickNote = () => {
-    if (
-      !quickNote.subjective.trim() &&
-      !quickNote.objective.trim() &&
-      !quickNote.assessment.trim() &&
-      !quickNote.plan.trim()
-    ) {
-      setQuickNoteError('At least one note field is required.');
-      return;
-    }
-
-    setQuickNoteError('');
-    const newNote: ProgressNote = {
-      id: `note-${Date.now()}`,
-      author: selectedPatient.consultant,
-      role: 'Physician',
-      time: new Date().toLocaleString(),
-      type: quickNote.type,
-      severity: quickNote.severity,
-      subjective: quickNote.subjective.trim() || '--',
-      objective: quickNote.objective.trim() || '--',
-      assessment: quickNote.assessment.trim() || '--',
-      plan: quickNote.plan.trim() || '--',
-    };
-
-    setNotesByPatient((previous) => ({
-      ...previous,
-      [selectedPatient.id]: [newNote, ...(previous[selectedPatient.id] ?? [])],
-    }));
-
-    setQuickNote({
-      type: quickNote.type,
-      severity: quickNote.severity,
-      subjective: '',
-      objective: '',
-      assessment: '',
-      plan: '',
-    });
-
-    if (activeTab !== 'notes') {
-      setActiveTab('notes');
-      replaceWorkspaceQuery('notes', selectedPatient.mrn);
-    }
   };
 
   const toggleChecklistItem = (itemId: string) => {
@@ -2360,25 +2324,12 @@ export default function IpdRoundsPage() {
     textTransform: 'uppercase',
   };
 
-  const clinicalInlineFormSx = {
-    ...ipdFormStylesSx,
-    '& .MuiOutlinedInput-root': {
-      borderRadius: 1.3,
-      backgroundColor: alpha(theme.palette.primary.main, 0.06),
-    },
-    '& .MuiInputBase-input::placeholder': {
-      color: alpha(theme.palette.text.primary, 0.5),
-      opacity: 1,
-    },
-  };
-
   const renderClinicalDialogTitle = (
     label: string,
     icon: React.ReactNode,
-    onClose: () => void,
     tone: 'primary' | 'warning' | 'success' | 'info' = 'primary'
   ) => (
-    <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ width: '100%' }}>
+    <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
       <Stack direction="row" spacing={0.8} alignItems="center">
         <Box
           sx={{
@@ -2397,19 +2348,6 @@ export default function IpdRoundsPage() {
           {label}
         </Typography>
       </Stack>
-      <IconButton
-        size="small"
-        onClick={onClose}
-        aria-label="Close dialog"
-        sx={{
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1.5,
-          p: 0.45,
-        }}
-      >
-        <CloseRoundedIcon fontSize="small" />
-      </IconButton>
     </Stack>
   );
 
@@ -3095,7 +3033,7 @@ export default function IpdRoundsPage() {
 
             {activeTab === 'orders' ? (
               <Grid container spacing={2} alignItems="flex-start">
-                <Grid xs={12} lg={7}>
+                <Grid xs={12} lg={12}>
                   <Card elevation={0} sx={sectionCardSx}>
                     <Box
                       sx={{
@@ -3182,148 +3120,6 @@ export default function IpdRoundsPage() {
                         </TableBody>
                       </Table>
                     </TableContainer>
-                  </Card>
-                </Grid>
-
-                <Grid xs={12} lg={5}>
-                  <Card elevation={0} sx={sectionCardSx}>
-                    <Box sx={{ p: 2, ...clinicalInlineFormSx }}>
-                      <Stack spacing={1.2}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Box
-                            sx={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 1.2,
-                              display: 'grid',
-                              placeItems: 'center',
-                              color: 'warning.main',
-                              backgroundColor: alpha(theme.palette.warning.main, 0.16),
-                            }}
-                          >
-                            <ScienceIcon sx={{ fontSize: 16 }} />
-                          </Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                            Quick Order
-                          </Typography>
-                        </Stack>
-
-                        <Grid container spacing={1.1} sx={{ mt: 0.1 }}>
-                          <Grid xs={12} sm={6}>
-                            <Typography variant="caption" sx={clinicalLabelSx}>
-                              Type
-                            </Typography>
-                            <TextField
-                              select
-                              size="small"
-                              value={quickOrder.type}
-                              onChange={(event) =>
-                                setQuickOrder((previous) => ({ ...previous, type: event.target.value }))
-                              }
-                              fullWidth
-                            >
-                              {ORDER_TYPE_OPTIONS.map((option) => (
-                                <MenuItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-                          </Grid>
-                          <Grid xs={12} sm={6}>
-                            <Typography variant="caption" sx={clinicalLabelSx}>
-                              Priority
-                            </Typography>
-                            <TextField
-                              select
-                              size="small"
-                              value={quickOrder.priority}
-                              onChange={(event) =>
-                                setQuickOrder((previous) => ({
-                                  ...previous,
-                                  priority: event.target.value as OrderPriority,
-                                }))
-                              }
-                              fullWidth
-                            >
-                              {(['Routine', 'Urgent', 'STAT'] as OrderPriority[]).map((priority) => (
-                                <MenuItem key={priority} value={priority}>
-                                  {priority}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-                          </Grid>
-                        </Grid>
-
-                        <Box>
-                          <Typography variant="caption" sx={clinicalLabelSx}>
-                            Order
-                          </Typography>
-                          <TextField
-                            size="small"
-                            placeholder="Describe the order..."
-                            value={quickOrder.description}
-                            onChange={(event) =>
-                              setQuickOrder((previous) => ({
-                                ...previous,
-                                description: event.target.value,
-                              }))
-                            }
-                            fullWidth
-                            error={Boolean(quickOrderError)}
-                            helperText={quickOrderError || ' '}
-                          />
-                        </Box>
-
-                        <Grid container spacing={1.1}>
-                          <Grid xs={12} sm={6}>
-                            <Typography variant="caption" sx={clinicalLabelSx}>
-                              Frequency
-                            </Typography>
-                            <TextField
-                              size="small"
-                              placeholder="e.g. Once, Q8H"
-                              value={quickOrder.frequency}
-                              onChange={(event) =>
-                                setQuickOrder((previous) => ({
-                                  ...previous,
-                                  frequency: event.target.value,
-                                }))
-                              }
-                              fullWidth
-                            />
-                          </Grid>
-                          <Grid xs={12} sm={6}>
-                            <Typography variant="caption" sx={clinicalLabelSx}>
-                              Duration
-                            </Typography>
-                            <TextField
-                              size="small"
-                              placeholder="e.g. 3 days"
-                              value={quickOrder.duration}
-                              onChange={(event) =>
-                                setQuickOrder((previous) => ({
-                                  ...previous,
-                                  duration: event.target.value,
-                                }))
-                              }
-                              fullWidth
-                            />
-                          </Grid>
-                        </Grid>
-
-                        <Stack direction="row" justifyContent="flex-end">
-                          <Button
-                            size="small"
-                            variant="contained"
-                            onClick={placeQuickOrder}
-                            startIcon={<ScienceIcon sx={{ fontSize: 14 }} />}
-                            sx={clinicalPrimaryButtonSx}
-                          >
-                            Place Order
-                          </Button>
-                        </Stack>
-                      </Stack>
-                    </Box>
                   </Card>
                 </Grid>
               </Grid>
@@ -3503,10 +3299,19 @@ export default function IpdRoundsPage() {
                       </Typography>
                     </Stack>
                     <Stack direction="row" spacing={1}>
+                      {patientMeds.length >= 2 ? (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<MedicationIcon />}
+                          onClick={openRxShieldComparison}
+                        >
+                          Rx Shield
+                        </Button>
+                      ) : null}
                       <Button size="small" variant="contained" onClick={openMedicationDialog}>
                         + Add Medication
                       </Button>
-                    
                     </Stack>
                   </Stack>
                 </Box>
@@ -3573,7 +3378,7 @@ export default function IpdRoundsPage() {
 
             {activeTab === 'notes' ? (
               <Grid container spacing={2} alignItems="flex-start">
-                <Grid xs={12} lg={7}>
+                <Grid xs={12} lg={12}>
                   <Card elevation={0} sx={sectionCardSx}>
                     <Box
                       sx={{
@@ -3718,154 +3523,6 @@ export default function IpdRoundsPage() {
                     </Box>
                   </Card>
                 </Grid>
-
-                <Grid xs={12} lg={5}>
-                  <Card elevation={0} sx={sectionCardSx}>
-                    <Box sx={{ p: 2, ...clinicalInlineFormSx }}>
-                      <Stack spacing={1.2}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Box
-                            sx={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 1.2,
-                              display: 'grid',
-                              placeItems: 'center',
-                              color: 'warning.main',
-                              backgroundColor: alpha(theme.palette.warning.main, 0.16),
-                            }}
-                          >
-                            <NoteAltIcon sx={{ fontSize: 16 }} />
-                          </Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                            Quick Note
-                          </Typography>
-                        </Stack>
-
-                        <Grid container spacing={1.1} sx={{ mt: 0.1 }}>
-                          <Grid xs={12} sm={6}>
-                            <Typography variant="caption" sx={clinicalLabelSx}>
-                              Type
-                            </Typography>
-                            <TextField
-                              select
-                              size="small"
-                              value={quickNote.type}
-                              onChange={(event) =>
-                                setQuickNote((previous) => ({
-                                  ...previous,
-                                  type: event.target.value as NoteKind,
-                                }))
-                              }
-                              fullWidth
-                            >
-                              {(['Physician Note', 'Nursing Note', 'SOAP Note'] as NoteKind[]).map((noteType) => (
-                                <MenuItem key={noteType} value={noteType}>
-                                  {noteType}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-                          </Grid>
-                          <Grid xs={12} sm={6}>
-                            <Typography variant="caption" sx={clinicalLabelSx}>
-                              Severity
-                            </Typography>
-                            <TextField
-                              select
-                              size="small"
-                              value={quickNote.severity}
-                              onChange={(event) =>
-                                setQuickNote((previous) => ({
-                                  ...previous,
-                                  severity: event.target.value as NoteSeverity,
-                                }))
-                              }
-                              fullWidth
-                            >
-                              {(['Routine', 'Urgent', 'STAT'] as NoteSeverity[]).map((severity) => (
-                                <MenuItem key={severity} value={severity}>
-                                  {severity}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-                          </Grid>
-                        </Grid>
-
-                        <Box>
-                          <Typography variant="caption" sx={clinicalLabelSx}>
-                            Subjective
-                          </Typography>
-                          <TextField
-                            size="small"
-                            multiline
-                            minRows={2}
-                            placeholder="Patient complaints..."
-                            value={quickNote.subjective}
-                            onChange={(event) =>
-                              setQuickNote((previous) => ({
-                                ...previous,
-                                subjective: event.target.value,
-                              }))
-                            }
-                            fullWidth
-                          />
-                        </Box>
-                        <Box>
-                          <Typography variant="caption" sx={clinicalLabelSx}>
-                            Objective Findings
-                          </Typography>
-                          <TextField
-                            size="small"
-                            multiline
-                            minRows={2}
-                            placeholder="Vitals, exam..."
-                            value={quickNote.objective}
-                            onChange={(event) =>
-                              setQuickNote((previous) => ({
-                                ...previous,
-                                objective: event.target.value,
-                              }))
-                            }
-                            fullWidth
-                          />
-                        </Box>
-                        <Box>
-                          <Typography variant="caption" sx={clinicalLabelSx}>
-                            Assessment &amp; Plan
-                          </Typography>
-                          <TextField
-                            size="small"
-                            multiline
-                            minRows={2}
-                            placeholder="Assessment and plan..."
-                            value={quickNote.assessment}
-                            onChange={(event) =>
-                              setQuickNote((previous) => ({
-                                ...previous,
-                                assessment: event.target.value,
-                                plan: event.target.value,
-                              }))
-                            }
-                            fullWidth
-                            error={Boolean(quickNoteError)}
-                            helperText={quickNoteError || ' '}
-                          />
-                        </Box>
-                        <Stack direction="row" justifyContent="flex-end">
-                          <Button
-                            size="small"
-                            variant="contained"
-                            onClick={saveQuickNote}
-                            startIcon={<NoteAltIcon sx={{ fontSize: 14 }} />}
-                            sx={clinicalPrimaryButtonSx}
-                          >
-                            Save Note
-                          </Button>
-                        </Stack>
-                      </Stack>
-                    </Box>
-                  </Card>
-                </Grid>
               </Grid>
             ) : null}
 
@@ -3988,7 +3645,6 @@ export default function IpdRoundsPage() {
           title={renderClinicalDialogTitle(
             'Record Vitals',
             <MonitorHeartIcon sx={{ fontSize: 14 }} />,
-            () => setVitalsDialogOpen(false),
             'info'
           )}
           maxWidth="sm"
@@ -4156,7 +3812,6 @@ export default function IpdRoundsPage() {
           title={renderClinicalDialogTitle(
             'Write New Order',
             <ScienceIcon sx={{ fontSize: 14 }} />,
-            () => setOrderDialogOpen(false),
             'warning'
           )}
           maxWidth="sm"
@@ -4319,7 +3974,6 @@ export default function IpdRoundsPage() {
           title={renderClinicalDialogTitle(
             'Add Progress Note',
             <NoteAltIcon sx={{ fontSize: 14 }} />,
-            () => setNoteDialogOpen(false),
             'warning'
           )}
           maxWidth="sm"
@@ -4481,7 +4135,6 @@ export default function IpdRoundsPage() {
           title={renderClinicalDialogTitle(
             'Add Medication',
             <MedicationIcon sx={{ fontSize: 14 }} />,
-            () => setMedDialogOpen(false),
             'warning'
           )}
           maxWidth="sm"
@@ -4623,7 +4276,6 @@ export default function IpdRoundsPage() {
           title={renderClinicalDialogTitle(
             procedureDraft.type === 'Consult' ? 'Request Consult' : 'Add Procedure',
             <LocalHospitalIcon sx={{ fontSize: 14 }} />,
-            () => setProcedureDialogOpen(false),
             procedureDraft.type === 'Consult' ? 'info' : 'primary'
           )}
           maxWidth="sm"
@@ -4725,6 +4377,40 @@ export default function IpdRoundsPage() {
               ) : null}
             </Stack>
           }
+        />
+
+        <CommonDialog
+          open={rxShieldDialogOpen}
+          onClose={() => setRxShieldDialogOpen(false)}
+          title="Rx Shield Compare"
+          maxWidth="sm"
+          fullWidth
+          content={
+            <Stack spacing={1.2}>
+              <Typography variant="body2" color="text.secondary">
+                Listed medicines compared by Rx Shield:
+              </Typography>
+              <Stack direction="row" spacing={0.7} useFlexGap flexWrap="wrap">
+                {patientMeds.map((row) => (
+                  <Chip key={row.id} size="small" variant="outlined" label={row.medication} />
+                ))}
+              </Stack>
+              {rxShieldFindings.length > 0 ? (
+                <Alert severity="warning">
+                  <Stack component="ul" spacing={0.6} sx={{ m: 0, pl: 2 }}>
+                    {rxShieldFindings.map((finding) => (
+                      <Typography component="li" variant="body2" key={finding}>
+                        {finding}
+                      </Typography>
+                    ))}
+                  </Stack>
+                </Alert>
+              ) : (
+                <Alert severity="success">No conflicts identified with current medication set.</Alert>
+              )}
+            </Stack>
+          }
+          actions={<Button onClick={() => setRxShieldDialogOpen(false)}>Close</Button>}
         />
 
         <Snackbar

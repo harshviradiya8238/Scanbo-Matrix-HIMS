@@ -1,6 +1,7 @@
 import type {
   PatientProfile, HealthStat, Medication, LabResult, Appointment,
   Prescription, BillRecord, MedicalRecord, ChatContact, ChatMessage, Vital,
+  LabRequisition, LabReport, FamilyMember, InsuranceDetail,
 } from './patient-portal-types';
 
 export const PATIENT: PatientProfile = {
@@ -34,12 +35,34 @@ export const MEDICATIONS: Medication[] = [
 ];
 
 export const LAB_RESULTS: LabResult[] = [
-  { id: 'lr-1', testName: 'Blood Glucose (F)', value: '108 mg/dL', refRange: '70-100', status: 'High' },
-  { id: 'lr-2', testName: 'HbA1c', value: '7.1%', refRange: '<5.7%', status: 'High' },
-  { id: 'lr-3', testName: 'Total Cholesterol', value: '185 mg/dL', refRange: '<200', status: 'Normal' },
-  { id: 'lr-4', testName: 'Hemoglobin', value: '13.5 g/dL', refRange: '13.5-17.5', status: 'Normal' },
-  { id: 'lr-5', testName: 'Vitamin D', value: '18 ng/mL', refRange: '20-50', status: 'Low' },
-  { id: 'lr-6', testName: 'Serum Creatinine', value: '0.9 mg/dL', refRange: '0.7-1.3', status: 'Normal' },
+  { id: 'lr-1', testName: 'Blood Glucose (F)', value: '108 mg/dL', refRange: '70-100', status: 'High', recordedAt: '2026-02-20 08:15 AM' },
+  { id: 'lr-2', testName: 'HbA1c', value: '7.1%', refRange: '<5.7%', status: 'High', recordedAt: '2026-02-20 08:20 AM' },
+  { id: 'lr-3', testName: 'Total Cholesterol', value: '185 mg/dL', refRange: '<200', status: 'Normal', recordedAt: '2026-02-20 08:25 AM' },
+  { id: 'lr-4', testName: 'Hemoglobin', value: '13.5 g/dL', refRange: '13.5-17.5', status: 'Normal', recordedAt: '2026-02-20 08:30 AM' },
+  { id: 'lr-5', testName: 'Vitamin D', value: '18 ng/mL', refRange: '20-50', status: 'Low', recordedAt: '2026-02-20 08:32 AM' },
+  { id: 'lr-6', testName: 'Serum Creatinine', value: '0.9 mg/dL', refRange: '0.7-1.3', status: 'Normal', recordedAt: '2026-02-20 08:35 AM' },
+];
+
+export const LAB_REQUISITIONS: LabRequisition[] = [
+  { id: 'req-1', requisitionNo: 'REQ-2026-041', date: 'Mar 10, 2026', time: '10:30 AM', orderedBy: 'Dr. Priya Sharma', lab: 'SRL Diagnostics', tests: ['CBC', 'HbA1c', 'Lipid Panel'], status: 'Sent to Lab', shareMethod: 'digital', ocrExtracted: false, notes: 'Fasting sample required' },
+  { id: 'req-2', requisitionNo: 'REQ-2026-028', date: 'Feb 20, 2026', time: '09:00 AM', orderedBy: 'Dr. Arvind Mehta', lab: 'Metropolis', tests: ['Blood Glucose (F)', 'Insulin Fasting'], status: 'Completed', shareMethod: 'physical', uploadedFile: 'req-feb20.pdf', ocrExtracted: true, notes: '' },
+  { id: 'req-3', requisitionNo: 'REQ-2026-015', date: 'Jan 10, 2026', time: '11:00 AM', orderedBy: 'Dr. Sneha Rao', lab: undefined, tests: ['Thyroid Profile (T3/T4/TSH)', 'Vitamin D', 'Vitamin B12'], status: 'Pending', shareMethod: undefined, ocrExtracted: false, notes: 'Patient to choose lab' },
+];
+
+export const LAB_REPORTS: LabReport[] = [
+  { id: 'lrep-1', reportNo: 'RPT-2026-089', date: 'Mar 11, 2026', time: '02:15 PM', lab: 'SRL Diagnostics', orderedBy: 'Dr. Priya Sharma', category: 'Haematology', tests: ['CBC', 'ESR'], status: 'Normal', uploadType: 'digital', sharedWith: ['Dr. Priya Sharma'] },
+  { id: 'lrep-2', reportNo: 'RPT-2026-072', date: 'Feb 20, 2026', time: '11:40 AM', lab: 'SRL Diagnostics', orderedBy: 'Dr. Arvind Mehta', category: 'Biochemistry', tests: ['HbA1c', 'Blood Glucose', 'Lipid Panel'], status: 'Needs Review', uploadType: 'scan', uploadedFile: 'lipid-feb20.jpg', ocrExtracted: true, sharedWith: ['Dr. Arvind Mehta', 'Dr. Sneha Rao'] },
+  { id: 'lrep-3', reportNo: 'RPT-2026-058', date: 'Jan 12, 2026', time: '09:30 AM', lab: 'Metropolis', orderedBy: 'Dr. Sneha Rao', category: 'Endocrinology', tests: ['Thyroid Profile (T3/T4/TSH)', 'Vitamin D', 'Vitamin B12'], status: 'Normal', uploadType: 'manual', sharedWith: [] },
+];
+
+export const FAMILY_MEMBERS: FamilyMember[] = [
+  { id: 'fm-1', name: 'Priya Patel', relation: 'Wife', dob: '1982-08-22', age: 43, gender: 'Female', bloodGroup: 'O+', phone: '+91 98765 44521', email: 'priya.patel@gmail.com', address: '14, Shanti Nagar, Bardoli', conditions: ['Hypothyroidism'], allergies: 'Penicillin', avatarColor: '#7c3aed', patientId: 'HC-20480125', status: 'Active' },
+  { id: 'fm-2', name: 'Rohan Patel', relation: 'Son', dob: '2010-03-15', age: 16, gender: 'Male', bloodGroup: 'B+', phone: '', email: '', address: '', conditions: [], allergies: 'None', avatarColor: '#0369a1', patientId: 'HC-20480126', status: 'Active' },
+];
+
+export const INSURANCE_DETAILS: InsuranceDetail[] = [
+  { id: 'ins-1', provider: 'Star Health Insurance', policyNo: 'STAR-2024-88721', validTill: 'Mar 2027', coverage: '₹5 Lakh', status: 'Active' },
+  { id: 'ins-2', provider: 'PMJAY Ayushman Bharat', policyNo: 'PMJAY-GJ-00124', validTill: 'Dec 2026', coverage: '₹5 Lakh (Govt)', status: 'Active' },
 ];
 
 export const APPOINTMENTS: Appointment[] = [
@@ -64,12 +87,12 @@ export const BILLS: BillRecord[] = [
 ];
 
 export const MEDICAL_RECORDS: MedicalRecord[] = [
-  { id: 'mr-1', date: 'Feb 20, 2026', type: 'Lab', title: 'Blood Work - CBC, HbA1c, Lipid Panel', doctor: 'SRL Diagnostics', summary: 'HbA1c elevated at 7.1%. Vitamin D low. Rest normal.' },
-  { id: 'mr-2', date: 'Feb 18, 2026', type: 'Visit', title: 'Follow-up Consultation', doctor: 'Dr. Sneha Rao', summary: 'BP monitoring advised. Metoprolol increased. Advised lifestyle modification.' },
-  { id: 'mr-3', date: 'Jan 12, 2026', type: 'Imaging', title: 'Chest X-Ray', doctor: 'Apollo Radiology', summary: 'Clear. No abnormalities detected.' },
-  { id: 'mr-4', date: 'Jan 10, 2026', type: 'Visit', title: 'Cardiology Consultation', doctor: 'Dr. Priya Sharma', summary: 'ECG normal. BP elevated. Started on Metoprolol.' },
-  { id: 'mr-5', date: 'Oct 18, 2025', type: 'Procedure', title: 'ECG Report', doctor: 'Cardiology Dept', summary: 'Normal sinus rhythm. No ST-T changes.' },
-  { id: 'mr-6', date: 'Dec 5, 2025', type: 'Prescription', title: 'Diabetes Management Plan', doctor: 'Dr. Arvind Mehta', summary: 'Started Vitamin D3 supplementation. Metformin continued.' },
+  { id: 'mr-1', date: 'Feb 20, 2026', time: '11:40 AM', type: 'Lab', title: 'Blood Work - CBC, HbA1c, Lipid Panel', doctor: 'SRL Diagnostics', summary: 'HbA1c elevated at 7.1%. Vitamin D low. Rest normal.' },
+  { id: 'mr-2', date: 'Feb 18, 2026', time: '10:00 AM', type: 'Visit', title: 'Follow-up Consultation', doctor: 'Dr. Sneha Rao', summary: 'BP monitoring advised. Metoprolol increased. Advised lifestyle modification.' },
+  { id: 'mr-3', date: 'Jan 12, 2026', time: '09:30 AM', type: 'Imaging', title: 'Chest X-Ray', doctor: 'Apollo Radiology', summary: 'Clear. No abnormalities detected.' },
+  { id: 'mr-4', date: 'Jan 10, 2026', time: '03:15 PM', type: 'Visit', title: 'Cardiology Consultation', doctor: 'Dr. Priya Sharma', summary: 'ECG normal. BP elevated. Started on Metoprolol.' },
+  { id: 'mr-5', date: 'Oct 18, 2025', time: '02:00 PM', type: 'Procedure', title: 'ECG Report', doctor: 'Cardiology Dept', summary: 'Normal sinus rhythm. No ST-T changes.' },
+  { id: 'mr-6', date: 'Dec 5, 2025', time: '11:00 AM', type: 'Prescription', title: 'Diabetes Management Plan', doctor: 'Dr. Arvind Mehta', summary: 'Started Vitamin D3 supplementation. Metformin continued.' },
 ];
 
 export const VITALS: Vital[] = [

@@ -16,6 +16,8 @@ interface StepConfig {
   label: string;
   component: React.ComponentType<FormikProps<any>>;
   validationSchema?: any;
+  isOptional?: boolean;
+  onSkip?: (formik: FormikProps<any>) => void | Promise<void>;
 }
 
 interface StepperFormProps<T> {
@@ -41,6 +43,7 @@ export default function StepperForm<T extends Record<string, any>>({
 }: StepperFormProps<T>) {
   const [activeStep, setActiveStep] = React.useState(0);
   const [completed, setCompleted] = React.useState<Record<number, boolean>>({});
+  const [lastStepSubmitArmed, setLastStepSubmitArmed] = React.useState(true);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isModern = navigationVariant === 'modern';
@@ -48,11 +51,24 @@ export default function StepperForm<T extends Record<string, any>>({
   const currentStep = steps[activeStep];
   const isLastStep = activeStep === steps.length - 1;
   const isFirstStep = activeStep === 0;
+  const isCurrentOptional = Boolean(currentStep?.isOptional);
+
+  React.useEffect(() => {
+    if (!isLastStep || typeof window === 'undefined') {
+      setLastStepSubmitArmed(true);
+      return;
+    }
+    setLastStepSubmitArmed(false);
+    const timer = window.setTimeout(() => {
+      setLastStepSubmitArmed(true);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [activeStep, isLastStep]);
 
   const handleNext = async (formik: FormikProps<T>) => {
     if (currentStep.validationSchema) {
       try {
-        await currentStep.validationSchema.validate(formik.values, { abortEarly: false });
+        await currentStep.validationSchema.validate(formik.values, { abortEarly: false, stripUnknown: false });
         // Clear any previous errors if validation passes
         formik.setErrors({});
       } catch (error: any) {
@@ -90,6 +106,9 @@ export default function StepperForm<T extends Record<string, any>>({
   const handleSubmit = async (values: T, formikHelpers: FormikHelpers<T>) => {
     const formik = formikHelpers as any as FormikProps<T>;
     if (isLastStep) {
+      if (!lastStepSubmitArmed) {
+        return;
+      }
       await onSubmit(values);
     } else {
       const success = await handleNext(formik);
@@ -100,17 +119,33 @@ export default function StepperForm<T extends Record<string, any>>({
     }
   };
 
+  const handleSkipAndSubmit = async (formik: FormikProps<T>) => {
+    if (!isLastStep || !isCurrentOptional || !lastStepSubmitArmed) return;
+    if (currentStep?.onSkip) {
+      await currentStep.onSkip(formik);
+    }
+    await formik.submitForm();
+  };
+
+  const handleFormKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
+    if (event.key !== 'Enter') return;
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'TEXTAREA') return;
+    if (!isLastStep || !lastStepSubmitArmed) {
+      event.preventDefault();
+    }
+  };
+
   return (
     <Formik
       initialValues={initialValues}
       onSubmit={handleSubmit}
-      validationSchema={currentStep?.validationSchema}
       validateOnChange={false}
-      validateOnBlur={true}
+      validateOnBlur={false}
       enableReinitialize={false}
     >
       {(formik) => (
-        <Form>
+        <Form onKeyDown={handleFormKeyDown}>
           <Box
             sx={{
               width: '100%',
@@ -332,12 +367,24 @@ export default function StepperForm<T extends Record<string, any>>({
                     Cancel
                   </Button>
                 )}
+                {isLastStep && isCurrentOptional && (
+                  <Button
+                    type="button"
+                    onClick={() => void handleSkipAndSubmit(formik)}
+                    variant="outlined"
+                    size="medium"
+                    disabled={formik.isSubmitting || !lastStepSubmitArmed}
+                    sx={{ minWidth: 150 }}
+                  >
+                    Skip & Register
+                  </Button>
+                )}
                 <Button
                   type={isLastStep ? 'submit' : 'button'}
                   onClick={isLastStep ? undefined : () => void handleNext(formik)}
                   variant="contained"
                   size="medium"
-                  disabled={formik.isSubmitting}
+                  disabled={formik.isSubmitting || (isLastStep && !lastStepSubmitArmed)}
                   sx={{
                     minWidth: 126,
                     px: 3,

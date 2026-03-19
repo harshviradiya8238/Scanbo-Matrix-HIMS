@@ -22,15 +22,12 @@ import {
   AccessTime as AccessTimeIcon,
   AutorenewOutlined as RefillIcon,
   CheckCircle as CheckCircleIcon,
-  Download as DownloadIcon,
   LocalPharmacy as LocalPharmacyIcon,
   Medication as MedicationIcon,
   NoteAlt as NoteAltIcon,
   Person as PersonIcon,
-  Print as PrintIcon,
   Search as SearchIcon,
   Send as SendIcon,
-  Share as ShareIcon,
   TaskAlt as TaskAltIcon,
   WarningAmber as WarningIcon,
 } from '@mui/icons-material';
@@ -398,14 +395,11 @@ export default function PatientPortalMedicationsPage() {
                 <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.25, fontSize: 16 }}>{selectedMed.name} {selectedMed.dose}</Typography>
                 <Typography variant="caption" color="text.secondary">{selectedMed.brand} · {selectedMed.prescriber}</Typography>
               </Box>
-              <Stack direction="row" spacing={0.75} alignItems="center">
-                <Chip size="small" label={selectedMed.status}
-                  sx={{ fontWeight: 700, fontSize: 11,
-                    bgcolor: selectedMed.status === 'Active' ? alpha(theme.palette.success.main, 0.12) : alpha(theme.palette.text.secondary, 0.1),
-                    color: selectedMed.status === 'Active' ? 'success.main' : 'text.secondary' }}
-                />
-                <Tooltip title="Print"><Button size="small" sx={{ minWidth: 32, p: 0.5 }}><PrintIcon sx={{ fontSize: 17 }} /></Button></Tooltip>
-              </Stack>
+              <Chip size="small" label={selectedMed.status}
+                sx={{ fontWeight: 700, fontSize: 11,
+                  bgcolor: selectedMed.status === 'Active' ? alpha(theme.palette.success.main, 0.12) : alpha(theme.palette.text.secondary, 0.1),
+                  color: selectedMed.status === 'Active' ? 'success.main' : 'text.secondary' }}
+              />
             </Box>
 
             {/* Scrollable content */}
@@ -485,12 +479,6 @@ export default function PatientPortalMedicationsPage() {
                   color: refillDone[selectedMed.id] ? 'success.main' : undefined,
                   borderColor: refillDone[selectedMed.id] ? 'success.main' : undefined }}>
                 {refillDone[selectedMed.id] ? 'Refill Requested' : 'Request Refill'}
-              </Button>
-              <Button variant="outlined" size="small"
-                startIcon={<SendIcon sx={{ fontSize: 15 }} />}
-                onClick={() => setSnack({ open: true, msg: 'Message sent to ' + selectedMed.prescriber, severity: 'info' })}
-                sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12.5, borderRadius: 2 }}>
-                Ask Doctor
               </Button>
             </Box>
           </Box>
@@ -602,14 +590,9 @@ export default function PatientPortalMedicationsPage() {
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11.5 }}>{selectedRx.id} · {selectedRx.department}</Typography>
                 </Box>
               </Stack>
-              <Stack direction="row" spacing={0.5} alignItems="center">
-                <Chip size="small" label={selectedRx.status}
-                  sx={{ fontWeight: 700, fontSize: 10.5, bgcolor: rxStatusColor(selectedRx.status, theme).bg, color: rxStatusColor(selectedRx.status, theme).color }}
-                />
-                <Tooltip title="Print">
-                  <Button size="small" sx={{ minWidth: 30, p: 0.5, color: 'text.secondary' }}><PrintIcon sx={{ fontSize: 16 }} /></Button>
-                </Tooltip>
-              </Stack>
+              <Chip size="small" label={selectedRx.status}
+                sx={{ fontWeight: 700, fontSize: 10.5, bgcolor: rxStatusColor(selectedRx.status, theme).bg, color: rxStatusColor(selectedRx.status, theme).color }}
+              />
             </Box>
 
             {/* Scrollable content */}
@@ -756,18 +739,6 @@ export default function PatientPortalMedicationsPage() {
                 startIcon={<SendIcon sx={{ fontSize: 14 }} />}
                 sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12, borderRadius: 2, px: 1.75 }}>
                 {sendingPharmacy ? 'Sending…' : 'Send to Pharmacy'}
-              </Button>
-              <Button variant="outlined" size="small"
-                onClick={() => setSnack({ open: true, msg: 'PDF downloaded!', severity: 'success' })}
-                startIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
-                sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12, borderRadius: 2, px: 1.75 }}>
-                Download PDF
-              </Button>
-              <Button variant="outlined" size="small"
-                onClick={() => setSnack({ open: true, msg: 'Share link copied!', severity: 'info' })}
-                startIcon={<ShareIcon sx={{ fontSize: 14 }} />}
-                sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12, borderRadius: 2, px: 1.75 }}>
-                Share
               </Button>
               <Box sx={{ flex: 1 }} />
               <Button variant="outlined" size="small"

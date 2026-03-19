@@ -63,8 +63,9 @@ export const doctorContactSchema = Yup.object({
     .matches(/^\d{7,15}$/, 'Enter a valid mobile number'),
   email: Yup.string().required('Email is required').email('Enter a valid email address'),
   clinicAddressLine1: Yup.string().required('Clinic address is required'),
+  clinicPinCode: Yup.string().required('ZIP code is required'),
   clinicCity: Yup.string().required('City is required'),
-  clinicState: Yup.string().required('State / Province is required'),
+  clinicState: Yup.string().required('State is required'),
   clinicCountry: Yup.string().required('Country is required'),
 });
 
@@ -73,4 +74,15 @@ export const doctorDocumentsSchema = Yup.object({
   idProofNumber: Yup.string().required('ID proof number is required'),
   consentDataAccuracy: Yup.boolean().oneOf([true], 'You must confirm data accuracy'),
   consentTerms: Yup.boolean().oneOf([true], 'You must accept terms & conditions'),
+});
+
+export const doctorPersonalCombinedSchema = doctorIdentitySchema
+  .concat(doctorPersonalSchema)
+  .concat(doctorProfessionalSchema)
+  .concat(doctorContactSchema);
+
+export const doctorAvailabilitySchema = Yup.object({
+  weeklySchedule: Yup.array().optional(),
+  telemedicineAvailable: Yup.boolean().optional(),
+  availableDays: Yup.string().optional(),
 });

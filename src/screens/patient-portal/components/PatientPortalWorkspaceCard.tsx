@@ -1,11 +1,33 @@
 'use client';
 
 import * as React from 'react';
-import { Avatar, Box, Chip, Stack, Typography } from '@/src/ui/components/atoms';
+import { usePathname, useRouter } from 'next/navigation';
+import { Avatar, Box, Button, Chip, Stack, Typography } from '@/src/ui/components/atoms';
 import { useTheme } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { ArrowBackRounded as ArrowBackRoundedIcon } from '@mui/icons-material';
 import type { PatientPortalTabId } from '../patient-portal-types';
 import { PATIENT } from '../patient-portal-mock-data';
+
+function normalizePathname(pathname: string): string {
+  if (!pathname) return '';
+  if (pathname === '/') return '/';
+  return pathname.replace(/\/+$/, '');
+}
+
+function getBackFallbackRoute(pathname: string): string {
+  const normalized = normalizePathname(pathname);
+  if (!normalized.startsWith('/patient-portal')) {
+    return '/patient-portal/home';
+  }
+
+  const segments = normalized.split('/').filter(Boolean);
+  if (segments.length <= 2) {
+    return '/patient-portal/home';
+  }
+
+  return `/${segments.slice(0, -1).join('/')}`;
+}
 
 export default function PatientPortalWorkspaceCard({
   current: _current,
@@ -19,6 +41,25 @@ export default function PatientPortalWorkspaceCard({
   hidePatientBar?: boolean;
 }) {
   const theme = useTheme();
+  const router = useRouter();
+  const pathname = usePathname() ?? '';
+  const normalizedPathname = React.useMemo(() => normalizePathname(pathname), [pathname]);
+  const pathSegments = React.useMemo(
+    () => normalizedPathname.split('/').filter(Boolean),
+    [normalizedPathname]
+  );
+  // Show back only on child routes like /patient-portal/family/registration.
+  // Main pages like /patient-portal/family should not show it.
+  const showBackNav = normalizedPathname.startsWith('/patient-portal') && pathSegments.length > 2;
+
+  const handleBack = React.useCallback(() => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push(getBackFallbackRoute(normalizedPathname));
+  }, [router, normalizedPathname]);
 
   return (
     <>
@@ -168,6 +209,44 @@ export default function PatientPortalWorkspaceCard({
 
       {/* ── Page content with standard padding ── */}
       <Box sx={{ px: { xs: 2, sm: 3 }, pt: hidePatientBar ? 2 : 0, pb: 3, backgroundColor: theme.palette.common.white }}>
+        {showBackNav && (
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            sx={{
+              mb: 1.8,
+              width: 'fit-content',
+              maxWidth: '100%',
+              px: 0.8,
+              py: 0.5,
+              borderRadius: 999,
+              border: '1px solid',
+              borderColor: alpha(theme.palette.primary.main, 0.22),
+              backgroundColor: theme.palette.common.white,
+              boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.08)}`,
+            }}
+          >
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 18 }} />}
+              onClick={handleBack}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 700,
+                px: 0.9,
+                minWidth: 0,
+                borderRadius: 999,
+              }}
+            >
+              Back
+            </Button>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, pr: 0.6 }}>
+              Previous screen
+            </Typography>
+          </Stack>
+        )}
         {children}
       </Box>
     </>

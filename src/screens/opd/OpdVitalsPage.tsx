@@ -26,6 +26,7 @@ interface VitalsForm {
   rr: string;
   temp: string;
   spo2: string;
+  ecg: string;
   painScore: number;
   nurse: string;
 }
@@ -37,6 +38,7 @@ function buildDefaultForm(): VitalsForm {
     rr: '',
     temp: '',
     spo2: '',
+    ecg: '',
     painScore: 0,
     nurse: 'Nurse Priya',
   };
@@ -118,6 +120,7 @@ export default function OpdVitalsPage() {
       rr: form.rr,
       temp: form.temp,
       spo2: form.spo2,
+      ecg: form.ecg,
       painScore: form.painScore,
       nurse: form.nurse,
     };
@@ -133,6 +136,7 @@ export default function OpdVitalsPage() {
             rr: form.rr,
             temp: form.temp,
             spo2: form.spo2,
+            ecg: form.ecg,
             weightKg: selectedPatient.vitals.weightKg,
             bmi: selectedPatient.vitals.bmi,
           },
@@ -213,9 +217,10 @@ export default function OpdVitalsPage() {
                 <Grid container spacing={1.2}>
                   <Grid item xs={12} sm={6}><TextField label="BP" fullWidth value={form.bp} onChange={(event) => updateField('bp', event.target.value)} /></Grid>
                   <Grid item xs={12} sm={6}><TextField label="HR" fullWidth value={form.hr} onChange={(event) => updateField('hr', event.target.value)} /></Grid>
-                  <Grid item xs={12} sm={6}><TextField label="RR" fullWidth value={form.rr} onChange={(event) => updateField('rr', event.target.value)} /></Grid>
+                  <Grid item xs={12} sm={6}><TextField label="Breath Rate" fullWidth value={form.rr} onChange={(event) => updateField('rr', event.target.value)} /></Grid>
                   <Grid item xs={12} sm={6}><TextField label="Temp" fullWidth value={form.temp} onChange={(event) => updateField('temp', event.target.value)} /></Grid>
                   <Grid item xs={12} sm={6}><TextField label="SpO2" fullWidth value={form.spo2} onChange={(event) => updateField('spo2', event.target.value)} /></Grid>
+                  <Grid item xs={12} sm={6}><TextField label="ECG" fullWidth value={form.ecg} onChange={(event) => updateField('ecg', event.target.value)} /></Grid>
                   <Grid item xs={12} sm={6}><TextField label="Pain Score" type="number" fullWidth value={form.painScore} onChange={(event) => updateField('painScore', Number(event.target.value))} /></Grid>
                 </Grid>
 
@@ -253,9 +258,10 @@ export default function OpdVitalsPage() {
                             <Chip size="small" icon={<ShowChartIcon />} label={record.recordedAt} />
                             <Chip size="small" variant="outlined" label={`BP ${record.bp}`} />
                             <Chip size="small" variant="outlined" label={`HR ${record.hr}`} />
-                            <Chip size="small" variant="outlined" label={`RR ${record.rr}`} />
+                            <Chip size="small" variant="outlined" label={`BR ${record.rr}`} />
                             <Chip size="small" variant="outlined" label={`Temp ${record.temp}`} />
                             <Chip size="small" variant="outlined" label={`SpO2 ${record.spo2}`} />
+                            {record.ecg ? <Chip size="small" variant="outlined" label={`ECG ${record.ecg}`} /> : null}
                             <Chip size="small" variant="outlined" label={`Pain ${record.painScore}`} />
                           </Stack>
                           <Stack direction="row" spacing={0.75} alignItems="center">

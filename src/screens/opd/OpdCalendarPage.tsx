@@ -251,6 +251,7 @@ export default function OpdCalendarPage() {
     severity: 'success',
   });
   const [mrnApplied, setMrnApplied] = React.useState(false);
+  const [registrationPayloadApplied, setRegistrationPayloadApplied] = React.useState(false);
   const roleProfile = React.useMemo(() => getOpdRoleFlowProfile(role), [role]);
   const canManageCalendar = roleProfile.capabilities.canManageCalendar;
   const slotDurationMinutes = React.useMemo(
@@ -849,6 +850,39 @@ export default function OpdCalendarPage() {
     [flowMrn]
   );
 
+  const openPatientRegistrationFromCalendar = React.useCallback(() => {
+    if (!guardCalendarAction('Patient registration')) return;
+
+    const params = new URLSearchParams();
+    params.set('source', 'opd-calendar');
+    params.set('returnTo', '/appointments/calendar');
+
+    const nextDate = booking.date || directDate;
+    const nextTime = booking.time || slotTimes[0] || '09:00';
+    const nextProvider =
+      booking.provider || directProvider || (providerFilter !== 'All' ? providerFilter : '');
+    const nextDepartment = booking.department || directDepartment || defaultDepartment;
+
+    if (nextDate) params.set('date', nextDate);
+    if (nextTime) params.set('time', nextTime);
+    if (nextProvider) params.set('provider', nextProvider);
+    if (nextDepartment) params.set('department', nextDepartment);
+
+    router.push(`/patients/registration?${params.toString()}`);
+  }, [
+    booking.date,
+    booking.department,
+    booking.provider,
+    booking.time,
+    directDate,
+    directDepartment,
+    directProvider,
+    guardCalendarAction,
+    providerFilter,
+    router,
+    slotTimes,
+  ]);
+
   const slotCheck = React.useMemo(
     () => getSlotCheck(booking.provider, booking.date, booking.time, editingAppointment),
     [booking.provider, booking.date, booking.time, editingAppointment, getSlotCheck]
@@ -950,6 +984,80 @@ export default function OpdCalendarPage() {
     }
     setMrnApplied(true);
   }, [mrnParam, mrnApplied]);
+
+  React.useEffect(() => {
+    if (registrationPayloadApplied) return;
+    const source = searchParams.get('source');
+    const registrationStatus = searchParams.get('registration');
+    if (source !== 'registration' || registrationStatus !== 'success') return;
+
+    const returnedPatientName = searchParams.get('patientName') || '';
+    const returnedPhone = searchParams.get('phone') || '';
+    const returnedAge = searchParams.get('age') || '';
+    const returnedGenderRaw = searchParams.get('gender') || '';
+    const returnedDepartment = searchParams.get('department') || booking.department || directDepartment || defaultDepartment;
+    const returnedDate = searchParams.get('date') || booking.date || directDate;
+    const returnedTime = searchParams.get('time') || booking.time || slotTimes[0] || '09:00';
+    const returnedProvider =
+      searchParams.get('provider') ||
+      booking.provider ||
+      directProvider ||
+      (providerFilter !== 'All' ? providerFilter : providers[0] || '');
+
+    const normalizedGender = returnedGenderRaw
+      ? `${returnedGenderRaw.charAt(0).toUpperCase()}${returnedGenderRaw.slice(1).toLowerCase()}`
+      : '';
+    const returnedAgeGender = returnedAge
+      ? `${returnedAge} / ${normalizedGender || 'Unknown'}`
+      : normalizedGender
+      ? `— / ${normalizedGender}`
+      : '';
+
+    setSelectedPatientOption(null);
+    setDirectDepartment(returnedDepartment);
+    setDirectDate(returnedDate);
+    setSelectedDate(returnedDate);
+    if (returnedProvider) {
+      setDirectProvider(returnedProvider);
+      setProviderFilter(returnedProvider);
+    }
+    setBooking((prev) => ({
+      ...prev,
+      date: returnedDate || prev.date,
+      time: returnedTime || prev.time,
+      provider: returnedProvider || prev.provider,
+      department: returnedDepartment || prev.department,
+      patientName: returnedPatientName || prev.patientName,
+      phone: returnedPhone || prev.phone,
+      ageGender: returnedAgeGender || prev.ageGender,
+      mrn: '',
+    }));
+    setErrors({});
+    setEditingAppointment(null);
+    setSlotLocked(false);
+    setBookingOpen(true);
+    setSnackbar({
+      open: true,
+      message: returnedPatientName
+        ? `${returnedPatientName} registered. Complete appointment booking.`
+        : 'Patient registered. Complete appointment booking.',
+      severity: 'success',
+    });
+    setRegistrationPayloadApplied(true);
+  }, [
+    booking.date,
+    booking.department,
+    booking.provider,
+    booking.time,
+    directDate,
+    directDepartment,
+    directProvider,
+    providerFilter,
+    providers,
+    registrationPayloadApplied,
+    searchParams,
+    slotTimes,
+  ]);
 
   const validateBooking = (): boolean => {
     const nextErrors: BookingErrors = {};
@@ -1997,6 +2105,21 @@ export default function OpdCalendarPage() {
                 />
               )}
             />
+
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="caption" color="text.secondary">
+                Can&apos;t find patient in search?
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<PersonAddIcon />}
+                disabled={Boolean(editingAppointment) || !canManageCalendar}
+                onClick={openPatientRegistrationFromCalendar}
+              >
+                Register Patient
+              </Button>
+            </Stack>
 
             <Box
               sx={{

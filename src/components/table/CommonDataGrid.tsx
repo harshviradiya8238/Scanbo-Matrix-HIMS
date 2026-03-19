@@ -84,7 +84,9 @@ export type CommonDataGridProps<R extends GridValidRowModel> = {
   columns: GridColDef<R>[];
   rows: R[];
   tableHeight?: number | string;
+  autoHeight?: boolean;
   rowHeight?: number;
+  pageSizeOptions?: number[];
   getRowId?: GridRowIdGetter<R>;
   loading?: boolean;
   error?: string | null;
@@ -186,7 +188,9 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
     columns,
     rows,
     tableHeight = 640,
+    autoHeight = false,
     rowHeight,
+    pageSizeOptions = [25, 50, 100],
     getRowId,
     loading,
     error,
@@ -429,11 +433,12 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
         </Box>
       )}
 
-      <Box sx={{ height: tableHeight, width: "100%" }}>
+      <Box sx={{ height: autoHeight ? "auto" : tableHeight, width: "100%" }}>
         <DataGridComponent
           apiRef={apiRef}
           rows={rows}
           columns={resolvedColumns}
+          autoHeight={autoHeight}
           rowHeight={rowHeight}
           getRowId={getRowId}
           loading={loading}
@@ -442,6 +447,7 @@ export default function CommonDataGrid<R extends GridValidRowModel>(
           sortingMode={serverMode ? "server" : "client"}
           filterMode={serverMode ? "server" : "client"}
           paginationModel={resolvedPaginationModel}
+          pageSizeOptions={pageSizeOptions}
           onPaginationModelChange={(model: GridPaginationModel) =>
             setState((prev) => ({ ...prev, paginationModel: model }))
           }

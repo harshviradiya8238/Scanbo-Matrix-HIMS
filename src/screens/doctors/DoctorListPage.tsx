@@ -347,10 +347,9 @@ export default function DoctorListPage() {
           <GridActionsCellItem
             key="view"
             label="View profile"
-            onClick={() => {
-              setSelectedDoctor(params.row);
-              setDetailsOpen(true);
-            }}
+            onClick={() =>
+              router.push(`/doctors/profile?doctorId=${encodeURIComponent(params.row.doctorId)}`)
+            }
             showInMenu
           />,
           <GridActionsCellItem
@@ -1524,7 +1523,11 @@ export default function DoctorListPage() {
                   <Button
                     variant="contained"
                     fullWidth
-                    onClick={() => setSnackbar("View full profile (stub)")}
+                    onClick={() =>
+                      router.push(
+                        `/doctors/profile?doctorId=${encodeURIComponent(selectedDoctor.doctorId)}`,
+                      )
+                    }
                   >
                     View Full Profile
                   </Button>

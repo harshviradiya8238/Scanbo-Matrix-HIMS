@@ -13,6 +13,7 @@ interface OpdLayoutProps {
   currentPageTitle: string;
   children: React.ReactNode;
   showRoleGuide?: boolean;
+  fullHeight?: boolean;
 }
 
 export default function OpdLayout({
@@ -21,13 +22,14 @@ export default function OpdLayout({
   currentPageTitle,
   children,
   showRoleGuide = true,
+  fullHeight = false,
 }: OpdLayoutProps) {
   const { role } = useUser();
   const roleProfile = React.useMemo(() => getOpdRoleFlowProfile(role), [role]);
 
   return (
-    <PageTemplate title={title} subtitle={subtitle} currentPageTitle={currentPageTitle}>
-      <Stack spacing={2}>
+    <PageTemplate title={title} subtitle={subtitle} currentPageTitle={currentPageTitle} fullHeight={fullHeight}>
+      <Stack spacing={2} sx={fullHeight ? { flex: 1, minHeight: 0, overflow: 'hidden' } : undefined}>
 
         {children}
       </Stack>

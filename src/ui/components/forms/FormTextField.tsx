@@ -2,7 +2,7 @@
 
 import { Box, InputAdornment } from '@/src/ui/components/atoms';
 import Input, { InputProps } from '@/src/ui/components/atoms/Input';
-import { useField } from 'formik';
+import { FastField, FieldInputProps, FieldMetaProps } from 'formik';
 import { ReactNode } from 'react';
 
 interface FormTextFieldProps extends Omit<InputProps, 'name' | 'value' | 'onChange' | 'onBlur' | 'error'> {
@@ -23,44 +23,55 @@ export default function FormTextField({
   sx,
   ...props 
 }: FormTextFieldProps) {
-  const [field, meta] = useField(name);
-  const hasError = meta.touched && !!meta.error;
   const ariaLabel = typeof label === 'string' ? label : undefined;
 
   return (
-    <Box sx={sx}>
-      <Input
-        {...field}
-        {...props}
-        name={name}
-        id={name}
-        error={hasError}
-        helperText={hasError ? meta.error : helperText}
-        required={required}
-        fullWidth
-        placeholder={placeholder}
-        label={label}
-        inputProps={{
-          ...props.inputProps,
-          'aria-label': props.inputProps?.['aria-label'] ?? ariaLabel,
-        }}
-        InputProps={{
-          startAdornment: startIcon ? (
-            <InputAdornment position="start">{startIcon}</InputAdornment>
-          ) : undefined,
-          endAdornment: endIcon ? (
-            <InputAdornment position="end">{endIcon}</InputAdornment>
-          ) : undefined,
-          ...props.InputProps,
-        }}
-        sx={{
-          '& .MuiOutlinedInput-root': {
-            '&:hover fieldset': {
-              borderColor: 'primary.main',
-            },
-          },
-        }}
-      />
-    </Box>
+    <FastField name={name}>
+      {({
+        field,
+        meta,
+      }: {
+        field: FieldInputProps<string>;
+        meta: FieldMetaProps<string>;
+      }) => {
+        const hasError = meta.touched && !!meta.error;
+        return (
+          <Box sx={sx}>
+            <Input
+              {...field}
+              {...props}
+              name={name}
+              id={name}
+              error={hasError}
+              helperText={hasError ? meta.error : helperText}
+              required={required}
+              fullWidth
+              placeholder={placeholder}
+              label={label}
+              inputProps={{
+                ...props.inputProps,
+                'aria-label': props.inputProps?.['aria-label'] ?? ariaLabel,
+              }}
+              InputProps={{
+                startAdornment: startIcon ? (
+                  <InputAdornment position="start">{startIcon}</InputAdornment>
+                ) : undefined,
+                endAdornment: endIcon ? (
+                  <InputAdornment position="end">{endIcon}</InputAdornment>
+                ) : undefined,
+                ...props.InputProps,
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: 'primary.main',
+                  },
+                },
+              }}
+            />
+          </Box>
+        );
+      }}
+    </FastField>
   );
 }

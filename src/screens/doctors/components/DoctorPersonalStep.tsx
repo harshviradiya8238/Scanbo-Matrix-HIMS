@@ -1,14 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { Alert, Box, Chip, Stack, Typography } from '@/src/ui/components/atoms';
+import { Alert, Box, Button, Chip, Stack, Typography } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
-import { useTheme } from '@/src/ui/theme';
+import { useTheme, alpha } from '@/src/ui/theme';
 import { getPrimaryChipSx, getSoftSurface } from '@/src/core/theme/surfaces';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { FormikProps } from 'formik';
 import { FormDatePicker, FormSelect, FormTextField } from '@/src/ui/components/forms';
 import { DoctorRegistrationFormData } from '../types/doctor-registration.types';
+import { Badge as BadgeIcon } from '@mui/icons-material';
 
 interface DoctorPersonalStepProps extends FormikProps<DoctorRegistrationFormData> {}
 
@@ -48,11 +49,35 @@ const maritalStatusOptions = [
   { value: 'widowed', label: 'Widowed' },
 ];
 
+const AADHAAR_MOCK_DIRECTORY = [
+  {
+    aadhaar: '234567891234',
+    firstName: 'Arjun',
+    middleName: '',
+    lastName: 'Rao',
+    gender: 'male',
+    dob: '1988-08-14',
+  },
+  {
+    aadhaar: '456789123456',
+    firstName: 'Nivedita',
+    middleName: '',
+    lastName: 'Sharma',
+    gender: 'female',
+    dob: '1990-05-09',
+  },
+] as const;
+
 export default function DoctorPersonalStep({ values, setFieldValue }: DoctorPersonalStepProps) {
   const theme = useTheme();
   const softSurface = getSoftSurface(theme);
   const chipSx = getPrimaryChipSx(theme);
   const isIndia = values.registrationCountry === 'india';
+  const [aadhaarSyncMessage, setAadhaarSyncMessage] = React.useState<{
+    severity: 'success' | 'error';
+    text: string;
+  } | null>(null);
+  const [isFetchingAadhaar, setIsFetchingAadhaar] = React.useState(false);
 
   React.useEffect(() => {
     if (values.dob) {
@@ -65,6 +90,42 @@ export default function DoctorPersonalStep({ values, setFieldValue }: DoctorPers
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.dob]);
+
+  const handleFetchFromAadhaar = async () => {
+    const normalizedAadhaar = values.aadhaarNumber.replace(/\D/g, '');
+    if (normalizedAadhaar.length !== 12) {
+      setAadhaarSyncMessage({
+        severity: 'error',
+        text: 'Enter a valid 12-digit Aadhaar number to fetch personal details.',
+      });
+      return;
+    }
+
+    setIsFetchingAadhaar(true);
+    await new Promise((resolve) => setTimeout(resolve, 650));
+    const profile = AADHAAR_MOCK_DIRECTORY.find((item) => item.aadhaar === normalizedAadhaar);
+
+    if (!profile) {
+      setAadhaarSyncMessage({
+        severity: 'error',
+        text: 'No Aadhaar profile found for this number in the verification directory.',
+      });
+      setIsFetchingAadhaar(false);
+      return;
+    }
+
+    setFieldValue('firstName', profile.firstName);
+    setFieldValue('middleName', profile.middleName);
+    setFieldValue('lastName', profile.lastName);
+    setFieldValue('gender', profile.gender);
+    setFieldValue('dob', profile.dob);
+
+    setAadhaarSyncMessage({
+      severity: 'success',
+      text: 'Personal details fetched from Aadhaar and prefilled.',
+    });
+    setIsFetchingAadhaar(false);
+  };
 
   return (
     <Stack spacing={2}>
@@ -148,10 +209,7 @@ export default function DoctorPersonalStep({ values, setFieldValue }: DoctorPers
         <Box sx={{ p: 2.25 }}>
           {isIndia ? (
             <>
-              <Alert severity="info" sx={{ mb: 2 }}>
-                Aadhaar and PAN are used for background verification and tax compliance. Aadhaar is stored in masked
-                form only (last 4 digits).
-              </Alert>
+             
               <Grid container spacing={1.35}>
                 <Grid xs={12} md={4}>
                   <FormTextField
@@ -161,7 +219,33 @@ export default function DoctorPersonalStep({ values, setFieldValue }: DoctorPers
                     helperText="Stored masked — last 4 digits only"
                   />
                 </Grid>
-                <Grid xs={12} md={4}>
+                <Grid
+                  xs={12}
+                  md={2}
+                  sx={{
+                    display: 'flex',
+                    alignItems: { xs: 'stretch', md: 'flex-start' },
+                    justifyContent: { xs: 'flex-start', md: 'flex-start' },
+                    pt: { md: 0.25 },
+                  }}
+                >
+                  <Button
+                    variant="outlined"
+                    startIcon={<BadgeIcon />}
+                    onClick={() => void handleFetchFromAadhaar()}
+                    disabled={isFetchingAadhaar}
+                    size="medium"
+                    sx={{
+                      minHeight: 40,
+                      px: 2,
+                      borderColor: alpha(theme.palette.primary.main, 0.45),
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {isFetchingAadhaar ? 'Fetching...' : 'Fetch from Aadhaar'}
+                  </Button>
+                </Grid>
+                <Grid xs={12} md={6}>
                   <FormTextField
                     name="panNumber"
                     label="PAN Number"
@@ -170,6 +254,11 @@ export default function DoctorPersonalStep({ values, setFieldValue }: DoctorPers
                   />
                 </Grid>
               </Grid>
+              {aadhaarSyncMessage ? (
+                <Alert severity={aadhaarSyncMessage.severity} sx={{ mt: 2 }}>
+                  {aadhaarSyncMessage.text}
+                </Alert>
+              ) : null}
             </>
           ) : (
             <>

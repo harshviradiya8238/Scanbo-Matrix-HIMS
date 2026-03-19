@@ -119,6 +119,7 @@ const normalizeEncounter = (encounter: OpdEncounterCase): OpdEncounterCase => {
       rr: encounter.vitals?.rr ?? '',
       temp: encounter.vitals?.temp ?? '',
       spo2: encounter.vitals?.spo2 ?? '',
+      ecg: encounter.vitals?.ecg ?? '',
       weightKg: encounter.vitals?.weightKg ?? '',
       bmi: encounter.vitals?.bmi ?? '',
     },

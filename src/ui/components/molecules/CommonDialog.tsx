@@ -149,7 +149,12 @@ const CommonDialog = ({
       {(description || bodyContent) && (
         <DialogContent
           dividers={contentDividers}
-          sx={{ pt: showHeader ? 0 : 2, ...contentSx }}
+          sx={{
+            // Keep safe spacing below title/divider so first field labels are never clipped.
+            pt: showHeader ? (contentDividers ? 1.5 : 1.25) : 2,
+            pb: 2,
+            ...contentSx,
+          }}
         >
           {description && (
             <Typography

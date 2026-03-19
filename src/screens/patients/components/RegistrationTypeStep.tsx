@@ -25,7 +25,7 @@ import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { FormikProps } from 'formik';
 import { FormDatePicker, FormSelect, FormTextField } from '@/src/ui/components/forms';
 import { PatientRegistrationFormData } from '../types/patient-registration.types';
-import { Badge as BadgeIcon, CheckCircle as CheckCircleIcon, QrCodeScanner as QrCodeScannerIcon } from '@mui/icons-material';
+import { CheckCircle as CheckCircleIcon, QrCodeScanner as QrCodeScannerIcon } from '@mui/icons-material';
 
 interface RegistrationTypeStepProps extends FormikProps<PatientRegistrationFormData> {
   onAddPatientType?: () => void;
@@ -53,6 +53,18 @@ const OTP_DURATION_SECONDS = 45;
 const OTP_LENGTH = 6;
 const STATIC_ABHA_NUMBER = '23-4521-7831-4562';
 const STATIC_ABHA_ADDRESS = 'rajeshkumar@abdm';
+const DEFAULT_ABHA_PREFILL = {
+  firstName: 'Rajesh',
+  lastName: 'Kumar',
+  dob: '1990-01-01',
+  mobile: '9876543210',
+};
+const DEFAULT_AADHAAR_PREFILL = {
+  firstName: 'Anita',
+  lastName: 'Sharma',
+  dob: '1992-06-15',
+  mobile: '9876501234',
+};
 
 const toDigits = (value: string) => value.replace(/\D/g, '');
 
@@ -106,6 +118,20 @@ const humanizeAbhaStatus = (status: string) => {
     return 'Manual Verification';
   }
   return 'Not Linked';
+};
+
+const calculateAgeFromDate = (dateValue: string) => {
+  if (!dateValue) return '';
+  const birthDate = new Date(dateValue);
+  if (Number.isNaN(birthDate.getTime())) return '';
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age -= 1;
+  }
+  return age >= 0 ? String(age) : '';
 };
 
 export default function RegistrationTypeStep({
@@ -295,6 +321,48 @@ export default function RegistrationTypeStep({
     verifiedVia: overrides?.verifiedVia || 'OTP Verified',
   });
 
+  const applyIdentityPrefill = (payload: {
+    fullName?: string;
+    dob?: string;
+    mobile?: string;
+    fallbackFirstName: string;
+    fallbackLastName: string;
+    fallbackDob: string;
+    fallbackMobile: string;
+  }) => {
+    const nameSource = payload.fullName?.trim();
+    const normalizedName =
+      nameSource && nameSource.toLowerCase() !== 'patient'
+        ? nameSource
+        : `${payload.fallbackFirstName} ${payload.fallbackLastName}`;
+    const nameParts = normalizedName.split(/\s+/).filter(Boolean);
+    const nextFirstName = nameParts[0] || payload.fallbackFirstName;
+    const nextLastName = nameParts.slice(1).join(' ') || payload.fallbackLastName;
+
+    if (!values.patientName && nextFirstName) {
+      setFieldValue('patientName', nextFirstName);
+    }
+    if (!values.lastName && nextLastName) {
+      setFieldValue('lastName', nextLastName);
+    }
+
+    const nextDob = payload.dob || values.dob || payload.fallbackDob;
+    if (!values.dob && nextDob) {
+      setFieldValue('dob', nextDob);
+    }
+
+    const calculatedAge = calculateAgeFromDate(nextDob);
+    if (!values.age && calculatedAge) {
+      setFieldValue('age', calculatedAge);
+    }
+
+    const currentMobileDigits = toDigits(values.mobile);
+    const nextMobileDigits = toDigits(payload.mobile || payload.fallbackMobile).slice(0, 10);
+    if (currentMobileDigits.length !== 10 && nextMobileDigits.length === 10) {
+      setFieldValue('mobile', nextMobileDigits);
+    }
+  };
+
   const applyAbhaToForm = (
     profile: AbhaProfile,
     verificationStatus: 'not_linked' | 'otp_verified' | 'biometric_verified' | 'manual',
@@ -308,6 +376,15 @@ export default function RegistrationTypeStep({
     if (aadhaarRaw && isValidAadhaar(aadhaarRaw)) {
       setFieldValue('aadhaarNumber', maskAadhaar(aadhaarRaw));
     }
+    applyIdentityPrefill({
+      fullName: profile.name,
+      dob: createDob || values.dob,
+      mobile: linkMobile || values.mobile,
+      fallbackFirstName: DEFAULT_ABHA_PREFILL.firstName,
+      fallbackLastName: DEFAULT_ABHA_PREFILL.lastName,
+      fallbackDob: DEFAULT_ABHA_PREFILL.dob,
+      fallbackMobile: DEFAULT_ABHA_PREFILL.mobile,
+    });
     setAbhaLinkedStatus(profile);
     setAbhaModalMode(null);
     setAbhaModalStep(1);
@@ -565,6 +642,15 @@ export default function RegistrationTypeStep({
 
     if (aadhaarMethod === 'bio') {
       setFieldValue('aadhaarNumber', maskAadhaar(aadhaarInput));
+      applyIdentityPrefill({
+        fullName: patientDisplayName,
+        dob: values.dob,
+        mobile: values.mobile,
+        fallbackFirstName: DEFAULT_AADHAAR_PREFILL.firstName,
+        fallbackLastName: DEFAULT_AADHAAR_PREFILL.lastName,
+        fallbackDob: DEFAULT_AADHAAR_PREFILL.dob,
+        fallbackMobile: DEFAULT_AADHAAR_PREFILL.mobile,
+      });
       closeAadhaarDialog();
       openToast('Aadhaar verified via biometric.', 'success');
       return;
@@ -582,6 +668,15 @@ export default function RegistrationTypeStep({
     }
 
     setFieldValue('aadhaarNumber', maskAadhaar(aadhaarInput));
+    applyIdentityPrefill({
+      fullName: patientDisplayName,
+      dob: values.dob,
+      mobile: values.mobile,
+      fallbackFirstName: DEFAULT_AADHAAR_PREFILL.firstName,
+      fallbackLastName: DEFAULT_AADHAAR_PREFILL.lastName,
+      fallbackDob: DEFAULT_AADHAAR_PREFILL.dob,
+      fallbackMobile: DEFAULT_AADHAAR_PREFILL.mobile,
+    });
     closeAadhaarDialog();
     openToast('Aadhaar verified and masked in form.', 'success');
   };
@@ -1397,16 +1492,7 @@ export default function RegistrationTypeStep({
           )}
 
           <Grid container spacing={1.35}>
-            <Grid xs={12} md={3}>
-              <FormTextField
-                name="mrno"
-                label="MR Number"
-                placeholder="MRN-246001"
-                startIcon={<BadgeIcon fontSize="small" color="action" />}
-                helperText="Auto-generated on save"
-              />
-            </Grid>
-            <Grid xs={12} md={3}>
+            <Grid xs={12} md={4}>
               <FormSelect
                 name="patientType"
                 label="Patient Type"
@@ -1415,7 +1501,7 @@ export default function RegistrationTypeStep({
                 onAddClick={onAddPatientType}
               />
             </Grid>
-            <Grid xs={12} md={3}>
+            <Grid xs={12} md={4}>
               <FormSelect
                 name="language"
                 label="Preferred Language"
@@ -1423,7 +1509,7 @@ export default function RegistrationTypeStep({
                 required
               />
             </Grid>
-            <Grid xs={12} md={3}>
+            <Grid xs={12} md={4}>
               <FormDatePicker name="regDate" label="Registration Date" required />
             </Grid>
 
@@ -1537,12 +1623,6 @@ export default function RegistrationTypeStep({
                 </Grid>
                 <Grid xs={12} md={4}>
                   <FormTextField name="panNumber" label="PAN Number" placeholder="ABCDE1234F" />
-                </Grid>
-                <Grid xs={12} md={4}>
-                  <FormTextField name="voterId" label="Voter ID (EPIC)" />
-                </Grid>
-                <Grid xs={12} md={4}>
-                  <FormTextField name="rationCardNo" label="Ration Card No." />
                 </Grid>
                 <Grid xs={12} md={4}>
                   <FormTextField name="drivingLicense" label="Driving Licence" />

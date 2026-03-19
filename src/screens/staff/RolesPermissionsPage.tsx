@@ -26,7 +26,7 @@ import {
   TextField,
   Typography,
 } from '@/src/ui/components/atoms';
-import { Card, CardHeader, CommonDialog } from '@/src/ui/components/molecules';
+import { CommonDialog } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { Add as AddIcon, Close as CloseIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { NAV_GROUPS } from '@/src/core/navigation/nav-config';
@@ -424,142 +424,138 @@ export default function RolesPermissionsPage() {
   return (
     <PageTemplate title="Role Management" subtitle={undefined} currentPageTitle="Role Management" fullHeight>
       <Stack spacing={2} sx={{ flex: 1, minHeight: 0, height: '100%', overflow: 'hidden' }}>
-        <Card
-          elevation={0}
-          sx={{
-            borderRadius: 2.5,
-            border: '1px solid',
-            borderColor: 'divider',
-            flexShrink: 0,
-          }}
-        >
-          <CardHeader
-            title="Role Details"
-            padding={1.5}
-            action={
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Button size="small" variant="outlined" onClick={() => setRolesDialogOpen(true)}>
-                  View All
+        <Box sx={{ flexShrink: 0 }}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={1}
+            alignItems={{ xs: 'flex-start', md: 'center' }}
+            justifyContent="space-between"
+          >
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Role Details
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Update role information and access status
+              </Typography>
+            </Box>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Button size="small" variant="outlined" onClick={() => setRolesDialogOpen(true)}>
+                View All
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleOpenCreate}
+                disabled={!canManageRoles}
+              >
+                Create Role
+              </Button>
+            </Stack>
+          </Stack>
+          <Grid container spacing={1.5} alignItems="center" sx={{ mt: 0.5 }}>
+            <Grid item xs={12} md={3}>
+              <TextField
+                select
+                size="small"
+                label="Role"
+                value={selectedRole?.id ?? ''}
+                onChange={(event) => setSelectedRoleId(event.target.value)}
+              >
+                {roles.map((role) => (
+                  <MenuItem key={role.id} value={role.id}>
+                    {role.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <TextField
+                size="small"
+                label="Role Name"
+                placeholder="e.g., Finance"
+                value={roleForm.label}
+                onChange={(event) => setRoleForm((prev) => ({ ...prev, label: event.target.value }))}
+                disabled={!selectedRole || !canManageRoles}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                size="small"
+                label="Description"
+                placeholder="Describe this role"
+                value={roleForm.description}
+                onChange={(event) => setRoleForm((prev) => ({ ...prev, description: event.target.value }))}
+                disabled={!selectedRole || !canManageRoles}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={roleForm.isActive}
+                      onChange={(event) =>
+                        setRoleForm((prev) => ({ ...prev, isActive: event.target.checked }))
+                      }
+                      disabled={!selectedRole || !canManageRoles}
+                    />
+                  }
+                  label="Active"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={fullAccess}
+                      onChange={handleToggleFullAccess}
+                      disabled={!selectedRole || !canManageRoles}
+                    />
+                  }
+                  label="Full Access"
+                />
+              </Stack>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              {selectedRole ? (
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Chip
+                    size="small"
+                    label={selectedRole.isSystem ? 'System role' : 'Custom role'}
+                    variant="outlined"
+                  />
+                  <Chip
+                    size="small"
+                    label={`${roleUserCounts.get(selectedRole.id) ?? 0} users`}
+                    variant="outlined"
+                  />
+                  {fullAccess ? <Chip size="small" label="Full access" color="success" /> : null}
+                </Stack>
+              ) : null}
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Stack direction="row" spacing={1} alignItems="center" justifyContent={{ md: 'flex-end' }}>
+                <Button
+                  variant="contained"
+                  onClick={handleSaveRole}
+                  disabled={!selectedRole || !canManageRoles || !roleDirty}
+                >
+                  Save
                 </Button>
                 <Button
-                  size="small"
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={handleOpenCreate}
-                  disabled={!canManageRoles}
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={handleOpenDelete}
+                  disabled={!selectedRole || selectedRole.isSystem || !canManageRoles}
                 >
-                  Create Role
+                  Delete
                 </Button>
               </Stack>
-            }
-          />
-          <Box sx={{ px: 2, pb: 1.5 }}>
-            <Typography variant="caption" color="text.secondary">
-              Update role information and access status
-            </Typography>
-            <Grid container spacing={1.5} alignItems="center" sx={{ mt: 0.5 }}>
-              <Grid item xs={12} md={3}>
-                <TextField
-                  select
-                  size="small"
-                  label="Role"
-                  value={selectedRole?.id ?? ''}
-                  onChange={(event) => setSelectedRoleId(event.target.value)}
-                >
-                  {roles.map((role) => (
-                    <MenuItem key={role.id} value={role.id}>
-                      {role.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <TextField
-                  size="small"
-                  label="Role Name"
-                  placeholder="e.g., Finance"
-                  value={roleForm.label}
-                  onChange={(event) => setRoleForm((prev) => ({ ...prev, label: event.target.value }))}
-                  disabled={!selectedRole || !canManageRoles}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  size="small"
-                  label="Description"
-                  placeholder="Describe this role"
-                  value={roleForm.description}
-                  onChange={(event) => setRoleForm((prev) => ({ ...prev, description: event.target.value }))}
-                  disabled={!selectedRole || !canManageRoles}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={roleForm.isActive}
-                        onChange={(event) =>
-                          setRoleForm((prev) => ({ ...prev, isActive: event.target.checked }))
-                        }
-                        disabled={!selectedRole || !canManageRoles}
-                      />
-                    }
-                    label="Active"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={fullAccess}
-                        onChange={handleToggleFullAccess}
-                        disabled={!selectedRole || !canManageRoles}
-                      />
-                    }
-                    label="Full Access"
-                  />
-                </Stack>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                {selectedRole ? (
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    <Chip
-                      size="small"
-                      label={selectedRole.isSystem ? 'System role' : 'Custom role'}
-                      variant="outlined"
-                    />
-                    <Chip
-                      size="small"
-                      label={`${roleUserCounts.get(selectedRole.id) ?? 0} users`}
-                      variant="outlined"
-                    />
-                    {fullAccess ? <Chip size="small" label="Full access" color="success" /> : null}
-                  </Stack>
-                ) : null}
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Stack direction="row" spacing={1} alignItems="center" justifyContent={{ md: 'flex-end' }}>
-                  <Button
-                    variant="contained"
-                    onClick={handleSaveRole}
-                    disabled={!selectedRole || !canManageRoles || !roleDirty}
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={handleOpenDelete}
-                    disabled={!selectedRole || selectedRole.isSystem || !canManageRoles}
-                  >
-                    Delete
-                  </Button>
-                </Stack>
-              </Grid>
             </Grid>
-          </Box>
-        </Card>
+          </Grid>
+        </Box>
 
         <Grid
           container
@@ -573,27 +569,24 @@ export default function RolesPermissionsPage() {
           }}
         >
           <Grid item xs={6} md={6} sx={{ minHeight: 0, height: '100%', display: 'flex', minWidth: 0 }}>
-            <Card
-              elevation={0}
+            <Box
               sx={{
-                borderRadius: 2.5,
-                border: '1px solid',
-                borderColor: 'divider',
                 flex: 1,
                 minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column',
               }}
             >
-              <CardHeader
-                title="Assign Privileges"
-                subtitle="Select features and attach to this role"
-                padding={1.5}
-              />
+              <Box sx={{ pb: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Assign Privileges
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Select features and attach to this role
+                </Typography>
+              </Box>
               <Box
                 sx={{
-                  px: 2,
-                  pb: 1.5,
                   flex: 1,
                   minHeight: 0,
                   display: 'flex',
@@ -739,31 +732,28 @@ export default function RolesPermissionsPage() {
                   </Button>
                 </Stack>
               </Box>
-            </Card>
+            </Box>
           </Grid>
 
           <Grid item xs={6} md={6} sx={{ minHeight: 0, height: '100%', display: 'flex', minWidth: 0 }}>
-            <Card
-              elevation={0}
+            <Box
               sx={{
-                borderRadius: 2.5,
-                border: '1px solid',
-                borderColor: 'divider',
                 flex: 1,
                 minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column',
               }}
             >
-              <CardHeader
-                title="Configured Privileges"
-                subtitle="Privileges already granted"
-                padding={1.5}
-              />
+              <Box sx={{ pb: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Configured Privileges
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Privileges already granted
+                </Typography>
+              </Box>
               <Box
                 sx={{
-                  px: 2,
-                  pb: 1.5,
                   flex: 1,
                   minHeight: 0,
                   display: 'flex',
@@ -852,7 +842,7 @@ export default function RolesPermissionsPage() {
                   </TableContainer>
                 </Box>
               </Box>
-            </Card>
+            </Box>
           </Grid>
         </Grid>
       </Stack>

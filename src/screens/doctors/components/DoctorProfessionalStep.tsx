@@ -121,21 +121,23 @@ const experienceOptions = [
   { value: '25', label: '25+ years' },
 ];
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const languageOptions = [
+  { value: '', label: '-- Select Language --' },
+  { value: 'english', label: 'English' },
+  { value: 'hindi', label: 'Hindi' },
+  { value: 'marathi', label: 'Marathi' },
+  { value: 'tamil', label: 'Tamil' },
+  { value: 'telugu', label: 'Telugu' },
+  { value: 'kannada', label: 'Kannada' },
+  { value: 'bengali', label: 'Bengali' },
+  { value: 'gujarati', label: 'Gujarati' },
+  { value: 'malayalam', label: 'Malayalam' },
+];
 
-export default function DoctorProfessionalStep({ values, setFieldValue }: DoctorProfessionalStepProps) {
+export default function DoctorProfessionalStep(_: DoctorProfessionalStepProps) {
   const theme = useTheme();
   const softSurface = getSoftSurface(theme);
   const chipSx = getPrimaryChipSx(theme);
-
-  const selectedDays: string[] = values.availableDays ? values.availableDays.split(',').filter(Boolean) : [];
-
-  const toggleDay = (day: string) => {
-    const updated = selectedDays.includes(day)
-      ? selectedDays.filter((d) => d !== day)
-      : [...selectedDays, day];
-    setFieldValue('availableDays', updated.join(','));
-  };
 
   return (
     <Stack spacing={2}>
@@ -190,11 +192,10 @@ export default function DoctorProfessionalStep({ values, setFieldValue }: Doctor
               />
             </Grid>
             <Grid xs={12} md={4}>
-              <FormTextField
+              <FormSelect
                 name="languagesSpoken"
                 label="Languages Spoken"
-                placeholder="e.g. English, Hindi, Tamil"
-                helperText="Comma-separated"
+                options={languageOptions}
               />
             </Grid>
           </Grid>
@@ -231,7 +232,7 @@ export default function DoctorProfessionalStep({ values, setFieldValue }: Doctor
         </Box>
       </Card>
 
-      {/* Consultation & Availability */}
+      {/* Consultation Profile */}
       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
         <Box sx={{ px: 2.5, py: 1.6, backgroundColor: softSurface }}>
           <Stack
@@ -241,9 +242,9 @@ export default function DoctorProfessionalStep({ values, setFieldValue }: Doctor
             justifyContent="space-between"
           >
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Consultation &amp; Availability
+              Consultation Profile
             </Typography>
-            <Chip size="small" label="OPD Schedule" sx={chipSx} />
+            <Chip size="small" label="Consultation Setup" sx={chipSx} />
           </Stack>
         </Box>
 
@@ -263,84 +264,6 @@ export default function DoctorProfessionalStep({ values, setFieldValue }: Doctor
                 label="Consultation Duration"
                 options={durationOptions}
               />
-            </Grid>
-
-            <Grid xs={12}>
-              <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: 'text.primary' }}>
-                Available Days
-              </Typography>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {DAYS.map((day) => {
-                  const active = selectedDays.includes(day);
-                  return (
-                    <Box
-                      key={day}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => toggleDay(day)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          toggleDay(day);
-                        }
-                      }}
-                      sx={{
-                        px: 1.75,
-                        py: 0.65,
-                        borderRadius: 999,
-                        border: '1.5px solid',
-                        borderColor: active ? 'primary.main' : 'divider',
-                        backgroundColor: active ? 'primary.main' : 'background.paper',
-                        color: active ? 'primary.contrastText' : 'text.secondary',
-                        fontWeight: 600,
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                        transition: 'all .18s ease',
-                        userSelect: 'none',
-                        mb: 1,
-                      }}
-                    >
-                      {day}
-                    </Box>
-                  );
-                })}
-              </Stack>
-            </Grid>
-
-            <Grid xs={12} md={4}>
-              <Box
-                role="button"
-                tabIndex={0}
-                onClick={() => setFieldValue('telemedicineAvailable', !values.telemedicineAvailable)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setFieldValue('telemedicineAvailable', !values.telemedicineAvailable);
-                  }
-                }}
-                sx={{
-                  borderRadius: 2,
-                  border: '1.5px solid',
-                  borderColor: values.telemedicineAvailable ? 'success.main' : 'divider',
-                  backgroundColor: values.telemedicineAvailable ? 'success.light' : 'background.paper',
-                  px: 1.6,
-                  py: 1.1,
-                  cursor: 'pointer',
-                  transition: 'all .18s ease',
-                }}
-              >
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography sx={{ fontSize: 18 }}>💻</Typography>
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: values.telemedicineAvailable ? 'success.dark' : 'text.primary' }}>
-                      Telemedicine
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {values.telemedicineAvailable ? 'Available for online consultations' : 'Click to enable'}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Box>
             </Grid>
           </Grid>
         </Box>

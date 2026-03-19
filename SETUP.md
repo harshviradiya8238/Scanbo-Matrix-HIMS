@@ -1,5 +1,15 @@
 # Setup Instructions
 
+## Prerequisites
+
+- Node.js `>=20.9.0` (recommended: `22.20.0`)
+- npm `>=10`
+
+If you use `nvm`, run:
+```bash
+nvm use
+```
+
 ## Quick Start
 
 ### 1. Install Dependencies
@@ -79,4 +89,3 @@ npm run dev -- -p 3001
 2. Check SECURITY.md for security best practices
 3. Customize theme in `src/core/theme/tokens.ts`
 4. Add your UI components based on the design provided
-

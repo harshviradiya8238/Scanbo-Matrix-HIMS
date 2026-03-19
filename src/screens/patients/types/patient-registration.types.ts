@@ -1,7 +1,6 @@
 export interface PatientRegistrationFormData {
   // Registration Type
   registrationCountry: 'india' | 'international';
-  mrno: string;
   patientType: string;
   language: string;
   regDate: string;
@@ -13,8 +12,6 @@ export interface PatientRegistrationFormData {
   abhaVerificationStatus: string;
   aadhaarNumber: string;
   panNumber: string;
-  voterId: string;
-  rationCardNo: string;
   drivingLicense: string;
   schemeType: string;
   schemeCardNumber: string;
@@ -40,6 +37,7 @@ export interface PatientRegistrationFormData {
 
   // Patient Details
   prefix: string;
+  familyRelation: string;
   patientName: string;
   middleName: string;
   lastName: string;
@@ -50,12 +48,10 @@ export interface PatientRegistrationFormData {
   age: string;
   ageUnit: string;
   occupation: string;
-  aliasName: string;
   bloodGroup: string;
   religion: string;
   casteCategory: string;
   educationLevel: string;
-  annualIncomeRange: string;
   drugAllergies: string;
   foodAllergies: string;
 
@@ -73,7 +69,6 @@ export interface PatientRegistrationFormData {
   district: string;
   pinCode: string;
   areaType: string;
-  landline: string;
   homeAddress: string;
   localAddressIndia: string;
   indiaStayDuration: string;

@@ -1370,17 +1370,35 @@ export default function PatientDetailDrawer({
               borderColor: "divider",
               display: "flex",
               gap: 1,
+              flexWrap: "wrap",
               flexShrink: 0,
               bgcolor: "background.paper",
             }}
           >
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<PhoneIcon sx={{ fontSize: 18 }} />}
+              sx={{
+                flex: "1 1 calc(50% - 4px)",
+                minWidth: 0,
+                textTransform: "none",
+                fontWeight: 600,
+                borderRadius: 1.5,
+                py: 0.75,
+                fontSize: "0.8rem",
+              }}
+            >
+              Audio Call
+            </Button>
             <Button
               variant="contained"
               size="small"
               startIcon={<VideocamIcon sx={{ fontSize: 18 }} />}
               disableElevation
               sx={{
-                flex: 1,
+                flex: "1 1 calc(50% - 4px)",
+                minWidth: 0,
                 textTransform: "none",
                 fontWeight: 600,
                 borderRadius: 1.5,
@@ -1395,7 +1413,8 @@ export default function PatientDetailDrawer({
               size="small"
               startIcon={<AssignmentIcon sx={{ fontSize: 18 }} />}
               sx={{
-                flex: 1,
+                flex: "1 1 calc(50% - 4px)",
+                minWidth: 0,
                 textTransform: "none",
                 fontWeight: 600,
                 borderRadius: 1.5,
@@ -1413,7 +1432,8 @@ export default function PatientDetailDrawer({
               startIcon={<LockIcon sx={{ fontSize: 18 }} />}
               onClick={() => patient && onClosePlanClick?.(patient)}
               sx={{
-                flex: 1,
+                flex: "1 1 calc(50% - 4px)",
+                minWidth: 0,
                 textTransform: "none",
                 fontWeight: 600,
                 borderRadius: 1.5,
