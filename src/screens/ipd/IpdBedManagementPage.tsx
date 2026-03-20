@@ -100,7 +100,6 @@ interface BedPatient {
 
 const BED_CENSUS_TABS: Array<{ id: BedCensusTab; label: string }> = [
   { id: "bed-board", label: "Bed Board" },
-  { id: "waiting", label: "Waiting for Bed" },
   { id: "inpatient-list", label: "Inpatient List" },
   { id: "transfers", label: "Transfers" },
   { id: "isolation", label: "Isolation" },
@@ -1265,83 +1264,14 @@ export default function IpdBedManagementPage() {
           </Grid>
         ) : null}
 
-        {activeTab === "waiting" ? (
-          <IpdSectionCard
-            title="Waiting for Bed"
-            subtitle="Admitted patients pending bed assignment."
-          >
-            <Stack spacing={1}>
-              {waitingForBedRows.length === 0 ? (
-                <Alert severity="success">
-                  All admitted patients are already mapped to beds.
-                </Alert>
-              ) : (
-                waitingForBedRows.map((patient) => (
-                  <Card
-                    key={patient.id}
-                    variant="outlined"
-                    sx={{ p: 1.2, borderRadius: 1.6 }}
-                  >
-                    <Stack
-                      direction={{ xs: "column", md: "row" }}
-                      justifyContent="space-between"
-                      spacing={1}
-                      alignItems={{ xs: "flex-start", md: "center" }}
-                    >
-                      <Box>
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ fontWeight: 700 }}
-                        >
-                          {patient.patientName} ({patient.mrn})
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {patient.ward || "Ward pending"} ·{" "}
-                          {patient.consultant}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {patient.diagnosis ||
-                            "Admission created. Awaiting bed allocation."}
-                        </Typography>
-                      </Box>
-                      <Stack direction="row" spacing={0.8} alignItems="center">
-                        <Chip
-                          size="small"
-                          color="warning"
-                          label="Bed Pending"
-                        />
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          disabled={!canManageBeds}
-                          onClick={() => {
-                            updateAllocationField("patientId", patient.id);
-                            updateTabInRoute("bed-board");
-                          }}
-                        >
-                          Assign Bed
-                        </Button>
-                      </Stack>
-                    </Stack>
-                  </Card>
-                ))
-              )}
-            </Stack>
-          </IpdSectionCard>
-        ) : null}
-
         {activeTab === "inpatient-list" ? (
-          // <IpdSectionCard
-          //   title="Inpatient List"
-          //   subtitle="Current census with bed and ward mapping."
-          // >
+        
           <CommonDataGrid<(typeof inpatientRows)[0]>
             rows={inpatientRows}
             columns={inpatientColumns}
             getRowId={(row) => row.id}
           />
-        ) : // </IpdSectionCard>
-        null}
+        ) :null}
 
         {activeTab === "transfers" ? (
           <IpdSectionCard
