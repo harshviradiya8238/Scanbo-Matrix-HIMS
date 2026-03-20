@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import PageTemplate from "@/src/ui/components/PageTemplate";
 import { useUser } from "@/src/core/auth/UserContext";
 import DoctorDashboardPage from "@/src/screens/doctor/dashboard/DoctorDashboardPage";
+import FrontDeskDashboardPage from "@/src/screens/frontdesk/FrontDeskDashboardPage";
+import HospitalAdminDashboard from "@/src/screens/dashboard/HospitalAdminDashboard";
 import {
   Box,
   Button,
@@ -189,6 +191,16 @@ export default function DashboardPage() {
   // Show specialised doctor dashboard when logged in as DOCTOR (after all hooks)
   if (role === "DOCTOR") {
     return <DoctorDashboardPage />;
+  }
+
+  // Show dedicated Front Desk dashboard for RECEPTION role
+  if (role === "RECEPTION") {
+    return <FrontDeskDashboardPage />;
+  }
+
+  // Show comprehensive hospital admin dashboard for admin roles
+  if (role === "HOSPITAL_ADMIN" || role === "SUPER_ADMIN") {
+    return <HospitalAdminDashboard />;
   }
 
   return (

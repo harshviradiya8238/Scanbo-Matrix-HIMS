@@ -403,7 +403,7 @@ export default function DoctorProfilePage() {
                     fontWeight: 800,
                     border: "4px solid",
                     borderColor: "background.paper",
-                    mt: -5,
+                    // mt: -5,
                     boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
                   }}
                 >

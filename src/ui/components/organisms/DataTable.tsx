@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use client";
 
 import * as React from "react";
@@ -147,3 +148,5 @@ export default function DataTable<R extends GridValidRowModel = GridValidRowMode
     </Box>
   );
 }
+=======
+>>>>>>> hims-dev
