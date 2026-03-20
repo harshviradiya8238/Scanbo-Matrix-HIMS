@@ -20,10 +20,12 @@ import {
   FolderOpen as FolderOpenIcon,
   Assignment as AssignmentIcon,
   CheckCircle as CheckCircleIcon,
+  Visibility as VisibilityIcon,
+  EditNote as EditNoteIcon,
 } from "@mui/icons-material";
-import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
-import DataTable from "@/src/ui/components/organisms/DataTable";
-import { GridActionsCellItem } from "@mui/x-data-grid";
+import CommonDataGrid, {
+  CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
 
 export type CaseStatus = "Active" | "Under Review" | "Closed";
 
@@ -106,19 +108,14 @@ export default function PatientCasesPage() {
   const activeCases = rows.filter((r) => r.status === "Active").length;
   const closedCases = rows.filter((r) => r.status === "Closed").length;
 
-  const columns = React.useMemo<GridColDef<PatientCaseRow>[]>(
+  const columns = React.useMemo<CommonColumn<PatientCaseRow>[]>(
     () => [
       {
         field: "patientName",
         headerName: "Patient",
-        width: 220,
-        renderCell: (params: GridRenderCellParams<PatientCaseRow>) => (
-          <Stack
-            direction="row"
-            spacing={1.5}
-            alignItems="center"
-            sx={{ height: "100%", width: "100%" }}
-          >
+        width: 250,
+        renderCell: (row) => (
+          <Stack direction="row" spacing={1.5} alignItems="center">
             <Avatar
               sx={{
                 width: 36,
@@ -128,7 +125,7 @@ export default function PatientCasesPage() {
                 color: "primary.main",
               }}
             >
-              {params.row.patientName
+              {row.patientName
                 .split(" ")
                 .map((n) => n[0])
                 .join("")
@@ -136,11 +133,8 @@ export default function PatientCasesPage() {
             </Avatar>
             <Box sx={{ minWidth: 0 }}>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {params.row.patientName}
+                {row.patientName}
               </Typography>
-              {/* <Typography variant="caption" color="text.secondary">
-                {params.row.department}
-              </Typography> */}
             </Box>
           </Stack>
         ),
@@ -153,47 +147,61 @@ export default function PatientCasesPage() {
       {
         field: "caseType",
         headerName: "Case Type",
-        width: 160,
+        width: 180,
       },
       {
         field: "openedAt",
         headerName: "Opened",
-        width: 120,
-        valueGetter: (_, row) =>
+        width: 140,
+        valueGetter: (row) =>
           row?.openedAt ? new Date(row.openedAt).toLocaleDateString() : "—",
       },
       {
         field: "status",
         headerName: "Status",
         width: 130,
-        renderCell: (params) => (
+        renderCell: (row) => (
           <Chip
-            label={params.row.status}
+            label={row.status}
             size="small"
-            color={statusColors[params.row.status]}
-            variant={params.row.status === "Closed" ? "outlined" : "filled"}
+            color={statusColors[row.status]}
+            variant={row.status === "Closed" ? "outlined" : "filled"}
           />
         ),
       },
       {
         field: "actions",
         headerName: "Actions",
-        type: "actions",
-        width: 100,
-        getActions: (params) => [
-          <GridActionsCellItem
-            key="view"
-            label="View case"
-            onClick={() => setSnackbar(`View case ${params.row.id} (stub)`)}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="edit"
-            label="Add note"
-            onClick={() => setSnackbar(`Add note (stub)`)}
-            showInMenu
-          />,
-        ],
+        width: 160,
+        align: "center",
+        renderCell: (row) => (
+          <Stack direction="row" spacing={1} justifyContent="center">
+            <Button
+              size="small"
+              variant="outlined"
+              color="primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSnackbar(`View case ${row.id} (stub)`);
+              }}
+              sx={{ minWidth: "auto", p: 0.5, borderRadius: 1.5 }}
+            >
+              <VisibilityIcon sx={{ fontSize: 18 }} />
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSnackbar(`Add note (stub)`);
+              }}
+              sx={{ minWidth: "auto", p: 0.5, borderRadius: 1.5 }}
+            >
+              <EditNoteIcon sx={{ fontSize: 18 }} />
+            </Button>
+          </Stack>
+        ),
       },
     ],
     [theme.palette.primary.main],
@@ -238,65 +246,14 @@ export default function PatientCasesPage() {
         </Box>
 
         {/* Cases table */}
-        <Card
-          sx={{
-            overflow: "hidden",
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: "divider",
-            bgcolor: "background.paper",
-          }}
-        >
-          <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider" }}>
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  Patient Cases
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {rows.length} cases
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
-          <Box sx={{ height: 420 }}>
-            <DataTable
-              tableId="doctor-patient-cases"
-              columns={columns}
-              rows={rows}
-              rowHeight={64}
-              tableHeight={420}
-              slotProps={{
-                basePopper: {
-                  placement: "bottom-end",
-                  modifiers: [
-                    {
-                      name: "flip",
-                      options: {
-                        fallbackPlacements: ["top-end", "bottom-start"],
-                      },
-                    },
-                    { name: "preventOverflow", options: { altAxis: true } },
-                  ],
-                },
-              }}
-              toolbarConfig={{
-                showQuickFilter: true,
-                showColumns: true,
-                showFilters: true,
-                showDensity: true,
-                showExport: false,
-                showSavedViews: false,
-                showPrint: false,
-              }}
-              checkboxSelection={false}
-            />
-          </Box>
-        </Card>
+       
+          <CommonDataGrid<PatientCaseRow>
+            rows={rows}
+            columns={columns}
+            getRowId={(row) => row.id}
+            searchPlaceholder="Search patient cases, MRN or name..."
+            searchFields={["patientName", "mrn", "id"]}
+          />
 
         <Snackbar
           open={Boolean(snackbar)}

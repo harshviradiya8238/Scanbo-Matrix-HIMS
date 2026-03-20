@@ -7,21 +7,9 @@ import {
   Avatar,
   Box,
   Button,
-  Chip,
   IconButton,
-  Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
-  TextField,
-  InputAdornment,
-  MenuItem,
-  Select,
 } from "@/src/ui/components/atoms";
 import { StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
@@ -45,6 +33,7 @@ import {
 import CommonDataGrid, {
   type CommonColumn,
 } from "@/src/components/table/CommonDataGrid";
+import { useUser } from "@/src/core/auth/UserContext";
 
 // --- Theme Styles ---
 
@@ -208,6 +197,7 @@ interface BillingModulePersistedState {
 export default function AllInvoicesPage() {
   const router = useRouter();
   const theme = useTheme();
+  const { role } = useUser();
   const [statusFilter, setStatusFilter] = React.useState("All Status");
   const [typeFilter, setTypeFilter] = React.useState("All Types");
   const [moduleState, setModuleState] =
@@ -634,33 +624,35 @@ export default function AllInvoicesPage() {
               justifyContent="center"
               alignItems="center"
             >
-              <Button
-                size="small"
-                variant={
-                  actionCfg.color === "primary" ? "contained" : "outlined"
-                }
-                color={actionCfg.color}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAction(row, actionCfg.label);
-                }}
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 700,
-                  borderRadius: "20px",
-                  fontSize: "0.72rem",
-                  py: 0.2,
-                  px: 1.25,
-                  minWidth: 0,
-                  boxShadow: "none",
-                  ...(actionCfg.color === "inherit" && {
-                    borderColor: "divider",
-                    color: "text.secondary",
-                  }),
-                }}
-              >
-                {actionCfg.label}
-              </Button>
+              {role !== "RECEPTION" && (
+                <Button
+                  size="small"
+                  variant={
+                    actionCfg.color === "primary" ? "contained" : "outlined"
+                  }
+                  color={actionCfg.color}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAction(row, actionCfg.label);
+                  }}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 700,
+                    borderRadius: "20px",
+                    fontSize: "0.72rem",
+                    py: 0.2,
+                    px: 1.25,
+                    minWidth: 0,
+                    boxShadow: "none",
+                    ...(actionCfg.color === "inherit" && {
+                      borderColor: "divider",
+                      color: "text.secondary",
+                    }),
+                  }}
+                >
+                  {actionCfg.label}
+                </Button>
+              )}
               <IconButton
                 size="small"
                 onClick={(e) => {
@@ -681,7 +673,7 @@ export default function AllInvoicesPage() {
         },
       },
     ],
-    [theme, handleAction],
+    [theme, handleAction, role],
   );
 
   return (

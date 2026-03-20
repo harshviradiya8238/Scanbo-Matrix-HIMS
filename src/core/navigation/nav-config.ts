@@ -390,6 +390,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/billing/ipd',
             type: 'item',
             requiredPermissions: ['billing.read'],
+            excludedRoles: ['RECEPTION'],
             order: 2,
           },
           {
@@ -417,6 +418,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/ipd/charges',
             type: 'item',
             requiredPermissions: ['billing.read'],
+            excludedRoles: ['RECEPTION'],
             order: 5,
           },
         ],
@@ -436,6 +438,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/billing/dashboard',
             type: 'item',
             requiredPermissions: ['billing.read'],
+            excludedRoles: ['RECEPTION'],
             order: 1,
           },
           {
@@ -463,6 +466,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/billing/refunds',
             type: 'item',
             requiredPermissions: ['billing.read'],
+            excludedRoles: ['RECEPTION'],
             order: 4,
           },
           {
@@ -472,6 +476,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/billing/reports',
             type: 'item',
             requiredPermissions: ['billing.read'],
+            excludedRoles: ['RECEPTION'],
             order: 5,
           },
         ],
@@ -491,6 +496,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/billing/insurance',
             type: 'item',
             requiredPermissions: ['billing.read'],
+            excludedRoles: ['RECEPTION'],
             order: 1,
           },
           {
@@ -500,6 +506,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/billing/tpa-management',
             type: 'item',
             requiredPermissions: ['billing.read'],
+            excludedRoles: ['RECEPTION'],
             order: 2,
           },
         ],
@@ -617,6 +624,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/reports/billing',
             type: 'item',
             requiredPermissions: ['reports.billing.read'],
+            excludedRoles: ['RECEPTION'],
             order: 2,
           },
           {

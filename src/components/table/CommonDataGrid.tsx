@@ -209,6 +209,8 @@ export default function CommonDataGrid<R extends object>({
             />
           )}
 
+          <Box sx={{ flex: 1 }} />
+
           {/* Filter dropdowns */}
           {filterDropdowns?.map((fd) => (
             <TextField
@@ -233,8 +235,6 @@ export default function CommonDataGrid<R extends object>({
               ))}
             </TextField>
           ))}
-
-          <Box sx={{ flex: 1 }} />
 
           {toolbarRight}
         </Stack>
