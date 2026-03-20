@@ -14,6 +14,8 @@ interface PatientInfoStepProps extends FormikProps<PatientRegistrationFormData> 
   onAddState?: () => void;
   showFamilyRelation?: boolean;
   familyRelationLabel?: string;
+  stickyCountryToggle?: boolean;
+  showCountryToggle?: boolean;
 }
 
 export default function PatientInfoStep({
@@ -23,11 +25,18 @@ export default function PatientInfoStep({
   onAddState,
   showFamilyRelation = false,
   familyRelationLabel = 'Relation',
+  stickyCountryToggle = false,
+  showCountryToggle = true,
   ...formik
 }: PatientInfoStepProps) {
   return (
     <Stack spacing={2}>
-      <RegistrationTypeStep {...formik} onAddPatientType={onAddPatientType} />
+      <RegistrationTypeStep
+        {...formik}
+        onAddPatientType={onAddPatientType}
+        stickyCountryToggle={stickyCountryToggle}
+        showCountryToggle={showCountryToggle}
+      />
       <PatientDetailsStep
         {...formik}
         onAddPrefix={onAddPrefix}

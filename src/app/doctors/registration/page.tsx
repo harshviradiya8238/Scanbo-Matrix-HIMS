@@ -33,8 +33,17 @@ export default function DoctorRegistrationPage() {
   };
 
   return (
-    <PageTemplate title="Doctor Registration" currentPageTitle="Registration">
-      <Box sx={{ mx: 'auto' }}>
+    <PageTemplate title="Doctor Registration" currentPageTitle="Registration" fullHeight>
+      <Box
+        sx={{
+          width: '100%',
+          flex: 1,
+          minHeight: 0,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <DoctorRegistrationForm onSubmit={handleSubmit} onCancel={handleCancel} />
       </Box>
 

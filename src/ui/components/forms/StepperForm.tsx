@@ -29,6 +29,16 @@ interface StepperFormProps<T> {
   cancelButtonText?: string;
   navigationVariant?: 'default' | 'modern';
   headerContent?: React.ReactNode;
+  stickyNavigation?: boolean;
+  stickyNavigationTop?: number | string;
+  fillHeight?: boolean;
+  contentScrollable?: boolean;
+  stickyFooter?: boolean;
+  compactNavigation?: boolean;
+  showHeaderDivider?: boolean;
+  navigationBottomContent?:
+    | React.ReactNode
+    | ((formik: FormikProps<T>, context: { activeStep: number; isLastStep: boolean; steps: StepConfig[] }) => React.ReactNode);
 }
 
 export default function StepperForm<T extends Record<string, any>>({
@@ -40,6 +50,14 @@ export default function StepperForm<T extends Record<string, any>>({
   cancelButtonText = 'Back',
   navigationVariant = 'default',
   headerContent,
+  stickyNavigation = false,
+  stickyNavigationTop = 0,
+  fillHeight = false,
+  contentScrollable = false,
+  stickyFooter = false,
+  compactNavigation = false,
+  showHeaderDivider = true,
+  navigationBottomContent,
 }: StepperFormProps<T>) {
   const [activeStep, setActiveStep] = React.useState(0);
   const [completed, setCompleted] = React.useState<Record<number, boolean>>({});
@@ -47,6 +65,19 @@ export default function StepperForm<T extends Record<string, any>>({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isModern = navigationVariant === 'modern';
+  const isCompactModernNavigation = isModern && compactNavigation;
+  const formLayoutStyle = fillHeight
+    ? {
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        minHeight: 0,
+      }
+    : undefined;
+  const stepNavigationBackgroundColor = isModern
+    ? (stickyNavigation ? alpha(theme.palette.primary.main, 0.065) : alpha(theme.palette.primary.main, 0.05))
+    : (stickyNavigation ? theme.palette.background.paper : 'transparent');
+  const stepNavigationShadow = 'none';
 
   const currentStep = steps[activeStep];
   const isLastStep = activeStep === steps.length - 1;
@@ -145,34 +176,58 @@ export default function StepperForm<T extends Record<string, any>>({
       enableReinitialize={false}
     >
       {(formik) => (
-        <Form onKeyDown={handleFormKeyDown}>
+        <Form onKeyDown={handleFormKeyDown} style={formLayoutStyle}>
           <Box
             sx={{
               width: '100%',
               p: 0,
               backgroundColor: 'transparent',
+              ...(fillHeight
+                ? {
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                  }
+                : {}),
             }}
           >
             {/* Step Navigation */}
             <Box
               sx={{
-                mb: 2.25,
+                mb: isCompactModernNavigation ? 1.15 : 2.25,
+                ...(stickyNavigation
+                  ? {
+                      position: 'sticky',
+                      top: stickyNavigationTop,
+                      zIndex: theme.zIndex.appBar - 1,
+                      pt: 0.2,
+                    }
+                  : {}),
                 border: '1px solid',
-                borderColor: isModern ? alpha(theme.palette.primary.main, 0.2) : 'divider',
+                borderColor: isModern
+                  ? alpha(theme.palette.primary.main, stickyNavigation ? 0.3 : 0.2)
+                  : 'divider',
                 borderRadius: isModern ? 2.5 : 2,
-                backgroundColor: isModern ? alpha(theme.palette.primary.main, 0.05) : 'transparent',
-                p: isModern ? { xs: 0.95, sm: 1.1 } : 0,
-                boxShadow: 'none',
+                backgroundColor: stepNavigationBackgroundColor,
+                p: isModern
+                  ? (isCompactModernNavigation ? { xs: 0.6, sm: 0.72 } : { xs: 0.95, sm: 1.1 })
+                  : 0,
+                boxShadow: stepNavigationShadow,
               }}
             >
               {headerContent ? (
                 <Box
                   sx={{
-                    px: isModern ? { xs: 0.35, sm: 0.65 } : { xs: 1.5, sm: 2 },
-                    pb: 1,
-                    mb: 0.85,
-                    borderBottom: '1px solid',
-                    borderColor: isModern ? alpha(theme.palette.primary.main, 0.14) : 'divider',
+                    px: isModern
+                      ? (isCompactModernNavigation ? { xs: 0.2, sm: 0.42 } : { xs: 0.35, sm: 0.65 })
+                      : { xs: 1.5, sm: 2 },
+                    pb: isCompactModernNavigation ? 0.62 : 1,
+                    mb: isCompactModernNavigation ? 0.58 : 0.85,
+                    borderBottom: showHeaderDivider ? '1px solid' : 'none',
+                    borderColor: showHeaderDivider
+                      ? (isModern ? alpha(theme.palette.primary.main, 0.14) : 'divider')
+                      : 'transparent',
                   }}
                 >
                   {headerContent}
@@ -180,50 +235,59 @@ export default function StepperForm<T extends Record<string, any>>({
               ) : null}
 
               {isModern ? (
-                <Box sx={{ px: { xs: 0.35, sm: 0.65 }, py: 0.15 }}>
-                  <Stack direction="row" spacing={0.35} alignItems="flex-start">
+                <Box
+                  sx={{
+                    px: isCompactModernNavigation ? { xs: 0.2, sm: 0.42 } : { xs: 0.35, sm: 0.65 },
+                    py: isCompactModernNavigation ? 0.02 : 0.15,
+                  }}
+                >
+                  <Stack direction="row" spacing={isCompactModernNavigation ? 0.28 : 0.35} alignItems="flex-start">
                     {steps.map((step, index) => {
                       const isDone = index < activeStep || completed[index];
                       const isCurrent = index === activeStep;
-                      const connectorColor = index < activeStep
-                        ? alpha(theme.palette.primary.main, 0.55)
-                        : alpha(theme.palette.primary.main, 0.2);
+                      const activeConnectorColor = alpha(theme.palette.primary.main, 0.55);
+                      const inactiveConnectorColor = alpha(theme.palette.primary.main, 0.2);
+                      const edgeConnectorFlex = isCompactModernNavigation ? 0.34 : 0.4;
+                      const leftConnectorColor = index > 0
+                        ? (index - 1 < activeStep ? activeConnectorColor : inactiveConnectorColor)
+                        : 'transparent';
+                      const rightConnectorColor = index < steps.length - 1
+                        ? (index < activeStep ? activeConnectorColor : inactiveConnectorColor)
+                        : 'transparent';
+                      const leftConnectorFlex = index === 0 ? edgeConnectorFlex : 1;
+                      const rightConnectorFlex = index === steps.length - 1 ? edgeConnectorFlex : 1;
+                      const showStrongCircle = isCurrent || isDone;
 
                       return (
                         <Box key={`track-${step.label}`} sx={{ flex: 1, minWidth: 0 }}>
                           <Stack direction="row" alignItems="center">
                             <Box
                               sx={{
-                                flex: 1,
-                                height: 2,
-                                mr: 0.45,
-                                backgroundColor: index > 0 ? connectorColor : 'transparent',
+                                flex: leftConnectorFlex,
+                                height: isCompactModernNavigation ? 1.5 : 2,
+                                mr: isCompactModernNavigation ? 0.3 : 0.45,
+                                backgroundColor: leftConnectorColor,
                               }}
                             />
                             <Box
                               sx={{
-                                width: 28,
-                                height: 28,
+                                width: isCompactModernNavigation ? 24 : 28,
+                                height: isCompactModernNavigation ? 24 : 28,
                                 borderRadius: '50%',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: 12,
+                                fontSize: isCompactModernNavigation ? 11 : 12,
                                 fontWeight: 700,
+                                lineHeight: 1,
                                 border: '2px solid',
-                                borderColor: isDone || isCurrent
+                                borderColor: showStrongCircle
                                   ? theme.palette.primary.main
                                   : alpha(theme.palette.primary.main, 0.22),
-                                backgroundColor: isDone
+                                backgroundColor: showStrongCircle
                                   ? theme.palette.primary.main
-                                  : isCurrent
-                                  ? alpha(theme.palette.primary.main, 0.12)
                                   : theme.palette.background.paper,
-                                color: isDone
-                                  ? theme.palette.common.white
-                                  : isCurrent
-                                  ? theme.palette.primary.main
-                                  : theme.palette.text.disabled,
+                                color: showStrongCircle ? theme.palette.common.white : theme.palette.text.disabled,
                                 flexShrink: 0,
                               }}
                             >
@@ -231,21 +295,22 @@ export default function StepperForm<T extends Record<string, any>>({
                             </Box>
                             <Box
                               sx={{
-                                flex: 1,
-                                height: 2,
-                                ml: 0.45,
-                                backgroundColor: index < steps.length - 1 ? connectorColor : 'transparent',
+                                flex: rightConnectorFlex,
+                                height: isCompactModernNavigation ? 1.5 : 2,
+                                ml: isCompactModernNavigation ? 0.3 : 0.45,
+                                backgroundColor: rightConnectorColor,
                               }}
                             />
                           </Stack>
                           <Typography
                             variant="caption"
                             sx={{
-                              mt: 0.55,
+                              mt: isCompactModernNavigation ? 0.32 : 0.55,
                               display: 'block',
                               textAlign: 'center',
-                              fontWeight: isDone || isCurrent ? 700 : 500,
-                              color: isDone || isCurrent ? 'primary.main' : 'text.disabled',
+                              fontWeight: isCurrent ? 700 : 500,
+                              color: isCurrent ? 'primary.main' : isDone ? 'text.secondary' : 'text.disabled',
+                              fontSize: isCompactModernNavigation ? 11 : undefined,
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
@@ -253,6 +318,17 @@ export default function StepperForm<T extends Record<string, any>>({
                           >
                             {step.label}
                           </Typography>
+                          {!isCompactModernNavigation ? (
+                            <Box
+                              sx={{
+                                mt: 0.65,
+                                mx: 0.55,
+                                height: 3,
+                                borderRadius: '3px 3px 0 0',
+                                backgroundColor: isCurrent ? 'primary.main' : 'transparent',
+                              }}
+                            />
+                          ) : null}
                         </Box>
                       );
                     })}
@@ -330,28 +406,86 @@ export default function StepperForm<T extends Record<string, any>>({
                   ))}
                 </Tabs>
               )}
+
+              {navigationBottomContent ? (
+                <Box
+                  sx={{
+                    mt: isCompactModernNavigation ? 0.42 : 0.72,
+                    px: isCompactModernNavigation ? { xs: 0.2, sm: 0.42 } : { xs: 0.35, sm: 0.65 },
+                    pb: isCompactModernNavigation ? 0.08 : 0.12,
+                  }}
+                >
+                  {typeof navigationBottomContent === 'function'
+                    ? navigationBottomContent(formik, { activeStep, isLastStep, steps })
+                    : navigationBottomContent}
+                </Box>
+              ) : null}
             </Box>
 
             {/* Step Content */}
-            <Box sx={{ mb: 2 }}>
+            <Box
+              sx={{
+                ...(contentScrollable
+                  ? {
+                      flex: 1,
+                      minHeight: 0,
+                      overflowY: 'auto',
+                      pr: 0.25,
+                      mb: 0.8,
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: `${alpha(theme.palette.primary.main, 0.3)} transparent`,
+                      '&::-webkit-scrollbar': {
+                        width: 6,
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        backgroundColor: 'transparent',
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        borderRadius: 999,
+                        backgroundColor: alpha(theme.palette.primary.main, 0.26),
+                      },
+                      '&::-webkit-scrollbar-thumb:hover': {
+                        backgroundColor: alpha(theme.palette.primary.main, 0.38),
+                      },
+                      ...(stickyFooter ? { mb: 0.35 } : {}),
+                    }
+                  : {
+                      mb: 2,
+                    }),
+              }}
+            >
               {currentStep && <currentStep.component {...formik} />}
             </Box>
 
             {/* Navigation Buttons */}
             <Stack
               direction={{ xs: 'column', md: 'row' }}
-              spacing={1.4}
+              spacing={stickyFooter ? 0.8 : 1.4}
               justifyContent="flex-end"
               alignItems={{ xs: 'stretch', md: 'center' }}
-              sx={{ pt: isModern ? 1.2 : 2 }}
+              sx={{
+                pt: isModern ? (stickyFooter ? 0.55 : 1.2) : stickyFooter ? 0.75 : 2,
+                ...(stickyFooter
+                  ? {
+                      position: 'sticky',
+                      bottom: 0,
+                      zIndex: theme.zIndex.appBar - 1,
+                      borderTop: '1px solid',
+                      borderColor: 'divider',
+                      backgroundColor: theme.palette.background.paper,
+                      px: { xs: 0.2, sm: 0.35 },
+                      pb: { xs: 0.35, sm: 0.45 },
+                    }
+                  : {}),
+              }}
             >
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={stickyFooter ? 0.85 : 1.2}>
                 {!isFirstStep && (
                   <Button
                     onClick={handleBack}
                     variant="outlined"
-                    size="medium"
-                    sx={{ minWidth: 108 }}
+                    size={stickyFooter ? 'small' : 'medium'}
+                    sx={{ minWidth: stickyFooter ? 92 : 108 }}
                   >
                     {cancelButtonText}
                   </Button>
@@ -360,9 +494,9 @@ export default function StepperForm<T extends Record<string, any>>({
                   <Button
                     onClick={onCancel}
                     variant="outlined"
-                    size="medium"
+                    size={stickyFooter ? 'small' : 'medium'}
                     color="primary"
-                    sx={{ minWidth: 108 }}
+                    sx={{ minWidth: stickyFooter ? 92 : 108 }}
                   >
                     Cancel
                   </Button>
@@ -372,9 +506,9 @@ export default function StepperForm<T extends Record<string, any>>({
                     type="button"
                     onClick={() => void handleSkipAndSubmit(formik)}
                     variant="outlined"
-                    size="medium"
+                    size={stickyFooter ? 'small' : 'medium'}
                     disabled={formik.isSubmitting || !lastStepSubmitArmed}
-                    sx={{ minWidth: 150 }}
+                    sx={{ minWidth: stickyFooter ? 122 : 150 }}
                   >
                     Skip & Register
                   </Button>
@@ -383,14 +517,16 @@ export default function StepperForm<T extends Record<string, any>>({
                   type={isLastStep ? 'submit' : 'button'}
                   onClick={isLastStep ? undefined : () => void handleNext(formik)}
                   variant="contained"
-                  size="medium"
+                  size={stickyFooter ? 'small' : 'medium'}
                   disabled={formik.isSubmitting || (isLastStep && !lastStepSubmitArmed)}
                   sx={{
-                    minWidth: 126,
-                    px: 3,
+                    minWidth: stickyFooter ? 102 : 126,
+                    px: stickyFooter ? 2.2 : 3,
                     ...(isModern
                       ? {
-                          boxShadow: `0 8px 18px ${alpha(theme.palette.primary.main, 0.3)}`,
+                          boxShadow: stickyFooter
+                            ? `0 4px 10px ${alpha(theme.palette.primary.main, 0.24)}`
+                            : `0 8px 18px ${alpha(theme.palette.primary.main, 0.3)}`,
                         }
                       : {}),
                   }}

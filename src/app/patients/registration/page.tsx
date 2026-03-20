@@ -143,8 +143,17 @@ export default function RegistrationPage() {
     <PageTemplate
       title={isFamilyFlow ? 'Family Member Registration' : 'Patient Registration'}
       currentPageTitle="Registration"
+      fullHeight
     >
-      <Box sx={{ mx: 'auto' }}>
+      <Box
+        sx={{
+          mx: 'auto',
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <CommonRegistrationForm
           mode={registrationMode}
           onSubmit={handleSubmit}

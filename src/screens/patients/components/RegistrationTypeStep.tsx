@@ -26,9 +26,12 @@ import { FormikProps } from 'formik';
 import { FormDatePicker, FormSelect, FormTextField } from '@/src/ui/components/forms';
 import { PatientRegistrationFormData } from '../types/patient-registration.types';
 import { CheckCircle as CheckCircleIcon, QrCodeScanner as QrCodeScannerIcon } from '@mui/icons-material';
+import PatientCountryToggle from './PatientCountryToggle';
 
 interface RegistrationTypeStepProps extends FormikProps<PatientRegistrationFormData> {
   onAddPatientType?: () => void;
+  stickyCountryToggle?: boolean;
+  showCountryToggle?: boolean;
 }
 
 type AbhaMode = 'link' | 'create' | 'verify';
@@ -138,6 +141,8 @@ export default function RegistrationTypeStep({
   values,
   setFieldValue,
   onAddPatientType,
+  stickyCountryToggle = false,
+  showCountryToggle = true,
 }: RegistrationTypeStepProps) {
   const theme = useTheme();
   const softSurface = getSoftSurface(theme);
@@ -1352,74 +1357,27 @@ export default function RegistrationTypeStep({
 
   return (
     <Stack spacing={2}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+      {showCountryToggle ? (
         <Box
-          role="button"
-          tabIndex={0}
-          onClick={() => handleRegistrationCountryChange('india')}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              handleRegistrationCountryChange('india');
-            }
-          }}
           sx={{
-            flex: 1,
-            borderRadius: 2,
-            px: 1.4,
-            py: 1.15,
-            cursor: 'pointer',
-            border: '1.5px solid',
-            borderColor: isIndia ? 'primary.main' : 'divider',
-            backgroundColor: isIndia ? alpha(theme.palette.primary.main, 0.08) : 'background.paper',
+            ...(stickyCountryToggle
+              ? {
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 3,
+                  backgroundColor: theme.palette.background.paper,
+                  pb: 0.55,
+                }
+              : {}),
           }}
         >
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography sx={{ fontSize: 19 }}>🇮🇳</Typography>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                India Patient
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Aadhaar, ABHA, NHA fields included
-              </Typography>
-            </Box>
-          </Stack>
+          <PatientCountryToggle
+            value={isIndia ? 'india' : 'international'}
+            onChange={handleRegistrationCountryChange}
+            compact
+          />
         </Box>
-        <Box
-          role="button"
-          tabIndex={0}
-          onClick={() => handleRegistrationCountryChange('international')}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              handleRegistrationCountryChange('international');
-            }
-          }}
-          sx={{
-            flex: 1,
-            borderRadius: 2,
-            px: 1.4,
-            py: 1.15,
-            cursor: 'pointer',
-            border: '1.5px solid',
-            borderColor: !isIndia ? 'info.main' : 'divider',
-            backgroundColor: !isIndia ? alpha(theme.palette.info.main, 0.08) : 'background.paper',
-          }}
-        >
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography sx={{ fontSize: 19 }}>🌍</Typography>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                International Patient
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Passport, visa, and country-specific identity
-              </Typography>
-            </Box>
-          </Stack>
-        </Box>
-      </Stack>
+      ) : null}
 
       <Card
         elevation={0}

@@ -12,6 +12,7 @@ import {
 } from './schemas/patient-registration.schema';
 import PatientInfoStep from './components/PatientInfoStep';
 import ReferralStep from './components/ReferralStep';
+import PatientCountryToggle, { RegistrationCountry } from './components/PatientCountryToggle';
 
 export type RegistrationEntityMode = 'patient' | 'family';
 
@@ -137,6 +138,30 @@ export default function CommonRegistrationForm({
 }: CommonRegistrationFormProps) {
   const isFamilyMode = mode === 'family';
 
+  const handleRegistrationCountryChange = (
+    values: PatientRegistrationFormData,
+    setFieldValue: (field: string, value: any, shouldValidate?: boolean) => Promise<void | unknown>,
+    nextCountry: RegistrationCountry,
+  ) => {
+    void setFieldValue('registrationCountry', nextCountry, false);
+
+    if (nextCountry === 'india') {
+      void setFieldValue('country', 'india', false);
+      void setFieldValue('internationalCountryCode', '+91', false);
+      return;
+    }
+
+    if (values.country === 'india') {
+      void setFieldValue('country', 'uae', false);
+    }
+    if (!values.internationalCountryCode || values.internationalCountryCode === '+91') {
+      void setFieldValue('internationalCountryCode', '+971', false);
+    }
+    if (!values.intlNationality) {
+      void setFieldValue('intlNationality', values.country === 'india' ? 'uae' : values.country, false);
+    }
+  };
+
   const handleAddPatientType = () => {
     // TODO: Implement add patient type dialog
     console.log('Add patient type');
@@ -165,6 +190,7 @@ export default function CommonRegistrationForm({
           {...props}
           showFamilyRelation={isFamilyMode}
           familyRelationLabel="Relation to Primary Patient"
+          showCountryToggle={false}
           onAddPatientType={handleAddPatientType}
           onAddPrefix={handleAddPrefix}
           onAddCountry={handleAddCountry}
@@ -188,22 +214,60 @@ export default function CommonRegistrationForm({
         onSubmit={onSubmit}
         onCancel={onCancel}
         navigationVariant="modern"
+        stickyNavigation
+        fillHeight
+        contentScrollable
+        stickyFooter
+        compactNavigation
+        showHeaderDivider={false}
+        navigationBottomContent={(formik, context) => {
+          if (context.activeStep !== 0) return null;
+          const selectedCountry: RegistrationCountry =
+            formik.values.registrationCountry === 'india' ? 'india' : 'international';
+
+          return (
+            <PatientCountryToggle
+              compact
+              value={selectedCountry}
+              onChange={(nextCountry) =>
+                handleRegistrationCountryChange(formik.values, formik.setFieldValue, nextCountry)
+              }
+            />
+          );
+        }}
         headerContent={(
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
-            spacing={1}
+            spacing={0.65}
             justifyContent="space-between"
             alignItems={{ xs: 'flex-start', sm: 'center' }}
           >
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
               {isFamilyMode
                 ? 'Create Family Member Profile (Patient Registration Flow)'
                 : 'Create a Complete Patient Profile'}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
-              <Chip size="small" color="primary" label={isFamilyMode ? 'Family Member' : 'Patient'} />
-              <Chip size="small" variant="outlined" color="primary" label="Shared Registration Component" />
-              <Chip size="small" variant="outlined" color="success" label="Patient Info + Referral" />
+            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              <Chip
+                size="small"
+                color="primary"
+                label={isFamilyMode ? 'Family Member' : 'Patient'}
+                sx={{ height: 22, '& .MuiChip-label': { px: 0.95, fontSize: 11.5, fontWeight: 600 } }}
+              />
+              <Chip
+                size="small"
+                variant="outlined"
+                color="primary"
+                label="Shared Registration Component"
+                sx={{ height: 22, '& .MuiChip-label': { px: 0.95, fontSize: 11.5, fontWeight: 600 } }}
+              />
+              <Chip
+                size="small"
+                variant="outlined"
+                color="success"
+                label="Patient Info + Referral"
+                sx={{ height: 22, '& .MuiChip-label': { px: 0.95, fontSize: 11.5, fontWeight: 600 } }}
+              />
             </Box>
           </Stack>
         )}

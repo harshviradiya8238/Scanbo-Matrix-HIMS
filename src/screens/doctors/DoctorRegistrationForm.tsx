@@ -147,20 +147,43 @@ export default function DoctorRegistrationForm({ onSubmit, onCancel }: DoctorReg
         onSubmit={onSubmit}
         onCancel={onCancel}
         navigationVariant="modern"
+        stickyNavigation
+        fillHeight
+        contentScrollable
+        stickyFooter
+        compactNavigation
+        showHeaderDivider={false}
         headerContent={
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
-            spacing={1}
+            spacing={0.65}
             justifyContent="space-between"
             alignItems={{ xs: 'flex-start', sm: 'center' }}
           >
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
               Doctor Registration
             </Typography>
-            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
-              <Chip size="small" color="primary" label="Doctor" />
-              <Chip size="small" variant="outlined" color="primary" label="3-Step Flow" />
-              <Chip size="small" variant="outlined" color="success" label="Personal + Documents + Availability" />
+            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              <Chip
+                size="small"
+                color="primary"
+                label="Doctor"
+                sx={{ height: 22, '& .MuiChip-label': { px: 0.95, fontSize: 11.5, fontWeight: 600 } }}
+              />
+              <Chip
+                size="small"
+                variant="outlined"
+                color="primary"
+                label="3-Step Flow"
+                sx={{ height: 22, '& .MuiChip-label': { px: 0.95, fontSize: 11.5, fontWeight: 600 } }}
+              />
+              <Chip
+                size="small"
+                variant="outlined"
+                color="success"
+                label="Personal + Documents + Availability"
+                sx={{ height: 22, '& .MuiChip-label': { px: 0.95, fontSize: 11.5, fontWeight: 600 } }}
+              />
             </Box>
           </Stack>
         }

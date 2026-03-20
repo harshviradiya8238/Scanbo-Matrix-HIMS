@@ -169,7 +169,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
         >
           <Box
             sx={{
-              flex: "1 0 auto",
+              flex: 1,
+              minHeight: 0,
               display: "flex",
               flexDirection: "column",
             }}
@@ -183,8 +184,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
               />
             )}
           </Box>
-          <Footer />
         </Box>
+        <Footer />
       </Box>
     </Box>
   );

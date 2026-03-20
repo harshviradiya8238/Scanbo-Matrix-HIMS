@@ -5,7 +5,7 @@ import { Box } from '@/src/ui/components/atoms';
 import Text from '@/src/ui/components/atoms/Text';
 import { alpha, useTheme } from '@mui/material';
 
-export const APP_FOOTER_STICKY_HEIGHT = 52;
+export const APP_FOOTER_STICKY_HEIGHT = 35;
 
 export default function Footer() {
   const theme = useTheme();
@@ -28,7 +28,7 @@ export default function Footer() {
         textAlign: 'center',
       }}
     >
-      <Text variant="body1" >
+      <Text variant="caption" >
         © {year} Scanbo HIMS. All rights reserved.
       </Text>
     </Box>

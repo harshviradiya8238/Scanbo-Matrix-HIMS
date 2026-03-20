@@ -234,19 +234,7 @@ export default function DoctorProfessionalStep(_: DoctorProfessionalStepProps) {
 
       {/* Consultation Profile */}
       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-        <Box sx={{ px: 2.5, py: 1.6, backgroundColor: softSurface }}>
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={{ xs: 0.75, sm: 1.5 }}
-            alignItems={{ xs: 'flex-start', sm: 'center' }}
-            justifyContent="space-between"
-          >
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Consultation Profile
-            </Typography>
-            <Chip size="small" label="Consultation Setup" sx={chipSx} />
-          </Stack>
-        </Box>
+       
 
         <Box sx={{ p: 2.25 }}>
           <Grid container spacing={1.35}>
