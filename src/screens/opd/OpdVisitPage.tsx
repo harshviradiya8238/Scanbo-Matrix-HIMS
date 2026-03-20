@@ -2487,7 +2487,7 @@ export default function OpdVisitPage({ encounterId }: OpdVisitPageProps) {
                                 variant="h6"
                                 sx={{ fontWeight: 800, fontSize: "1.1rem" }}
                               >
-                                Scanbo Device
+                                Scanbo D8
                               </Typography>
                             </Stack>
                             <Typography
