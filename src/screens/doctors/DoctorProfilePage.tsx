@@ -512,6 +512,7 @@ export default function DoctorProfilePage() {
     AppointmentStatus,
     "default" | "info" | "warning" | "success" | "error"
   > = {
+    Pending: "warning",
     Scheduled: "default",
     "Checked-In": "info",
     "In Triage": "warning",
@@ -657,7 +658,7 @@ export default function DoctorProfilePage() {
                     fontWeight: 800,
                     border: "4px solid",
                     borderColor: "background.paper",
-                    mt: -5,
+                    // mt: -5,
                     boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
                   }}
                 >
@@ -2230,7 +2231,9 @@ export default function DoctorProfilePage() {
                                 variant="outlined"
                                 startIcon={<EventNoteIcon />}
                                 onClick={() =>
-                                  router.push(`/encounters/enc-${c.id}?mrn=${c.mrn}`)
+                                  router.push(
+                                    `/encounters/enc-${c.id}?mrn=${c.mrn}`,
+                                  )
                                 }
                                 sx={{ fontSize: "0.72rem" }}
                               >
@@ -2251,4 +2254,3 @@ export default function DoctorProfilePage() {
     </PageTemplate>
   );
 }
-

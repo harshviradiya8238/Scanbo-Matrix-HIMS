@@ -134,14 +134,9 @@ export default function PatientListPage() {
   const columns = React.useMemo<CommonColumn<PatientRow>[]>(
     () => [
       {
-        field: "mrn",
-        headerName: "MRN/Patient ID",
-        width: 140,
-      },
-      {
         field: "name",
-        headerName: "Name",
-        width: 240,
+        headerName: "Patient Name",
+        width: 250,
         renderCell: (row: PatientRow) => (
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Avatar
@@ -149,20 +144,37 @@ export default function PatientListPage() {
                 width: 32,
                 height: 32,
                 fontSize: 13,
-                bgcolor: "primary.main",
+                bgcolor: alpha(theme.palette.primary.main, 0.12),
+                color: "primary.main",
+                fontWeight: 700,
               }}
             >
               {row.firstName[0]}
               {row.lastName[0]}
             </Avatar>
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 700, color: "primary.main", lineHeight: 1.2 }}
+              >
                 {row.name}
               </Typography>
               <Typography
                 variant="caption"
+                sx={{
+                  fontWeight: 600,
+                  color: "text.secondary",
+                  fontSize: "0.68rem",
+                  display: "block",
+                  lineHeight: 1.2,
+                }}
+              >
+                {row.mrn}
+              </Typography>
+              <Typography
+                variant="caption"
                 color="text.secondary"
-                sx={{ display: "block", lineHeight: 1.25 }}
+                sx={{ fontSize: "0.68rem", display: "block", lineHeight: 1.2 }}
               >
                 {row.department}
               </Typography>

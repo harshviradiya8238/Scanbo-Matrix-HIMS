@@ -32,6 +32,7 @@ import {
   Apps as AppsIcon,
   Menu as MenuIcon,
   Queue as QueueIcon,
+  ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
 import { getMenuItemByRoute } from "@/src/core/navigation/nav-config";
 import MobileMenuButton from "./MobileMenuButton";

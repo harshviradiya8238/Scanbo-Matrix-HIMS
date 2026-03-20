@@ -6,21 +6,11 @@ import {
   Avatar,
   Box,
   Button,
-  Chip,
   IconButton,
-  Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+
   Typography,
-  TextField,
-  InputAdornment,
-  MenuItem,
-  Select,
+
 } from "@/src/ui/components/atoms";
 import { StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
