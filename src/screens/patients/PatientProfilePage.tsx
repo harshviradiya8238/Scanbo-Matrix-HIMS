@@ -108,6 +108,7 @@ const appointmentStatusTone: Record<
   AppointmentStatus,
   "default" | "info" | "warning" | "success" | "error"
 > = {
+  Pending: "default",
   Scheduled: "info",
   "Checked-In": "success",
   "In Triage": "warning",
