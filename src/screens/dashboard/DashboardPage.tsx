@@ -7,6 +7,7 @@ import { useUser } from "@/src/core/auth/UserContext";
 import DoctorDashboardPage from "@/src/screens/doctor/dashboard/DoctorDashboardPage";
 import FrontDeskDashboardPage from "@/src/screens/frontdesk/FrontDeskDashboardPage";
 import HospitalAdminDashboard from "@/src/screens/dashboard/HospitalAdminDashboard";
+import PharmacyDashboardPage from "@/src/screens/pharmacy/PharmacyDashboardPage";
 import {
   Box,
   Button,
@@ -201,6 +202,11 @@ export default function DashboardPage() {
   // Show comprehensive hospital admin dashboard for admin roles
   if (role === "HOSPITAL_ADMIN" || role === "SUPER_ADMIN") {
     return <HospitalAdminDashboard />;
+  }
+
+  // Show dedicated Pharmacy dashboard for PHARMACIST role
+  if (role === "PHARMACIST") {
+    return <PharmacyDashboardPage />;
   }
 
   return (

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useSearchParams } from 'next/navigation';
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import * as React from "react";
+import { useSearchParams } from "next/navigation";
+import PageTemplate from "@/src/ui/components/PageTemplate";
 import {
   Alert,
   Box,
@@ -23,10 +23,10 @@ import {
   TableRow,
   TextField,
   Typography,
-} from '@/src/ui/components/atoms';
-import { Card, StatTile } from '@/src/ui/components/molecules';
-import { alpha, useTheme } from '@/src/ui/theme';
-import { usePermission } from '@/src/core/auth/usePermission';
+} from "@/src/ui/components/atoms";
+import { Card, StatTile } from "@/src/ui/components/molecules";
+import { alpha, useTheme } from "@/src/ui/theme";
+import { usePermission } from "@/src/core/auth/usePermission";
 import {
   buildInventoryId,
   computePoStatusFromLines,
@@ -38,17 +38,21 @@ import {
   PurchaseOrderStatus,
   readInventoryState,
   writeInventoryState,
-} from '@/src/core/inventory/inventoryStore';
+} from "@/src/core/inventory/inventoryStore";
 import {
   Approval as ApprovalIcon,
   LocalShipping as LocalShippingIcon,
   PendingActions as PendingActionsIcon,
   PlaylistAddCheck as PlaylistAddCheckIcon,
   ShoppingCart as ShoppingCartIcon,
-} from '@mui/icons-material';
+  Add as AddIcon,
+  KeyboardArrowRight as ArrowIcon,
+} from "@mui/icons-material";
 
-type PoFilter = 'All' | PurchaseOrderStatus;
-type ToastSeverity = 'success' | 'info' | 'warning' | 'error';
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type PoFilter = "All" | PurchaseOrderStatus;
+type ToastSeverity = "success" | "info" | "warning" | "error";
 
 interface PoDraft {
   vendor: string;
@@ -68,96 +72,148 @@ interface ToastState {
   severity: ToastSeverity;
 }
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
 const DEFAULT_PO_DRAFT: PoDraft = {
-  vendor: '',
-  expectedDeliveryDate: '',
-  notes: '',
+  vendor: "",
+  expectedDeliveryDate: "",
+  notes: "",
 };
-
 const DEFAULT_LINE_DRAFT: PoLineDraft = {
-  itemId: '',
-  quantityOrdered: '',
-  unitCost: '',
+  itemId: "",
+  quantityOrdered: "",
+  unitCost: "",
 };
 
-const dateFormatter = new Intl.DateTimeFormat('en-IN', {
-  day: '2-digit',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
+const dateFormatter = new Intl.DateTimeFormat("en-IN", {
+  day: "2-digit",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
 });
-
-const currencyFormatter = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
+const currencyFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
   maximumFractionDigits: 0,
 });
 
 function formatDateTime(value: string): string {
   const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) return '--';
+  if (Number.isNaN(parsed)) return "--";
   return dateFormatter.format(parsed);
 }
-
 function formatCurrency(value: number): string {
   return currencyFormatter.format(value);
 }
 
-function statusColor(status: PurchaseOrderStatus): 'default' | 'warning' | 'info' | 'success' | 'error' {
-  if (status === 'Draft') return 'default';
-  if (status === 'Pending Approval') return 'warning';
-  if (status === 'Approved') return 'info';
-  if (status === 'Sent to Vendor') return 'info';
-  if (status === 'Partially Received') return 'warning';
-  if (status === 'Closed') return 'success';
-  return 'error';
+// ─── Status Config ────────────────────────────────────────────────────────────
+
+const STATUS_CONFIG: Record<
+  string,
+  { color: string; bg: string; dot: string }
+> = {
+  Draft: { color: "#64748b", bg: "#f1f5f9", dot: "#94a3b8" },
+  "Pending Approval": { color: "#b45309", bg: "#fffbeb", dot: "#f59e0b" },
+  Approved: { color: "#1172BA", bg: "#eff6ff", dot: "#3b82f6" },
+  "Sent to Vendor": { color: "#15803d", bg: "#f0fdf4", dot: "#22c55e" },
+  "Partially Received": { color: "#c2410c", bg: "#fff7ed", dot: "#f97316" },
+  Closed: { color: "#1172BA", bg: "#f0f9ff", dot: "#0ea5e9" },
+  Cancelled: { color: "#be123c", bg: "#fff1f2", dot: "#f43f5e" },
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg = STATUS_CONFIG[status] ?? {
+    color: "#64748b",
+    bg: "#f1f5f9",
+    dot: "#94a3b8",
+  };
+  return (
+    <Box
+      component="span"
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "5px",
+        px: 1,
+        py: 0.25,
+        borderRadius: "4px",
+        fontSize: "0.7rem",
+        fontWeight: 700,
+        letterSpacing: "0.04em",
+        textTransform: "uppercase",
+        color: cfg.color,
+        bgcolor: cfg.bg,
+        fontFamily: '"DM Mono", "Fira Code", monospace',
+      }}
+    >
+      <Box
+        component="span"
+        sx={{
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          bgcolor: cfg.dot,
+          flexShrink: 0,
+        }}
+      />
+      {status}
+    </Box>
+  );
 }
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function InventoryPurchaseOrdersPage() {
   const theme = useTheme();
   const searchParams = useSearchParams();
   const permissionGate = usePermission();
 
-  const canRead = permissionGate('inventory.purchase.write') || permissionGate('inventory.*');
-  const canWrite = permissionGate('inventory.purchase.write') || permissionGate('inventory.*');
+  const canRead =
+    permissionGate("inventory.purchase.write") || permissionGate("inventory.*");
+  const canWrite =
+    permissionGate("inventory.purchase.write") || permissionGate("inventory.*");
 
-  const [inventoryState, setInventoryState] = React.useState<InventoryState>(() => readInventoryState());
-  const [search, setSearch] = React.useState('');
-  const [filter, setFilter] = React.useState<PoFilter>('All');
-  const [selectedPoId, setSelectedPoId] = React.useState('');
+  const [inventoryState, setInventoryState] = React.useState<InventoryState>(
+    () => readInventoryState(),
+  );
+  const [search, setSearch] = React.useState("");
+  const [filter, setFilter] = React.useState<PoFilter>("All");
+  const [selectedPoId, setSelectedPoId] = React.useState("");
 
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [poDraft, setPoDraft] = React.useState<PoDraft>(DEFAULT_PO_DRAFT);
-  const [lineDraft, setLineDraft] = React.useState<PoLineDraft>(DEFAULT_LINE_DRAFT);
+  const [lineDraft, setLineDraft] =
+    React.useState<PoLineDraft>(DEFAULT_LINE_DRAFT);
   const [draftLines, setDraftLines] = React.useState<PurchaseOrderLine[]>([]);
 
   const [toast, setToast] = React.useState<ToastState>({
     open: false,
-    msg: '',
-    severity: 'success',
+    msg: "",
+    severity: "success",
   });
 
   React.useEffect(() => {
     writeInventoryState(inventoryState);
   }, [inventoryState]);
 
-  const notify = React.useCallback((msg: string, severity: ToastSeverity = 'success') => {
-    setToast({ open: true, msg, severity });
-  }, []);
+  const notify = React.useCallback(
+    (msg: string, severity: ToastSeverity = "success") => {
+      setToast({ open: true, msg, severity });
+    },
+    [],
+  );
 
   const activeItems = React.useMemo(
-    () => inventoryState.items.filter((item) => item.status === 'Active'),
-    [inventoryState.items]
+    () => inventoryState.items.filter((item) => item.status === "Active"),
+    [inventoryState.items],
   );
 
   const filteredPo = React.useMemo(() => {
     const q = search.trim().toLowerCase();
-
     return [...inventoryState.purchaseOrders]
       .filter((po) => {
-        if (filter !== 'All' && po.status !== filter) return false;
+        if (filter !== "All" && po.status !== filter) return false;
         if (!q) return true;
-
         return (
           po.poNumber.toLowerCase().includes(q) ||
           po.vendor.toLowerCase().includes(q) ||
@@ -169,20 +225,17 @@ export default function InventoryPurchaseOrdersPage() {
 
   React.useEffect(() => {
     if (!filteredPo.length) {
-      setSelectedPoId('');
+      setSelectedPoId("");
       return;
     }
-
-    if (!filteredPo.some((po) => po.id === selectedPoId)) {
+    if (!filteredPo.some((po) => po.id === selectedPoId))
       setSelectedPoId(filteredPo[0].id);
-    }
   }, [filteredPo, selectedPoId]);
 
   React.useEffect(() => {
-    const prefillItemId = searchParams.get('item');
+    const prefillItemId = searchParams.get("item");
     if (!prefillItemId) return;
     if (!activeItems.some((item) => item.id === prefillItemId)) return;
-
     setDialogOpen(true);
     setLineDraft((prev) => ({ ...prev, itemId: prefillItemId }));
   }, [activeItems, searchParams]);
@@ -190,65 +243,63 @@ export default function InventoryPurchaseOrdersPage() {
   const selectedPo = filteredPo.find((po) => po.id === selectedPoId) ?? null;
 
   const pendingApproval = inventoryState.purchaseOrders.filter(
-    (po) => po.status === 'Pending Approval'
+    (po) => po.status === "Pending Approval",
   ).length;
-  const sentCount = inventoryState.purchaseOrders.filter((po) => po.status === 'Sent to Vendor').length;
+  const sentCount = inventoryState.purchaseOrders.filter(
+    (po) => po.status === "Sent to Vendor",
+  ).length;
   const partialCount = inventoryState.purchaseOrders.filter(
-    (po) => po.status === 'Partially Received'
+    (po) => po.status === "Partially Received",
   ).length;
-  const closedCount = inventoryState.purchaseOrders.filter((po) => po.status === 'Closed').length;
+  const closedCount = inventoryState.purchaseOrders.filter(
+    (po) => po.status === "Closed",
+  ).length;
   const totalOpenValue = inventoryState.purchaseOrders
-    .filter((po) => !['Closed', 'Cancelled'].includes(po.status))
+    .filter((po) => !["Closed", "Cancelled"].includes(po.status))
     .reduce(
       (sum, po) =>
         sum +
-        po.lines.reduce((lineSum, line) => lineSum + line.quantityOrdered * line.unitCost, 0),
-      0
+        po.lines.reduce((ls, l) => ls + l.quantityOrdered * l.unitCost, 0),
+      0,
     );
 
+  // Handlers
   const openCreate = () => {
     if (!canWrite) {
-      notify('You are in read-only mode for PO updates.', 'warning');
+      notify("Read-only mode — PO updates not permitted.", "warning");
       return;
     }
-
     setPoDraft(DEFAULT_PO_DRAFT);
     setLineDraft(DEFAULT_LINE_DRAFT);
     setDraftLines([]);
     setDialogOpen(true);
   };
-
   const closeCreate = () => {
     setDialogOpen(false);
     setPoDraft(DEFAULT_PO_DRAFT);
     setLineDraft(DEFAULT_LINE_DRAFT);
     setDraftLines([]);
   };
-
   const addLine = () => {
-    const item = activeItems.find((entry) => entry.id === lineDraft.itemId);
+    const item = activeItems.find((e) => e.id === lineDraft.itemId);
     if (!item) {
-      notify('Select a valid item to add line.', 'warning');
+      notify("Select a valid item.", "warning");
       return;
     }
-
     const qty = Number(lineDraft.quantityOrdered);
     const cost = Number(lineDraft.unitCost || item.unitCost);
-
     if (!Number.isFinite(qty) || qty <= 0) {
-      notify('Quantity must be greater than zero.', 'warning');
+      notify("Quantity must be > 0.", "warning");
       return;
     }
-
     if (!Number.isFinite(cost) || cost <= 0) {
-      notify('Unit cost must be greater than zero.', 'warning');
+      notify("Unit cost must be > 0.", "warning");
       return;
     }
-
     setDraftLines((prev) => [
       ...prev,
       {
-        id: buildInventoryId('po-line'),
+        id: buildInventoryId("po-line"),
         itemId: item.id,
         itemLabel: getItemLabel(item),
         quantityOrdered: qty,
@@ -258,508 +309,1016 @@ export default function InventoryPurchaseOrdersPage() {
     ]);
     setLineDraft(DEFAULT_LINE_DRAFT);
   };
-
-  const removeLine = (lineId: string) => {
-    setDraftLines((prev) => prev.filter((line) => line.id !== lineId));
-  };
-
+  const removeLine = (lineId: string) =>
+    setDraftLines((prev) => prev.filter((l) => l.id !== lineId));
   const createPo = () => {
     if (!canWrite) {
-      notify('You are in read-only mode for PO updates.', 'warning');
+      notify("Read-only mode.", "warning");
       return;
     }
-
     if (!poDraft.vendor.trim()) {
-      notify('Vendor is required.', 'warning');
+      notify("Vendor is required.", "warning");
       return;
     }
-
     if (draftLines.length === 0) {
-      notify('Add at least one PO line.', 'warning');
+      notify("Add at least one line.", "warning");
       return;
     }
-
     const po: PurchaseOrderRecord = {
-      id: buildInventoryId('po'),
+      id: buildInventoryId("po"),
       poNumber: getNextPoNumber(inventoryState.purchaseOrders),
       vendor: poDraft.vendor.trim(),
-      status: 'Draft',
-      expectedDeliveryDate: poDraft.expectedDeliveryDate || '',
-      requestedBy: 'Inventory Desk',
+      status: "Draft",
+      expectedDeliveryDate: poDraft.expectedDeliveryDate || "",
+      requestedBy: "Inventory Desk",
       createdAt: new Date().toISOString(),
       notes: poDraft.notes.trim(),
       lines: draftLines,
       history: [
         {
-          id: buildInventoryId('po-h'),
+          id: buildInventoryId("po-h"),
           at: new Date().toISOString(),
-          actor: 'Inventory Desk',
-          action: 'PO drafted',
+          actor: "Inventory Desk",
+          action: "PO drafted",
         },
       ],
     };
-
     setInventoryState((prev) => ({
       ...prev,
       purchaseOrders: [po, ...prev.purchaseOrders],
     }));
-
     setSelectedPoId(po.id);
     closeCreate();
-    notify(`Purchase order ${po.poNumber} created.`, 'success');
+    notify(`${po.poNumber} created successfully.`, "success");
   };
-
   const updatePoStatus = (
     poId: string,
     status: PurchaseOrderStatus,
     actor: string,
-    note?: string
+    note?: string,
   ) => {
     if (!canWrite) {
-      notify('You are in read-only mode for PO updates.', 'warning');
+      notify("Read-only mode.", "warning");
       return;
     }
-
     setInventoryState((prev) => ({
       ...prev,
       purchaseOrders: prev.purchaseOrders.map((po) => {
         if (po.id !== poId) return po;
-
         const nextStatus = computePoStatusFromLines(status, po.lines);
-
         return {
           ...po,
           status: nextStatus,
-          approvedBy: status === 'Approved' ? actor : po.approvedBy,
+          approvedBy: status === "Approved" ? actor : po.approvedBy,
           history: [
             ...po.history,
             {
-              id: buildInventoryId('po-h'),
+              id: buildInventoryId("po-h"),
               at: new Date().toISOString(),
               actor,
-              action: `Status changed to ${nextStatus}`,
+              action: `Status → ${nextStatus}`,
               note,
             },
           ],
         };
       }),
     }));
-
-    notify(`PO updated to ${status}.`, 'success');
+    notify(`PO moved to ${status}.`, "success");
   };
+  const poTotal = (po: PurchaseOrderRecord) =>
+    po.lines.reduce((s, l) => s + l.quantityOrdered * l.unitCost, 0);
 
-  const poTotal = (po: PurchaseOrderRecord): number =>
-    po.lines.reduce((sum, line) => sum + line.quantityOrdered * line.unitCost, 0);
-
-  const metricTiles = [
-    {
-      label: 'Pending Approval',
-      value: pendingApproval,
-      subtitle: 'Awaiting supervisor',
-      icon: <PendingActionsIcon sx={{ fontSize: 18 }} />,
+  // Shared input style overrides
+  const inputSx = {
+    "& .MuiOutlinedInput-root": {
+      borderRadius: "8px",
+      bgcolor: "#f8fafc",
+      fontSize: "0.82rem",
+      "& fieldset": { borderColor: "#e2e8f0" },
+      "&:hover fieldset": { borderColor: "#94a3b8" },
+      "&.Mui-focused fieldset": {
+        borderColor: theme.palette.primary.main,
+        borderWidth: "1.5px",
+      },
     },
-    {
-      label: 'Sent to Vendor',
-      value: sentCount,
-      subtitle: 'Order dispatched',
-      icon: <LocalShippingIcon sx={{ fontSize: 18 }} />,
-    },
-    {
-      label: 'Partially Received',
-      value: partialCount,
-      subtitle: 'GRN pending lines',
-      icon: <ApprovalIcon sx={{ fontSize: 18 }} />,
-    },
-    {
-      label: 'Closed',
-      value: closedCount,
-      subtitle: 'Completed procurement',
-      icon: <PlaylistAddCheckIcon sx={{ fontSize: 18 }} />,
-    },
-    {
-      label: 'Open PO Value',
-      value: formatCurrency(totalOpenValue),
-      subtitle: 'Unclosed order amount',
-      icon: <ShoppingCartIcon sx={{ fontSize: 18 }} />,
-    },
-  ];
+    "& .MuiInputLabel-root": { fontSize: "0.8rem", color: "#64748b" },
+    "& .MuiInputLabel-root.Mui-focused": { color: theme.palette.primary.main },
+  };
 
   return (
     <PageTemplate
       title="Purchase Orders"
-      subtitle="Procurement workflow: draft, approval, vendor dispatch, and GRN-linked closure."
+      subtitle="Procurement workflow: draft → approval → dispatch → GRN closure"
       currentPageTitle="Purchase Orders"
       fullHeight
     >
-      <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <Box
+        sx={{
+          bgcolor: "#f8fafc",
+          minHeight: "100%",
+          fontFamily: '"DM Sans", sans-serif',
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+        }}
+      >
         {!canRead ? (
-          <Alert severity="error">
-            You do not have access to Purchase Orders. Request `inventory.purchase.write`.
+          <Alert severity="error" sx={{ borderRadius: "10px" }}>
+            No access to Purchase Orders. Request{" "}
+            <code>inventory.purchase.write</code>.
           </Alert>
         ) : null}
 
         {canRead ? (
           <>
-            {!canWrite ? <Alert severity="info">You are in read-only mode for PO workflow.</Alert> : null}
+            {!canWrite ? (
+              <Alert
+                severity="info"
+                sx={{ borderRadius: "10px", fontSize: "0.8rem" }}
+              >
+                You are in read-only mode — PO workflow actions are disabled.
+              </Alert>
+            ) : null}
 
+            {/* ── Metric Strip ─────────────────────────────────────── */}
             <Box
               sx={{
-                display: 'grid',
+                display: "grid",
                 gridTemplateColumns: {
-                  xs: '1fr',
-                  sm: 'repeat(2, minmax(0, 1fr))',
-                  lg: 'repeat(3, minmax(0, 1fr))',
-                  xl: 'repeat(5, minmax(0, 1fr))',
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  lg: "repeat(3, 1fr)",
+                  xl: "repeat(5, 1fr)",
                 },
-                gap: 2,
+                gap: 1.5,
               }}
             >
-              {metricTiles.map((tile) => (
-                <StatTile
-                  key={tile.label}
-                  label={tile.label}
-                  value={tile.value}
-                  subtitle={tile.subtitle}
-                  icon={tile.icon}
-                  variant="soft"
-                />
-              ))}
+              <StatTile
+                label="Pending Approval"
+                value={pendingApproval}
+                subtitle="Awaiting supervisor"
+                icon={<PendingActionsIcon sx={{ fontSize: 18 }} />}
+                variant="soft"
+                tone="warning"
+              />
+              <StatTile
+                label="Sent to Vendor"
+                value={sentCount}
+                subtitle="Order dispatched"
+                icon={<LocalShippingIcon sx={{ fontSize: 18 }} />}
+                variant="soft"
+                tone="info"
+              />
+              <StatTile
+                label="Partially Received"
+                value={partialCount}
+                subtitle="GRN pending lines"
+                icon={<ApprovalIcon sx={{ fontSize: 18 }} />}
+                variant="soft"
+                tone="warning"
+              />
+              <StatTile
+                label="Closed"
+                value={closedCount}
+                subtitle="Completed procurement"
+                icon={<PlaylistAddCheckIcon sx={{ fontSize: 18 }} />}
+                variant="soft"
+                tone="success"
+              />
+              <StatTile
+                label="Open PO Value"
+                value={formatCurrency(totalOpenValue)}
+                subtitle="Unclosed order amount"
+                icon={<ShoppingCartIcon sx={{ fontSize: 18 }} />}
+                variant="soft"
+                tone="primary"
+              />
             </Box>
 
-            <Card
-              elevation={0}
+            {/* ── Main Panel ───────────────────────────────────────── */}
+            <Box
               sx={{
-                borderRadius: 2,
-                border: '1px solid',
-                borderColor: 'divider',
-                display: 'flex',
-                flexDirection: 'column',
                 flex: 1,
                 minHeight: 0,
-                overflow: 'hidden',
+                bgcolor: "#ffffff",
+                border: "1.5px solid #e2e8f0",
+                borderRadius: "14px",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
+              {/* Toolbar */}
               <Box
                 sx={{
-                  px: 1.2,
-                  py: 1,
-                  borderBottom: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'background.paper',
+                  px: 2,
+                  py: 1.25,
+                  borderBottom: "1.5px solid #e2e8f0",
+                  bgcolor: "#ffffff",
                 }}
               >
-                <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }}>
-                  <TextField
-                    size="small"
-                    placeholder="Search by PO number / vendor"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    sx={{ width: { xs: '100%', md: 320 } }}
-                  />
+                <Stack
+                  direction={{ xs: "column", md: "row" }}
+                  spacing={1.25}
+                  alignItems={{ md: "center" }}
+                >
+                  {/* Search */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      bgcolor: "#f8fafc",
+                      border: "1.5px solid #e2e8f0",
+                      borderRadius: "8px",
+                      px: 1.25,
+                      gap: 0.75,
+                      width: { xs: "100%", md: 280 },
+                      "&:focus-within": {
+                        borderColor: theme.palette.primary.main,
+                      },
+                    }}
+                  >
+                    <Typography sx={{ color: "#94a3b8", fontSize: "0.85rem" }}>
+                      ⌕
+                    </Typography>
+                    <Box
+                      component="input"
+                      placeholder="Search PO / vendor..."
+                      value={search}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setSearch(e.target.value)
+                      }
+                      sx={{
+                        border: "none",
+                        background: "transparent",
+                        outline: "none",
+                        fontSize: "0.82rem",
+                        color: "#1e293b",
+                        width: "100%",
+                        py: 0.75,
+                        fontFamily: '"DM Sans", sans-serif',
+                        "&::placeholder": { color: "#94a3b8" },
+                      }}
+                    />
+                  </Box>
+
+                  {/* Filter */}
                   <TextField
                     select
                     size="small"
                     label="Status"
                     value={filter}
-                    onChange={(event) => setFilter(event.target.value as PoFilter)}
-                    sx={{ width: { xs: '100%', md: 220 } }}
+                    onChange={(e) => setFilter(e.target.value as PoFilter)}
+                    sx={{ width: { xs: "100%", md: 200 }, ...inputSx }}
                   >
-                    {([
-                      'All',
-                      'Draft',
-                      'Pending Approval',
-                      'Approved',
-                      'Sent to Vendor',
-                      'Partially Received',
-                      'Closed',
-                      'Cancelled',
-                    ] as const).map((value) => (
-                      <MenuItem key={value} value={value}>
-                        {value}
+                    {(
+                      [
+                        "All",
+                        "Draft",
+                        "Pending Approval",
+                        "Approved",
+                        "Sent to Vendor",
+                        "Partially Received",
+                        "Closed",
+                        "Cancelled",
+                      ] as const
+                    ).map((v) => (
+                      <MenuItem key={v} value={v} sx={{ fontSize: "0.82rem" }}>
+                        {v}
                       </MenuItem>
                     ))}
                   </TextField>
+
                   <Box sx={{ flex: 1 }} />
-                  <Button variant="contained" onClick={openCreate}>
-                    + New PO
+
+                  {/* New PO Button */}
+                  <Button
+                    variant="contained"
+                    onClick={openCreate}
+                    startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+                    sx={{
+                      bgcolor: theme.palette.primary.main,
+                      color: "#ffffff",
+                      borderRadius: "8px",
+                      fontWeight: 700,
+                      fontSize: "0.8rem",
+                      letterSpacing: "0.03em",
+                      px: 2.5,
+                      py: 0.85,
+                      textTransform: "none",
+                      boxShadow: "none",
+                      "&:hover": {
+                        bgcolor: theme.palette.primary.dark,
+                        boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
+                      },
+                    }}
+                  >
+                    New PO
                   </Button>
                 </Stack>
               </Box>
 
+              {/* Split View */}
               <Box
                 sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', lg: '500px minmax(0, 1fr)' },
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    lg: "420px minmax(0, 1fr)",
+                  },
                   flex: 1,
                   minHeight: 0,
-                  overflow: 'hidden',
+                  overflow: "hidden",
                 }}
               >
+                {/* ── PO List ─────────────────────────────────────── */}
                 <Box
                   sx={{
-                    borderRight: { lg: '1px solid' },
-                    borderBottom: { xs: '1px solid', lg: 'none' },
-                    borderColor: 'divider',
-                    minHeight: 0,
-                    overflow: 'hidden',
+                    borderRight: { lg: "1.5px solid #e2e8f0" },
+                    borderBottom: { xs: "1.5px solid #e2e8f0", lg: "none" },
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
                   }}
                 >
-                  <TableContainer sx={{ height: '100%', minHeight: 0, overflowY: 'auto' }}>
-                    <Table size="small" stickyHeader>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>PO Number</TableCell>
-                          <TableCell>Vendor</TableCell>
-                          <TableCell>Status</TableCell>
-                          <TableCell>Expected</TableCell>
-                          <TableCell>Total</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {filteredPo.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={5}>
-                              <Alert severity="info">No purchase orders match current filters.</Alert>
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          filteredPo.map((po) => (
-                            <TableRow
-                              key={po.id}
-                              hover
-                              selected={po.id === selectedPo?.id}
-                              sx={{ cursor: 'pointer' }}
-                              onClick={() => setSelectedPoId(po.id)}
+                  {filteredPo.length === 0 ? (
+                    <Box sx={{ p: 3, textAlign: "center" }}>
+                      <Typography
+                        sx={{ fontSize: "0.82rem", color: "#94a3b8" }}
+                      >
+                        No purchase orders match current filters.
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Box sx={{ overflowY: "auto", flex: 1 }}>
+                      {filteredPo.map((po, idx) => {
+                        const isSelected = po.id === selectedPo?.id;
+                        const total = poTotal(po);
+                        return (
+                          <Box
+                            key={po.id}
+                            onClick={() => setSelectedPoId(po.id)}
+                            sx={{
+                              px: 2,
+                              py: 1.4,
+                              cursor: "pointer",
+                              borderBottom:
+                                idx < filteredPo.length - 1
+                                  ? "1px solid #f1f5f9"
+                                  : "none",
+                              bgcolor: isSelected
+                                ? alpha(theme.palette.primary.main, 0.04)
+                                : "transparent",
+                              borderLeft: isSelected
+                                ? `3px solid ${theme.palette.primary.main}`
+                                : "3px solid transparent",
+                              transition: "all 0.15s",
+                              "&:hover": {
+                                bgcolor: alpha(
+                                  theme.palette.primary.main,
+                                  0.02,
+                                ),
+                              },
+                            }}
+                          >
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              alignItems="flex-start"
                             >
-                              <TableCell sx={{ fontWeight: 700 }}>{po.poNumber}</TableCell>
-                              <TableCell>{po.vendor}</TableCell>
-                              <TableCell>
-                                <Chip size="small" label={po.status} color={statusColor(po.status)} />
-                              </TableCell>
-                              <TableCell>{po.expectedDeliveryDate || '--'}</TableCell>
-                              <TableCell>{formatCurrency(poTotal(po))}</TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                              <Box>
+                                <Typography
+                                  sx={{
+                                    fontSize: "0.78rem",
+                                    fontWeight: 800,
+                                    color: isSelected
+                                      ? theme.palette.primary.main
+                                      : "#1e293b",
+                                    fontFamily: '"DM Mono", monospace',
+                                    letterSpacing: "0.03em",
+                                  }}
+                                >
+                                  {po.poNumber}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontSize: "0.8rem",
+                                    color: isSelected ? "#1e293b" : "#475569",
+                                    mt: 0.2,
+                                    fontWeight: isSelected ? 700 : 500,
+                                  }}
+                                >
+                                  {po.vendor}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontSize: "0.68rem",
+                                    color: "#94a3b8",
+                                    mt: 0.15,
+                                  }}
+                                >
+                                  {po.expectedDeliveryDate
+                                    ? `Exp: ${po.expectedDeliveryDate}`
+                                    : "No delivery date"}
+                                </Typography>
+                              </Box>
+                              <Stack alignItems="flex-end" spacing={0.5}>
+                                <StatusBadge status={po.status} />
+                                <Typography
+                                  sx={{
+                                    fontSize: "0.78rem",
+                                    fontWeight: 700,
+                                    color: "#1172BA",
+                                    fontFamily: '"DM Mono", monospace',
+                                  }}
+                                >
+                                  {formatCurrency(total)}
+                                </Typography>
+                              </Stack>
+                            </Stack>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  )}
                 </Box>
 
+                {/* ── PO Detail ────────────────────────────────────── */}
                 <Box
                   sx={{
-                    p: 1.2,
-                    minHeight: 0,
-                    overflowY: 'auto',
-                    '&::-webkit-scrollbar': { width: 5 },
-                    '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 99 },
+                    overflowY: "auto",
+                    p: 2,
+                    "&::-webkit-scrollbar": { width: 4 },
+                    "&::-webkit-scrollbar-thumb": {
+                      bgcolor: "#e2e8f0",
+                      borderRadius: 8,
+                    },
                   }}
                 >
                   {!selectedPo ? (
-                    <Alert severity="info">Select a purchase order to view details.</Alert>
+                    <Box sx={{ textAlign: "center", pt: 6 }}>
+                      <Typography
+                        sx={{ fontSize: "0.85rem", color: "#94a3b8" }}
+                      >
+                        ← Select a purchase order to view details
+                      </Typography>
+                    </Box>
                   ) : (
-                    <Stack spacing={1}>
-                      <Card
-                        elevation={0}
+                    <Stack spacing={2}>
+                      {/* Header Card */}
+                      <Box
                         sx={{
-                          borderRadius: 1.8,
-                          border: '1px solid',
-                          borderColor: alpha(theme.palette.primary.main, 0.18),
-                          p: 1.1,
+                          border: "1.5px solid #e2e8f0",
+                          borderRadius: "12px",
+                          overflow: "hidden",
                         }}
                       >
-                        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} justifyContent="space-between">
-                          <Box>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                              {selectedPo.poNumber}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.3 }}>
-                              Vendor: {selectedPo.vendor}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.2 }}>
-                              Requested by: {selectedPo.requestedBy} - {formatDateTime(selectedPo.createdAt)}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.2 }}>
-                              Expected delivery: {selectedPo.expectedDeliveryDate || '--'}
-                            </Typography>
+                        <Box
+                          sx={{
+                            px: 2,
+                            py: 1.5,
+                            bgcolor: "#f8fafc",
+                            borderBottom: "1.5px solid #e2e8f0",
+                          }}
+                        >
+                          <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="flex-start"
+                          >
+                            <Box>
+                              <Typography
+                                sx={{
+                                  fontFamily: '"DM Mono", monospace',
+                                  fontSize: "1rem",
+                                  fontWeight: 800,
+                                  color: "#0f172a",
+                                }}
+                              >
+                                {selectedPo.poNumber}
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  fontSize: "0.78rem",
+                                  color: "#64748b",
+                                  mt: 0.25,
+                                }}
+                              >
+                                {selectedPo.vendor}
+                              </Typography>
+                            </Box>
+                            <StatusBadge status={selectedPo.status} />
+                          </Stack>
+                          <Box
+                            sx={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(2, 1fr)",
+                              gap: 1,
+                              mt: 1.25,
+                            }}
+                          >
+                            {[
+                              {
+                                label: "Requested By",
+                                value: selectedPo.requestedBy,
+                              },
+                              {
+                                label: "Created",
+                                value: formatDateTime(selectedPo.createdAt),
+                              },
+                              {
+                                label: "Expected Delivery",
+                                value: selectedPo.expectedDeliveryDate || "--",
+                              },
+                              {
+                                label: "Total Value",
+                                value: formatCurrency(poTotal(selectedPo)),
+                              },
+                            ].map(({ label, value }) => (
+                              <Box key={label}>
+                                <Typography
+                                  sx={{
+                                    fontSize: "0.65rem",
+                                    fontWeight: 700,
+                                    letterSpacing: "0.08em",
+                                    textTransform: "uppercase",
+                                    color: "#94a3b8",
+                                    fontFamily: '"DM Mono", monospace',
+                                  }}
+                                >
+                                  {label}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontSize: "0.8rem",
+                                    fontWeight: 600,
+                                    color: "#1e293b",
+                                    mt: 0.1,
+                                  }}
+                                >
+                                  {value}
+                                </Typography>
+                              </Box>
+                            ))}
                           </Box>
-                          <Chip size="small" label={selectedPo.status} color={statusColor(selectedPo.status)} />
-                        </Stack>
+                          {selectedPo.notes ? (
+                            <Box
+                              sx={{
+                                mt: 1.25,
+                                p: 1,
+                                bgcolor: "#fffbeb",
+                                border: "1px solid #fde68a",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              <Typography
+                                sx={{ fontSize: "0.75rem", color: "#92400e" }}
+                              >
+                                {selectedPo.notes}
+                              </Typography>
+                            </Box>
+                          ) : null}
+                        </Box>
 
-                        {selectedPo.notes ? (
-                          <Alert severity="info" sx={{ mt: 1 }}>
-                            {selectedPo.notes}
-                          </Alert>
-                        ) : null}
+                        {/* Workflow Actions */}
+                        <Box sx={{ px: 2, py: 1.25, bgcolor: "#ffffff" }}>
+                          <Typography
+                            sx={{
+                              fontSize: "0.65rem",
+                              fontWeight: 700,
+                              letterSpacing: "0.1em",
+                              textTransform: "uppercase",
+                              color: "#94a3b8",
+                              mb: 1,
+                              fontFamily: '"DM Mono", monospace',
+                            }}
+                          >
+                            Workflow Actions
+                          </Typography>
+                          <Stack
+                            direction="row"
+                            spacing={0.75}
+                            flexWrap="wrap"
+                            useFlexGap
+                          >
+                            {[
+                              {
+                                label: "Submit for Approval",
+                                disabled:
+                                  selectedPo.status !== "Draft" || !canWrite,
+                                variant: "contained" as const,
+                                onClick: () =>
+                                  updatePoStatus(
+                                    selectedPo.id,
+                                    "Pending Approval",
+                                    "Inventory Desk",
+                                    "Submitted for supervisor approval.",
+                                  ),
+                                color: "default",
+                              },
+                              {
+                                label: "Approve",
+                                disabled:
+                                  selectedPo.status !== "Pending Approval" ||
+                                  !canWrite,
+                                variant: "outlined" as const,
+                                onClick: () =>
+                                  updatePoStatus(
+                                    selectedPo.id,
+                                    "Approved",
+                                    "Inventory Supervisor",
+                                    "Approved after budget and vendor checks.",
+                                  ),
+                                color: "success",
+                              },
+                              {
+                                label: "Send to Vendor",
+                                disabled:
+                                  selectedPo.status !== "Approved" || !canWrite,
+                                variant: "outlined" as const,
+                                onClick: () =>
+                                  updatePoStatus(
+                                    selectedPo.id,
+                                    "Sent to Vendor",
+                                    "Inventory Desk",
+                                    "Dispatched to vendor for fulfillment.",
+                                  ),
+                                color: "info",
+                              },
+                              {
+                                label: "Cancel PO",
+                                disabled:
+                                  [
+                                    "Closed",
+                                    "Cancelled",
+                                    "Partially Received",
+                                  ].includes(selectedPo.status) || !canWrite,
+                                variant: "outlined" as const,
+                                onClick: () =>
+                                  updatePoStatus(
+                                    selectedPo.id,
+                                    "Cancelled",
+                                    "Inventory Supervisor",
+                                    "Cancelled due to operational decision.",
+                                  ),
+                                color: "error",
+                              },
+                            ].map((action) => (
+                              <Button
+                                key={action.label}
+                                size="small"
+                                variant={action.variant}
+                                disabled={action.disabled}
+                                onClick={action.onClick}
+                                sx={{
+                                  borderRadius: "7px",
+                                  fontSize: "0.74rem",
+                                  fontWeight: 700,
+                                  textTransform: "none",
+                                  px: 1.5,
+                                  py: 0.6,
+                                  ...(action.color === "default" &&
+                                  !action.disabled
+                                    ? {
+                                        bgcolor: theme.palette.primary.main,
+                                        color: "#fff",
+                                        border: "none",
+                                        "&:hover": {
+                                          bgcolor: theme.palette.primary.dark,
+                                        },
+                                      }
+                                    : {}),
+                                }}
+                                color={
+                                  action.color === "default"
+                                    ? undefined
+                                    : (action.color as any)
+                                }
+                              >
+                                {action.label}
+                              </Button>
+                            ))}
+                          </Stack>
+                        </Box>
+                      </Box>
 
-                        <Stack direction="row" spacing={0.7} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            disabled={selectedPo.status !== 'Draft' || !canWrite}
-                            onClick={() =>
-                              updatePoStatus(
-                                selectedPo.id,
-                                'Pending Approval',
-                                'Inventory Desk',
-                                'Submitted for supervisor approval.'
-                              )
-                            }
-                          >
-                            Submit for Approval
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={selectedPo.status !== 'Pending Approval' || !canWrite}
-                            onClick={() =>
-                              updatePoStatus(
-                                selectedPo.id,
-                                'Approved',
-                                'Inventory Supervisor',
-                                'Approved after budget and vendor checks.'
-                              )
-                            }
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="info"
-                            disabled={selectedPo.status !== 'Approved' || !canWrite}
-                            onClick={() =>
-                              updatePoStatus(
-                                selectedPo.id,
-                                'Sent to Vendor',
-                                'Inventory Desk',
-                                'Dispatched to vendor for fulfillment.'
-                              )
-                            }
-                          >
-                            Send to Vendor
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="error"
-                            disabled={
-                              ['Closed', 'Cancelled', 'Partially Received'].includes(selectedPo.status) ||
-                              !canWrite
-                            }
-                            onClick={() =>
-                              updatePoStatus(
-                                selectedPo.id,
-                                'Cancelled',
-                                'Inventory Supervisor',
-                                'Cancelled due to operational decision.'
-                              )
-                            }
-                          >
-                            Cancel PO
-                          </Button>
-                        </Stack>
-                      </Card>
-
-                      <Card
-                        elevation={0}
-                        sx={{ borderRadius: 1.8, border: '1px solid', borderColor: 'divider', p: 1.1 }}
+                      {/* PO Lines */}
+                      <Box
+                        sx={{
+                          border: "1.5px solid #e2e8f0",
+                          borderRadius: "12px",
+                          overflow: "hidden",
+                        }}
                       >
-                        <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.8 }}>
-                          PO Lines
-                        </Typography>
+                        <Box
+                          sx={{
+                            px: 2,
+                            py: 1.1,
+                            bgcolor: "#f8fafc",
+                            borderBottom: "1.5px solid #e2e8f0",
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              fontSize: "0.75rem",
+                              fontWeight: 800,
+                              color: "#0f172a",
+                              letterSpacing: "0.06em",
+                              textTransform: "uppercase",
+                              fontFamily: '"DM Mono", monospace',
+                            }}
+                          >
+                            Line Items
+                          </Typography>
+                        </Box>
                         <TableContainer>
                           <Table size="small">
                             <TableHead>
-                              <TableRow>
-                                <TableCell>Item</TableCell>
-                                <TableCell>Ordered</TableCell>
-                                <TableCell>Received</TableCell>
-                                <TableCell>Pending</TableCell>
-                                <TableCell>Rate</TableCell>
-                                <TableCell>Amount</TableCell>
+                              <TableRow sx={{ bgcolor: "#fafafa" }}>
+                                {[
+                                  "Item",
+                                  "Ordered",
+                                  "Received",
+                                  "Pending",
+                                  "Rate",
+                                  "Amount",
+                                ].map((h) => (
+                                  <TableCell
+                                    key={h}
+                                    sx={{
+                                      fontSize: "0.67rem",
+                                      fontWeight: 700,
+                                      color: "#94a3b8",
+                                      letterSpacing: "0.08em",
+                                      textTransform: "uppercase",
+                                      fontFamily: '"DM Mono", monospace',
+                                      py: 0.8,
+                                    }}
+                                  >
+                                    {h}
+                                  </TableCell>
+                                ))}
                               </TableRow>
                             </TableHead>
                             <TableBody>
                               {selectedPo.lines.map((line) => (
-                                <TableRow key={line.id}>
-                                  <TableCell sx={{ fontWeight: 700 }}>{line.itemLabel}</TableCell>
-                                  <TableCell>{line.quantityOrdered}</TableCell>
-                                  <TableCell>{line.quantityReceived}</TableCell>
-                                  <TableCell>{Math.max(0, line.quantityOrdered - line.quantityReceived)}</TableCell>
-                                  <TableCell>{formatCurrency(line.unitCost)}</TableCell>
-                                  <TableCell>{formatCurrency(line.quantityOrdered * line.unitCost)}</TableCell>
+                                <TableRow
+                                  key={line.id}
+                                  sx={{ "&:hover": { bgcolor: "#f8fafc" } }}
+                                >
+                                  <TableCell
+                                    sx={{
+                                      fontSize: "0.8rem",
+                                      fontWeight: 700,
+                                      color: "#0f172a",
+                                      py: 0.9,
+                                    }}
+                                  >
+                                    {line.itemLabel}
+                                  </TableCell>
+                                  <TableCell
+                                    sx={{
+                                      fontSize: "0.78rem",
+                                      color: "#475569",
+                                    }}
+                                  >
+                                    {line.quantityOrdered}
+                                  </TableCell>
+                                  <TableCell
+                                    sx={{
+                                      fontSize: "0.78rem",
+                                      color: "#475569",
+                                    }}
+                                  >
+                                    {line.quantityReceived}
+                                  </TableCell>
+                                  <TableCell
+                                    sx={{
+                                      fontSize: "0.78rem",
+                                      color:
+                                        line.quantityOrdered -
+                                          line.quantityReceived >
+                                        0
+                                          ? "#f97316"
+                                          : "#64748b",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {Math.max(
+                                      0,
+                                      line.quantityOrdered -
+                                        line.quantityReceived,
+                                    )}
+                                  </TableCell>
+                                  <TableCell
+                                    sx={{
+                                      fontSize: "0.78rem",
+                                      color: "#475569",
+                                      fontFamily: '"DM Mono", monospace',
+                                    }}
+                                  >
+                                    {formatCurrency(line.unitCost)}
+                                  </TableCell>
+                                  <TableCell
+                                    sx={{
+                                      fontSize: "0.8rem",
+                                      fontWeight: 700,
+                                      color: "#0f172a",
+                                      fontFamily: '"DM Mono", monospace',
+                                    }}
+                                  >
+                                    {formatCurrency(
+                                      line.quantityOrdered * line.unitCost,
+                                    )}
+                                  </TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
                           </Table>
                         </TableContainer>
-                        <Typography variant="subtitle2" sx={{ textAlign: 'right', mt: 0.8, fontWeight: 800 }}>
-                          Total: {formatCurrency(poTotal(selectedPo))}
-                        </Typography>
-                      </Card>
+                        <Box
+                          sx={{
+                            px: 2,
+                            py: 1,
+                            borderTop: "1.5px solid #e2e8f0",
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            bgcolor: "#f8fafc",
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              fontSize: "0.85rem",
+                              fontWeight: 800,
+                              color: theme.palette.primary.main,
+                              fontFamily: '"DM Mono", monospace',
+                            }}
+                          >
+                            Total: {formatCurrency(poTotal(selectedPo))}
+                          </Typography>
+                        </Box>
+                      </Box>
 
-                      <Card
-                        elevation={0}
-                        sx={{ borderRadius: 1.8, border: '1px solid', borderColor: 'divider', p: 1.1 }}
+                      {/* History */}
+                      <Box
+                        sx={{
+                          border: "1.5px solid #e2e8f0",
+                          borderRadius: "12px",
+                          overflow: "hidden",
+                        }}
                       >
-                        <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.8 }}>
-                          Status History
-                        </Typography>
-                        <Stack spacing={0.7}>
-                          {selectedPo.history.map((entry) => (
-                            <Card
-                              key={entry.id}
-                              elevation={0}
-                              sx={{
-                                borderRadius: 1.4,
-                                border: '1px solid',
-                                borderColor: alpha(theme.palette.primary.main, 0.16),
-                                px: 0.9,
-                                py: 0.7,
-                              }}
-                            >
-                              <Stack direction={{ xs: 'column', md: 'row' }} spacing={0.6}>
-                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                  {entry.action}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
-                                  {entry.actor} - {formatDateTime(entry.at)}
-                                </Typography>
-                              </Stack>
-                              {entry.note ? (
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  sx={{ mt: 0.2, display: 'block' }}
+                        <Box
+                          sx={{
+                            px: 2,
+                            py: 1.1,
+                            bgcolor: "#f8fafc",
+                            borderBottom: "1.5px solid #e2e8f0",
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              fontSize: "0.75rem",
+                              fontWeight: 800,
+                              color: "#0f172a",
+                              letterSpacing: "0.06em",
+                              textTransform: "uppercase",
+                              fontFamily: '"DM Mono", monospace',
+                            }}
+                          >
+                            Status Timeline
+                          </Typography>
+                        </Box>
+                        <Box sx={{ p: 1.5 }}>
+                          <Stack spacing={0}>
+                            {selectedPo.history.map((entry, i) => (
+                              <Stack
+                                key={entry.id}
+                                direction="row"
+                                spacing={1.5}
+                              >
+                                {/* Timeline line */}
+                                <Stack alignItems="center" sx={{ pt: 0.25 }}>
+                                  <Box
+                                    sx={{
+                                      width: 8,
+                                      height: 8,
+                                      borderRadius: "50%",
+                                      flexShrink: 0,
+                                      bgcolor:
+                                        i === selectedPo.history.length - 1
+                                          ? theme.palette.primary.main
+                                          : "#cbd5e1",
+                                      border: "2px solid",
+                                      borderColor:
+                                        i === selectedPo.history.length - 1
+                                          ? theme.palette.primary.main
+                                          : "#e2e8f0",
+                                    }}
+                                  />
+                                  {i < selectedPo.history.length - 1 ? (
+                                    <Box
+                                      sx={{
+                                        width: 1.5,
+                                        flex: 1,
+                                        bgcolor: "#e2e8f0",
+                                        my: 0.25,
+                                      }}
+                                    />
+                                  ) : null}
+                                </Stack>
+                                {/* Content */}
+                                <Box
+                                  sx={{
+                                    pb:
+                                      i < selectedPo.history.length - 1
+                                        ? 1.5
+                                        : 0,
+                                  }}
                                 >
-                                  {entry.note}
-                                </Typography>
-                              ) : null}
-                            </Card>
-                          ))}
-                        </Stack>
-                      </Card>
+                                  <Typography
+                                    sx={{
+                                      fontSize: "0.78rem",
+                                      fontWeight: 700,
+                                      color: "#0f172a",
+                                    }}
+                                  >
+                                    {entry.action}
+                                  </Typography>
+                                  <Typography
+                                    sx={{
+                                      fontSize: "0.68rem",
+                                      color: "#94a3b8",
+                                      mt: 0.1,
+                                      fontFamily: '"DM Mono", monospace',
+                                    }}
+                                  >
+                                    {entry.actor} · {formatDateTime(entry.at)}
+                                  </Typography>
+                                  {entry.note ? (
+                                    <Typography
+                                      sx={{
+                                        fontSize: "0.72rem",
+                                        color: "#64748b",
+                                        mt: 0.2,
+                                      }}
+                                    >
+                                      {entry.note}
+                                    </Typography>
+                                  ) : null}
+                                </Box>
+                              </Stack>
+                            ))}
+                          </Stack>
+                        </Box>
+                      </Box>
                     </Stack>
                   )}
                 </Box>
               </Box>
-            </Card>
+            </Box>
           </>
         ) : null}
-      </Stack>
+      </Box>
 
-      <Dialog open={dialogOpen} onClose={closeCreate} fullWidth maxWidth="md">
-        <DialogTitle>Create Purchase Order</DialogTitle>
-        <DialogContent>
-          <Stack spacing={1} sx={{ pt: 0.5 }}>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
+      {/* ── Create PO Dialog ─────────────────────────────────────────────── */}
+      <Dialog
+        open={dialogOpen}
+        onClose={closeCreate}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            border: "1.5px solid #e2e8f0",
+            boxShadow: "0 24px 80px rgba(15,23,42,0.12)",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            fontFamily: '"Sora", sans-serif',
+            fontWeight: 800,
+            fontSize: "1rem",
+            color: "#0f172a",
+            pb: 1,
+            borderBottom: "1.5px solid #e2e8f0",
+          }}
+        >
+          Create Purchase Order
+        </DialogTitle>
+
+        <DialogContent sx={{ pt: "16px !important" }}>
+          <Stack spacing={1.5}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1.5}>
               <TextField
                 fullWidth
                 label="Vendor"
                 size="small"
                 value={poDraft.vendor}
-                onChange={(event) => setPoDraft((prev) => ({ ...prev, vendor: event.target.value }))}
+                onChange={(e) =>
+                  setPoDraft((p) => ({ ...p, vendor: e.target.value }))
+                }
+                sx={inputSx}
               />
               <TextField
                 fullWidth
@@ -768,9 +1327,13 @@ export default function InventoryPurchaseOrdersPage() {
                 size="small"
                 value={poDraft.expectedDeliveryDate}
                 InputLabelProps={{ shrink: true }}
-                onChange={(event) =>
-                  setPoDraft((prev) => ({ ...prev, expectedDeliveryDate: event.target.value }))
+                onChange={(e) =>
+                  setPoDraft((p) => ({
+                    ...p,
+                    expectedDeliveryDate: e.target.value,
+                  }))
                 }
+                sx={inputSx}
               />
             </Stack>
 
@@ -780,118 +1343,241 @@ export default function InventoryPurchaseOrdersPage() {
               multiline
               minRows={2}
               value={poDraft.notes}
-              onChange={(event) => setPoDraft((prev) => ({ ...prev, notes: event.target.value }))}
+              onChange={(e) =>
+                setPoDraft((p) => ({ ...p, notes: e.target.value }))
+              }
+              sx={inputSx}
             />
 
-            <Card elevation={0} sx={{ borderRadius: 1.6, border: '1px solid', borderColor: 'divider', p: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.7 }}>
+            <Box
+              sx={{
+                border: "1.5px solid #e2e8f0",
+                borderRadius: "10px",
+                p: 1.5,
+                bgcolor: "#f8fafc",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "0.72rem",
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "#64748b",
+                  mb: 1.25,
+                  fontFamily: '"DM Mono", monospace',
+                }}
+              >
                 Add Line Item
               </Typography>
 
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={1}
+                alignItems="flex-start"
+              >
                 <TextField
                   select
                   fullWidth
                   size="small"
                   label="Item"
                   value={lineDraft.itemId}
-                  onChange={(event) =>
-                    setLineDraft((prev) => ({ ...prev, itemId: event.target.value }))
+                  onChange={(e) =>
+                    setLineDraft((p) => ({ ...p, itemId: e.target.value }))
                   }
+                  sx={inputSx}
                 >
                   {activeItems.map((item) => (
-                    <MenuItem key={item.id} value={item.id}>
-                      {item.itemCode} - {getItemLabel(item)}
+                    <MenuItem
+                      key={item.id}
+                      value={item.id}
+                      sx={{ fontSize: "0.82rem" }}
+                    >
+                      {item.itemCode} – {getItemLabel(item)}
                     </MenuItem>
                   ))}
                 </TextField>
-
                 <TextField
                   fullWidth
                   size="small"
                   type="number"
                   label="Quantity"
                   value={lineDraft.quantityOrdered}
-                  onChange={(event) =>
-                    setLineDraft((prev) => ({ ...prev, quantityOrdered: event.target.value }))
+                  onChange={(e) =>
+                    setLineDraft((p) => ({
+                      ...p,
+                      quantityOrdered: e.target.value,
+                    }))
                   }
+                  sx={{ ...inputSx, maxWidth: { md: 120 } }}
                 />
-
                 <TextField
                   fullWidth
                   size="small"
                   type="number"
                   label="Unit Cost"
                   value={lineDraft.unitCost}
-                  onChange={(event) =>
-                    setLineDraft((prev) => ({ ...prev, unitCost: event.target.value }))
+                  onChange={(e) =>
+                    setLineDraft((p) => ({ ...p, unitCost: e.target.value }))
                   }
+                  sx={{ ...inputSx, maxWidth: { md: 120 } }}
                 />
-
-                <Button variant="contained" onClick={addLine}>
-                  Add
+                <Button
+                  variant="contained"
+                  onClick={addLine}
+                  sx={{
+                    bgcolor: theme.palette.primary.main,
+                    color: "#fff",
+                    borderRadius: "8px",
+                    textTransform: "none",
+                    fontWeight: 700,
+                    fontSize: "0.8rem",
+                    px: 2.5,
+                    py: 0.9,
+                    whiteSpace: "nowrap",
+                    boxShadow: "none",
+                    "&:hover": {
+                      bgcolor: theme.palette.primary.dark,
+                      boxShadow: "none",
+                    },
+                  }}
+                >
+                  + Add
                 </Button>
               </Stack>
 
-              <Stack spacing={0.6} sx={{ mt: 0.9 }}>
+              <Stack spacing={0.6} sx={{ mt: 1.25 }}>
                 {draftLines.length === 0 ? (
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography sx={{ fontSize: "0.75rem", color: "#94a3b8" }}>
                     No lines added yet.
                   </Typography>
                 ) : (
                   draftLines.map((line) => (
                     <Stack
                       key={line.id}
-                      direction={{ xs: 'column', md: 'row' }}
-                      spacing={0.8}
-                      alignItems={{ md: 'center' }}
+                      direction={{ xs: "column", md: "row" }}
+                      spacing={1}
+                      alignItems={{ md: "center" }}
                       sx={{
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 1.3,
-                        px: 0.8,
-                        py: 0.55,
+                        bgcolor: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "8px",
+                        px: 1.25,
+                        py: 0.75,
                       }}
                     >
-                      <Typography variant="body2" sx={{ flex: 1, fontWeight: 700 }}>
+                      <Typography
+                        sx={{
+                          flex: 1,
+                          fontSize: "0.8rem",
+                          fontWeight: 700,
+                          color: "#0f172a",
+                        }}
+                      >
                         {line.itemLabel}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography
+                        sx={{
+                          fontSize: "0.72rem",
+                          color: "#64748b",
+                          fontFamily: '"DM Mono", monospace',
+                        }}
+                      >
                         Qty: {line.quantityOrdered}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography
+                        sx={{
+                          fontSize: "0.72rem",
+                          color: "#64748b",
+                          fontFamily: '"DM Mono", monospace',
+                        }}
+                      >
                         Rate: {formatCurrency(line.unitCost)}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Amount: {formatCurrency(line.quantityOrdered * line.unitCost)}
+                      <Typography
+                        sx={{
+                          fontSize: "0.78rem",
+                          fontWeight: 700,
+                          color: "#0f172a",
+                          fontFamily: '"DM Mono", monospace',
+                        }}
+                      >
+                        {formatCurrency(line.quantityOrdered * line.unitCost)}
                       </Typography>
-                      <Button size="small" color="error" onClick={() => removeLine(line.id)}>
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => removeLine(line.id)}
+                        sx={{
+                          fontSize: "0.72rem",
+                          textTransform: "none",
+                          minWidth: 0,
+                          px: 1,
+                        }}
+                      >
                         Remove
                       </Button>
                     </Stack>
                   ))
                 )}
               </Stack>
-            </Card>
+            </Box>
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={closeCreate}>Cancel</Button>
-          <Button variant="contained" onClick={createPo}>
+
+        <DialogActions
+          sx={{ px: 2.5, py: 1.5, borderTop: "1.5px solid #e2e8f0", gap: 1 }}
+        >
+          <Button
+            onClick={closeCreate}
+            sx={{
+              textTransform: "none",
+              color: "#64748b",
+              fontWeight: 600,
+              borderRadius: "8px",
+              px: 2,
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={createPo}
+            sx={{
+              bgcolor: theme.palette.primary.main,
+              color: "#fff",
+              borderRadius: "8px",
+              textTransform: "none",
+              fontWeight: 700,
+              px: 3,
+              boxShadow: "none",
+              "&:hover": {
+                bgcolor: theme.palette.primary.dark,
+                boxShadow: "none",
+              },
+            }}
+          >
             Create PO
           </Button>
         </DialogActions>
       </Dialog>
 
+      {/* Toast */}
       <Snackbar
         open={toast.open}
         autoHideDuration={2600}
-        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+        onClose={() => setToast((p) => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <Alert
           severity={toast.severity}
           variant="filled"
-          onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+          onClose={() => setToast((p) => ({ ...p, open: false }))}
+          sx={{
+            borderRadius: "10px",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+            fontFamily: '"DM Sans", sans-serif',
+          }}
         >
           {toast.msg}
         </Alert>

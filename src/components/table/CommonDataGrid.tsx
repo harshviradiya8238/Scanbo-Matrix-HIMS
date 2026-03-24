@@ -88,6 +88,8 @@ export type CommonDataGridProps<R extends object> = {
   onSearchChange?: (value: string) => void;
   /** Whether to hide the search input */
   hideSearch?: boolean;
+  /** Whether to disable the pointer cursor on rows */
+  disableRowPointer?: boolean;
 };
 
 /* ─── Component ──────────────────────────────────────────────────────────── */
@@ -112,6 +114,7 @@ export default function CommonDataGrid<R extends object>({
   externalSearchValue,
   onSearchChange,
   hideSearch = false,
+  disableRowPointer = false,
 }: CommonDataGridProps<R>) {
   const [internalSearch, setInternalSearch] = React.useState("");
   const search = externalSearchValue ?? internalSearch;
@@ -324,7 +327,8 @@ export default function CommonDataGrid<R extends object>({
                   hover
                   onClick={() => onRowClick?.(row)}
                   sx={{
-                    cursor: onRowClick ? "pointer" : "default",
+                    cursor:
+                      onRowClick && !disableRowPointer ? "pointer" : "default",
                     "& .MuiTableCell-body": {
                       py: 1.5,
                       px: 2,

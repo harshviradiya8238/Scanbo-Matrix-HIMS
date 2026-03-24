@@ -373,7 +373,7 @@ export default function InventoryItemsPage() {
       {
         field: "genericName",
         headerName: "Generic",
-        width: 180,
+        // width: 180,
         renderCell: (row) => row.genericName || "--",
       },
       { field: "strength", headerName: "Strength", width: 120 },
@@ -394,13 +394,13 @@ export default function InventoryItemsPage() {
       {
         field: "preferredVendor",
         headerName: "Vendor",
-        width: 160,
+        // width: 160,
         renderCell: (row) => row.preferredVendor || "--",
       },
       {
         field: "status",
         headerName: "Status",
-        width: 110,
+        // width: 110,
         renderCell: (row) => (
           <Chip
             size="small"
@@ -460,83 +460,84 @@ export default function InventoryItemsPage() {
       title="Inventory Items"
       subtitle="Drug master for pharmacy and procurement workflow. New drug onboarding starts here."
       currentPageTitle="Items"
-      fullHeight
     >
-      <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-        {!canRead ? (
-          <Alert severity="error">
-            You do not have access to Inventory Item Master. Request
-            `inventory.items.read`.
-          </Alert>
-        ) : null}
+      <Box sx={{  }}>
+        <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0 }}>
+          {!canRead ? (
+            <Alert severity="error">
+              You do not have access to Inventory Item Master. Request
+              `inventory.items.read`.
+            </Alert>
+          ) : null}
 
-        {canRead ? (
-          <>
-            {!canWrite ? (
-              <Alert severity="info">
-                You are in read-only mode for item master.
-              </Alert>
-            ) : null}
+          {canRead ? (
+            <>
+              {!canWrite ? (
+                <Alert severity="info">
+                  You are in read-only mode for item master.
+                </Alert>
+              ) : null}
 
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  sm: "repeat(2, minmax(0, 1fr))",
-                  lg: "repeat(4, minmax(0, 1fr))",
-                },
-                gap: 2,
-              }}
-            >
-              {metricTiles.map((tile) => (
-                <StatTile
-                  key={tile.label}
-                  label={tile.label}
-                  value={tile.value}
-                  subtitle={tile.subtitle}
-                  icon={tile.icon}
-                  variant="soft"
-                />
-              ))}
-            </Box>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, minmax(0, 1fr))",
+                    lg: "repeat(4, minmax(0, 1fr))",
+                  },
+                  gap: 2,
+                }}
+              >
+                {metricTiles.map((tile) => (
+                  <StatTile
+                    key={tile.label}
+                    label={tile.label}
+                    value={tile.value}
+                    subtitle={tile.subtitle}
+                    icon={tile.icon}
+                    variant="soft"
+                  />
+                ))}
+              </Box>
 
-            <CommonDataGrid<InventoryItem>
-              rows={filteredItems}
-              columns={itemColumns}
-              getRowId={(row) => row.id}
-              searchPlaceholder="Search by code / drug / generic / vendor"
-              externalSearchValue={search}
-              onSearchChange={setSearch}
-              filterDropdowns={[
-                {
-                  id: "status-filter",
-                  placeholder: "Status",
-                  value: filter,
-                  options: ["All", "Active", "Inactive"],
-                  onChange: (v) => setFilter(v as ItemFilter),
-                },
-                {
-                  id: "schedule-filter",
-                  placeholder: "Schedule",
-                  value: scheduleFilter,
-                  options: ["All", "OTC", "Rx", "Controlled"],
-                  onChange: (v) => setScheduleFilter(v as any),
-                },
-              ]}
-              toolbarRight={
-                <Button
-                  variant="contained"
-                  onClick={openCreate}
-                  sx={{ borderRadius: 2 }}
-                >
-                  + New Drug
-                </Button>
-              }
-            />
-          </>
-        ) : null}
-      </Stack>
+              <CommonDataGrid<InventoryItem>
+                rows={filteredItems}
+                columns={itemColumns}
+                getRowId={(row) => row.id}
+                searchPlaceholder="Search by code / drug / generic / vendor"
+                externalSearchValue={search}
+                onSearchChange={setSearch}
+                filterDropdowns={[
+                  {
+                    id: "status-filter",
+                    placeholder: "Status",
+                    value: filter,
+                    options: ["All", "Active", "Inactive"],
+                    onChange: (v) => setFilter(v as ItemFilter),
+                  },
+                  {
+                    id: "schedule-filter",
+                    placeholder: "Schedule",
+                    value: scheduleFilter,
+                    options: ["All", "OTC", "Rx", "Controlled"],
+                    onChange: (v) => setScheduleFilter(v as any),
+                  },
+                ]}
+                toolbarRight={
+                  <Button
+                    variant="contained"
+                    onClick={openCreate}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    + New Drug
+                  </Button>
+                }
+              />
+            </>
+          ) : null}
+        </Stack>
+      </Box>
 
       <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="md">
         <DialogTitle>

@@ -85,8 +85,8 @@ type CommonDataGridState = {
 };
 
 const maskPhoneNumber = (phone: string) => {
-  const input = (phone || '').trim();
-  if (!input) return '—';
+  const input = (phone || "").trim();
+  if (!input) return "—";
 
   const allDigits = input.match(/\d/g) || [];
   const totalDigits = allDigits.length;
@@ -101,7 +101,7 @@ const maskPhoneNumber = (phone: string) => {
   return input.replace(/\d/g, (digit) => {
     seen += 1;
     if (seen <= keepPrefixDigits) return digit;
-    return seen >= localVisibleStart ? digit : 'X';
+    return seen >= localVisibleStart ? digit : "X";
   });
 };
 const tagOptions = [
@@ -125,12 +125,16 @@ export default function PatientListPage() {
   const [selectedPatient, setSelectedPatient] =
     React.useState<PatientRow | null>(null);
   const [snackbar, setSnackbar] = React.useState<string | null>(null);
-  const [externalState, setExternalState] = React.useState<CommonDataGridState | null>(null);
+  const [externalState, setExternalState] =
+    React.useState<CommonDataGridState | null>(null);
   const [columnsDialogOpen, setColumnsDialogOpen] = React.useState(false);
-  const [columnVisModel, setColumnVisModel] = React.useState<Record<string, boolean> | null>(null);
+  const [columnVisModel, setColumnVisModel] = React.useState<Record<
+    string,
+    boolean
+  > | null>(null);
   const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = React.useState<number | null>(null);
-  
+
   const [confirmAction, setConfirmAction] = React.useState<{
     title: string;
     description: string;
@@ -169,7 +173,6 @@ export default function PatientListPage() {
       {
         field: "name",
         headerName: "Patient Name",
-        width: 250,
         renderCell: (row: PatientRow) => (
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Avatar
@@ -218,7 +221,6 @@ export default function PatientListPage() {
       {
         field: "ageGender",
         headerName: "Age / Gender",
-        width: 140,
         valueGetter: (row: PatientRow) =>
           `${row?.age ?? "—"} / ${row?.gender ?? "—"}`,
       },
@@ -227,8 +229,14 @@ export default function PatientListPage() {
         headerName: "Phone",
         width: 140,
         renderCell: (row: PatientRow) => (
-          <Stack direction="row" alignItems="center" sx={{ height: '100%', width: '100%' }}>
-            <Typography variant="body2">{maskPhoneNumber(row.phone)}</Typography>
+          <Stack
+            direction="row"
+            alignItems="center"
+            sx={{ height: "100%", width: "100%" }}
+          >
+            <Typography variant="body2">
+              {maskPhoneNumber(row.phone)}
+            </Typography>
           </Stack>
         ),
       },
@@ -247,7 +255,6 @@ export default function PatientListPage() {
       {
         field: "nextAppointment",
         headerName: "Next Appointment",
-        width: 170,
         valueGetter: (row: PatientRow) =>
           row?.nextAppointment
             ? new Date(row.nextAppointment).toLocaleDateString()
@@ -256,7 +263,6 @@ export default function PatientListPage() {
       {
         field: "status",
         headerName: "Status",
-        width: 140,
         renderCell: (row: PatientRow) => (
           <Chip
             label={row.status}
@@ -266,15 +272,15 @@ export default function PatientListPage() {
           />
         ),
       },
-      {
-        field: "outstandingBalance",
-        headerName: "Outstanding",
-        width: 140,
-        valueGetter: (row: PatientRow) =>
-          typeof row?.outstandingBalance === "number"
-            ? `$${row.outstandingBalance.toFixed(2)}`
-            : "—",
-      },
+      // {
+      //   field: "outstandingBalance",
+      //   headerName: "Outstanding",
+      //   width: 140,
+      //   valueGetter: (row: PatientRow) =>
+      //     typeof row?.outstandingBalance === "number"
+      //       ? `$${row.outstandingBalance.toFixed(2)}`
+      //       : "—",
+      // },
       {
         field: "tags",
         headerName: "Tags",
@@ -384,12 +390,15 @@ export default function PatientListPage() {
 
   React.useEffect(() => {
     try {
-      const key = 'scanbo:grid:patient-list-v2';
-      const persisted = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+      const key = "scanbo:grid:patient-list-v2";
+      const persisted =
+        typeof window !== "undefined" ? localStorage.getItem(key) : null;
       if (persisted) {
         const parsed = JSON.parse(persisted);
         if (parsed?.columnVisibilityModel) {
-          setColumnVisModel(parsed.columnVisibilityModel as Record<string, boolean>);
+          setColumnVisModel(
+            parsed.columnVisibilityModel as Record<string, boolean>,
+          );
         }
         if (parsed?.columnOrder) {
           setColumnOrder(parsed.columnOrder as string[]);
@@ -412,14 +421,19 @@ export default function PatientListPage() {
 
   React.useEffect(() => {
     if (externalState?.columnVisibilityModel) {
-      setColumnVisModel(externalState.columnVisibilityModel as Record<string, boolean>);
+      setColumnVisModel(
+        externalState.columnVisibilityModel as Record<string, boolean>,
+      );
     }
     if (externalState?.columnOrder) {
       setColumnOrder(externalState.columnOrder);
     }
   }, [externalState?.columnOrder, externalState?.columnVisibilityModel]);
 
-  const applyColumnVisModel = (model: Record<string, boolean>, order?: string[]) => {
+  const applyColumnVisModel = (
+    model: Record<string, boolean>,
+    order?: string[],
+  ) => {
     setColumnVisModel(model);
     if (order) setColumnOrder(order);
     setExternalState((prev) => ({
@@ -432,7 +446,10 @@ export default function PatientListPage() {
   const toggleColumn = (field: string) => {
     const current =
       columnVisModel ??
-      (columnOrder.length > 0 ? columnOrder : columns.map((column) => column.field)).reduce(
+      (columnOrder.length > 0
+        ? columnOrder
+        : columns.map((column) => column.field)
+      ).reduce(
         (acc, currentField) => ({ ...acc, [currentField]: true }),
         {} as Record<string, boolean>,
       );
@@ -499,9 +516,9 @@ export default function PatientListPage() {
         >
           <Box>
             <Stack
-              direction={{ xs: 'column', sm: 'row' }}
+              direction={{ xs: "column", sm: "row" }}
               spacing={{ xs: 0.8, sm: 1.25 }}
-              alignItems={{ xs: 'flex-start', sm: 'center' }}
+              alignItems={{ xs: "flex-start", sm: "center" }}
               sx={{ mb: 0.6 }}
             >
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
@@ -510,13 +527,19 @@ export default function PatientListPage() {
               {!isDoctor && (
                 <Stack direction="row" spacing={1} flexWrap="wrap">
                   <Chip size="small" color="primary" label="Patient Registry" />
-                  <Chip size="small" color="info" variant="outlined" label="OPD + IPD Linked" />
+                  <Chip
+                    size="small"
+                    color="info"
+                    variant="outlined"
+                    label="OPD + IPD Linked"
+                  />
                 </Stack>
               )}
             </Stack>
             {!isDoctor && (
               <Typography variant="body2" color="text.secondary">
-                Manage patient demographics, visits, admissions, and billing status in one place.
+                Manage patient demographics, visits, admissions, and billing
+                status in one place.
               </Typography>
             )}
           </Box>
@@ -581,13 +604,13 @@ export default function PatientListPage() {
           searchPlaceholder="Search..."
           searchFields={["mrn", "name", "phone", "city", "department"]}
           showSerialNo={true}
+          disableRowPointer={true}
           onRowClick={(row) => {
             if (isDoctor) {
               setSelectedPatient(row);
               setDetailsOpen(true);
               return;
             }
-            router.push(`/patients/profile?mrn=${row.mrn}`);
           }}
           toolbarRight={
             <Stack direction="row" spacing={1}>
@@ -614,7 +637,12 @@ export default function PatientListPage() {
           }
         />
 
-        <Dialog open={columnsDialogOpen} onClose={() => setColumnsDialogOpen(false)} fullWidth maxWidth="xs">
+        <Dialog
+          open={columnsDialogOpen}
+          onClose={() => setColumnsDialogOpen(false)}
+          fullWidth
+          maxWidth="xs"
+        >
           <DialogTitle>Choose columns</DialogTitle>
           <DialogContent>
             <Stack spacing={1} sx={{ mt: 1 }}>
@@ -628,11 +656,12 @@ export default function PatientListPage() {
                     draggable
                     onDragStart={(event) => {
                       setDraggedIndex(index);
-                      event.dataTransfer.effectAllowed = 'move';
+                      event.dataTransfer.effectAllowed = "move";
                     }}
                     onDragOver={(event) => {
                       event.preventDefault();
-                      if (draggedIndex === null || draggedIndex === index) return;
+                      if (draggedIndex === null || draggedIndex === index)
+                        return;
                       const newOrder = [...columnOrder];
                       const item = newOrder.splice(draggedIndex, 1)[0];
                       newOrder.splice(index, 0, item);
@@ -641,34 +670,40 @@ export default function PatientListPage() {
                     }}
                     onDragEnd={() => setDraggedIndex(null)}
                     sx={{
-                      display: 'flex',
-                      alignItems: 'center',
+                      display: "flex",
+                      alignItems: "center",
                       p: 1,
                       borderRadius: 1.5,
-                      border: '1px solid',
-                      borderColor: draggedIndex === index ? 'primary.main' : 'divider',
-                      bgcolor: draggedIndex === index ? alpha('#1976d2', 0.05) : 'transparent',
-                      cursor: 'grab',
-                      '&:active': { cursor: 'grabbing' },
+                      border: "1px solid",
+                      borderColor:
+                        draggedIndex === index ? "primary.main" : "divider",
+                      bgcolor:
+                        draggedIndex === index
+                          ? alpha("#1976d2", 0.05)
+                          : "transparent",
+                      cursor: "grab",
+                      "&:active": { cursor: "grabbing" },
                       gap: 1,
                     }}
                   >
-                    <DragHandleIcon sx={{ color: 'text.disabled', fontSize: 18 }} />
+                    <DragHandleIcon
+                      sx={{ color: "text.disabled", fontSize: 18 }}
+                    />
                     <FormControlLabel
                       sx={{ flex: 1, m: 0 }}
-                      control={(
+                      control={
                         <Checkbox
                           size="small"
                           checked={columnVisModel?.[field] !== false}
                           onChange={() => toggleColumn(field)}
                           sx={{ p: 0.5 }}
                         />
-                      )}
-                      label={(
+                      }
+                      label={
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
                           {column.headerName ?? field}
                         </Typography>
-                      )}
+                      }
                     />
                   </Box>
                 );
@@ -676,9 +711,7 @@ export default function PatientListPage() {
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => resetColumnVisibility()}>
-              Reset
-            </Button>
+            <Button onClick={() => resetColumnVisibility()}>Reset</Button>
             <Button
               onClick={() => {
                 applyColumnVisModel(columnVisModel ?? {}, columnOrder);
@@ -953,9 +986,15 @@ export default function PatientListPage() {
               <Divider />
 
               <Box>
-                <Typography variant="caption" color="text.secondary">Demographics</Typography>
-                <Typography variant="body2">{selectedPatient.age} years · {selectedPatient.gender}</Typography>
-                <Typography variant="body2">{maskPhoneNumber(selectedPatient.phone)}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Demographics
+                </Typography>
+                <Typography variant="body2">
+                  {selectedPatient.age} years · {selectedPatient.gender}
+                </Typography>
+                <Typography variant="body2">
+                  {maskPhoneNumber(selectedPatient.phone)}
+                </Typography>
                 <Typography variant="body2">{selectedPatient.city}</Typography>
               </Box>
 
@@ -1043,6 +1082,99 @@ export default function PatientListPage() {
           setConfirmAction(null);
         }}
       />
+
+      <Menu
+        anchorEl={actionMenu?.anchor}
+        open={Boolean(actionMenu)}
+        onClose={handleMenuClose}
+        onClick={handleMenuClose}
+        transformOrigin={{ horizontal: "right", vertical: "top" }}
+        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+        PaperProps={{
+          sx: {
+            width: 220,
+            mt: 0.5,
+            boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+            borderRadius: 2.5,
+            "& .MuiMenuItem-root": {
+              py: 1.2,
+              px: 2,
+              gap: 1.5,
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              "&:hover": {
+                bgcolor: alpha(theme.palette.primary.main, 0.04),
+                color: "primary.main",
+                "& .MuiListItemIcon-root": { color: "primary.main" },
+              },
+            },
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() =>
+            router.push(`/patients/profile/${actionMenu?.row?.mrn}`)
+          }
+        >
+          <ListItemIcon sx={{ minWidth: 24 }}>
+            <VisibilityIcon sx={{ fontSize: 18 }} />
+          </ListItemIcon>
+          <ListItemText primary="View Profile" />
+        </MenuItem>
+        <MenuItem onClick={() => setActionMenu(null)}>
+          <ListItemIcon sx={{ minWidth: 24 }}>
+            <EditIcon sx={{ fontSize: 18 }} />
+          </ListItemIcon>
+          <ListItemText primary="Edit Demographics" />
+        </MenuItem>
+        <Divider sx={{ my: 1, opacity: 0.6 }} />
+        <MenuItem onClick={() => setActionMenu(null)}>
+          <ListItemIcon sx={{ minWidth: 24 }}>
+            <CalendarMonthIcon sx={{ fontSize: 18 }} />
+          </ListItemIcon>
+          <ListItemText primary="New Appointment" />
+        </MenuItem>
+        <MenuItem onClick={() => setActionMenu(null)}>
+          <ListItemIcon sx={{ minWidth: 24 }}>
+            <StartIcon sx={{ fontSize: 18 }} />
+          </ListItemIcon>
+          <ListItemText primary="Start Encounter" />
+        </MenuItem>
+        <MenuItem onClick={() => setActionMenu(null)}>
+          <ListItemIcon sx={{ minWidth: 24 }}>
+            <AdmitIcon sx={{ fontSize: 18 }} />
+          </ListItemIcon>
+          <ListItemText primary="Admit Patient" />
+        </MenuItem>
+        <Divider sx={{ my: 1, opacity: 0.6 }} />
+        <MenuItem onClick={() => setActionMenu(null)}>
+          <ListItemIcon sx={{ minWidth: 24 }}>
+            <InvoiceIcon sx={{ fontSize: 18 }} />
+          </ListItemIcon>
+          <ListItemText primary="Billing / Invoices" />
+        </MenuItem>
+        <MenuItem
+          onClick={(e) => {
+            e.stopPropagation();
+            const row = actionMenu?.row;
+            if (row) {
+              setConfirmAction({
+                title: "Archive Patient?",
+                description: `Are you sure you want to archive ${row.name}? They will no longer appear in the active registry.`,
+                onConfirm: () =>
+                  setSnackbar(`Patient ${row.name} archived successfully.`),
+              });
+            }
+            handleMenuClose();
+          }}
+          sx={{ color: "error.main" }}
+        >
+          <ListItemIcon sx={{ minWidth: 24, color: "inherit" }}>
+            <ArchiveIcon sx={{ fontSize: 18 }} />
+          </ListItemIcon>
+          <ListItemText primary="Archive" />
+        </MenuItem>
+      </Menu>
     </Box>
   );
 }
