@@ -32,6 +32,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'People',
         type: 'group',
         requiredPermissions: ['patients.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 2,
         children: [
           {
@@ -60,6 +61,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'Event',
         type: 'group',
         requiredPermissions: ['appointments.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 3,
         children: [
           {
@@ -89,6 +91,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'MedicalServices',
         type: 'group',
         requiredPermissions: ['doctors.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 4,
         children: [
           {
@@ -138,6 +141,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'LocalHospital',
         type: 'group',
         requiredPermissions: ['ipd.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 5,
         children: [
           {
@@ -212,6 +216,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'MedicalInformation',
         type: 'group',
         requiredPermissions: ['clinical.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 1,
         children: [
           {
@@ -249,6 +254,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'MedicalServices',
         type: 'group',
         requiredPermissions: ['surgery.optime.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 2,
         children: [
           {
@@ -277,6 +283,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'ShoppingCart',
         type: 'group',
         requiredPermissions: ['orders.read', 'diagnostics.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 3,
         children: [
           {
@@ -314,6 +321,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'Science',
         type: 'group',
         requiredPermissions: ['diagnostics.lab.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 4,
         children: [
           { id: 'lab-dashboard', label: 'Dashboard', iconName: 'Dashboard', route: '/lab/dashboard', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 1 },
@@ -338,13 +346,24 @@ export const NAV_GROUPS: NavGroup[] = [
         order: 1,
         children: [
           {
-            id: 'pharmacy-willow',
-            label: 'Willow Pharmacy',
-            iconName: 'LocalPharmacy',
-            route: '/clinical/modules/willow',
+            id: 'pharmacy-dashboard',
+            label: 'Pharmacy Dashboard',
+            iconName: 'Dashboard',
+            route: '/pharmacy',
             type: 'item',
             requiredPermissions: ['pharmacy.read'],
+            excludedRoles: ['PHARMACIST'],
             order: 1,
+          },
+          {
+            id: 'pharmacy-prescription-queue',
+            label: 'Prescription Queue',
+            iconName: 'Medication',
+            route: '/pharmacy/prescription-queue',
+            type: 'item',
+            requiredPermissions: ['pharmacy.read'],
+            badgeCount: 3,
+            order: 3,
           },
           {
             id: 'pharmacy-stock',
@@ -353,7 +372,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/pharmacy/stock',
             type: 'item',
             requiredPermissions: ['pharmacy.stock.read'],
-            order: 2,
+            order: 4,
           },
           {
             id: 'pharmacy-returns',
@@ -362,7 +381,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/pharmacy/returns',
             type: 'item',
             requiredPermissions: ['pharmacy.returns.write'],
-            order: 3,
+            order: 5,
           },
         ],
       },
@@ -372,6 +391,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'ReceiptLong',
         type: 'group',
         requiredPermissions: ['billing.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 2,
         children: [
           {
@@ -381,6 +401,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/billing/opd',
             type: 'item',
             requiredPermissions: ['billing.read'],
+            excludedRoles: ['PHARMACIST'],
             order: 1,
           },
           {
@@ -390,7 +411,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/billing/ipd',
             type: 'item',
             requiredPermissions: ['billing.read'],
-            excludedRoles: ['RECEPTION'],
+            excludedRoles: ['RECEPTION', 'PHARMACIST'],
             order: 2,
           },
           {
@@ -409,6 +430,7 @@ export const NAV_GROUPS: NavGroup[] = [
             route: '/billing/day-book',
             type: 'item',
             requiredPermissions: ['billing.read'],
+            excludedRoles: ['PHARMACIST'],
             order: 4,
           },
           {
@@ -429,16 +451,17 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'AccountBalance',
         type: 'group',
         requiredPermissions: ['billing.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 3,
         children: [
           {
             id: 'billing-dashboard',
-            label: 'Dashboard',
+            label: 'Billing Dashboard',
             iconName: 'DashboardOutlined',
-            route: '/billing/dashboard',
+            route: '/billing/billing-dashboard',
             type: 'item',
             requiredPermissions: ['billing.read'],
-            excludedRoles: ['RECEPTION'],
+            excludedRoles: ['RECEPTION', 'PHARMACIST'],
             order: 1,
           },
           {
@@ -487,6 +510,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'Shield',
         type: 'group',
         requiredPermissions: ['billing.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 4,
         children: [
           {
@@ -569,6 +593,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'Groups',
         type: 'group',
         requiredPermissions: ['staff.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 1,
         children: [
           {
@@ -606,6 +631,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'Assessment',
         type: 'group',
         requiredPermissions: ['reports.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 2,
         children: [
           {
@@ -653,6 +679,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'Settings',
         type: 'group',
         requiredPermissions: ['admin.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 3,
         children: [
           {
@@ -709,6 +736,7 @@ export const NAV_GROUPS: NavGroup[] = [
         route: '/help',
         type: 'item',
         requiredPermissions: ['help.read'],
+        excludedRoles: ['PHARMACIST'],
         order: 4,
       },
     ],

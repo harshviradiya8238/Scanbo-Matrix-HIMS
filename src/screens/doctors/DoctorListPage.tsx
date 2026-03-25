@@ -254,12 +254,10 @@ export default function DoctorListPage() {
       {
         field: "designation",
         headerName: "Designation",
-        width: 170,
       },
       {
         field: "department",
         headerName: "Department",
-        width: 150,
       },
       {
         field: "doctorType",
