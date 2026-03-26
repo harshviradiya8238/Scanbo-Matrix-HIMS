@@ -241,6 +241,12 @@ const QUICK_LINKS = [
     color: "#475569",
   },
   {
+    label: "Patient Portal",
+    icon: <PeopleIcon />,
+    route: "/patient-portal/home",
+    color: "#6d28d9",
+  },
+  {
     label: "Inventory",
     icon: <Inventory2Icon />,
     route: "/inventory/items",
