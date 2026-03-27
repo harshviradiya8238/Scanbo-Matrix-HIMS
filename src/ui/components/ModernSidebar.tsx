@@ -71,6 +71,7 @@ import {
   Shield,
   Vaccines,
   VolunteerActivism,
+  BurstMode,
 } from "@mui/icons-material";
 import { NAV_GROUPS } from "@/src/core/navigation/nav-config";
 import { MenuItem, UserRole } from "@/src/core/navigation/types";
@@ -150,6 +151,7 @@ const iconMap: Record<string, React.ComponentType> = {
   Shield,
   Vaccines,
   VolunteerActivism,
+  PACS: BurstMode,
 };
 
 interface ModernSidebarProps {
