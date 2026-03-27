@@ -1,3 +1,5 @@
+// TODO: Uncomment when Financial Assistance module is ready
+
 // "use client";
 
 // import * as React from "react";
@@ -14,3 +16,7 @@
 
 //   return <FinancialAssistanceFinanceDeskPage />;
 // }
+
+export default function Page() {
+  return null;
+}

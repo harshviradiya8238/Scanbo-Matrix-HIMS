@@ -3,3 +3,7 @@
 // export default function Page() {
 //   return <PatientPortalFinancialAssistancePage />;
 // }
+
+export default function Page() {
+  return null;
+}
