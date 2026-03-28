@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import DepartmentsPage from '@/src/screens/admin/DepartmentsPage';
 
-export default function DepartmentsPage() {
-  return <PageTemplate title="Departments" currentPageTitle="Departments" />;
+export default function DepartmentsRoutePage() {
+  return <DepartmentsPage />;
 }

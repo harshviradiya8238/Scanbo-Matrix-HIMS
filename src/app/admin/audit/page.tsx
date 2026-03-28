@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import AuditLogsPage from '@/src/screens/admin/AuditLogsPage';
 
-export default function AuditLogsPage() {
-  return <PageTemplate title="Audit Logs" currentPageTitle="Audit Logs" />;
+export default function AuditPage() {
+  return <AuditLogsPage />;
 }

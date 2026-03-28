@@ -257,6 +257,7 @@ export default function DoctorAvailabilityStep({ values, setFieldValue }: Doctor
                   {/* Toggle pill */}
                   <Box
                     component="button"
+                    type="button"
                     onClick={() => toggleDay(di)}
                     sx={{
                       mt: 1, display: 'inline-flex', alignItems: 'center',
@@ -501,6 +502,7 @@ function SlotCard({ type, slot, onRemove, green, greenLight, greenMid, amber, am
       )}
       <Box
         component="button"
+        type="button"
         onClick={onRemove}
         sx={{
           position: 'absolute', top: 6, right: 7,
@@ -530,6 +532,7 @@ function DashedBtn({ label, borderColor, color, hoverBg, solid, onClick }: Dashe
   return (
     <Box
       component="button"
+      type="button"
       onClick={onClick}
       sx={{
         width: '100%', py: '6px',

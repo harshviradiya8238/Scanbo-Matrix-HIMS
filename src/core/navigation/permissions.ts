@@ -152,6 +152,7 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'orders.*',
     'diagnostics.read',
     'pharmacy.read',
+    'reports.read',
     'help.read',
   ],
   NURSE: [

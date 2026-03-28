@@ -1,0 +1,118 @@
+node_modules/@mui/utils/chainPropTypes/chainPropTypes.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/prop-types/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@mui/utils/elementAcceptingRef/elementAcceptingRef.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/prop-types/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@mui/utils/elementTypeAcceptingRef/elementTypeAcceptingRef.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/prop-types/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@mui/utils/integerPropType/integerPropType.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/prop-types/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@mui/utils/refType/refType.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/prop-types/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/@mui/x-data-grid/utils/cleanupTracking/FinalizationRegistryBasedCleanupTracking.d.ts(3,13): error TS2304: Cannot find name 'FinalizationRegistry'.
+node_modules/next/dist/build/templates/app-page.d.ts(3,25): error TS2307: Cannot find module 'VAR_MODULE_GLOBAL_ERROR' or its corresponding type declarations.
+node_modules/next/dist/build/webpack-config.d.ts(10,104): error TS2694: Namespace '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/next/dist/compiled/webpack/webpack".webpack' has no exported member 'RuleSetUseItem'.
+node_modules/next/dist/build/webpack/loaders/next-app-loader/index.d.ts(1,13): error TS2613: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/next/dist/compiled/webpack/webpack"' has no default export. Did you mean to use 'import { webpack } from "/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/next/dist/compiled/webpack/webpack"' instead?
+node_modules/next/dist/client/components/error-boundary.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/components/http-access-fallback/error-boundary.d.ts(11,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/components/layout-router.d.ts(2,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/with-router.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/lib/metadata/metadata.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/next-devtools/dev-overlay/shared.d.ts(186,247): error TS2694: Namespace 'React' has no exported member 'ActionDispatch'.
+node_modules/next/dist/next-devtools/userspace/pages/pages-dev-overlay-setup.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/server/app-render/entry-base.d.ts(1,114): error TS2307: Cannot find module 'react-server-dom-webpack/server' or its corresponding type declarations.
+node_modules/next/dist/server/app-render/entry-base.d.ts(2,27): error TS2307: Cannot find module 'react-server-dom-webpack/static' or its corresponding type declarations.
+node_modules/next/dist/server/route-modules/app-page/vendored/rsc/entrypoints.d.ts(5,39): error TS2307: Cannot find module 'react/compiler-runtime' or its corresponding type declarations.
+node_modules/next/dist/server/route-modules/app-page/vendored/ssr/entrypoints.d.ts(5,39): error TS2307: Cannot find module 'react/compiler-runtime' or its corresponding type declarations.
+node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(39,16): error TS2304: Cannot find name 'HeadersIterator'.
+node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(40,13): error TS2304: Cannot find name 'HeadersIterator'.
+node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(41,15): error TS2304: Cannot find name 'HeadersIterator'.
+node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(42,26): error TS2304: Cannot find name 'HeadersIterator'.
+node_modules/next/dist/shared/lib/app-router-context.shared-runtime.d.ts(4,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/app-router-types.d.ts(7,13): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/head-manager-context.shared-runtime.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/image-config-context.shared-runtime.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/loadable-context.shared-runtime.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/loadable.shared-runtime.d.ts(21,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/router-context.shared-runtime.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/server-inserted-html.shared-runtime.d.ts(1,8): error TS1259: Module '"/home/scalp6/Documents/Scanbo-projects/Scanbo-HIMS/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/utils.d.ts(10,13): error TS1192: Module '"fs"' has no default export.
+src/screens/clinical/OpTimeSurgeryPage.tsx(5,26): error TS2307: Cannot find module '@/src/ui/components/PageTemplate' or its corresponding type declarations.
+src/screens/clinical/OpTimeSurgeryPage.tsx(20,8): error TS2307: Cannot find module '@/src/ui/components/atoms' or its corresponding type declarations.
+src/screens/clinical/OpTimeSurgeryPage.tsx(21,22): error TS2307: Cannot find module '@/src/ui/components/molecules' or its corresponding type declarations.
+src/screens/clinical/OpTimeSurgeryPage.tsx(22,18): error TS2307: Cannot find module '@/src/ui/components/layout/AlignedGrid' or its corresponding type declarations.
+src/screens/clinical/OpTimeSurgeryPage.tsx(23,23): error TS2307: Cannot find module '@/src/ui/components/organisms/DataTable' or its corresponding type declarations.
+src/screens/clinical/OpTimeSurgeryPage.tsx(34,30): error TS2307: Cannot find module '@/src/screens/clinical/components/ModuleHeaderCard' or its corresponding type declarations.
+src/screens/clinical/OpTimeSurgeryPage.tsx(35,33): error TS2307: Cannot find module '@/src/screens/clinical/components/WorkflowSectionCard' or its corresponding type declarations.
+src/screens/clinical/OpTimeSurgeryPage.tsx(36,29): error TS2307: Cannot find module '@/src/core/patients/useMrnParam' or its corresponding type declarations.
+src/screens/clinical/OpTimeSurgeryPage.tsx(37,36): error TS2307: Cannot find module '@/src/core/patients/patientDisplay' or its corresponding type declarations.
+src/screens/clinical/OpTimeSurgeryPage.tsx(194,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(195,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(198,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(199,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(202,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(230,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(238,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(248,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(251,22): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(266,5): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(267,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(268,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(273,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(274,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(274,53): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(281,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(282,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(283,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(284,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(287,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(292,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(293,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(294,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(297,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(302,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(303,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(304,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(307,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(314,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(315,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(316,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(321,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(341,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(369,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(370,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(371,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(372,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(375,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(379,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(380,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(383,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(385,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(386,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(395,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(396,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(399,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(400,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(403,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(406,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(411,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(412,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(418,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(422,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(423,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(426,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(427,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(428,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(432,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(433,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(436,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(437,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(438,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(449,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(451,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(452,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(455,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(456,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(459,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(459,82): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(462,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(462,77): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(465,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(465,77): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(472,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(477,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+src/screens/clinical/OpTimeSurgeryPage.tsx(483,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.

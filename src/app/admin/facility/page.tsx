@@ -1,5 +1,5 @@
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import FacilitySettingsPage from '@/src/screens/admin/FacilitySettingsPage';
 
 export default function FacilityPage() {
-  return <PageTemplate title="Facility Settings" currentPageTitle="Facility" />;
+  return <FacilitySettingsPage />;
 }

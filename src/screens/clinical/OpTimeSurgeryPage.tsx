@@ -1,157 +1,83 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 import {
   Alert,
   Box,
   Button,
-  Checkbox,
   Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
-  FormControlLabel,
-  InputAdornment,
   LinearProgress,
   MenuItem,
   Snackbar,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from '@/src/ui/components/atoms';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { Card, CommonTabs, StatTile } from '@/src/ui/components/molecules';
+import { Card, CommonTable, CommonTabs, StatTile } from '@/src/ui/components/molecules';
+import type { CommonTableColumn, CommonTableFilter } from '@/src/ui/components/molecules/CommonTable';
 import { alpha, useTheme } from '@/src/ui/theme';
-import { useUser } from '@/src/core/auth/UserContext';
-import { canAccessRoute } from '@/src/core/navigation/route-access';
-import ModuleHeaderCard from '@/src/screens/clinical/components/ModuleHeaderCard';
-import WorkflowSectionCard from '@/src/screens/clinical/components/WorkflowSectionCard';
 import {
   AddCircleOutline as AddCircleOutlineIcon,
-  Biotech as BiotechIcon,
-  CheckCircle as CheckCircleIcon,
-  Checklist as ChecklistIcon,
-  Healing as HealingIcon,
+  ArrowBack as ArrowBackIcon,
+  FactCheck as FactCheckIcon,
   LocalHospital as LocalHospitalIcon,
-  MeetingRoom as MeetingRoomIcon,
   MonitorHeart as MonitorHeartIcon,
-  OpenInNew as OpenInNewIcon,
-  QueryStats as QueryStatsIcon,
-  Science as ScienceIcon,
-  Search as SearchIcon,
+  Print as PrintIcon,
+  Save as SaveIcon,
+  Schedule as ScheduleIcon,
+  TaskAlt as TaskAltIcon,
   Timeline as TimelineIcon,
-  WarningAmber as WarningAmberIcon,
 } from '@mui/icons-material';
+import {
+  EnterpriseModuleHeader,
+  EnterpriseSectionTitle,
+  EnterpriseStatusChip,
+  EnterpriseTimeline,
+} from './components/EnterpriseUi';
 
-type OpTimeTab =
-  | 'dashboard'
-  | 'ot-rooms'
-  | 'scheduling'
-  | 'pre-op'
-  | 'consent'
-  | 'anaesthesia'
-  | 'intra-op'
-  | 'recovery'
-  | 'post-op'
-  | 'staff'
-  | 'inventory'
-  | 'billing'
-  | 'reports';
-type OpTimeMenu = 'dashboard' | 'scheduling' | 'pre-op' | 'intra-op' | 'post-op';
+type CasePriority = 'STAT' | 'Urgent' | 'Elective';
+type CaseStatus = 'Scheduled' | 'Pre-Op' | 'In OR' | 'Closing' | 'PACU' | 'Completed' | 'Cancelled';
+type WorkspaceTab = 'preop' | 'intraop' | 'postop';
+type ViewMode = 'board' | 'workspace';
 
-type SurgeryPriority = 'STAT' | 'Urgent' | 'Elective';
-type SurgeryStatus =
-  | 'Scheduled'
-  | 'Pre-Op'
-  | 'In OR'
-  | 'Closing'
-  | 'PACU'
-  | 'Completed'
-  | 'Cancelled';
-type RoomState = 'Open' | 'Occupied' | 'Turnover' | 'Cleaning' | 'Blocked';
-type TimelineEventType =
-  | 'Patient In Room'
-  | 'Incision'
-  | 'Specimen Sent'
-  | 'Implant'
-  | 'Blood Start'
-  | 'Closure'
-  | 'Critical Event'
-  | 'PACU Transfer';
-type ConsentPhase = 'Sign In' | 'Time Out' | 'Sign Out';
-
-type ChipColor =
-  | 'default'
-  | 'primary'
-  | 'secondary'
-  | 'success'
-  | 'info'
-  | 'warning'
-  | 'error';
-
-interface OrRoom {
-  id: string;
-  label: string;
-  suite: string;
-  specialty: string;
-  state: RoomState;
-  nurseLead: string;
-  nextReadyAt: string;
-}
-
-interface PreOpChecklist {
-  consentSigned: boolean;
-  npoConfirmed: boolean;
-  siteMarked: boolean;
-  labsVerified: boolean;
-  imagingReady: boolean;
-  anesthesiaCleared: boolean;
-  bloodReady: boolean;
-}
-
-interface SurgeryCase {
+interface OtCase {
   id: string;
   caseNo: string;
   patientName: string;
   mrn: string;
   ageGender: string;
-  diagnosis: string;
   procedure: string;
-  specialty: string;
+  department: string;
+  diagnosis: string;
   surgeon: string;
   anesthetist: string;
   roomId: string;
   scheduledAt: string;
-  estimatedMinutes: number;
-  asaClass: 'ASA I' | 'ASA II' | 'ASA III' | 'ASA IV';
-  priority: SurgeryPriority;
-  status: SurgeryStatus;
-  checklist: PreOpChecklist;
-  bloodUnits: number;
-  implants: string[];
-  pacuBed: string;
-  painScore: number;
-  aldreteScore: number;
-  notes: string;
+  priority: CasePriority;
+  status: CaseStatus;
+  prepPercent: number;
+  allergies: string[];
+  asaClass: string;
+  estimatedDurationMin: number;
 }
 
-interface IntraOpEvent {
-  id: string;
-  caseId: string;
-  time: string;
-  type: TimelineEventType;
-  note: string;
-  by: string;
+interface ScheduleForm {
+  patientName: string;
+  mrn: string;
+  procedure: string;
+  department: string;
+  diagnosis: string;
+  surgeon: string;
+  anesthetist: string;
+  roomId: string;
+  scheduledAt: string;
+  priority: CasePriority;
 }
 
 interface ToastState {
@@ -160,168 +86,231 @@ interface ToastState {
   severity: 'success' | 'info' | 'warning' | 'error';
 }
 
-interface ScheduleForm {
-  patientName: string;
-  mrn: string;
-  ageGender: string;
-  diagnosis: string;
-  procedure: string;
-  specialty: string;
-  surgeon: string;
-  anesthetist: string;
-  roomId: string;
-  scheduledAt: string;
-  estimatedMinutes: string;
-  priority: SurgeryPriority;
-  asaClass: SurgeryCase['asaClass'];
-  bloodUnits: string;
-  pacuBed: string;
+interface InstrumentCountRow {
+  id: string;
+  item: string;
+  initial: string;
+  final: string;
+  status: 'OK' | 'Pending';
 }
 
-interface TeamForm {
-  surgeon: string;
-  anesthetist: string;
-  nurseLead: string;
-  pacuBed: string;
-}
-
-interface TimelineForm {
-  type: TimelineEventType;
+interface MedicationRow {
+  id: string;
+  drug: string;
+  dose: string;
+  route: string;
   time: string;
-  note: string;
-  by: string;
 }
 
-interface AnaesthesiaPlanForm {
-  technique: string;
-  airwayPlan: string;
-  inductionAgent: string;
-  maintenance: string;
-  analgesia: string;
-  notes: string;
-}
-
-interface PostOpNoteForm {
-  woundClosureTime: string;
-  outOfOtTime: string;
-  transferTo: 'PACU' | 'ICU' | 'Ward';
-  summary: string;
-}
-
-interface StaffRosterEntry {
+interface DischargeMedicationRow {
   id: string;
-  name: string;
-  role: 'Surgeon' | 'Anaesthetist' | 'Scrub Nurse' | 'Circulating Nurse' | 'Recovery Nurse';
-  specialty: string;
-  shift: string;
-  assignedUnit: string;
-  casesToday: number | '-';
-  status: 'Active' | 'In OT' | 'On Call' | 'Emergency';
+  drug: string;
+  dose: string;
+  frequency: string;
+  duration: string;
+  instructions: string;
 }
 
-interface OtInventoryItem {
-  id: string;
-  item: string;
-  category: 'Consumable' | 'Implant' | 'Instrument' | 'Drug';
-  stock: number;
-  reorderLevel: number;
-  location: string;
-  status: 'Available' | 'Low Stock' | 'Critical' | 'Out of Stock';
-}
-
-interface IndentForm {
-  item: string;
-  qty: string;
-  priority: 'Routine' | 'Urgent' | 'STAT';
-  note: string;
-}
-
-interface PersistedOptimeState {
-  version: 1;
-  rooms: OrRoom[];
-  cases: SurgeryCase[];
-  events: IntraOpEvent[];
-}
-
-const OPTIME_STORAGE_KEY = 'scanbo.hims.surgery.optime.ui.v1';
-
-const MENU_GROUPS: Array<{ id: OpTimeMenu; label: string }> = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'scheduling', label: 'OT Scheduling' },
-  { id: 'pre-op', label: 'Pre-Op' },
-  { id: 'intra-op', label: 'Intra-Op' },
-  { id: 'post-op', label: 'Post-Op' },
-];
-
-const MENU_SUB_TAB_MAP: Record<OpTimeMenu, OpTimeTab[]> = {
-  dashboard: ['dashboard', 'ot-rooms', 'reports'],
-  scheduling: ['scheduling'],
-  'pre-op': ['pre-op', 'consent', 'anaesthesia'],
-  'intra-op': ['intra-op', 'recovery'],
-  'post-op': ['post-op', 'billing', 'staff', 'inventory'],
-};
-
-const MENU_ICON_MAP: Record<OpTimeMenu, React.ReactElement> = {
-  dashboard: <LocalHospitalIcon fontSize="small" />,
-  scheduling: <AddCircleOutlineIcon fontSize="small" />,
-  'pre-op': <HealingIcon fontSize="small" />,
-  'intra-op': <TimelineIcon fontSize="small" />,
-  'post-op': <CheckCircleIcon fontSize="small" />,
-};
-
-const CHECKLIST_ITEMS: Array<{
-  key: keyof PreOpChecklist;
+interface VitalReading {
   label: string;
-  critical?: boolean;
-}> = [
-  { key: 'consentSigned', label: 'Consent Signed', critical: true },
-  { key: 'npoConfirmed', label: 'NPO Confirmed', critical: true },
-  { key: 'siteMarked', label: 'Site Marked', critical: true },
-  { key: 'labsVerified', label: 'Labs Verified' },
-  { key: 'imagingReady', label: 'Imaging Ready' },
-  { key: 'anesthesiaCleared', label: 'Anesthesia Cleared', critical: true },
-  { key: 'bloodReady', label: 'Blood Ready' },
+  value: string;
+  tone: 'success' | 'warning' | 'info';
+}
+
+interface PreOpChecklistItemState {
+  done: boolean;
+  time: string | null;
+}
+
+const ROOM_OPTIONS = [
+  { id: 'or-1', label: 'OR-01' },
+  { id: 'or-2', label: 'OR-02' },
+  { id: 'or-3', label: 'OR-03' },
+  { id: 'or-4', label: 'OR-04' },
+  { id: 'or-5', label: 'OR-05' },
 ];
 
-const PRIORITY_COLOR: Record<SurgeryPriority, ChipColor> = {
+const PREOP_CHECKLIST_ITEMS = [
+  'Patient identity + wristband verified',
+  'Surgical consent signed',
+  'NPO status confirmed',
+  'Procedure site marked',
+  'Blood products cross-matched',
+  'Antibiotic prophylaxis planned',
+  'Implants/instruments available',
+  'Anesthesia clearance complete',
+];
+
+const POSTOP_CHECKLIST_ITEMS = [
+  'Airway patent and stable',
+  'Pain control within protocol',
+  'Post-op orders acknowledged by nursing',
+  'Discharge counselling completed',
+  'Follow-up appointment booked',
+];
+
+const PREOP_CHECKLIST_DEFAULT_TIMES = [
+  '08:18 AM',
+  '08:42 AM',
+  '09:18 AM',
+  '09:42 AM',
+  '10:18 AM',
+  '10:42 AM',
+  '11:05 AM',
+  '11:22 AM',
+];
+
+const PREOP_TIMELINE = [
+  { time: '07:25', title: 'Admission to pre-op bay', subtitle: 'Nursing triage complete', tone: 'blue' as const },
+  { time: '07:42', title: 'Pre-anesthesia review', subtitle: 'ASA documented and signed', tone: 'purple' as const },
+  { time: '08:00', title: 'Surgical briefing done', subtitle: 'WHO checklist started', tone: 'green' as const },
+];
+
+const INTRAOP_TIMELINE = [
+  { time: '08:05', title: 'Anesthesia induced', subtitle: 'Dr. R. Mehta', tone: 'green' as const },
+  { time: '08:18', title: 'Incision made', subtitle: 'Primary surgeon in room', tone: 'blue' as const },
+  { time: '08:45', title: 'Specimen sent to lab', subtitle: 'Pathology acknowledged', tone: 'orange' as const },
+  { time: '09:30', title: 'Expected closure', subtitle: 'Current OT phase: hemostasis', tone: 'red' as const },
+];
+
+const PRIORITY_COLOR: Record<CasePriority, 'error' | 'warning' | 'default'> = {
   STAT: 'error',
   Urgent: 'warning',
-  Elective: 'info',
+  Elective: 'default',
 };
 
-const STATUS_COLOR: Record<SurgeryStatus, ChipColor> = {
+const STATUS_COLOR: Record<CaseStatus, 'default' | 'warning' | 'info' | 'success' | 'error'> = {
   Scheduled: 'default',
   'Pre-Op': 'warning',
   'In OR': 'info',
-  Closing: 'secondary',
-  PACU: 'success',
+  Closing: 'info',
+  PACU: 'warning',
   Completed: 'success',
   Cancelled: 'error',
 };
 
-const ROOM_STATE_COLOR: Record<RoomState, ChipColor> = {
-  Open: 'success',
-  Occupied: 'error',
-  Turnover: 'warning',
-  Cleaning: 'info',
-  Blocked: 'default',
-};
-
-const NEXT_STATUS: Partial<Record<SurgeryStatus, SurgeryStatus>> = {
-  Scheduled: 'Pre-Op',
-  'Pre-Op': 'In OR',
-  'In OR': 'Closing',
-  Closing: 'PACU',
-  PACU: 'Completed',
-};
-
-const NEXT_STATUS_LABEL: Partial<Record<SurgeryStatus, string>> = {
-  Scheduled: 'Send to Pre-Op',
-  'Pre-Op': 'Move to OR',
-  'In OR': 'Start Closure',
-  Closing: 'Transfer to PACU',
-  PACU: 'Complete Handoff',
-};
+const INITIAL_CASES: OtCase[] = [
+  {
+    id: 'ot-case-005',
+    caseNo: 'OT-2026-005',
+    patientName: 'Priyanka Das',
+    mrn: 'MRN-332276',
+    ageGender: '35Y / F',
+    procedure: 'Emergency Laparotomy',
+    department: 'Gynecology',
+    diagnosis: 'Ruptured ectopic pregnancy',
+    surgeon: 'Dr. Neha Bhat',
+    anesthetist: 'Dr. R. Mehta',
+    roomId: 'or-3',
+    scheduledAt: getTodayAt(8, 45),
+    priority: 'STAT',
+    status: 'PACU',
+    prepPercent: 100,
+    allergies: ['Penicillin'],
+    asaClass: 'ASA III',
+    estimatedDurationMin: 110,
+  },
+  {
+    id: 'ot-case-001',
+    caseNo: 'OT-2026-001',
+    patientName: 'Rajiv Menon',
+    mrn: 'MRN-332104',
+    ageGender: '47Y / M',
+    procedure: 'Laparoscopic Cholecystectomy',
+    department: 'General Surgery',
+    diagnosis: 'Symptomatic cholelithiasis',
+    surgeon: 'Dr. Kavita Sharma',
+    anesthetist: 'Dr. R. Mehta',
+    roomId: 'or-1',
+    scheduledAt: getTodayAt(9, 15),
+    priority: 'Urgent',
+    status: 'In OR',
+    prepPercent: 100,
+    allergies: ['None'],
+    asaClass: 'ASA II',
+    estimatedDurationMin: 95,
+  },
+  {
+    id: 'ot-case-004',
+    caseNo: 'OT-2026-004',
+    patientName: 'Nazia Khan',
+    mrn: 'MRN-332249',
+    ageGender: '41Y / F',
+    procedure: 'Hemithyroidectomy',
+    department: 'ENT',
+    diagnosis: 'Left thyroid nodule',
+    surgeon: 'Dr. P. Rao',
+    anesthetist: 'Dr. S. Iyer',
+    roomId: 'or-5',
+    scheduledAt: getTodayAt(10, 0),
+    priority: 'Elective',
+    status: 'Cancelled',
+    prepPercent: 43,
+    allergies: ['Latex'],
+    asaClass: 'ASA II',
+    estimatedDurationMin: 120,
+  },
+  {
+    id: 'ot-case-002',
+    caseNo: 'OT-2026-002',
+    patientName: 'Ritika Saini',
+    mrn: 'MRN-332188',
+    ageGender: '29Y / F',
+    procedure: 'ORIF Distal Radius',
+    department: 'Orthopedics',
+    diagnosis: 'Distal radius fracture',
+    surgeon: 'Dr. A. Verma',
+    anesthetist: 'Dr. S. Iyer',
+    roomId: 'or-2',
+    scheduledAt: getTodayAt(11, 50),
+    priority: 'Urgent',
+    status: 'Pre-Op',
+    prepPercent: 86,
+    allergies: ['None'],
+    asaClass: 'ASA I',
+    estimatedDurationMin: 85,
+  },
+  {
+    id: 'ot-case-006',
+    caseNo: 'OT-2026-006',
+    patientName: 'Suresh Patel',
+    mrn: 'MRN-332305',
+    ageGender: '58Y / M',
+    procedure: 'Right Hemicolectomy',
+    department: 'General Surgery',
+    diagnosis: 'Ascending colon mass',
+    surgeon: 'Dr. Kavita Sharma',
+    anesthetist: 'Dr. J. Fernandes',
+    roomId: 'or-1',
+    scheduledAt: getTodayAt(12, 20),
+    priority: 'Urgent',
+    status: 'Closing',
+    prepPercent: 100,
+    allergies: ['None'],
+    asaClass: 'ASA III',
+    estimatedDurationMin: 180,
+  },
+  {
+    id: 'ot-case-003',
+    caseNo: 'OT-2026-003',
+    patientName: 'Arjun Mehta',
+    mrn: 'MRN-332190',
+    ageGender: '63Y / M',
+    procedure: 'CABG ×3',
+    department: 'Cardiothoracic',
+    diagnosis: 'Triple vessel CAD',
+    surgeon: 'Dr. D. Nair',
+    anesthetist: 'Dr. M. Singh',
+    roomId: 'or-4',
+    scheduledAt: getTodayAt(14, 30),
+    priority: 'STAT',
+    status: 'Scheduled',
+    prepPercent: 60,
+    allergies: ['Heparin sensitivity'],
+    asaClass: 'ASA IV',
+    estimatedDurationMin: 260,
+  },
+];
 
 function getTodayAt(hour: number, minute: number): string {
   const date = new Date();
@@ -334,3393 +323,1299 @@ function getLocalInputDateTime(date = new Date()): string {
   return local.toISOString().slice(0, 16);
 }
 
-const INITIAL_ROOMS: OrRoom[] = [
-  {
-    id: 'or-1',
-    label: 'OR-01',
-    suite: 'Main OT',
-    specialty: 'General Surgery',
-    state: 'Occupied',
-    nurseLead: 'Nurse Sunita Rao',
-    nextReadyAt: getTodayAt(13, 15),
-  },
-  {
-    id: 'or-2',
-    label: 'OR-02',
-    suite: 'Main OT',
-    specialty: 'Orthopedics',
-    state: 'Turnover',
-    nurseLead: 'Nurse Nikhil Joshi',
-    nextReadyAt: getTodayAt(12, 40),
-  },
-  {
-    id: 'or-3',
-    label: 'OR-03',
-    suite: 'Neuro OT',
-    specialty: 'Neurosurgery',
-    state: 'Open',
-    nurseLead: 'Nurse Mary Dsouza',
-    nextReadyAt: getTodayAt(14, 0),
-  },
-  {
-    id: 'or-4',
-    label: 'OR-04',
-    suite: 'Cardiac OT',
-    specialty: 'Cardiothoracic',
-    state: 'Cleaning',
-    nurseLead: 'Nurse Imran Khan',
-    nextReadyAt: getTodayAt(13, 30),
-  },
-  {
-    id: 'or-5',
-    label: 'OR-05',
-    suite: 'Day Care OT',
-    specialty: 'ENT',
-    state: 'Blocked',
-    nurseLead: 'Nurse Keerti Patil',
-    nextReadyAt: getTodayAt(16, 0),
-  },
-];
-
-const INITIAL_CASES: SurgeryCase[] = [
-  {
-    id: 'ot-case-001',
-    caseNo: 'OT-2026-001',
-    patientName: 'Rajiv Menon',
-    mrn: 'MRN-332104',
-    ageGender: '56y / Male',
-    diagnosis: 'Acute cholecystitis',
-    procedure: 'Laparoscopic Cholecystectomy',
-    specialty: 'General Surgery',
-    surgeon: 'Dr. Kavita Sharma',
-    anesthetist: 'Dr. R. Mehta',
-    roomId: 'or-1',
-    scheduledAt: getTodayAt(9, 15),
-    estimatedMinutes: 110,
-    asaClass: 'ASA II',
-    priority: 'Urgent',
-    status: 'In OR',
-    checklist: {
-      consentSigned: true,
-      npoConfirmed: true,
-      siteMarked: true,
-      labsVerified: true,
-      imagingReady: true,
-      anesthesiaCleared: true,
-      bloodReady: true,
-    },
-    bloodUnits: 1,
-    implants: [],
-    pacuBed: 'PACU-03',
-    painScore: 0,
-    aldreteScore: 0,
-    notes: 'Diabetic. Broad-spectrum prophylaxis given.',
-  },
-  {
-    id: 'ot-case-002',
-    caseNo: 'OT-2026-002',
-    patientName: 'Ritika Saini',
-    mrn: 'MRN-332188',
-    ageGender: '34y / Female',
-    diagnosis: 'Comminuted distal radius fracture',
-    procedure: 'ORIF Distal Radius',
-    specialty: 'Orthopedics',
-    surgeon: 'Dr. A. Verma',
-    anesthetist: 'Dr. S. Iyer',
-    roomId: 'or-2',
-    scheduledAt: getTodayAt(11, 50),
-    estimatedMinutes: 140,
-    asaClass: 'ASA I',
-    priority: 'Urgent',
-    status: 'Pre-Op',
-    checklist: {
-      consentSigned: true,
-      npoConfirmed: true,
-      siteMarked: true,
-      labsVerified: true,
-      imagingReady: true,
-      anesthesiaCleared: true,
-      bloodReady: false,
-    },
-    bloodUnits: 1,
-    implants: ['Volar locking plate'],
-    pacuBed: 'PACU-05',
-    painScore: 0,
-    aldreteScore: 0,
-    notes: 'Implant kit verified, fluoroscopy requested in room.',
-  },
-  {
-    id: 'ot-case-003',
-    caseNo: 'OT-2026-003',
-    patientName: 'Amitabh Roy',
-    mrn: 'MRN-332221',
-    ageGender: '68y / Male',
-    diagnosis: 'Triple vessel CAD',
-    procedure: 'CABG x3',
-    specialty: 'Cardiothoracic',
-    surgeon: 'Dr. M. Sen',
-    anesthetist: 'Dr. J. Fernandes',
-    roomId: 'or-4',
-    scheduledAt: getTodayAt(13, 40),
-    estimatedMinutes: 260,
-    asaClass: 'ASA IV',
-    priority: 'Elective',
-    status: 'Scheduled',
-    checklist: {
-      consentSigned: true,
-      npoConfirmed: true,
-      siteMarked: false,
-      labsVerified: true,
-      imagingReady: true,
-      anesthesiaCleared: false,
-      bloodReady: true,
-    },
-    bloodUnits: 4,
-    implants: ['Sternotomy wires'],
-    pacuBed: 'ICU-Cardiac-02',
-    painScore: 0,
-    aldreteScore: 0,
-    notes: 'Perfusion team confirmed. ICU bed reserved.',
-  },
-  {
-    id: 'ot-case-004',
-    caseNo: 'OT-2026-004',
-    patientName: 'Nazia Khan',
-    mrn: 'MRN-332249',
-    ageGender: '42y / Female',
-    diagnosis: 'Thyroid nodule',
-    procedure: 'Hemithyroidectomy',
-    specialty: 'ENT',
-    surgeon: 'Dr. P. Rao',
-    anesthetist: 'Dr. S. Iyer',
-    roomId: 'or-5',
-    scheduledAt: getTodayAt(10, 0),
-    estimatedMinutes: 90,
-    asaClass: 'ASA II',
-    priority: 'Elective',
-    status: 'Cancelled',
-    checklist: {
-      consentSigned: true,
-      npoConfirmed: true,
-      siteMarked: false,
-      labsVerified: false,
-      imagingReady: true,
-      anesthesiaCleared: false,
-      bloodReady: false,
-    },
-    bloodUnits: 0,
-    implants: [],
-    pacuBed: 'PACU-02',
-    painScore: 0,
-    aldreteScore: 0,
-    notes: 'Case cancelled: patient developed acute URTI symptoms.',
-  },
-  {
-    id: 'ot-case-005',
-    caseNo: 'OT-2026-005',
-    patientName: 'Priyanka Das',
-    mrn: 'MRN-332276',
-    ageGender: '29y / Female',
-    diagnosis: 'Ruptured ectopic pregnancy',
-    procedure: 'Emergency Laparotomy',
-    specialty: 'Gynecology',
-    surgeon: 'Dr. Neha Bhat',
-    anesthetist: 'Dr. R. Mehta',
-    roomId: 'or-3',
-    scheduledAt: getTodayAt(8, 45),
-    estimatedMinutes: 120,
-    asaClass: 'ASA III',
-    priority: 'STAT',
-    status: 'PACU',
-    checklist: {
-      consentSigned: true,
-      npoConfirmed: true,
-      siteMarked: true,
-      labsVerified: true,
-      imagingReady: true,
-      anesthesiaCleared: true,
-      bloodReady: true,
-    },
-    bloodUnits: 2,
-    implants: [],
-    pacuBed: 'PACU-01',
-    painScore: 4,
-    aldreteScore: 8,
-    notes: 'Hemodynamically stable. Monitor drain output for next 2 hours.',
-  },
-  {
-    id: 'ot-case-006',
-    caseNo: 'OT-2026-006',
-    patientName: 'Suresh Patel',
-    mrn: 'MRN-332305',
-    ageGender: '63y / Male',
-    diagnosis: 'Large bowel obstruction',
-    procedure: 'Right Hemicolectomy',
-    specialty: 'General Surgery',
-    surgeon: 'Dr. Kavita Sharma',
-    anesthetist: 'Dr. J. Fernandes',
-    roomId: 'or-1',
-    scheduledAt: getTodayAt(12, 20),
-    estimatedMinutes: 180,
-    asaClass: 'ASA III',
-    priority: 'Urgent',
-    status: 'Closing',
-    checklist: {
-      consentSigned: true,
-      npoConfirmed: true,
-      siteMarked: true,
-      labsVerified: true,
-      imagingReady: true,
-      anesthesiaCleared: true,
-      bloodReady: true,
-    },
-    bloodUnits: 2,
-    implants: [],
-    pacuBed: 'PACU-06',
-    painScore: 0,
-    aldreteScore: 0,
-    notes: 'Stoma nurse informed. ICU backup not required currently.',
-  },
-  {
-    id: 'ot-case-007',
-    caseNo: 'OT-2026-007',
-    patientName: 'Deepak Jain',
-    mrn: 'MRN-332336',
-    ageGender: '47y / Male',
-    diagnosis: 'Lumbar canal stenosis',
-    procedure: 'L4-L5 Decompression',
-    specialty: 'Neurosurgery',
-    surgeon: 'Dr. T. Nair',
-    anesthetist: 'Dr. S. Iyer',
-    roomId: 'or-3',
-    scheduledAt: getTodayAt(15, 30),
-    estimatedMinutes: 170,
-    asaClass: 'ASA II',
-    priority: 'Elective',
-    status: 'Scheduled',
-    checklist: {
-      consentSigned: true,
-      npoConfirmed: false,
-      siteMarked: false,
-      labsVerified: true,
-      imagingReady: true,
-      anesthesiaCleared: false,
-      bloodReady: false,
-    },
-    bloodUnits: 1,
-    implants: ['Titanium rods'],
-    pacuBed: 'PACU-07',
-    painScore: 0,
-    aldreteScore: 0,
-    notes: 'Implant tray to be shifted from CSSD by 14:30.',
-  },
-  {
-    id: 'ot-case-008',
-    caseNo: 'OT-2026-008',
-    patientName: 'Anita Batra',
-    mrn: 'MRN-332365',
-    ageGender: '51y / Female',
-    diagnosis: 'Fibroid uterus',
-    procedure: 'Total Abdominal Hysterectomy',
-    specialty: 'Gynecology',
-    surgeon: 'Dr. Neha Bhat',
-    anesthetist: 'Dr. R. Mehta',
-    roomId: 'or-2',
-    scheduledAt: getTodayAt(14, 25),
-    estimatedMinutes: 150,
-    asaClass: 'ASA II',
-    priority: 'Elective',
-    status: 'Completed',
-    checklist: {
-      consentSigned: true,
-      npoConfirmed: true,
-      siteMarked: true,
-      labsVerified: true,
-      imagingReady: true,
-      anesthesiaCleared: true,
-      bloodReady: true,
-    },
-    bloodUnits: 1,
-    implants: [],
-    pacuBed: 'PACU-04',
-    painScore: 2,
-    aldreteScore: 9,
-    notes: 'Shifted to ward with stable vitals and clear handoff notes.',
-  },
-];
-
-const INITIAL_EVENTS: IntraOpEvent[] = [
-  {
-    id: 'evt-001',
-    caseId: 'ot-case-001',
-    time: getTodayAt(9, 22),
-    type: 'Patient In Room',
-    note: 'WHO timeout completed.',
-    by: 'Nurse Sunita Rao',
-  },
-  {
-    id: 'evt-002',
-    caseId: 'ot-case-001',
-    time: getTodayAt(9, 31),
-    type: 'Incision',
-    note: 'Ports placed successfully.',
-    by: 'Dr. Kavita Sharma',
-  },
-  {
-    id: 'evt-003',
-    caseId: 'ot-case-001',
-    time: getTodayAt(10, 15),
-    type: 'Specimen Sent',
-    note: 'Gall bladder sent to histopathology.',
-    by: 'OT Technician',
-  },
-  {
-    id: 'evt-004',
-    caseId: 'ot-case-005',
-    time: getTodayAt(8, 52),
-    type: 'Patient In Room',
-    note: 'Massive transfusion protocol ready.',
-    by: 'Nurse Mary Dsouza',
-  },
-  {
-    id: 'evt-005',
-    caseId: 'ot-case-005',
-    time: getTodayAt(9, 3),
-    type: 'Incision',
-    note: 'Midline laparotomy started.',
-    by: 'Dr. Neha Bhat',
-  },
-  {
-    id: 'evt-006',
-    caseId: 'ot-case-005',
-    time: getTodayAt(10, 44),
-    type: 'PACU Transfer',
-    note: 'Shifted extubated to PACU-01.',
-    by: 'Dr. R. Mehta',
-  },
-  {
-    id: 'evt-007',
-    caseId: 'ot-case-006',
-    time: getTodayAt(12, 32),
-    type: 'Patient In Room',
-    note: 'Checklist completed, antibiotics given.',
-    by: 'Nurse Sunita Rao',
-  },
-  {
-    id: 'evt-008',
-    caseId: 'ot-case-006',
-    time: getTodayAt(12, 42),
-    type: 'Incision',
-    note: 'Bowel decompression initiated.',
-    by: 'Dr. Kavita Sharma',
-  },
-  {
-    id: 'evt-009',
-    caseId: 'ot-case-006',
-    time: getTodayAt(14, 35),
-    type: 'Closure',
-    note: 'Stoma matured and dressing applied.',
-    by: 'Dr. Kavita Sharma',
-  },
-];
-
-const STAFF_ROSTER: StaffRosterEntry[] = [
-  {
-    id: 'staff-1',
-    name: 'Dr. Kavita Sharma',
-    role: 'Surgeon',
-    specialty: 'General Surgery',
-    shift: '07:00 - 15:00',
-    assignedUnit: 'OT-1',
-    casesToday: 3,
-    status: 'In OT',
-  },
-  {
-    id: 'staff-2',
-    name: 'Dr. Neha Bhat',
-    role: 'Surgeon',
-    specialty: 'Gynecology',
-    shift: '08:00 - 16:00',
-    assignedUnit: 'OT-3',
-    casesToday: 2,
-    status: 'Emergency',
-  },
-  {
-    id: 'staff-3',
-    name: 'Dr. R. Mehta',
-    role: 'Anaesthetist',
-    specialty: 'General + Emergency',
-    shift: '07:00 - 15:00',
-    assignedUnit: 'OT-1',
-    casesToday: 4,
-    status: 'Active',
-  },
-  {
-    id: 'staff-4',
-    name: 'Nurse Sunita Rao',
-    role: 'Scrub Nurse',
-    specialty: 'General OT',
-    shift: '07:00 - 15:00',
-    assignedUnit: 'OT-1',
-    casesToday: 3,
-    status: 'In OT',
-  },
-  {
-    id: 'staff-5',
-    name: 'Nurse Pallavi Joshi',
-    role: 'Recovery Nurse',
-    specialty: 'PACU',
-    shift: '07:00 - 15:00',
-    assignedUnit: 'PACU',
-    casesToday: '-',
-    status: 'Active',
-  },
-];
-
-const INVENTORY_ITEMS: OtInventoryItem[] = [
-  {
-    id: 'inv-1',
-    item: 'Surgical Drapes (Sterile)',
-    category: 'Consumable',
-    stock: 42,
-    reorderLevel: 20,
-    location: 'OT Central Store',
-    status: 'Available',
-  },
-  {
-    id: 'inv-2',
-    item: 'Volar Locking Plate Set',
-    category: 'Implant',
-    stock: 4,
-    reorderLevel: 3,
-    location: 'Implant Rack - Ortho',
-    status: 'Low Stock',
-  },
-  {
-    id: 'inv-3',
-    item: 'Vicryl 2-0',
-    category: 'Consumable',
-    stock: 12,
-    reorderLevel: 15,
-    location: 'OT Pharmacy',
-    status: 'Critical',
-  },
-  {
-    id: 'inv-4',
-    item: 'Sternal Wire Pack',
-    category: 'Implant',
-    stock: 0,
-    reorderLevel: 4,
-    location: 'Cardiac OT',
-    status: 'Out of Stock',
-  },
-  {
-    id: 'inv-5',
-    item: 'Laparoscopic Tower Set',
-    category: 'Instrument',
-    stock: 3,
-    reorderLevel: 2,
-    location: 'Equipment Bay',
-    status: 'Available',
-  },
-];
-
-const CONSENT_TEMPLATE: Record<ConsentPhase, string[]> = {
-  'Sign In': [
-    'Patient identity, procedure, and consent verified',
-    'Site marking completed by surgeon',
-    'Anaesthesia safety check complete',
-    'Pulse oximeter functional',
-  ],
-  'Time Out': [
-    'Team introductions and role confirmation',
-    'Antibiotic prophylaxis given within 60 min',
-    'Critical steps discussed by surgeon',
-    'Blood and implants availability confirmed',
-  ],
-  'Sign Out': [
-    'Procedure and instrument count verbally confirmed',
-    'Specimen labels and dispatch confirmed',
-    'Post-op plan and destination confirmed',
-    'PACU handoff points communicated',
-  ],
-};
-
-function formatDateTime(value: string): string {
-  const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) return '--';
-  return new Intl.DateTimeFormat('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(parsed);
-}
-
 function formatTime(value: string): string {
-  const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) return '--';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '--';
   return new Intl.DateTimeFormat('en-IN', {
     hour: '2-digit',
     minute: '2-digit',
-  }).format(parsed);
-}
-
-function formatHours(minutes: number): string {
-  if (minutes <= 0) return '0h';
-  const hours = minutes / 60;
-  return `${hours.toFixed(hours >= 10 ? 1 : 2)}h`;
-}
-
-function checklistCompletion(checklist: PreOpChecklist): number {
-  const values = Object.values(checklist);
-  const done = values.filter(Boolean).length;
-  return Math.round((done / values.length) * 100);
-}
-
-function inventoryStatusColor(status: OtInventoryItem['status']): ChipColor {
-  if (status === 'Available') return 'success';
-  if (status === 'Low Stock') return 'warning';
-  if (status === 'Critical') return 'error';
-  return 'default';
-}
-
-function staffStatusColor(status: StaffRosterEntry['status']): ChipColor {
-  if (status === 'Active') return 'success';
-  if (status === 'In OT') return 'info';
-  if (status === 'Emergency') return 'error';
-  return 'warning';
-}
-
-function buildOtBillingRows(caseItem: SurgeryCase) {
-  const roomCharge = caseItem.estimatedMinutes * 42;
-  const anaesthesiaCharge = Math.round(caseItem.estimatedMinutes * 19);
-  const implantCharge = caseItem.implants.length * 24500;
-  const bloodCharge = caseItem.bloodUnits * 1800;
-  const consumableCharge = 2200;
-  const nursingCharge = 1400;
-
-  const rows = [
-    { label: `OT Room Charges (${caseItem.estimatedMinutes} min)`, amount: roomCharge },
-    { label: 'Anaesthesia & Monitoring', amount: anaesthesiaCharge },
-    { label: 'OT Consumables', amount: consumableCharge },
-    { label: 'Nursing & Technical Support', amount: nursingCharge },
-    { label: `Blood / Transfusion (${caseItem.bloodUnits} units)`, amount: bloodCharge },
-    { label: `Implants (${caseItem.implants.length})`, amount: implantCharge },
-  ];
-
-  const total = rows.reduce((sum, item) => sum + item.amount, 0);
-  return { rows, total };
-}
-
-function buildConsentChecklistState(): Record<ConsentPhase, Record<string, boolean>> {
-  return {
-    'Sign In': Object.fromEntries(CONSENT_TEMPLATE['Sign In'].map((item) => [item, false])),
-    'Time Out': Object.fromEntries(CONSENT_TEMPLATE['Time Out'].map((item) => [item, false])),
-    'Sign Out': Object.fromEntries(CONSENT_TEMPLATE['Sign Out'].map((item) => [item, false])),
-  };
-}
-
-function defaultAnaesthesiaPlan(caseItem: SurgeryCase | null): AnaesthesiaPlanForm {
-  return {
-    technique: caseItem?.priority === 'STAT' ? 'General Anaesthesia' : 'Balanced General Anaesthesia',
-    airwayPlan: 'Endotracheal tube',
-    inductionAgent: 'Propofol + Fentanyl',
-    maintenance: 'O2 + Air + Sevoflurane',
-    analgesia: 'Paracetamol + Opioid PRN',
-    notes: caseItem ? `${caseItem.asaClass} | Blood units planned: ${caseItem.bloodUnits}` : '',
-  };
-}
-
-function defaultPostOpNote(): PostOpNoteForm {
-  return {
-    woundClosureTime: '',
-    outOfOtTime: '',
-    transferTo: 'PACU',
-    summary: '',
-  };
-}
-
-function parsePersistedState(raw: string | null): PersistedOptimeState | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<PersistedOptimeState>;
-    if (parsed.version !== 1) return null;
-    if (!Array.isArray(parsed.rooms) || !Array.isArray(parsed.cases) || !Array.isArray(parsed.events)) {
-      return null;
-    }
-    return {
-      version: 1,
-      rooms: parsed.rooms as OrRoom[],
-      cases: parsed.cases as SurgeryCase[],
-      events: parsed.events as IntraOpEvent[],
-    };
-  } catch {
-    return null;
-  }
-}
-
-function readPersistedState(): PersistedOptimeState | null {
-  if (typeof window === 'undefined') return null;
-  return parsePersistedState(window.localStorage.getItem(OPTIME_STORAGE_KEY));
-}
-
-function writePersistedState(state: PersistedOptimeState) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(OPTIME_STORAGE_KEY, JSON.stringify(state));
+    hour12: true,
+  }).format(date);
 }
 
 function defaultScheduleForm(roomId: string): ScheduleForm {
   const target = new Date();
   target.setHours(target.getHours() + 1, 0, 0, 0);
-
   return {
     patientName: '',
     mrn: '',
-    ageGender: '',
-    diagnosis: '',
     procedure: '',
-    specialty: 'General Surgery',
+    department: 'General Surgery',
+    diagnosis: '',
     surgeon: '',
     anesthetist: '',
     roomId,
     scheduledAt: getLocalInputDateTime(target),
-    estimatedMinutes: '120',
     priority: 'Elective',
-    asaClass: 'ASA II',
-    bloodUnits: '0',
-    pacuBed: 'PACU-01',
   };
+}
+
+function mapStatusToWorkspaceTab(status: CaseStatus): WorkspaceTab {
+  if (status === 'In OR' || status === 'Closing') return 'intraop';
+  if (status === 'PACU' || status === 'Completed' || status === 'Cancelled') return 'postop';
+  return 'preop';
+}
+
+function toStatusTone(status: InstrumentCountRow['status']): 'completed' | 'warning' {
+  return status === 'OK' ? 'completed' : 'warning';
+}
+
+function toneToBg(tone: VitalReading['tone']): string {
+  if (tone === 'success') return alpha('#2FA77A', 0.12);
+  if (tone === 'warning') return alpha('#C9931E', 0.12);
+  return alpha('#2C8AD3', 0.12);
+}
+
+function buildChecklistStateForCase(caseItem: OtCase): PreOpChecklistItemState[] {
+  const doneCount = Math.round((caseItem.prepPercent / 100) * PREOP_CHECKLIST_ITEMS.length);
+  return PREOP_CHECKLIST_ITEMS.map((_, index) => ({
+    done: index < doneCount,
+    time: index < doneCount ? PREOP_CHECKLIST_DEFAULT_TIMES[index] ?? null : null,
+  }));
+}
+
+function formatChecklistTimeNow(): string {
+  return new Intl.DateTimeFormat('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date());
 }
 
 export default function OpTimeSurgeryPage() {
   const theme = useTheme();
-  const router = useRouter();
-  const { permissions, role } = useUser();
 
-  const [menuGroup, setMenuGroup] = React.useState<OpTimeMenu>('dashboard');
-  const [rooms, setRooms] = React.useState<OrRoom[]>(INITIAL_ROOMS);
-  const [surgeryCases, setSurgeryCases] = React.useState<SurgeryCase[]>(INITIAL_CASES);
-  const [timelineEvents, setTimelineEvents] = React.useState<IntraOpEvent[]>(INITIAL_EVENTS);
-  const [selectedCaseId, setSelectedCaseId] = React.useState<string>(INITIAL_CASES[0]?.id ?? '');
-
-  const [query, setQuery] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState<'All' | SurgeryStatus>('All');
-  const [roomFilter, setRoomFilter] = React.useState<'All' | string>('All');
-  const [priorityFilter, setPriorityFilter] = React.useState<'All' | SurgeryPriority>('All');
-
+  const [cases, setCases] = React.useState<OtCase[]>(INITIAL_CASES);
+  const [selectedCaseId, setSelectedCaseId] = React.useState<string>(INITIAL_CASES[1]?.id ?? '');
+  const [viewMode, setViewMode] = React.useState<ViewMode>('board');
+  const [workspaceTab, setWorkspaceTab] = React.useState<WorkspaceTab>('intraop');
   const [scheduleDialogOpen, setScheduleDialogOpen] = React.useState(false);
-  const [scheduleForm, setScheduleForm] = React.useState<ScheduleForm>(() => defaultScheduleForm(INITIAL_ROOMS[0]?.id ?? 'or-1'));
-
-  const [teamDialogOpen, setTeamDialogOpen] = React.useState(false);
-  const [teamForm, setTeamForm] = React.useState<TeamForm>({
-    surgeon: '',
-    anesthetist: '',
-    nurseLead: '',
-    pacuBed: '',
-  });
-
-  const [timelineDialogOpen, setTimelineDialogOpen] = React.useState(false);
-  const [timelineForm, setTimelineForm] = React.useState<TimelineForm>({
-    type: 'Incision',
-    time: getLocalInputDateTime(new Date()),
-    note: '',
-    by: '',
-  });
-
-  const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
-  const [cancelReason, setCancelReason] = React.useState('');
-
-  const [consentPhase, setConsentPhase] = React.useState<ConsentPhase>('Sign In');
-  const [consentChecklist, setConsentChecklist] = React.useState<Record<ConsentPhase, Record<string, boolean>>>(
-    () => buildConsentChecklistState()
+  const [scheduleForm, setScheduleForm] = React.useState<ScheduleForm>(() =>
+    defaultScheduleForm(ROOM_OPTIONS[0]?.id ?? 'or-1')
   );
-
-  const [anaesthesiaPlans, setAnaesthesiaPlans] = React.useState<Record<string, AnaesthesiaPlanForm>>({});
-  const [postOpNotes, setPostOpNotes] = React.useState<Record<string, PostOpNoteForm>>({});
-
-  const [indentDialogOpen, setIndentDialogOpen] = React.useState(false);
-  const [indentForm, setIndentForm] = React.useState<IndentForm>({
-    item: '',
-    qty: '1',
-    priority: 'Routine',
-    note: '',
+  const [preOpChecklistByCaseId, setPreOpChecklistByCaseId] = React.useState<Record<string, PreOpChecklistItemState[]>>(() => {
+    const initial: Record<string, PreOpChecklistItemState[]> = {};
+    INITIAL_CASES.forEach((item) => {
+      initial[item.id] = buildChecklistStateForCase(item);
+    });
+    return initial;
   });
-
   const [toast, setToast] = React.useState<ToastState>({
     open: false,
     message: '',
     severity: 'info',
   });
 
-  const [hasHydrated, setHasHydrated] = React.useState(false);
-
-  const findMenuByTab = React.useCallback((nextTab: OpTimeTab): OpTimeMenu => {
-    const found = (Object.entries(MENU_SUB_TAB_MAP) as Array<[OpTimeMenu, OpTimeTab[]]>).find(([, tabs]) =>
-      tabs.includes(nextTab)
-    );
-    return found?.[0] ?? 'dashboard';
-  }, []);
-
   React.useEffect(() => {
-    const persisted = readPersistedState();
-    if (persisted) {
-      setRooms(persisted.rooms);
-      setSurgeryCases(persisted.cases);
-      setTimelineEvents(persisted.events);
-      setSelectedCaseId(persisted.cases[0]?.id ?? '');
-    }
-    setHasHydrated(true);
-  }, []);
-
-  React.useEffect(() => {
-    if (!hasHydrated) return;
-    writePersistedState({
-      version: 1,
-      rooms,
-      cases: surgeryCases,
-      events: timelineEvents,
-    });
-  }, [hasHydrated, rooms, surgeryCases, timelineEvents]);
-
-  React.useEffect(() => {
-    if (selectedCaseId && surgeryCases.some((item) => item.id === selectedCaseId)) return;
-    setSelectedCaseId(surgeryCases[0]?.id ?? '');
-  }, [selectedCaseId, surgeryCases]);
+    if (selectedCaseId && cases.some((item) => item.id === selectedCaseId)) return;
+    setSelectedCaseId(cases[0]?.id ?? '');
+  }, [cases, selectedCaseId]);
 
   const selectedCase = React.useMemo(
-    () => surgeryCases.find((item) => item.id === selectedCaseId) ?? null,
-    [selectedCaseId, surgeryCases]
+    () => cases.find((item) => item.id === selectedCaseId) ?? null,
+    [cases, selectedCaseId]
   );
 
-  const selectedAnaesthesiaPlan = React.useMemo(() => {
-    if (!selectedCase) return defaultAnaesthesiaPlan(null);
-    return anaesthesiaPlans[selectedCase.id] ?? defaultAnaesthesiaPlan(selectedCase);
-  }, [anaesthesiaPlans, selectedCase]);
+  React.useEffect(() => {
+    if (viewMode === 'workspace' && !selectedCase) {
+      setViewMode('board');
+    }
+  }, [selectedCase, viewMode]);
 
-  const selectedPostOpNote = React.useMemo(() => {
-    if (!selectedCase) return defaultPostOpNote();
-    return postOpNotes[selectedCase.id] ?? defaultPostOpNote();
-  }, [postOpNotes, selectedCase]);
-
-  const filteredCases = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return [...surgeryCases]
-      .filter((item) => {
-        const matchesQuery =
-          q.length === 0 ||
-          [
-            item.caseNo,
-            item.patientName,
-            item.mrn,
-            item.procedure,
-            item.surgeon,
-            item.anesthetist,
-            item.specialty,
-            item.status,
-          ]
-            .join(' ')
-            .toLowerCase()
-            .includes(q);
-
-        const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
-        const matchesRoom = roomFilter === 'All' || item.roomId === roomFilter;
-        const matchesPriority = priorityFilter === 'All' || item.priority === priorityFilter;
-        return matchesQuery && matchesStatus && matchesRoom && matchesPriority;
-      })
-      .sort((a, b) => Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt));
-  }, [surgeryCases, query, statusFilter, roomFilter, priorityFilter]);
-
-  const eventsByCase = React.useMemo(() => {
-    const grouped: Record<string, IntraOpEvent[]> = {};
-    timelineEvents.forEach((event) => {
-      const existing = grouped[event.caseId] ?? [];
-      existing.push(event);
-      grouped[event.caseId] = existing;
-    });
-
-    Object.keys(grouped).forEach((caseId) => {
-      grouped[caseId].sort((a, b) => Date.parse(b.time) - Date.parse(a.time));
-    });
-
-    return grouped;
-  }, [timelineEvents]);
-
-  const selectedCaseEvents = React.useMemo(
-    () => (selectedCase ? eventsByCase[selectedCase.id] ?? [] : []),
-    [selectedCase, eventsByCase]
+  const boardRows = React.useMemo(
+    () => [...cases].sort((a, b) => Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt)),
+    [cases]
   );
 
-  const selectedClosureEvent = React.useMemo(
-    () => selectedCaseEvents.find((entry) => entry.type === 'Closure') ?? null,
-    [selectedCaseEvents]
-  );
-
-  const consentPhaseCompletion = React.useMemo(() => {
-    const entries = Object.values(consentChecklist[consentPhase]);
-    if (entries.length === 0) return 0;
-    return Math.round((entries.filter(Boolean).length / entries.length) * 100);
-  }, [consentChecklist, consentPhase]);
-
-  const consentOverallCompletion = React.useMemo(() => {
-    const all = Object.values(consentChecklist).flatMap((phase) => Object.values(phase));
-    if (all.length === 0) return 0;
-    return Math.round((all.filter(Boolean).length / all.length) * 100);
-  }, [consentChecklist]);
-
-  const billingSnapshot = React.useMemo(() => {
-    if (!selectedCase) return null;
-    return buildOtBillingRows(selectedCase);
-  }, [selectedCase]);
-
-  const totalOperationalCases = React.useMemo(
-    () => surgeryCases.filter((item) => item.status !== 'Cancelled').length,
-    [surgeryCases]
-  );
-
-  const activeOrCases = React.useMemo(
-    () => surgeryCases.filter((item) => item.status === 'In OR' || item.status === 'Closing').length,
-    [surgeryCases]
-  );
-
-  const pacuCases = React.useMemo(
-    () => surgeryCases.filter((item) => item.status === 'PACU').length,
-    [surgeryCases]
-  );
-
-  const completedCases = React.useMemo(
-    () => surgeryCases.filter((item) => item.status === 'Completed').length,
-    [surgeryCases]
-  );
-
-  const delayedCases = React.useMemo(
-    () =>
-      surgeryCases.filter((item) => {
-        if (item.status === 'Cancelled' || item.status === 'Completed') return false;
-        if (item.status !== 'Scheduled' && item.status !== 'Pre-Op') return false;
-        return Date.parse(item.scheduledAt) < Date.now();
-      }).length,
-    [surgeryCases]
-  );
-
-  const preOpAtRiskCases = React.useMemo(
-    () =>
-      surgeryCases.filter((item) => {
-        if (item.status !== 'Scheduled' && item.status !== 'Pre-Op') return false;
-        return checklistCompletion(item.checklist) < 80;
-      }).length,
-    [surgeryCases]
-  );
-
-  const completionRate = totalOperationalCases === 0 ? 0 : Math.round((completedCases / totalOperationalCases) * 100);
-
-  const roomMetrics = React.useMemo(() => {
-    return rooms.map((room) => {
-      const roomCases = surgeryCases.filter((item) => item.roomId === room.id && item.status !== 'Cancelled');
-      const plannedMinutes = roomCases.reduce((sum, item) => sum + item.estimatedMinutes, 0);
-      const finishedMinutes = roomCases
-        .filter((item) => ['In OR', 'Closing', 'PACU', 'Completed'].includes(item.status))
-        .reduce((sum, item) => sum + item.estimatedMinutes, 0);
-      const utilization = Math.round((finishedMinutes / 480) * 100);
-
-      const activeCase = roomCases.find((item) => item.status === 'In OR' || item.status === 'Closing') ?? null;
-      const nextCase = roomCases
-        .filter((item) => item.status === 'Scheduled' || item.status === 'Pre-Op')
-        .sort((a, b) => Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt))[0] ?? null;
-
-      let liveState: RoomState = room.state;
-      if (activeCase) {
-        liveState = 'Occupied';
-      } else if (nextCase) {
-        liveState = 'Turnover';
-      }
-
-      return {
-        room,
-        roomCases,
-        plannedMinutes,
-        finishedMinutes,
-        utilization,
-        activeCase,
-        nextCase,
-        liveState,
-      };
-    });
-  }, [rooms, surgeryCases]);
-
-  const utilizationAverage =
-    roomMetrics.length === 0
-      ? 0
-      : Math.round(
-          roomMetrics.reduce((sum, item) => sum + Math.max(0, Math.min(100, item.utilization)), 0) / roomMetrics.length
-        );
-
-  const longRunningCases = React.useMemo(
-    () => surgeryCases.filter((item) => item.estimatedMinutes >= 180 && item.status !== 'Cancelled').length,
-    [surgeryCases]
-  );
-
-  const canceledCases = React.useMemo(
-    () => surgeryCases.filter((item) => item.status === 'Cancelled').length,
-    [surgeryCases]
-  );
-
-  const updateCaseById = React.useCallback((caseId: string, updater: (value: SurgeryCase) => SurgeryCase) => {
-    setSurgeryCases((prev) => prev.map((item) => (item.id === caseId ? updater(item) : item)));
+  const roomLabelById = React.useMemo(() => {
+    const map = new Map<string, string>();
+    ROOM_OPTIONS.forEach((room) => map.set(room.id, room.label));
+    return map;
   }, []);
 
-  const addTimelineEvent = React.useCallback((payload: Omit<IntraOpEvent, 'id'>) => {
-    const id = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    setTimelineEvents((prev) => [{ id, ...payload }, ...prev]);
+  const boardStats = React.useMemo(() => {
+    const scheduled = cases.filter((item) => item.status === 'Scheduled').length;
+    const inProgress = cases.filter((item) => item.status === 'In OR' || item.status === 'Closing').length;
+    const pendingRecovery = cases.filter((item) => item.status === 'PACU').length;
+    const completed = cases.filter((item) => item.status === 'Completed').length;
+    const utilization = Math.round(((inProgress + pendingRecovery + completed) / Math.max(cases.length, 1)) * 100);
+    return { scheduled, inProgress, pendingRecovery, completed, utilization };
+  }, [cases]);
+
+  const openWorkspace = React.useCallback((row: OtCase) => {
+    setSelectedCaseId(row.id);
+    setWorkspaceTab(mapStatusToWorkspaceTab(row.status));
+    setViewMode('workspace');
   }, []);
 
-  const showToast = React.useCallback((message: string, severity: ToastState['severity']) => {
-    setToast({ open: true, message, severity });
+  const handleTabChange = React.useCallback((value: WorkspaceTab) => {
+    setWorkspaceTab(value);
   }, []);
 
-  const openTab = React.useCallback((nextTab: OpTimeTab) => {
-    setMenuGroup(findMenuByTab(nextTab));
-  }, [findMenuByTab]);
-
-  const routeTo = React.useCallback(
-    (route: string, mrn?: string) => {
-      if (!canAccessRoute(route, permissions)) {
-        showToast('Current role does not have permission for this screen.', 'warning');
-        return;
-      }
-      const target = mrn ? `${route}?mrn=${encodeURIComponent(mrn)}` : route;
-      router.push(target);
-    },
-    [permissions, router, showToast]
-  );
-
-  const handleTransition = React.useCallback(
-    (caseId: string) => {
-      const current = surgeryCases.find((item) => item.id === caseId);
-      if (!current) return;
-
-      const next = NEXT_STATUS[current.status];
-      if (!next) {
-        showToast('No further transition available for this case.', 'info');
-        return;
-      }
-
-      updateCaseById(caseId, (value) => {
-        const updated = {
-          ...value,
-          status: next,
-          aldreteScore: next === 'PACU' ? 8 : value.aldreteScore,
-          painScore: next === 'PACU' ? Math.max(2, value.painScore) : value.painScore,
-        };
-        return updated;
+  React.useEffect(() => {
+    setPreOpChecklistByCaseId((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      cases.forEach((item) => {
+        if (!next[item.id] || next[item.id].length !== PREOP_CHECKLIST_ITEMS.length) {
+          next[item.id] = buildChecklistStateForCase(item);
+          changed = true;
+        }
       });
+      return changed ? next : prev;
+    });
+  }, [cases]);
 
-      const transitionEvent: TimelineEventType =
-        next === 'In OR'
-          ? 'Patient In Room'
-          : next === 'Closing'
-          ? 'Closure'
-          : next === 'PACU'
-          ? 'PACU Transfer'
-          : 'Critical Event';
+  const togglePreOpChecklistItem = React.useCallback(
+    (index: number) => {
+      if (!selectedCase) return;
+      setPreOpChecklistByCaseId((prev) => {
+        const current = prev[selectedCase.id] ?? buildChecklistStateForCase(selectedCase);
+        if (index < 0 || index >= current.length) return prev;
 
-      addTimelineEvent({
-        caseId,
-        time: new Date().toISOString(),
-        type: transitionEvent,
-        note: `${current.caseNo} moved to ${next}.`,
-        by: role,
-      });
-
-      showToast(`${current.caseNo} moved to ${next}.`, 'success');
-    },
-    [addTimelineEvent, role, showToast, surgeryCases, updateCaseById]
-  );
-
-  const handleChecklistToggle = React.useCallback(
-    (caseId: string, key: keyof PreOpChecklist) => {
-      updateCaseById(caseId, (item) => {
-        const nextChecklist = {
-          ...item.checklist,
-          [key]: !item.checklist[key],
-        };
-        return { ...item, checklist: nextChecklist };
+        const nextItems = current.map((item) => ({ ...item }));
+        const currentItem = nextItems[index];
+        if (currentItem.done) {
+          nextItems[index] = { done: false, time: null };
+        } else {
+          nextItems[index] = { done: true, time: formatChecklistTimeNow() };
+        }
+        return { ...prev, [selectedCase.id]: nextItems };
       });
     },
-    [updateCaseById]
+    [selectedCase]
   );
+
+  const updateFormField = React.useCallback(<K extends keyof ScheduleForm>(key: K, value: ScheduleForm[K]) => {
+    setScheduleForm((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   const handleScheduleCase = React.useCallback(() => {
-    if (!scheduleForm.patientName || !scheduleForm.mrn || !scheduleForm.procedure || !scheduleForm.surgeon) {
-      showToast('Patient, MRN, Procedure, and Surgeon are required.', 'warning');
+    if (!scheduleForm.patientName.trim() || !scheduleForm.mrn.trim() || !scheduleForm.procedure.trim() || !scheduleForm.surgeon.trim()) {
+      setToast({ open: true, message: 'Patient, MRN, Procedure, and Surgeon are required.', severity: 'warning' });
       return;
     }
 
     const scheduledDate = new Date(scheduleForm.scheduledAt);
     if (Number.isNaN(scheduledDate.getTime())) {
-      showToast('Please provide a valid date and time.', 'warning');
+      setToast({ open: true, message: 'Please select a valid schedule date and time.', severity: 'warning' });
       return;
     }
 
-    const nextNumber = surgeryCases.length + 1;
-    const newCase: SurgeryCase = {
+    const nextNumber = cases.length + 1;
+    const newCase: OtCase = {
       id: `ot-case-${Date.now()}`,
       caseNo: `OT-${new Date().getFullYear()}-${String(nextNumber).padStart(3, '0')}`,
       patientName: scheduleForm.patientName.trim(),
       mrn: scheduleForm.mrn.trim(),
-      ageGender: scheduleForm.ageGender.trim() || '--',
-      diagnosis: scheduleForm.diagnosis.trim() || '--',
+      ageGender: '45Y / M',
       procedure: scheduleForm.procedure.trim(),
-      specialty: scheduleForm.specialty,
+      department: scheduleForm.department.trim() || 'General Surgery',
+      diagnosis: scheduleForm.diagnosis.trim() || 'Pending diagnosis entry',
       surgeon: scheduleForm.surgeon.trim(),
       anesthetist: scheduleForm.anesthetist.trim() || '--',
       roomId: scheduleForm.roomId,
       scheduledAt: scheduledDate.toISOString(),
-      estimatedMinutes: Math.max(30, Number(scheduleForm.estimatedMinutes) || 120),
-      asaClass: scheduleForm.asaClass,
       priority: scheduleForm.priority,
       status: 'Scheduled',
-      checklist: {
-        consentSigned: false,
-        npoConfirmed: false,
-        siteMarked: false,
-        labsVerified: false,
-        imagingReady: false,
-        anesthesiaCleared: false,
-        bloodReady: Number(scheduleForm.bloodUnits) > 0 ? false : true,
-      },
-      bloodUnits: Math.max(0, Number(scheduleForm.bloodUnits) || 0),
-      implants: [],
-      pacuBed: scheduleForm.pacuBed.trim() || 'PACU-01',
-      painScore: 0,
-      aldreteScore: 0,
-      notes: 'Case created from OpTime OR schedule workflow.',
+      prepPercent: scheduleForm.priority === 'STAT' ? 25 : 40,
+      allergies: ['None'],
+      asaClass: 'ASA II',
+      estimatedDurationMin: 90,
     };
 
-    setSurgeryCases((prev) => [...prev, newCase]);
+    setCases((prev) => [...prev, newCase]);
     setSelectedCaseId(newCase.id);
+    setWorkspaceTab('preop');
+    setViewMode('workspace');
     setScheduleDialogOpen(false);
     setScheduleForm(defaultScheduleForm(scheduleForm.roomId));
-    showToast(`${newCase.caseNo} scheduled successfully.`, 'success');
-  }, [scheduleForm, showToast, surgeryCases.length]);
+    setToast({ open: true, message: `${newCase.caseNo} scheduled and opened in workspace.`, severity: 'success' });
+  }, [cases.length, scheduleForm]);
 
-  const openTeamDialog = React.useCallback(() => {
-    if (!selectedCase) return;
-    const room = rooms.find((item) => item.id === selectedCase.roomId);
-    setTeamForm({
-      surgeon: selectedCase.surgeon,
-      anesthetist: selectedCase.anesthetist,
-      nurseLead: room?.nurseLead ?? '',
-      pacuBed: selectedCase.pacuBed,
-    });
-    setTeamDialogOpen(true);
-  }, [rooms, selectedCase]);
-
-  const handleSaveTeam = React.useCallback(() => {
-    if (!selectedCase) return;
-
-    updateCaseById(selectedCase.id, (item) => ({
-      ...item,
-      surgeon: teamForm.surgeon.trim() || item.surgeon,
-      anesthetist: teamForm.anesthetist.trim() || item.anesthetist,
-      pacuBed: teamForm.pacuBed.trim() || item.pacuBed,
-    }));
-
-    setRooms((prev) =>
-      prev.map((room) =>
-        room.id === selectedCase.roomId
-          ? { ...room, nurseLead: teamForm.nurseLead.trim() || room.nurseLead }
-          : room
-      )
-    );
-
-    setTeamDialogOpen(false);
-    showToast(`Team assignment updated for ${selectedCase.caseNo}.`, 'success');
-  }, [selectedCase, showToast, teamForm, updateCaseById]);
-
-  const handleAddTimeline = React.useCallback(() => {
-    if (!selectedCase) return;
-    if (!timelineForm.note.trim()) {
-      showToast('Timeline note is required.', 'warning');
-      return;
-    }
-
-    const eventTime = new Date(timelineForm.time);
-    if (Number.isNaN(eventTime.getTime())) {
-      showToast('Please select a valid timeline time.', 'warning');
-      return;
-    }
-
-    addTimelineEvent({
-      caseId: selectedCase.id,
-      time: eventTime.toISOString(),
-      type: timelineForm.type,
-      note: timelineForm.note.trim(),
-      by: timelineForm.by.trim() || role,
-    });
-
-    setTimelineDialogOpen(false);
-    setTimelineForm({
-      type: 'Incision',
-      time: getLocalInputDateTime(new Date()),
-      note: '',
-      by: '',
-    });
-    showToast(`Timeline updated for ${selectedCase.caseNo}.`, 'success');
-  }, [addTimelineEvent, role, selectedCase, showToast, timelineForm]);
-
-  const handleCancelCase = React.useCallback(() => {
-    if (!selectedCase) return;
-    if (!cancelReason.trim()) {
-      showToast('Cancellation reason is required.', 'warning');
-      return;
-    }
-
-    updateCaseById(selectedCase.id, (item) => ({
-      ...item,
-      status: 'Cancelled',
-      notes: `${item.notes} | Cancel reason: ${cancelReason.trim()}`,
-    }));
-
-    addTimelineEvent({
-      caseId: selectedCase.id,
-      time: new Date().toISOString(),
-      type: 'Critical Event',
-      note: `Case cancelled: ${cancelReason.trim()}`,
-      by: role,
-    });
-
-    setCancelDialogOpen(false);
-    setCancelReason('');
-    showToast(`${selectedCase.caseNo} cancelled.`, 'warning');
-  }, [addTimelineEvent, cancelReason, role, selectedCase, showToast, updateCaseById]);
-
-  const handleConsentToggle = React.useCallback((phase: ConsentPhase, itemLabel: string) => {
-    setConsentChecklist((prev) => ({
-      ...prev,
-      [phase]: {
-        ...prev[phase],
-        [itemLabel]: !prev[phase][itemLabel],
-      },
-    }));
-  }, []);
-
-  const updateSelectedAnaesthesiaPlan = React.useCallback(
-    (patch: Partial<AnaesthesiaPlanForm>) => {
-      if (!selectedCase) return;
-      setAnaesthesiaPlans((prev) => ({
-        ...prev,
-        [selectedCase.id]: {
-          ...(prev[selectedCase.id] ?? defaultAnaesthesiaPlan(selectedCase)),
-          ...patch,
-        },
-      }));
-    },
-    [selectedCase]
-  );
-
-  const updateSelectedPostOpNote = React.useCallback(
-    (patch: Partial<PostOpNoteForm>) => {
-      if (!selectedCase) return;
-      setPostOpNotes((prev) => ({
-        ...prev,
-        [selectedCase.id]: {
-          ...(prev[selectedCase.id] ?? defaultPostOpNote()),
-          ...patch,
-        },
-      }));
-    },
-    [selectedCase]
-  );
-
-  const handleSaveAnaesthesiaPlan = React.useCallback(() => {
-    if (!selectedCase) return;
-    setAnaesthesiaPlans((prev) => ({
-      ...prev,
-      [selectedCase.id]: selectedAnaesthesiaPlan,
-    }));
-    showToast(`Anaesthesia plan saved for ${selectedCase.caseNo}.`, 'success');
-  }, [selectedAnaesthesiaPlan, selectedCase, showToast]);
-
-  const handleSavePostOpNote = React.useCallback(() => {
-    if (!selectedCase) return;
-    const note = postOpNotes[selectedCase.id];
-    if (!note?.summary?.trim()) {
-      showToast('Post-op summary is required before save.', 'warning');
-      return;
-    }
-    showToast(`Post-op note saved for ${selectedCase.caseNo}.`, 'success');
-  }, [postOpNotes, selectedCase, showToast]);
-
-  const handleIndentSubmit = React.useCallback(() => {
-    if (!indentForm.item.trim() || Number(indentForm.qty) <= 0) {
-      showToast('Item and valid quantity are required for indent.', 'warning');
-      return;
-    }
-    setIndentDialogOpen(false);
-    setIndentForm({
-      item: '',
-      qty: '1',
-      priority: 'Routine',
-      note: '',
-    });
-    showToast('Indent request submitted to stores.', 'success');
-  }, [indentForm, showToast]);
-
-  const prepCases = React.useMemo(
-    () =>
-      surgeryCases
-        .filter((item) => item.status === 'Scheduled' || item.status === 'Pre-Op')
-        .sort((a, b) => Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt)),
-    [surgeryCases]
-  );
-
-  const intraOpCases = React.useMemo(
-    () =>
-      surgeryCases
-        .filter((item) => item.status === 'In OR' || item.status === 'Closing')
-        .sort((a, b) => Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt)),
-    [surgeryCases]
-  );
-
-  const recoveryCases = React.useMemo(
-    () =>
-      surgeryCases
-        .filter((item) => item.status === 'PACU' || item.status === 'Completed')
-        .sort((a, b) => Date.parse(b.scheduledAt) - Date.parse(a.scheduledAt)),
-    [surgeryCases]
-  );
-
-  const actionRouteConfig = React.useMemo(
+  const caseBoardColumns = React.useMemo<CommonTableColumn<OtCase>[]>(
     () => [
-      { label: 'Anesthesia', route: '/clinical/modules/anesthesia', icon: <MonitorHeartIcon fontSize="small" /> },
-      { label: 'Radiant', route: '/clinical/modules/radiant', icon: <ScienceIcon fontSize="small" /> },
-      { label: 'Beaker', route: '/clinical/modules/beaker', icon: <BiotechIcon fontSize="small" /> },
-      { label: 'IPD Rounds', route: '/ipd/rounds', icon: <HealingIcon fontSize="small" /> },
-      { label: 'Billing', route: '/clinical/modules/resolute-billing', icon: <QueryStatsIcon fontSize="small" /> },
+      {
+        id: 'time',
+        label: 'Time',
+        minWidth: 96,
+        renderCell: (row) => (
+          <Typography sx={{ fontFamily: '"IBM Plex Mono","SFMono-Regular",Consolas,monospace', fontSize: '0.78rem', fontWeight: 700 }}>
+            {formatTime(row.scheduledAt)}
+          </Typography>
+        ),
+      },
+      {
+        id: 'case',
+        label: 'Case',
+        minWidth: 220,
+        renderCell: (row) => (
+          <Stack spacing={0.2}>
+            <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: '"IBM Plex Mono","SFMono-Regular",Consolas,monospace' }}>
+              {row.caseNo}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {row.patientName} • {row.mrn} • {row.ageGender}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        id: 'procedure',
+        label: 'Procedure',
+        minWidth: 230,
+        renderCell: (row) => (
+          <Stack spacing={0.2}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {row.procedure}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {row.department}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        id: 'team',
+        label: 'Surgical Team',
+        minWidth: 190,
+        renderCell: (row) => (
+          <Stack spacing={0.2}>
+            <Typography variant="caption">{row.surgeon}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {row.anesthetist}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        id: 'room',
+        label: 'Room',
+        minWidth: 96,
+        renderCell: (row) => (
+          <Chip
+            size="small"
+            label={roomLabelById.get(row.roomId) ?? row.roomId}
+            variant="outlined"
+            sx={{
+              borderColor: alpha(theme.palette.primary.main, 0.34),
+              bgcolor: alpha(theme.palette.primary.main, 0.08),
+              fontWeight: 700,
+              fontFamily: '"IBM Plex Mono","SFMono-Regular",Consolas,monospace',
+            }}
+          />
+        ),
+      },
+      {
+        id: 'priority',
+        label: 'Priority',
+        minWidth: 95,
+        renderCell: (row) => <Chip size="small" label={row.priority} color={PRIORITY_COLOR[row.priority]} />,
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        minWidth: 110,
+        renderCell: (row) => <Chip size="small" label={row.status} color={STATUS_COLOR[row.status]} />,
+      },
+      {
+        id: 'prep',
+        label: 'Prep',
+        minWidth: 130,
+        renderCell: (row) => (
+          <Stack spacing={0.45} sx={{ minWidth: 95 }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: '"IBM Plex Mono","SFMono-Regular",Consolas,monospace' }}>
+              {row.prepPercent}%
+            </Typography>
+            <LinearProgress variant="determinate" value={row.prepPercent} sx={{ height: 5, borderRadius: 99 }} />
+          </Stack>
+        ),
+      },
+      {
+        id: 'action',
+        label: 'Action',
+        minWidth: 132,
+        renderCell: (row) => (
+          <Button size="small" variant={selectedCaseId === row.id ? 'contained' : 'outlined'} onClick={() => openWorkspace(row)}>
+            Open Workspace
+          </Button>
+        ),
+      },
+    ],
+    [openWorkspace, roomLabelById, selectedCaseId, theme.palette.primary.main]
+  );
+
+  const boardFilters = React.useMemo<CommonTableFilter<OtCase>[]>(
+    () => [
+      {
+        id: 'status',
+        label: 'Status',
+        allValue: 'all',
+        defaultValue: 'all',
+        options: [
+          { label: 'All Statuses', value: 'all' },
+          { label: 'Scheduled', value: 'Scheduled' },
+          { label: 'Pre-Op', value: 'Pre-Op' },
+          { label: 'In OR', value: 'In OR' },
+          { label: 'Closing', value: 'Closing' },
+          { label: 'PACU', value: 'PACU' },
+          { label: 'Completed', value: 'Completed' },
+          { label: 'Cancelled', value: 'Cancelled' },
+        ],
+        getValue: (row) => row.status,
+      },
+      {
+        id: 'room',
+        label: 'Room',
+        allValue: 'all',
+        defaultValue: 'all',
+        options: [{ label: 'All Rooms', value: 'all' }].concat(
+          ROOM_OPTIONS.map((room) => ({ label: room.label, value: room.id }))
+        ),
+        getValue: (row) => row.roomId,
+      },
+      {
+        id: 'priority',
+        label: 'Priority',
+        allValue: 'all',
+        defaultValue: 'all',
+        options: [
+          { label: 'All Priorities', value: 'all' },
+          { label: 'STAT', value: 'STAT' },
+          { label: 'Urgent', value: 'Urgent' },
+          { label: 'Elective', value: 'Elective' },
+        ],
+        getValue: (row) => row.priority,
+      },
     ],
     []
   );
 
-  return (
-    <PageTemplate title="OpTime" currentPageTitle="Operating Room">
-      <Stack spacing={2}>
-        <ModuleHeaderCard
-          title="OpTime - Surgical Workflow"
-          description="HIMS OT lifecycle: Dashboard, OT status, scheduling, pre-op, consent, anaesthesia, intra-op, PACU, post-op, staff, inventory, billing, and reports."
-          chips={[
-            { label: 'Surgery', color: 'primary' },
-            { label: 'Live UI', color: 'success', variant: 'outlined' },
-            { label: 'Role: ' + role, variant: 'outlined' },
-          ]}
-          actions={
-            <>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() => openTab('anaesthesia')}
-                endIcon={<MonitorHeartIcon fontSize="small" />}
-              >
-                Anaesthesia Plan
-              </Button>
-              <Button
-                size="small"
-                variant="contained"
-                onClick={() => {
-                  setScheduleForm(defaultScheduleForm(rooms[0]?.id ?? 'or-1'));
-                  setScheduleDialogOpen(true);
-                }}
-                startIcon={<AddCircleOutlineIcon fontSize="small" />}
-              >
-                Schedule Case
-              </Button>
-            </>
-          }
-        />
+  const preOpChecklistRows = React.useMemo(() => {
+    if (!selectedCase) {
+      return PREOP_CHECKLIST_ITEMS.map((item) => ({
+        label: item,
+        done: false,
+        time: '--',
+      }));
+    }
 
-        <Card elevation={0} sx={{ p: 1, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-          <CommonTabs
-            tabs={MENU_GROUPS.map((menu) => ({
-              ...menu,
-              icon: MENU_ICON_MAP[menu.id],
-            }))}
-            value={menuGroup}
-            onChange={setMenuGroup}
-            variant="scrollable"
-            allowScrollButtonsMobile
-          />
-        </Card>
+    const checklist = preOpChecklistByCaseId[selectedCase.id] ?? buildChecklistStateForCase(selectedCase);
+    return PREOP_CHECKLIST_ITEMS.map((item, index) => ({
+      label: item,
+      done: checklist[index]?.done ?? false,
+      time: checklist[index]?.time ?? '--',
+    }));
+  }, [preOpChecklistByCaseId, selectedCase]);
 
-        <Stack spacing={2}>
-              {menuGroup === 'dashboard' ? (
-                <Grid container spacing={1.5}>
-                  <Grid xs={12} sm={6} md={4} lg={2.4}>
-                    <StatTile
-                      label="Operational Cases"
-                      value={totalOperationalCases}
-                      subtitle="Excluding cancelled"
-                      icon={<LocalHospitalIcon fontSize="small" />}
-                      tone="info"
-                      variant="soft"
-                    />
-                  </Grid>
-                  <Grid xs={12} sm={6} md={4} lg={2.4}>
-                    <StatTile
-                      label="Active in OR"
-                      value={activeOrCases}
-                      subtitle="Incision/closure"
-                      icon={<TimelineIcon fontSize="small" />}
-                      tone="primary"
-                      variant="soft"
-                    />
-                  </Grid>
-                  <Grid xs={12} sm={6} md={4} lg={2.4}>
-                    <StatTile
-                      label="PACU Queue"
-                      value={pacuCases}
-                      subtitle="Awaiting handoff"
-                      icon={<MonitorHeartIcon fontSize="small" />}
-                      tone="success"
-                      variant="soft"
-                    />
-                  </Grid>
-                  <Grid xs={12} sm={6} md={6} lg={2.4}>
-                    <StatTile
-                      label="Delayed Starts"
-                      value={delayedCases}
-                      subtitle="Behind schedule"
-                      icon={<WarningAmberIcon fontSize="small" />}
-                      tone="warning"
-                      variant="soft"
-                    />
-                  </Grid>
-                  <Grid xs={12} sm={6} md={6} lg={2.4}>
-                    <StatTile
-                      label="Case Completion"
-                      value={`${completionRate}%`}
-                      subtitle={`${completedCases} completed`}
-                      icon={<CheckCircleIcon fontSize="small" />}
-                      tone="success"
-                      variant="soft"
-                    />
-                  </Grid>
-                </Grid>
-              ) : null}
+  const preOpVitals = React.useMemo<VitalReading[]>(
+    () => [
+      { label: 'BP', value: '136/84 mmHg', tone: 'warning' },
+      { label: 'HR', value: '90 bpm', tone: 'info' },
+      { label: 'SpO₂', value: '98%', tone: 'success' },
+      { label: 'Temp', value: selectedCase?.allergies.includes('None') ? '37.2 °C' : '38.2 °C', tone: selectedCase?.allergies.includes('None') ? 'info' : 'warning' },
+      { label: 'RBS', value: '132 mg/dL', tone: 'info' },
+      { label: 'Pain', value: '4/10', tone: 'warning' },
+    ],
+    [selectedCase?.allergies]
+  );
 
-              {menuGroup === 'dashboard' ? (
-          <Grid container spacing={2}>
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="OT Dashboard Overview" subtitle="Current running, completed, and pending surgical workload">
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Case</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Procedure</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>OT</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Time</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredCases.slice(0, 6).map((item) => (
-                        <TableRow
-                          key={item.id}
-                          hover
-                          selected={selectedCaseId === item.id}
-                          onClick={() => setSelectedCaseId(item.id)}
-                          sx={{ cursor: 'pointer' }}
-                        >
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                              {item.caseNo}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {item.patientName} • {item.mrn}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>{item.procedure}</TableCell>
-                          <TableCell>{rooms.find((room) => room.id === item.roomId)?.label ?? item.roomId}</TableCell>
-                          <TableCell>{formatTime(item.scheduledAt)}</TableCell>
-                          <TableCell>
-                            <Chip size="small" label={item.status} color={STATUS_COLOR[item.status]} />
-                          </TableCell>
-                          <TableCell>
-                            <Button size="small" variant="outlined" onClick={() => openTab('scheduling')}>
-                              Open
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </WorkflowSectionCard>
-            </Grid>
+  const intraOpVitals = React.useMemo<VitalReading[]>(
+    () => [
+      { label: 'BP', value: '118/76 mmHg', tone: 'success' },
+      { label: 'HR', value: '82 bpm', tone: 'success' },
+      { label: 'SpO₂', value: '99%', tone: 'success' },
+      { label: 'EtCO₂', value: '35 mmHg', tone: 'info' },
+      { label: 'Temp', value: '37.1 °C', tone: 'info' },
+      { label: 'UO', value: '180 ml/hr', tone: 'success' },
+    ],
+    []
+  );
 
-            <Grid xs={12} lg={12}>
-              <Stack spacing={2}>
-                <WorkflowSectionCard title="OT Alerts" subtitle="Priority operational focus">
-                  <Stack spacing={1}>
-                    <Alert severity={delayedCases > 0 ? 'warning' : 'success'}>
-                      {delayedCases} delayed starts. Align transport and anaesthesia prep.
-                    </Alert>
-                    <Alert severity={preOpAtRiskCases > 0 ? 'error' : 'success'}>
-                      {preOpAtRiskCases} pre-op risk cases pending checklist completion.
-                    </Alert>
-                    <Alert severity="info">
-                      PACU active beds: {pacuCases}. Maintain handoff and medication reconciliation.
-                    </Alert>
-                  </Stack>
-                </WorkflowSectionCard>
-              </Stack>
-            </Grid>
-          </Grid>
-        ) : null}
+  const postOpVitals = React.useMemo<VitalReading[]>(
+    () => [
+      { label: 'BP', value: '122/80 mmHg', tone: 'success' },
+      { label: 'Pulse', value: '78 bpm', tone: 'success' },
+      { label: 'SpO₂', value: '97%', tone: 'success' },
+      { label: 'Temp', value: '37.4 °C', tone: 'info' },
+      { label: 'Pain', value: '3/10 VAS', tone: 'warning' },
+      { label: 'UO', value: '95 ml/hr', tone: 'info' },
+    ],
+    []
+  );
 
-        {menuGroup === 'dashboard' ? (
-          <WorkflowSectionCard title="OT Room Status - Live" subtitle="Occupancy, turnover, and next case visibility">
-            <Grid container spacing={1.5}>
-              {roomMetrics.map((metric) => (
-                <Grid key={metric.room.id} xs={12} md={6} lg={4}>
-                  <Card
-                    elevation={0}
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      border: '1px solid',
-                      borderColor:
-                        metric.liveState === 'Occupied'
-                          ? alpha(theme.palette.error.main, 0.32)
-                          : metric.liveState === 'Turnover'
-                          ? alpha(theme.palette.warning.main, 0.32)
-                          : 'divider',
-                      backgroundColor:
-                        metric.liveState === 'Occupied'
-                          ? alpha(theme.palette.error.main, 0.05)
-                          : metric.liveState === 'Turnover'
-                          ? alpha(theme.palette.warning.main, 0.07)
-                          : 'background.paper',
-                    }}
-                  >
-                    <Stack spacing={1}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          {metric.room.label}
-                        </Typography>
-                        <Chip size="small" label={metric.liveState} color={ROOM_STATE_COLOR[metric.liveState]} />
-                      </Stack>
-                      <Typography variant="caption" color="text.secondary">
-                        {metric.room.suite} • {metric.room.specialty}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Nurse Lead: {metric.room.nurseLead}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Active: {metric.activeCase ? `${metric.activeCase.caseNo} (${metric.activeCase.patientName})` : 'No active case'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Next: {metric.nextCase ? `${metric.nextCase.caseNo} at ${formatTime(metric.nextCase.scheduledAt)}` : 'No scheduled case'}
-                      </Typography>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          Utilization {Math.max(0, Math.min(100, metric.utilization))}%
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
-                          value={Math.max(0, Math.min(100, metric.utilization))}
-                          sx={{ mt: 0.5, height: 6, borderRadius: 999 }}
-                        />
-                      </Box>
-                      <Button size="small" variant="outlined" onClick={() => openTab('scheduling')}>
-                        View Cases
-                      </Button>
-                    </Stack>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </WorkflowSectionCard>
-        ) : null}
+  const instrumentRows = React.useMemo<InstrumentCountRow[]>(
+    () => [
+      { id: 'count-swabs', item: 'Swabs', initial: '20', final: '20', status: 'OK' },
+      { id: 'count-needles', item: 'Needles', initial: '8', final: '8', status: 'OK' },
+      { id: 'count-instruments', item: 'Instruments', initial: '32', final: selectedCase?.status === 'Closing' ? '32' : '--', status: selectedCase?.status === 'Closing' ? 'OK' : 'Pending' },
+      { id: 'count-retractors', item: 'Retractors', initial: '4', final: '4', status: 'OK' },
+    ],
+    [selectedCase?.status]
+  );
 
-        {menuGroup === 'scheduling' ? (
-          <Grid container spacing={2}>
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard
-                title="Today's OR Case Board"
-                subtitle="Real-time surgical queue with progression controls"
-                action={
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                    <TextField
-                      size="small"
-                      placeholder="Search case, patient, procedure"
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <SearchIcon fontSize="small" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                    <TextField
-                      size="small"
-                      select
-                      value={statusFilter}
-                      onChange={(event) => setStatusFilter(event.target.value as 'All' | SurgeryStatus)}
-                      sx={{ minWidth: 130 }}
-                    >
-                      {['All', 'Scheduled', 'Pre-Op', 'In OR', 'Closing', 'PACU', 'Completed', 'Cancelled'].map((status) => (
-                        <MenuItem key={status} value={status}>
-                          {status}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      size="small"
-                      select
-                      value={roomFilter}
-                      onChange={(event) => setRoomFilter(event.target.value)}
-                      sx={{ minWidth: 120 }}
-                    >
-                      <MenuItem value="All">All Rooms</MenuItem>
-                      {rooms.map((room) => (
-                        <MenuItem key={room.id} value={room.id}>
-                          {room.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      size="small"
-                      select
-                      value={priorityFilter}
-                      onChange={(event) => setPriorityFilter(event.target.value as 'All' | SurgeryPriority)}
-                      sx={{ minWidth: 120 }}
-                    >
-                      {['All', 'STAT', 'Urgent', 'Elective'].map((priority) => (
-                        <MenuItem key={priority} value={priority}>
-                          {priority}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Stack>
-                }
-              >
-                <TableContainer>
-                  <Table size="small" stickyHeader>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Time</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Case</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Procedure</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Team</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Room</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Priority</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Prep</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredCases.map((item) => {
-                        const readiness = checklistCompletion(item.checklist);
-                        const nextStatus = NEXT_STATUS[item.status];
-                        return (
-                          <TableRow
-                            key={item.id}
-                            hover
-                            selected={selectedCaseId === item.id}
-                            onClick={() => setSelectedCaseId(item.id)}
-                            sx={{ cursor: 'pointer' }}
-                          >
-                            <TableCell>{formatTime(item.scheduledAt)}</TableCell>
-                            <TableCell>
-                              <Stack spacing={0.25}>
-                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                  {item.caseNo}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {item.patientName} • {item.mrn}
-                                </Typography>
-                              </Stack>
-                            </TableCell>
-                            <TableCell>
-                              <Stack spacing={0.25}>
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                  {item.procedure}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {item.specialty}
-                                </Typography>
-                              </Stack>
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="caption" display="block">
-                                {item.surgeon}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {item.anesthetist}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>{rooms.find((room) => room.id === item.roomId)?.label ?? item.roomId}</TableCell>
-                            <TableCell>
-                              <Chip size="small" label={item.priority} color={PRIORITY_COLOR[item.priority]} />
-                            </TableCell>
-                            <TableCell>
-                              <Chip size="small" label={item.status} color={STATUS_COLOR[item.status]} />
-                            </TableCell>
-                            <TableCell sx={{ minWidth: 120 }}>
-                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                {readiness}%
-                              </Typography>
-                              <LinearProgress
-                                variant="determinate"
-                                value={readiness}
-                                sx={{ mt: 0.5, height: 6, borderRadius: 99 }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Stack direction="row" spacing={0.75}>
-                                <Button
-                                  size="small"
-                                  variant={selectedCaseId === item.id ? 'contained' : 'outlined'}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    setSelectedCaseId(item.id);
-                                  }}
-                                >
-                                  View
-                                </Button>
-                                <Button
-                                  size="small"
-                                  variant="text"
-                                  disabled={!nextStatus}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleTransition(item.id);
-                                  }}
-                                >
-                                  {nextStatus ? NEXT_STATUS_LABEL[item.status] : 'Closed'}
-                                </Button>
-                              </Stack>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </WorkflowSectionCard>
-            </Grid>
+  const intraOpMedicationRows = React.useMemo<MedicationRow[]>(
+    () => [
+      { id: 'med-propofol', drug: 'Propofol 2%', dose: '200 mg', route: 'IV Bolus', time: '08:05' },
+      { id: 'med-cef', drug: 'Ceftriaxone', dose: '1 g', route: 'IV', time: '08:10' },
+      { id: 'med-fentanyl', drug: 'Fentanyl', dose: '100 mcg', route: 'IV Push', time: '08:15' },
+      { id: 'med-rocuronium', drug: 'Rocuronium', dose: '50 mg', route: 'IV', time: '08:18' },
+    ],
+    []
+  );
 
-            <Grid xs={12} lg={12}>
-              <Stack spacing={2}>
-                <WorkflowSectionCard title="OR Room Control Tower" subtitle="Room-wise occupancy and next case">
-                  <Stack spacing={1.25}>
-                    {roomMetrics.map((metric) => (
-                      <Card
-                        key={metric.room.id}
-                        elevation={0}
+  const dischargeMedicationRows = React.useMemo<DischargeMedicationRow[]>(
+    () => [
+      {
+        id: 'dmed-1',
+        drug: 'Paracetamol',
+        dose: '500 mg',
+        frequency: 'TDS',
+        duration: '5 days',
+        instructions: 'After food',
+      },
+      {
+        id: 'dmed-2',
+        drug: 'Pantoprazole',
+        dose: '40 mg',
+        frequency: 'OD',
+        duration: '7 days',
+        instructions: 'Before breakfast',
+      },
+      {
+        id: 'dmed-3',
+        drug: 'Amox-Clav',
+        dose: '625 mg',
+        frequency: 'BD',
+        duration: '5 days',
+        instructions: 'After meals',
+      },
+    ],
+    []
+  );
+
+  const countColumns = React.useMemo<CommonTableColumn<InstrumentCountRow>[]>(
+    () => [
+      { id: 'item', label: 'Item', minWidth: 120, renderCell: (row) => <Typography variant="body2">{row.item}</Typography> },
+      { id: 'initial', label: 'Initial', minWidth: 80, renderCell: (row) => <Typography variant="caption">{row.initial}</Typography> },
+      { id: 'final', label: 'Final', minWidth: 80, renderCell: (row) => <Typography variant="caption">{row.final}</Typography> },
+      {
+        id: 'status',
+        label: 'Status',
+        minWidth: 100,
+        renderCell: (row) => <EnterpriseStatusChip label={row.status} tone={toStatusTone(row.status)} />,
+      },
+    ],
+    []
+  );
+
+  const medicationColumns = React.useMemo<CommonTableColumn<MedicationRow>[]>(
+    () => [
+      { id: 'drug', label: 'Drug', minWidth: 130, renderCell: (row) => <Typography variant="body2">{row.drug}</Typography> },
+      { id: 'dose', label: 'Dose', minWidth: 80, renderCell: (row) => <Typography variant="caption">{row.dose}</Typography> },
+      { id: 'route', label: 'Route', minWidth: 90, renderCell: (row) => <Typography variant="caption">{row.route}</Typography> },
+      {
+        id: 'time',
+        label: 'Time',
+        minWidth: 85,
+        renderCell: (row) => (
+          <Typography variant="caption" sx={{ fontFamily: '"IBM Plex Mono","SFMono-Regular",Consolas,monospace' }}>
+            {row.time}
+          </Typography>
+        ),
+      },
+    ],
+    []
+  );
+
+  const dischargeMedicationColumns = React.useMemo<CommonTableColumn<DischargeMedicationRow>[]>(
+    () => [
+      {
+        id: 'drug',
+        label: 'Drug',
+        minWidth: 130,
+        renderCell: (row) => <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.drug}</Typography>,
+      },
+      { id: 'dose', label: 'Dose', minWidth: 80, renderCell: (row) => <Typography variant="caption">{row.dose}</Typography> },
+      { id: 'frequency', label: 'Freq', minWidth: 70, renderCell: (row) => <Typography variant="caption">{row.frequency}</Typography> },
+      { id: 'duration', label: 'Duration', minWidth: 95, renderCell: (row) => <Typography variant="caption">{row.duration}</Typography> },
+      {
+        id: 'instructions',
+        label: 'Instructions',
+        minWidth: 130,
+        renderCell: (row) => <Typography variant="caption" color="text.secondary">{row.instructions}</Typography>,
+      },
+    ],
+    []
+  );
+
+  const tabMeta = React.useMemo(
+    () => {
+      const preOpDone = preOpChecklistRows.filter((item) => item.done).length;
+      return [
+        { value: 'preop' as const, label: 'Pre-Op', count: `${preOpDone}/${PREOP_CHECKLIST_ITEMS.length}`, icon: <FactCheckIcon fontSize="small" /> },
+        { value: 'intraop' as const, label: 'Intra-Op', count: '5', icon: <TimelineIcon fontSize="small" /> },
+        { value: 'postop' as const, label: 'Post-Op', count: '4', icon: <MonitorHeartIcon fontSize="small" /> },
+      ];
+    },
+    [preOpChecklistRows]
+  );
+
+  const dashboardCardSx = React.useMemo(
+    () => ({
+      backgroundColor: 'background.paper',
+      border: '1px solid',
+      borderColor: 'divider',
+      borderRadius: 2,
+      boxShadow: 'none',
+    }),
+    []
+  );
+
+  const workspaceCardSx = React.useMemo(
+    () => ({
+      ...dashboardCardSx,
+      p: 1.25,
+      height: '100%',
+    }),
+    [dashboardCardSx]
+  );
+
+  const workspacePanel = React.useMemo(() => {
+    if (!selectedCase) return null;
+
+    if (workspaceTab === 'preop') {
+      return (
+        <Stack spacing={1.1}>
+          
+          <Grid container spacing={1.1}>
+            <Grid xs={12} md={4}>
+              <Stack spacing={1.1} sx={{ height: '100%' }}>
+
+                <Card elevation={0} sx={{ ...workspaceCardSx, flex: 1 }}>
+                  <EnterpriseSectionTitle title="Pre-Op Checklist" />
+                  <Stack spacing={0.6}>
+                    {preOpChecklistRows.map((item, index) => (
+                      <Stack
+                        key={item.label}
+                        direction="row"
+                        spacing={0.8}
+                        alignItems="center"
+                        onClick={() => togglePreOpChecklistItem(index)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            togglePreOpChecklistItem(index);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
                         sx={{
-                          p: 1.25,
-                          borderRadius: 2,
+                          px: 1,
+                          py: 0.6,
+                          borderRadius: 1.2,
                           border: '1px solid',
-                          borderColor:
-                            metric.liveState === 'Occupied'
-                              ? alpha(theme.palette.error.main, 0.28)
-                              : metric.liveState === 'Turnover'
-                              ? alpha(theme.palette.warning.main, 0.35)
-                              : 'divider',
-                          backgroundColor:
-                            metric.liveState === 'Occupied'
-                              ? alpha(theme.palette.error.main, 0.05)
-                              : metric.liveState === 'Turnover'
-                              ? alpha(theme.palette.warning.main, 0.06)
-                              : 'background.paper',
+                          borderColor: item.done ? alpha('#2FA77A', 0.4) : 'divider',
+                          bgcolor: item.done ? alpha('#2FA77A', 0.12) : 'background.paper',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          '&:hover': {
+                            borderColor: item.done ? alpha('#2FA77A', 0.52) : alpha(theme.palette.primary.main, 0.28),
+                            bgcolor: item.done ? alpha('#2FA77A', 0.17) : alpha(theme.palette.primary.main, 0.06),
+                          },
                         }}
                       >
-                        <Stack spacing={1}>
-                          <Stack direction="row" justifyContent="space-between" alignItems="center">
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                              {metric.room.label}
-                            </Typography>
-                            <Chip size="small" label={metric.liveState} color={ROOM_STATE_COLOR[metric.liveState]} />
-                          </Stack>
-                          <Typography variant="caption" color="text.secondary">
-                            {metric.room.suite} • {metric.room.specialty}
-                          </Typography>
-                          {metric.activeCase ? (
-                            <Alert severity="info" sx={{ py: 0.5 }}>
-                              <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                                Live: {metric.activeCase.caseNo} ({metric.activeCase.procedure})
-                              </Typography>
-                            </Alert>
-                          ) : null}
-                          <Typography variant="caption" color="text.secondary">
-                            Nurse Lead: {metric.room.nurseLead}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Next Case: {metric.nextCase ? `${metric.nextCase.caseNo} at ${formatTime(metric.nextCase.scheduledAt)}` : 'No pending case'}
-                          </Typography>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Utilization: {Math.max(0, Math.min(100, metric.utilization))}%
-                            </Typography>
-                            <LinearProgress
-                              variant="determinate"
-                              value={Math.max(0, Math.min(100, metric.utilization))}
-                              sx={{ mt: 0.5, height: 6, borderRadius: 99 }}
-                            />
-                          </Box>
-                        </Stack>
-                      </Card>
+                        {item.done ? <TaskAltIcon sx={{ fontSize: 16, color: '#2FA77A' }} /> : <FactCheckIcon sx={{ fontSize: 16, color: 'text.disabled' }} />}
+                        <Typography variant="caption" sx={{ flex: 1, fontWeight: 600 }}>
+                          {item.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {item.time}
+                        </Typography>
+                      </Stack>
                     ))}
                   </Stack>
-                </WorkflowSectionCard>
-
-                <WorkflowSectionCard
-                  title="Selected Case Snapshot"
-                  subtitle="HIMS cross-module actions"
-                  action={
-                    <Button size="small" variant="outlined" onClick={openTeamDialog} disabled={!selectedCase}>
-                      Assign Team
+                </Card>
+              </Stack>
+            </Grid>
+            <Grid xs={12} md={8}>
+              <Stack spacing={1.1} sx={{ height: '100%' }}>
+                <Card elevation={0} sx={workspaceCardSx}>
+                  <EnterpriseSectionTitle title="Pre-Operative Notes" />
+                  <Grid container spacing={0.85}>
+                    <Grid xs={12} md={7}>
+                      <TextField fullWidth label="Pre-Operative Diagnosis" value={selectedCase.diagnosis} />
+                    </Grid>
+                    <Grid xs={6} md={2.5}>
+                      <TextField fullWidth select label="ASA" value={selectedCase.asaClass}>
+                        <MenuItem value="ASA I">ASA I</MenuItem>
+                        <MenuItem value="ASA II">ASA II</MenuItem>
+                        <MenuItem value="ASA III">ASA III</MenuItem>
+                        <MenuItem value="ASA IV">ASA IV</MenuItem>
+                      </TextField>
+                    </Grid>
+                    <Grid xs={6} md={2.5}>
+                      <TextField fullWidth label="Duration (min)" value={selectedCase.estimatedDurationMin} />
+                    </Grid>
+                    <Grid xs={12}>
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={3}
+                        defaultValue={`Patient prepared for ${selectedCase.procedure}. Site verification and WHO timeout checklist confirmed by OT nursing.`}
+                      />
+                    </Grid>
+                  </Grid>
+                  <Stack direction="row" justifyContent="flex-end" sx={{ mt: 0.9 }}>
+                    <Button size="small" variant="contained" startIcon={<SaveIcon fontSize="small" />}>
+                      Save Notes
                     </Button>
-                  }
-                >
-                  {selectedCase ? (
-                    <Stack spacing={1.5}>
-                      <Stack direction="row" flexWrap="wrap" spacing={0.75}>
-                        <Chip size="small" label={selectedCase.caseNo} color="primary" />
-                        <Chip size="small" label={selectedCase.priority} color={PRIORITY_COLOR[selectedCase.priority]} />
-                        <Chip size="small" label={selectedCase.status} color={STATUS_COLOR[selectedCase.status]} />
-                        <Chip size="small" label={selectedCase.asaClass} variant="outlined" />
-                      </Stack>
-
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          {selectedCase.patientName} • {selectedCase.ageGender}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          MRN: {selectedCase.mrn}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          {selectedCase.procedure}
-                        </Typography>
-                      </Box>
-
-                      <Divider />
-
-                      <Stack spacing={1}>
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
-                          Linked Modules
-                        </Typography>
-                        <Grid container spacing={1}>
-                          {actionRouteConfig.map((action) => (
-                            <Grid key={action.route} xs={12} sm={6}>
-                              <Button
-                                fullWidth
-                                size="small"
-                                variant="outlined"
-                                startIcon={action.icon}
-                                onClick={() => routeTo(action.route, selectedCase.mrn)}
-                                disabled={!canAccessRoute(action.route, permissions)}
-                              >
-                                {action.label}
-                              </Button>
-                            </Grid>
-                          ))}
-                        </Grid>
-                      </Stack>
-
-                      <Divider />
-
-                      <Stack direction="row" spacing={1} flexWrap="wrap">
-                        <Button
-                          size="small"
-                          variant="contained"
-                          onClick={() => handleTransition(selectedCase.id)}
-                          disabled={!NEXT_STATUS[selectedCase.status]}
-                        >
-                          {NEXT_STATUS[selectedCase.status] ? NEXT_STATUS_LABEL[selectedCase.status] : 'No Transition'}
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="error"
-                          onClick={() => setCancelDialogOpen(true)}
-                          disabled={selectedCase.status === 'Completed' || selectedCase.status === 'Cancelled'}
-                        >
-                          Cancel Case
-                        </Button>
-                      </Stack>
-                    </Stack>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      Select a case from OR Board.
-                    </Typography>
-                  )}
-                </WorkflowSectionCard>
-              </Stack>
-            </Grid>
-          </Grid>
-        ) : null}
-
-        {menuGroup === 'pre-op' ? (
-          <Grid container spacing={2}>
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="Pre-Op Readiness Queue" subtitle="Checklist compliance before room entry">
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Case</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Scheduled</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Team</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Room</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Readiness</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Gap</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {prepCases.map((item) => {
-                        const readiness = checklistCompletion(item.checklist);
-                        const pending = CHECKLIST_ITEMS.filter((entry) => !item.checklist[entry.key]);
-                        return (
-                          <TableRow
-                            key={item.id}
-                            hover
-                            selected={selectedCaseId === item.id}
-                            onClick={() => setSelectedCaseId(item.id)}
-                            sx={{ cursor: 'pointer' }}
-                          >
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                {item.caseNo}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {item.patientName}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>{formatDateTime(item.scheduledAt)}</TableCell>
-                            <TableCell>
-                              <Typography variant="caption" display="block">
-                                {item.surgeon}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {item.anesthetist}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>{rooms.find((room) => room.id === item.roomId)?.label ?? item.roomId}</TableCell>
-                            <TableCell sx={{ minWidth: 130 }}>
-                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                {readiness}%
-                              </Typography>
-                              <LinearProgress
-                                variant="determinate"
-                                value={readiness}
-                                color={readiness >= 85 ? 'success' : readiness >= 65 ? 'warning' : 'error'}
-                                sx={{ mt: 0.5, height: 6, borderRadius: 99 }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {pending.length === 0 ? (
-                                <Chip size="small" label="Ready" color="success" />
-                              ) : (
-                                <Typography variant="caption" color="text.secondary">
-                                  {pending.slice(0, 2).map((item) => item.label).join(', ')}
-                                  {pending.length > 2 ? ` +${pending.length - 2}` : ''}
-                                </Typography>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </WorkflowSectionCard>
-            </Grid>
-
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard
-                title="Pre-Op Checklist Workspace"
-                subtitle="Toggle readiness markers per selected case"
-                action={
-                  <Button size="small" variant="outlined" onClick={openTeamDialog} disabled={!selectedCase}>
-                    Update Team
-                  </Button>
-                }
-              >
-                {selectedCase ? (
-                  <Stack spacing={1.5}>
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        {selectedCase.caseNo} • {selectedCase.patientName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {selectedCase.procedure}
-                      </Typography>
-                    </Box>
-
-                    <Grid container spacing={1}>
-                      {CHECKLIST_ITEMS.map((item) => {
-                        const checked = selectedCase.checklist[item.key];
-                        return (
-                          <Grid key={item.key} xs={12} md={6}>
-                            <Card
-                              elevation={0}
-                              sx={{
-                                p: 1,
-                                borderRadius: 2,
-                                border: '1px solid',
-                                borderColor: checked
-                                  ? alpha(theme.palette.success.main, 0.35)
-                                  : alpha(theme.palette.warning.main, 0.25),
-                                backgroundColor: checked
-                                  ? alpha(theme.palette.success.main, 0.08)
-                                  : alpha(theme.palette.warning.main, 0.06),
-                              }}
-                            >
-                              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                <FormControlLabel
-                                  sx={{ m: 0 }}
-                                  control={
-                                    <Checkbox
-                                      checked={checked}
-                                      color={checked ? 'success' : item.critical ? 'warning' : 'primary'}
-                                      onChange={() => handleChecklistToggle(selectedCase.id, item.key)}
-                                    />
-                                  }
-                                  label={
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                      {item.label}
-                                    </Typography>
-                                  }
-                                />
-                                {item.critical ? <Chip size="small" label="Critical" color="warning" variant="outlined" /> : null}
-                              </Stack>
-                            </Card>
+                  </Stack>
+                </Card>
+                <Grid container spacing={1.1} sx={{ flex: 1 }}>
+                  <Grid xs={12} md={5}>
+                    <Card elevation={0} sx={workspaceCardSx}>
+                      <EnterpriseSectionTitle title="Pre-Op Vitals" />
+                      <Grid container spacing={0.7}>
+                        {preOpVitals.map((vital) => (
+                          <Grid key={vital.label} xs={6}>
+                            <Box sx={{ p: 0.9, borderRadius: 1.2, bgcolor: toneToBg(vital.tone), border: '1px solid', borderColor: alpha('#1172BA', 0.15) }}>
+                              <Typography variant="caption" color="text.secondary">{vital.label}</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 700 }}>{vital.value}</Typography>
+                            </Box>
                           </Grid>
-                        );
-                      })}
-                    </Grid>
-
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Completion {checklistCompletion(selectedCase.checklist)}%
-                      </Typography>
-                      <LinearProgress
-                        variant="determinate"
-                        value={checklistCompletion(selectedCase.checklist)}
-                        color={checklistCompletion(selectedCase.checklist) >= 85 ? 'success' : 'warning'}
-                        sx={{ mt: 0.5, height: 8, borderRadius: 999 }}
-                      />
-                    </Box>
-
-                    {checklistCompletion(selectedCase.checklist) < 80 ? (
-                      <Alert severity="warning">
-                        <Typography variant="body2">
-                          Case is not fully ready for OR transfer. Resolve pending checklist items before induction.
-                        </Typography>
-                      </Alert>
-                    ) : (
-                      <Alert severity="success">
-                        <Typography variant="body2">Pre-op checklist target achieved. Case is ready for theatre transfer.</Typography>
-                      </Alert>
-                    )}
-
-                    <Stack direction="row" spacing={1} flexWrap="wrap">
-                      <Button
-                        size="small"
-                        variant="contained"
-                        disabled={selectedCase.status !== 'Pre-Op' || checklistCompletion(selectedCase.checklist) < 80}
-                        onClick={() => handleTransition(selectedCase.id)}
-                      >
-                        Move to OR
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => routeTo('/clinical/modules/radiant', selectedCase.mrn)}
-                      >
-                        Verify Imaging
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => routeTo('/clinical/modules/beaker', selectedCase.mrn)}
-                      >
-                        Verify Labs
-                      </Button>
-                    </Stack>
-                  </Stack>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Select a case from prep queue.
-                  </Typography>
-                )}
-              </WorkflowSectionCard>
-            </Grid>
-          </Grid>
-        ) : null}
-
-        {menuGroup === 'pre-op' ? (
-          <Grid container spacing={2}>
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="OT Safety Checklist (WHO)" subtitle="Sign In, Time Out, Sign Out compliance">
-                <Stack spacing={1.25}>
-                  <CommonTabs
-                    tabs={(['Sign In', 'Time Out', 'Sign Out'] as ConsentPhase[]).map((phase) => ({
-                      id: phase,
-                      label: phase,
-                    }))}
-                    value={consentPhase}
-                    onChange={setConsentPhase}
-                    variant="standard"
-                  />
-
-                  <Divider />
-
-                  <Stack spacing={1}>
-                    {CONSENT_TEMPLATE[consentPhase].map((item) => {
-                      const checked = consentChecklist[consentPhase][item];
-                      return (
-                        <Card
-                          key={item}
-                          elevation={0}
-                          sx={{
-                            p: 1.25,
-                            borderRadius: 2,
-                            border: '1px solid',
-                            borderColor: checked
-                              ? alpha(theme.palette.success.main, 0.35)
-                              : alpha(theme.palette.warning.main, 0.25),
-                            backgroundColor: checked
-                              ? alpha(theme.palette.success.main, 0.08)
-                              : alpha(theme.palette.warning.main, 0.08),
-                          }}
-                        >
-                          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1.5}>
-                            <FormControlLabel
-                              sx={{ m: 0 }}
-                              control={
-                                <Checkbox
-                                  checked={checked}
-                                  color={checked ? 'success' : 'warning'}
-                                  onChange={() => handleConsentToggle(consentPhase, item)}
-                                />
-                              }
-                              label={
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                  {item}
-                                </Typography>
-                              }
-                            />
-                            <Chip
-                              size="small"
-                              label={checked ? 'Done' : 'Pending'}
-                              color={checked ? 'success' : 'warning'}
-                              variant={checked ? 'filled' : 'outlined'}
-                            />
-                          </Stack>
-                        </Card>
-                      );
-                    })}
-                  </Stack>
-                </Stack>
-              </WorkflowSectionCard>
-            </Grid>
-
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="Checklist Status" subtitle="OT entry safety gate">
-                <Stack spacing={1.25}>
-                  <Typography variant="caption" color="text.secondary">
-                    Current phase completion: {consentPhaseCompletion}%
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={consentPhaseCompletion}
-                    sx={{ height: 7, borderRadius: 999 }}
-                    color={consentPhaseCompletion >= 90 ? 'success' : 'warning'}
-                  />
-
-                  <Typography variant="caption" color="text.secondary">
-                    Overall WHO checklist: {consentOverallCompletion}%
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={consentOverallCompletion}
-                    sx={{ height: 7, borderRadius: 999 }}
-                    color={consentOverallCompletion >= 85 ? 'success' : 'warning'}
-                  />
-
-                  <Alert severity={consentOverallCompletion >= 85 ? 'success' : 'warning'}>
-                    {consentOverallCompletion >= 85
-                      ? 'Checklist compliance is acceptable for OT workflow.'
-                      : 'Complete pending checklist items before case transfer.'}
-                  </Alert>
-
-                  <Button size="small" variant="contained" onClick={() => showToast('WHO checklist saved successfully.', 'success')}>
-                    Save Checklist
-                  </Button>
-                </Stack>
-              </WorkflowSectionCard>
-            </Grid>
-          </Grid>
-        ) : null}
-
-        {menuGroup === 'pre-op' ? (
-          <Grid container spacing={2}>
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="Anaesthesia Plan" subtitle="Perioperative plan and intra-op monitoring strategy">
-                {selectedCase ? (
-                  <Stack spacing={1.25}>
-                    <Alert severity="info">
-                      {selectedCase.caseNo} • {selectedCase.patientName} • {selectedCase.asaClass}
-                    </Alert>
-
-                    <Grid container spacing={1.25}>
-                      <Grid xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Technique"
-                          value={selectedAnaesthesiaPlan.technique}
-                          onChange={(event) => updateSelectedAnaesthesiaPlan({ technique: event.target.value })}
-                        />
+                        ))}
                       </Grid>
-                      <Grid xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Airway Plan"
-                          value={selectedAnaesthesiaPlan.airwayPlan}
-                          onChange={(event) => updateSelectedAnaesthesiaPlan({ airwayPlan: event.target.value })}
-                        />
-                      </Grid>
-                      <Grid xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Induction Agent"
-                          value={selectedAnaesthesiaPlan.inductionAgent}
-                          onChange={(event) => updateSelectedAnaesthesiaPlan({ inductionAgent: event.target.value })}
-                        />
-                      </Grid>
-                      <Grid xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Maintenance"
-                          value={selectedAnaesthesiaPlan.maintenance}
-                          onChange={(event) => updateSelectedAnaesthesiaPlan({ maintenance: event.target.value })}
-                        />
-                      </Grid>
-                      <Grid xs={12}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Analgesia Plan"
-                          value={selectedAnaesthesiaPlan.analgesia}
-                          onChange={(event) => updateSelectedAnaesthesiaPlan({ analgesia: event.target.value })}
-                        />
-                      </Grid>
-                      <Grid xs={12}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Anaesthesia Notes"
-                          multiline
-                          minRows={3}
-                          value={selectedAnaesthesiaPlan.notes}
-                          onChange={(event) => updateSelectedAnaesthesiaPlan({ notes: event.target.value })}
-                        />
-                      </Grid>
-                    </Grid>
-
-                    <Stack direction="row" spacing={1}>
-                      <Button size="small" variant="contained" onClick={handleSaveAnaesthesiaPlan}>
-                        Save Plan
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => routeTo('/clinical/modules/radiant', selectedCase.mrn)}
-                      >
-                        Review Imaging
-                      </Button>
-                    </Stack>
-                  </Stack>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Select a case from Scheduling to prepare anaesthesia plan.
-                  </Typography>
-                )}
-              </WorkflowSectionCard>
-            </Grid>
-
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="Anaesthesia Safety Snapshot" subtitle="Monitoring readiness before induction">
-                {selectedCase ? (
-                  <Stack spacing={1}>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">
-                        ASA Class
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {selectedCase.asaClass}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">
-                        Blood Units Planned
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {selectedCase.bloodUnits}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">
-                        Consent Check
-                      </Typography>
-                      <Chip
-                        size="small"
-                        label={selectedCase.checklist.consentSigned ? 'Completed' : 'Pending'}
-                        color={selectedCase.checklist.consentSigned ? 'success' : 'warning'}
-                      />
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">
-                        NPO Check
-                      </Typography>
-                      <Chip
-                        size="small"
-                        label={selectedCase.checklist.npoConfirmed ? 'Confirmed' : 'Pending'}
-                        color={selectedCase.checklist.npoConfirmed ? 'success' : 'warning'}
-                      />
-                    </Stack>
-                    <Alert severity={selectedCase.checklist.anesthesiaCleared ? 'success' : 'warning'}>
-                      {selectedCase.checklist.anesthesiaCleared
-                        ? 'Anaesthesia clearance recorded.'
-                        : 'Anaesthesia clearance pending.'}
-                    </Alert>
-                  </Stack>
-                ) : null}
-              </WorkflowSectionCard>
-            </Grid>
-          </Grid>
-        ) : null}
-
-        {menuGroup === 'intra-op' ? (
-          <Grid container spacing={2}>
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="Active Intra-Op Cases" subtitle="Live operations and closure workflow">
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Room</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Case</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Procedure</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Incision</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {intraOpCases.map((item) => {
-                        const incisionEvent = (eventsByCase[item.id] ?? []).find((entry) => entry.type === 'Incision');
-                        return (
-                          <TableRow
-                            key={item.id}
-                            hover
-                            selected={selectedCaseId === item.id}
-                            onClick={() => setSelectedCaseId(item.id)}
-                            sx={{ cursor: 'pointer' }}
-                          >
-                            <TableCell>{rooms.find((room) => room.id === item.roomId)?.label ?? item.roomId}</TableCell>
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                {item.caseNo}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {item.patientName}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>{item.procedure}</TableCell>
-                            <TableCell>
-                              <Chip size="small" label={item.status} color={STATUS_COLOR[item.status]} />
-                            </TableCell>
-                            <TableCell>{incisionEvent ? formatTime(incisionEvent.time) : '--'}</TableCell>
-                            <TableCell>
-                              <Button size="small" variant="text" onClick={() => handleTransition(item.id)}>
-                                {NEXT_STATUS_LABEL[item.status] ?? 'Update'}
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </WorkflowSectionCard>
-            </Grid>
-
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard
-                title="Intra-Op Timeline"
-                subtitle="Chronological case events"
-                action={
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<AddCircleOutlineIcon fontSize="small" />}
-                    onClick={() => {
-                      setTimelineForm((prev) => ({ ...prev, time: getLocalInputDateTime(new Date()) }));
-                      setTimelineDialogOpen(true);
-                    }}
-                    disabled={!selectedCase}
-                  >
-                    Add Event
-                  </Button>
-                }
-              >
-                {selectedCase ? (
-                  <Stack spacing={1.25}>
-                    <Stack direction="row" flexWrap="wrap" spacing={0.75}>
-                      <Chip size="small" label={selectedCase.caseNo} color="primary" />
-                      <Chip size="small" label={selectedCase.status} color={STATUS_COLOR[selectedCase.status]} />
-                    </Stack>
-
-                    <Typography variant="caption" color="text.secondary">
-                      {selectedCase.procedure} • {selectedCase.surgeon}
-                    </Typography>
-
-                    <Divider />
-
-                    <Stack spacing={1}>
-                      {selectedCaseEvents.length === 0 ? (
-                        <Typography variant="body2" color="text.secondary">
-                          No timeline entries for this case yet.
-                        </Typography>
-                      ) : (
-                        selectedCaseEvents.map((entry) => (
-                          <Card
-                            key={entry.id}
-                            elevation={0}
-                            sx={{
-                              p: 1.25,
-                              borderRadius: 2,
-                              border: '1px solid',
-                              borderColor: alpha(theme.palette.primary.main, 0.14),
-                              backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                            }}
-                          >
-                            <Stack spacing={0.5}>
-                              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                <Chip size="small" label={entry.type} color="info" variant="outlined" />
-                                <Typography variant="caption" color="text.secondary">
-                                  {formatDateTime(entry.time)}
-                                </Typography>
-                              </Stack>
-                              <Typography variant="body2">{entry.note}</Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                By {entry.by}
-                              </Typography>
-                            </Stack>
-                          </Card>
-                        ))
-                      )}
-                    </Stack>
-
-                    <Divider />
-
-                    <Stack direction="row" spacing={1} flexWrap="wrap">
-                      <Button size="small" variant="outlined" onClick={() => routeTo('/clinical/modules/beaker', selectedCase.mrn)}>
-                        Send to Beaker
-                      </Button>
-                      <Button size="small" variant="outlined" onClick={() => routeTo('/clinical/modules/radiant', selectedCase.mrn)}>
-                        Open Radiant
-                      </Button>
-                    </Stack>
-                  </Stack>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Select an active intra-op case.
-                  </Typography>
-                )}
-              </WorkflowSectionCard>
-            </Grid>
-          </Grid>
-        ) : null}
-
-        {menuGroup === 'intra-op' ? (
-          <Grid container spacing={2}>
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="PACU & Handoff Queue" subtitle="Post-op monitoring and closure handoff">
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Case</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>PACU Bed</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Aldrete</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Pain</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Last Update</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {recoveryCases.map((item) => {
-                        const lastUpdate = (eventsByCase[item.id] ?? [])[0];
-                        return (
-                          <TableRow
-                            key={item.id}
-                            hover
-                            selected={selectedCaseId === item.id}
-                            onClick={() => setSelectedCaseId(item.id)}
-                            sx={{ cursor: 'pointer' }}
-                          >
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                {item.caseNo}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {item.patientName}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>{item.pacuBed}</TableCell>
-                            <TableCell>{item.aldreteScore || '--'}</TableCell>
-                            <TableCell>{item.painScore || '--'}</TableCell>
-                            <TableCell>
-                              <Chip size="small" label={item.status} color={STATUS_COLOR[item.status]} />
-                            </TableCell>
-                            <TableCell>{lastUpdate ? formatDateTime(lastUpdate.time) : '--'}</TableCell>
-                            <TableCell>
-                              <Button
-                                size="small"
-                                variant="contained"
-                                disabled={item.status !== 'PACU'}
-                                onClick={() => handleTransition(item.id)}
-                              >
-                                Complete
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </WorkflowSectionCard>
-            </Grid>
-
-            <Grid xs={12} lg={12}>
-              <Stack spacing={2}>
-                <WorkflowSectionCard title="Handoff Quality Gate" subtitle="Minimum data before ward transfer">
-                  <Stack spacing={1}>
-                    <Alert severity="info">
-                      <Typography variant="body2">PACU nurse sign-off and surgeon post-op note are mandatory.</Typography>
-                    </Alert>
-                    <Alert severity="success">
-                      <Typography variant="body2">Medication reconciliation and pain plan linked to Willow and MAR.</Typography>
-                    </Alert>
-                    <Alert severity="warning">
-                      <Typography variant="body2">Any pending critical lab/imaging must be acknowledged before discharge.</Typography>
-                    </Alert>
-                    <Stack direction="row" spacing={1} flexWrap="wrap">
-                      <Button size="small" variant="outlined" onClick={() => routeTo('/clinical/modules/willow', selectedCase?.mrn)}>
-                        Open Willow
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => routeTo('/clinical/modules/resolute-billing', selectedCase?.mrn)}
-                      >
-                        Open Billing
-                      </Button>
-                    </Stack>
-                  </Stack>
-                </WorkflowSectionCard>
-
-                <WorkflowSectionCard title="Recovery Snapshot" subtitle="Module KPI for shift handover">
-                  <Stack spacing={1.25}>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">
-                        PACU Active
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {pacuCases}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">
-                        Completed Handoffs
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {completedCases}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">
-                        Pre-Op at Risk
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: preOpAtRiskCases > 0 ? 'warning.main' : 'success.main' }}>
-                        {preOpAtRiskCases}
-                      </Typography>
-                    </Stack>
-                  </Stack>
-                </WorkflowSectionCard>
+                    </Card>
+                  </Grid>
+                  <Grid xs={12} md={7}>
+                    <Card elevation={0} sx={workspaceCardSx}>
+                      <EnterpriseSectionTitle title="Case Timeline" />
+                      <EnterpriseTimeline items={PREOP_TIMELINE} />
+                    </Card>
+                  </Grid>
+                </Grid>
               </Stack>
             </Grid>
           </Grid>
-        ) : null}
+        </Stack>
+      );
+    }
 
-        {menuGroup === 'post-op' ? (
-          <Grid container spacing={2}>
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="Post-Op Closure Note" subtitle="Mandatory closure summary and transfer details">
-                {selectedCase ? (
-                  <Stack spacing={1.25}>
-                    <Alert severity="info">
-                      {selectedCase.caseNo} • {selectedCase.procedure} • {selectedCase.patientName}
-                    </Alert>
-                    <Grid container spacing={1.25}>
-                      <Grid xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          type="time"
-                          label="Wound Closure Time"
-                          InputLabelProps={{ shrink: true }}
-                          value={selectedPostOpNote.woundClosureTime}
-                          onChange={(event) => updateSelectedPostOpNote({ woundClosureTime: event.target.value })}
-                        />
-                      </Grid>
-                      <Grid xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          type="time"
-                          label="Patient Out Of OT"
-                          InputLabelProps={{ shrink: true }}
-                          value={selectedPostOpNote.outOfOtTime}
-                          onChange={(event) => updateSelectedPostOpNote({ outOfOtTime: event.target.value })}
-                        />
-                      </Grid>
-                      <Grid xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          select
-                          label="Transfer To"
-                          value={selectedPostOpNote.transferTo}
-                          onChange={(event) =>
-                            updateSelectedPostOpNote({
-                              transferTo: event.target.value as PostOpNoteForm['transferTo'],
-                            })
-                          }
-                        >
-                          <MenuItem value="PACU">PACU</MenuItem>
-                          <MenuItem value="ICU">ICU</MenuItem>
-                          <MenuItem value="Ward">Ward</MenuItem>
-                        </TextField>
-                      </Grid>
-                      <Grid xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Estimated OT Time"
-                          value={`${selectedCase.estimatedMinutes} min`}
-                          InputProps={{ readOnly: true }}
-                        />
-                      </Grid>
-                      <Grid xs={12}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          multiline
-                          minRows={3}
-                          label="Post-Op Summary"
-                          value={selectedPostOpNote.summary}
-                          onChange={(event) => updateSelectedPostOpNote({ summary: event.target.value })}
-                        />
-                      </Grid>
+    if (workspaceTab === 'intraop') {
+      return (
+        <Grid container spacing={1.1}>
+          <Grid xs={12} md={7}>
+            <Card elevation={0} sx={workspaceCardSx}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
+                <EnterpriseSectionTitle title="Intra-Op Events" />
+                <Button size="small" variant="outlined">+ Add Event</Button>
+              </Stack>
+              <EnterpriseTimeline items={INTRAOP_TIMELINE} />
+            </Card>
+          </Grid>
+          <Grid xs={12} md={5}>
+            <Card elevation={0} sx={workspaceCardSx}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <EnterpriseSectionTitle title="Live Vitals" />
+                <Chip size="small" label="LIVE" color="success" />
+              </Stack>
+              <Grid container spacing={0.7}>
+                {intraOpVitals.map((vital) => (
+                  <Grid key={vital.label} xs={6}>
+                    <Box sx={{ p: 0.9, borderRadius: 1.2, bgcolor: toneToBg(vital.tone), border: '1px solid', borderColor: alpha('#1172BA', 0.15) }}>
+                      <Typography variant="caption" color="text.secondary">{vital.label}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{vital.value}</Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Card>
+          </Grid>
+          <Grid xs={12} md={6}>
+            <Card elevation={0} sx={workspaceCardSx}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
+                <EnterpriseSectionTitle title="Instrument & Swab Count" />
+                <Button size="small" variant="outlined">Verify</Button>
+              </Stack>
+              <CommonTable
+                rows={instrumentRows}
+                columns={countColumns}
+                getRowId={(row) => row.id}
+                emptyMessage="No count records."
+                initialRowsPerPage={4}
+                rowsPerPageOptions={[4]}
+              />
+            </Card>
+          </Grid>
+          <Grid xs={12} md={6}>
+            <Card elevation={0} sx={workspaceCardSx}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
+                <EnterpriseSectionTitle title="Intra-Op Medications" />
+                <Button size="small" variant="outlined">+ Add</Button>
+              </Stack>
+              <CommonTable
+                rows={intraOpMedicationRows}
+                columns={medicationColumns}
+                getRowId={(row) => row.id}
+                emptyMessage="No medication entries."
+                initialRowsPerPage={4}
+                rowsPerPageOptions={[4]}
+              />
+            </Card>
+          </Grid>
+          <Grid xs={12}>
+            <Card elevation={0} sx={workspaceCardSx}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
+                <EnterpriseSectionTitle title="Surgeon's Operative Notes" />
+                <Button size="small" variant="contained" startIcon={<SaveIcon fontSize="small" />}>Save Notes</Button>
+              </Stack>
+              <TextField
+                fullWidth
+                multiline
+                minRows={4}
+                defaultValue="Procedure progressing as planned. Critical structures identified and preserved. Estimated blood loss ~150 ml."
+              />
+            </Card>
+          </Grid>
+        </Grid>
+      );
+    }
+
+    if (workspaceTab === 'postop') {
+      return (
+        <Stack spacing={1.1}>
+          <Grid container spacing={1.1}>
+            <Grid xs={12} md={7}>
+              <Card elevation={0} sx={{ ...workspaceCardSx, height: 'auto' }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <EnterpriseSectionTitle title="Recovery Summary" />
+                  <EnterpriseStatusChip label="PACU Cleared" tone="completed" />
+                </Stack>
+                <Grid container spacing={0.8}>
+                  <Grid xs={6} md={3}>
+                    <Box sx={{ p: 0.75, borderRadius: 1.2, bgcolor: alpha(theme.palette.primary.main, 0.06), border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.16) }}>
+                      <Typography variant="caption" color="text.secondary">Surgery End</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>09:32 AM</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid xs={6} md={3}>
+                    <Box sx={{ p: 0.75, borderRadius: 1.2, bgcolor: alpha(theme.palette.primary.main, 0.06), border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.16) }}>
+                      <Typography variant="caption" color="text.secondary">PACU In</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>09:40 AM</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid xs={6} md={3}>
+                    <Box sx={{ p: 0.75, borderRadius: 1.2, bgcolor: alpha(theme.palette.primary.main, 0.06), border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.16) }}>
+                      <Typography variant="caption" color="text.secondary">PACU Out</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>11:10 AM</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid xs={6} md={3}>
+                    <Box sx={{ p: 0.75, borderRadius: 1.2, bgcolor: alpha(theme.palette.primary.main, 0.06), border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.16) }}>
+                      <Typography variant="caption" color="text.secondary">Transferred</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>Ward 4B</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid xs={6} md={3}>
+                    <Box sx={{ p: 0.75, borderRadius: 1.2, bgcolor: alpha(theme.palette.primary.main, 0.06), border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.16) }}>
+                      <Typography variant="caption" color="text.secondary">Aldrete</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>9 / 10</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid xs={6} md={3}>
+                    <Box sx={{ p: 0.75, borderRadius: 1.2, bgcolor: alpha(theme.palette.primary.main, 0.06), border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.16) }}>
+                      <Typography variant="caption" color="text.secondary">Pain Score</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>3 / 10</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid xs={6} md={3}>
+                    <Box sx={{ p: 0.75, borderRadius: 1.2, bgcolor: alpha(theme.palette.primary.main, 0.06), border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.16) }}>
+                      <Typography variant="caption" color="text.secondary">Blood Loss</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>~150 ml</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid xs={6} md={3}>
+                    <Box sx={{ p: 0.75, borderRadius: 1.2, bgcolor: alpha(theme.palette.primary.main, 0.06), border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.16) }}>
+                      <Typography variant="caption" color="text.secondary">Fluids</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>1200 ml</Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Card>
+            </Grid>
+            <Grid xs={12} md={5}>
+              <Card elevation={0} sx={workspaceCardSx}>
+                <EnterpriseSectionTitle title="Post-Op Vitals" />
+                <Grid container spacing={0.7}>
+                  {postOpVitals.map((vital) => (
+                    <Grid key={vital.label} xs={6}>
+                      <Box sx={{ p: 0.9, borderRadius: 1.2, bgcolor: toneToBg(vital.tone), border: '1px solid', borderColor: alpha('#1172BA', 0.15) }}>
+                        <Typography variant="caption" color="text.secondary">{vital.label}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{vital.value}</Typography>
+                      </Box>
                     </Grid>
-
-                    <Stack direction="row" spacing={1}>
-                      <Button size="small" variant="contained" onClick={handleSavePostOpNote}>
-                        Save Post-Op Note
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => routeTo('/clinical/modules/resolute-billing', selectedCase.mrn)}
-                      >
-                        Send to Billing
-                      </Button>
-                    </Stack>
-                  </Stack>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Select a case from Scheduling.
-                  </Typography>
-                )}
-              </WorkflowSectionCard>
-            </Grid>
-
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="Turnaround Snapshot" subtitle="OT turnaround and transfer visibility">
-                {selectedCase ? (
-                  <Stack spacing={1}>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">
-                        Scheduled Start
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {formatDateTime(selectedCase.scheduledAt)}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">
-                        Closure Logged
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {selectedClosureEvent ? formatDateTime(selectedClosureEvent.time) : '--'}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">
-                        PACU Bed
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {selectedCase.pacuBed}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">
-                        Current Status
-                      </Typography>
-                      <Chip size="small" label={selectedCase.status} color={STATUS_COLOR[selectedCase.status]} />
-                    </Stack>
-                    <Alert severity={selectedCase.status === 'Completed' ? 'success' : 'info'}>
-                      {selectedCase.status === 'Completed'
-                        ? 'Case fully closed and transferred.'
-                        : 'Finalize post-op note before completion.'}
-                    </Alert>
-                  </Stack>
-                ) : null}
-              </WorkflowSectionCard>
-            </Grid>
-          </Grid>
-        ) : null}
-
-        {menuGroup === 'post-op' ? (
-          <WorkflowSectionCard title="OT Staff Roster" subtitle="Surgeons, anaesthesia, nursing and recovery coverage">
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Specialty</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Shift</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Assigned Unit</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Cases Today</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {STAFF_ROSTER.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell sx={{ fontWeight: 700 }}>{member.name}</TableCell>
-                      <TableCell>{member.role}</TableCell>
-                      <TableCell>{member.specialty}</TableCell>
-                      <TableCell>{member.shift}</TableCell>
-                      <TableCell>{member.assignedUnit}</TableCell>
-                      <TableCell>{member.casesToday}</TableCell>
-                      <TableCell>
-                        <Chip size="small" label={member.status} color={staffStatusColor(member.status)} />
-                      </TableCell>
-                    </TableRow>
                   ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </WorkflowSectionCard>
-        ) : null}
-
-        {menuGroup === 'post-op' ? (
-          <Grid container spacing={2}>
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard
-                title="OT Inventory - Critical Items"
-                subtitle="Consumables, implants and instruments for surgical continuity"
-                action={
-                  <Button size="small" variant="contained" onClick={() => setIndentDialogOpen(true)}>
-                    Raise Indent
-                  </Button>
-                }
-              >
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Item</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Stock</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Reorder</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Location</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {INVENTORY_ITEMS.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell sx={{ fontWeight: 700 }}>{item.item}</TableCell>
-                          <TableCell>{item.category}</TableCell>
-                          <TableCell>{item.stock}</TableCell>
-                          <TableCell>{item.reorderLevel}</TableCell>
-                          <TableCell>{item.location}</TableCell>
-                          <TableCell>
-                            <Chip size="small" label={item.status} color={inventoryStatusColor(item.status)} />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </WorkflowSectionCard>
+                </Grid>
+              </Card>
             </Grid>
-
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="Inventory Alerts" subtitle="Stock health for OT readiness">
-                <Stack spacing={1}>
-                  {INVENTORY_ITEMS.filter((item) => item.status !== 'Available').map((item) => (
-                    <Alert key={item.id} severity={item.status === 'Out of Stock' ? 'error' : 'warning'}>
-                      {item.item}: {item.status} ({item.stock} left)
-                    </Alert>
+            <Grid xs={12} md={5}>
+              <Card elevation={0} sx={workspaceCardSx}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
+                  <EnterpriseSectionTitle title="Discharge Medications" />
+                  <Button size="small" variant="outlined">+ Add</Button>
+                </Stack>
+                <CommonTable
+                  rows={dischargeMedicationRows}
+                  columns={dischargeMedicationColumns}
+                  getRowId={(row) => row.id}
+                  searchBy={(row) => `${row.drug} ${row.dose} ${row.frequency} ${row.duration} ${row.instructions}`}
+                  searchPlaceholder="Search discharge medications..."
+                  emptyMessage="No discharge medications."
+                  initialRowsPerPage={4}
+                  rowsPerPageOptions={[4]}
+                />
+              </Card>
+            </Grid>
+            <Grid xs={12} md={7}>
+              <Card elevation={0} sx={workspaceCardSx}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
+                  <EnterpriseSectionTitle title="Surgeon's Post-Op Note" />
+                  <Button size="small" variant="contained" startIcon={<SaveIcon fontSize="small" />}>Complete & Discharge</Button>
+                </Stack>
+                <Stack spacing={0.8}>
+                  <TextField
+                    fullWidth
+                    multiline
+                    minRows={4}
+                    defaultValue="Laparoscopic cholecystectomy completed without complications. Patient stable in PACU and tolerating oral clear fluids."
+                  />
+                  <TextField fullWidth type="date" label="Follow-up Date" value="2026-04-03" InputLabelProps={{ shrink: true }} />
+                </Stack>
+              </Card>
+            </Grid>
+            <Grid xs={12}>
+              <Card elevation={0} sx={workspaceCardSx}>
+                <EnterpriseSectionTitle title="Post-Op Checklist" />
+                <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap>
+                  {POSTOP_CHECKLIST_ITEMS.map((item) => (
+                    <Chip key={item} size="small" icon={<TaskAltIcon fontSize="small" />} label={item} color="success" variant="outlined" />
                   ))}
-                  <Button size="small" variant="outlined" onClick={() => routeTo('/inventory/items')}>
-                    Open Central Inventory
-                  </Button>
                 </Stack>
-              </WorkflowSectionCard>
+              </Card>
             </Grid>
           </Grid>
-        ) : null}
+        </Stack>
+      );
+    }
 
-        {menuGroup === 'post-op' ? (
-          <Grid container spacing={2}>
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="OT Billing Summary" subtitle="Case-wise operation theatre charge components">
-                {selectedCase && billingSnapshot ? (
-                  <Stack spacing={1}>
-                    <Alert severity="info">
-                      {selectedCase.caseNo} • {selectedCase.patientName} • {selectedCase.procedure}
-                    </Alert>
-                    <TableContainer>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell sx={{ fontWeight: 700 }}>Charge Head</TableCell>
-                            <TableCell sx={{ fontWeight: 700 }}>Amount (INR)</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {billingSnapshot.rows.map((row) => (
-                            <TableRow key={row.label}>
-                              <TableCell>{row.label}</TableCell>
-                              <TableCell>{row.amount.toLocaleString('en-IN')}</TableCell>
-                            </TableRow>
-                          ))}
-                          <TableRow>
-                            <TableCell sx={{ fontWeight: 700 }}>Total OT Bill</TableCell>
-                            <TableCell sx={{ fontWeight: 800, color: 'primary.main' }}>
-                              {billingSnapshot.total.toLocaleString('en-IN')}
-                            </TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                    <Stack direction="row" spacing={1}>
-                      <Button size="small" variant="contained" onClick={() => showToast('OT bill generated successfully.', 'success')}>
-                        Generate Bill
-                      </Button>
-                      <Button size="small" variant="outlined" onClick={() => routeTo('/clinical/modules/resolute-billing', selectedCase.mrn)}>
-                        Open Resolute Billing
-                      </Button>
-                    </Stack>
-                  </Stack>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Select a case from Scheduling to view OT billing breakdown.
-                  </Typography>
-                )}
-              </WorkflowSectionCard>
-            </Grid>
+    return null;
+  }, [
+    countColumns,
+    dischargeMedicationColumns,
+    dischargeMedicationRows,
+    intraOpMedicationRows,
+    intraOpVitals,
+    medicationColumns,
+    postOpVitals,
+    preOpChecklistRows,
+    preOpVitals,
+    selectedCase,
+    workspaceCardSx,
+    workspaceTab,
+    instrumentRows,
+  ]);
 
-            <Grid xs={12} lg={12}>
-              <WorkflowSectionCard title="Daily Revenue Snapshot" subtitle="Live OT billing performance">
-                <Stack spacing={1.25}>
-                  <StatTile
-                    label="Total OT Bills"
-                    value={completedCases}
-                    subtitle="Closed surgery cases"
-                    tone="info"
-                    variant="outlined"
-                  />
-                  <StatTile
-                    label="Potential OT Revenue"
-                    value={`₹${surgeryCases
-                      .filter((item) => item.status !== 'Cancelled')
-                      .reduce((sum, item) => sum + buildOtBillingRows(item).total, 0)
-                      .toLocaleString('en-IN')}`}
-                    subtitle="From today's active schedule"
-                    tone="success"
-                    variant="outlined"
-                  />
-                </Stack>
-              </WorkflowSectionCard>
-            </Grid>
-          </Grid>
-        ) : null}
-
-        {menuGroup === 'dashboard' ? (
-          <Stack spacing={2}>
-            <Grid container spacing={1.5}>
-              <Grid xs={12} sm={6} md={3}>
-                <StatTile
-                  label="Average Utilization"
-                  value={`${utilizationAverage}%`}
-                  subtitle="Across all OT rooms"
-                  icon={<MeetingRoomIcon fontSize="small" />}
-                  tone="primary"
-                  variant="outlined"
-                />
-              </Grid>
-              <Grid xs={12} sm={6} md={3}>
-                <StatTile
-                  label="Long Cases"
-                  value={longRunningCases}
-                  subtitle=">= 3 hours"
-                  icon={<TimelineIcon fontSize="small" />}
-                  tone="warning"
-                  variant="outlined"
-                />
-              </Grid>
-              <Grid xs={12} sm={6} md={3}>
-                <StatTile
-                  label="Cancelled Cases"
-                  value={canceledCases}
-                  subtitle="Same-day cancellations"
-                  icon={<WarningAmberIcon fontSize="small" />}
-                  tone="error"
-                  variant="outlined"
-                />
-              </Grid>
-              <Grid xs={12} sm={6} md={3}>
-                <StatTile
-                  label="Prep Risk Cases"
-                  value={preOpAtRiskCases}
-                  subtitle="Checklist < 80%"
-                  icon={<ChecklistIcon fontSize="small" />}
-                  tone="info"
-                  variant="outlined"
-                />
-              </Grid>
-            </Grid>
-
-            <Grid container spacing={2}>
-              <Grid xs={12} lg={12}>
-                <WorkflowSectionCard title="Room Utilization Matrix" subtitle="Block vs used hour visibility for OT manager">
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 700 }}>Room</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Cases</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Planned</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Executed</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Utilization</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>State</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {roomMetrics.map((metric) => (
-                          <TableRow key={metric.room.id}>
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                {metric.room.label}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {metric.room.suite}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>{metric.roomCases.length}</TableCell>
-                            <TableCell>{formatHours(metric.plannedMinutes)}</TableCell>
-                            <TableCell>{formatHours(metric.finishedMinutes)}</TableCell>
-                            <TableCell sx={{ minWidth: 170 }}>
-                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                {Math.max(0, Math.min(100, metric.utilization))}%
-                              </Typography>
-                              <LinearProgress
-                                variant="determinate"
-                                value={Math.max(0, Math.min(100, metric.utilization))}
-                                color={metric.utilization >= 75 ? 'success' : metric.utilization >= 50 ? 'warning' : 'error'}
-                                sx={{ mt: 0.5, height: 6, borderRadius: 99 }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Chip size="small" label={metric.liveState} color={ROOM_STATE_COLOR[metric.liveState]} />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </WorkflowSectionCard>
-              </Grid>
-
-              <Grid xs={12} lg={12}>
-                <WorkflowSectionCard title="Operational Insights" subtitle="Actionable alerts for OT command center">
-                  <Stack spacing={1}>
-                    <Alert severity={utilizationAverage < 70 ? 'warning' : 'success'}>
-                      <Typography variant="body2">
-                        Overall utilization {utilizationAverage}% {utilizationAverage < 70 ? '- review block planning and idle room windows.' : '- healthy throughput for current shift.'}
-                      </Typography>
-                    </Alert>
-                    <Alert severity={delayedCases > 0 ? 'warning' : 'success'}>
-                      <Typography variant="body2">
-                        {delayedCases} delayed starts flagged. Re-align transport, anesthesia induction, and room turnover.
-                      </Typography>
-                    </Alert>
-                    <Alert severity={preOpAtRiskCases > 0 ? 'error' : 'success'}>
-                      <Typography variant="body2">
-                        {preOpAtRiskCases} cases have incomplete prep checklist. Prioritize readiness closure before OT slot.
-                      </Typography>
-                    </Alert>
+  return (
+    <PageTemplate title="OpTime" currentPageTitle="OT Scheduling" fullHeight>
+      <Box
+        sx={{
+          p: { xs: 0.5, sm: 0.8 },
+          height: '100%',
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <Stack
+          spacing={1.1}
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflowX: 'hidden',
+            overflowY: viewMode === 'board' ? 'auto' : 'hidden',
+          }}
+        >
+          {viewMode === 'board' ? (
+            <>
+              <EnterpriseModuleHeader
+                title="OpTime Enterprise OT Command Center"
+                subtitle="Global OT scheduling and perioperative execution workspace"
+                icon={<LocalHospitalIcon fontSize="small" />}
+                accent="blue"
+              
+                actions={
+                  <>
+                    
                     <Button
                       size="small"
-                      variant="outlined"
-                      endIcon={<OpenInNewIcon fontSize="small" />}
-                      onClick={() => routeTo('/reports/analytics')}
+                      variant="contained"
+                      startIcon={<AddCircleOutlineIcon fontSize="small" />}
+                      onClick={() => {
+                        setScheduleForm(defaultScheduleForm(ROOM_OPTIONS[0]?.id ?? 'or-1'));
+                        setScheduleDialogOpen(true);
+                      }}
                     >
-                      Open Analytics
+                      Schedule Case
+                    </Button>
+                  </>
+                }
+              />
+
+              <Grid container spacing={1.1}>
+                <Grid xs={12} sm={6} md={2.4}>
+                  <StatTile
+                    label="OT Utilization"
+                    value={`${boardStats.utilization}%`}
+                    subtitle="Live throughput status"
+                    tone="primary"
+                    icon={<LocalHospitalIcon sx={{ fontSize: 24 }} />}
+                  />
+                </Grid>
+                <Grid xs={12} sm={6} md={2.4}>
+                  <StatTile
+                    label="Scheduled"
+                    value={boardStats.scheduled}
+                    subtitle="Awaiting OT execution"
+                    tone="secondary"
+                    icon={<ScheduleIcon sx={{ fontSize: 24 }} />}
+                  />
+                </Grid>
+                <Grid xs={12} sm={6} md={2.4}>
+                  <StatTile
+                    label="In Progress"
+                    value={boardStats.inProgress}
+                    subtitle="In OR + closing"
+                    tone="warning"
+                    icon={<TimelineIcon sx={{ fontSize: 24 }} />}
+                  />
+                </Grid>
+                <Grid xs={12} sm={6} md={2.4}>
+                  <StatTile
+                    label="PACU Queue"
+                    value={boardStats.pendingRecovery}
+                    subtitle="Recovery bay workload"
+                    tone="success"
+                    icon={<MonitorHeartIcon sx={{ fontSize: 24 }} />}
+                  />
+                </Grid>
+                <Grid xs={12} sm={6} md={2.4}>
+                  <StatTile
+                    label="Completed"
+                    value={boardStats.completed}
+                    subtitle="Closed OT cases today"
+                    tone="info"
+                    icon={<TaskAltIcon sx={{ fontSize: 24 }} />}
+                  />
+                </Grid>
+              </Grid>
+
+              <Card
+                elevation={0}
+                sx={{
+                  ...dashboardCardSx,
+                  flex: 1,
+                  minHeight: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                }}
+              >
+                <Box sx={{ px: 1.6, py: 1.2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                    Today's OR Case Board
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Open one patient case to continue full workflow in Pre-Op, Intra-Op, and Post-Op modules.
+                  </Typography>
+                </Box>
+                <Box sx={{ p: 1.2, flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+                  <CommonTable
+                    rows={boardRows}
+                    columns={caseBoardColumns}
+                    getRowId={(row) => row.id}
+                    searchBy={(row) =>
+                      [
+                        row.caseNo,
+                        row.patientName,
+                        row.mrn,
+                        row.procedure,
+                        row.department,
+                        row.diagnosis,
+                        row.surgeon,
+                        row.anesthetist,
+                        roomLabelById.get(row.roomId) ?? row.roomId,
+                        row.status,
+                        row.priority,
+                      ].join(' ')
+                    }
+                    searchPlaceholder="Search by case, patient, MRN, procedure, department, doctor..."
+                    filters={boardFilters}
+                    emptyMessage="No OT cases found for current filters."
+                    initialRowsPerPage={10}
+                    rowsPerPageOptions={[5, 10, 25]}
+                  />
+                </Box>
+              </Card>
+            </>
+          ) : (
+            <>
+              <Box
+                sx={{
+                  px: { xs: 1, sm: 1.25 },
+                  py: { xs: 0.75, sm: 0.85 },
+                  borderRadius: 1.75,
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.primary.main, 0.2),
+                  bgcolor: alpha(theme.palette.primary.main, 0.05),
+                  backgroundImage: `linear-gradient(90deg, ${alpha(theme.palette.primary.light, 0.12)} 0%, ${alpha(theme.palette.background.paper, 0.75)} 75%)`,
+                }}
+              >
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={0.9} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }}>
+                  <Stack spacing={0.35} sx={{ minWidth: 0 }}>
+                    <Stack direction="row" spacing={0.65} alignItems="center" flexWrap="wrap" useFlexGap>
+                      <Button
+                        size="small"
+                        variant="text"
+                        startIcon={<ArrowBackIcon fontSize="small" />}
+                        onClick={() => setViewMode('board')}
+                        sx={{ px: 0.75, minWidth: 'unset', fontWeight: 700 }}
+                      >
+                        Back to OR Board
+                      </Button>
+                      <Typography sx={{ fontFamily: '"IBM Plex Mono","SFMono-Regular",Consolas,monospace', fontWeight: 700, color: 'primary.main' }}>
+                        {selectedCase?.caseNo ?? '--'}
+                      </Typography>
+                      <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 800 }}>
+                        {selectedCase?.patientName ?? 'No Case Selected'}
+                      </Typography>
+                      {selectedCase ? <Chip size="small" label={selectedCase.priority} color={PRIORITY_COLOR[selectedCase.priority]} /> : null}
+                      {selectedCase ? <Chip size="small" label={selectedCase.status} color={STATUS_COLOR[selectedCase.status]} /> : null}
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary" sx={{ pl: 0.1 }}>
+                      {selectedCase?.mrn ?? '--'} • {selectedCase?.department ?? '--'} • Room {roomLabelById.get(selectedCase?.roomId ?? '') ?? '--'} • {selectedCase?.surgeon ?? '--'}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={0.65} sx={{ alignSelf: { xs: 'stretch', md: 'center' } }}>
+                    <Button size="small" variant="outlined" startIcon={<PrintIcon fontSize="small" />} sx={{ py: 0.55 }}>
+                      Print Summary
+                    </Button>
+                    <Button size="small" variant="contained" startIcon={<SaveIcon fontSize="small" />} sx={{ py: 0.55 }}>
+                      Save Case
                     </Button>
                   </Stack>
-                </WorkflowSectionCard>
+                </Stack>
+              </Box>
+
+              <Box
+                sx={{
+                  flex: 1,
+                  minHeight: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  position: 'relative',
+                }}
+              >
+                <Box
+                  sx={{
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 3,
+                    bgcolor: 'background.default',
+                    px: 1,
+                  }}
+                >
+                  <CommonTabs
+                    value={workspaceTab}
+                    onChange={handleTabChange}
+                    variant="scrollable"
+                    allowScrollButtonsMobile
+                    tabs={tabMeta.map((tab) => ({
+                      id: tab.value,
+                      icon: tab.icon,
+                      label: (
+                        <Stack direction="row" spacing={0.55} alignItems="center">
+                          <span>{tab.label}</span>
+                          <Chip
+                            size="small"
+                            label={tab.count}
+                            sx={{
+                              height: 18,
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                              bgcolor: alpha(theme.palette.primary.main, 0.14),
+                              color: 'primary.main',
+                            }}
+                          />
+                        </Stack>
+                      ),
+                    }))}
+                    sx={{
+                      px: 0.4,
+                      '& .MuiTabs-indicator': { display: 'none' },
+                    }}
+                    tabSx={{
+                      minHeight: 44,
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      '&.Mui-selected': {
+                        color: 'primary.main',
+                        backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                      },
+                    }}
+                  />
+                </Box>
+                <Box
+                  sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    p: 1.1,
+                    pb: 2,
+                    bgcolor: 'transparent',
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                  }}
+                >
+                  {selectedCase ? workspacePanel : <Alert severity="warning">No case selected. Go back to board and open one case.</Alert>}
+                </Box>
+              </Box>
+            </>
+          )}
+        </Stack>
+      </Box>
+
+      <Dialog open={scheduleDialogOpen} onClose={() => setScheduleDialogOpen(false)} fullWidth maxWidth="md">
+        <DialogTitle sx={{ fontWeight: 700 }}>Schedule New OT Case</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={1.35} sx={{ pt: 0.5 }}>
+            <Alert severity="info">Minimum required details are enough. Case opens directly in enterprise workspace after scheduling.</Alert>
+            <Grid container spacing={1.05}>
+              <Grid xs={12} md={5}>
+                <TextField
+                  fullWidth
+                  label="Patient Name"
+                  value={scheduleForm.patientName}
+                  onChange={(event) => updateFormField('patientName', event.target.value)}
+                />
+              </Grid>
+              <Grid xs={12} md={3}>
+                <TextField
+                  fullWidth
+                  label="MRN"
+                  value={scheduleForm.mrn}
+                  onChange={(event) => updateFormField('mrn', event.target.value)}
+                />
+              </Grid>
+              <Grid xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  type="datetime-local"
+                  label="Scheduled At"
+                  value={scheduleForm.scheduledAt}
+                  onChange={(event) => updateFormField('scheduledAt', event.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid xs={12} md={7}>
+                <TextField
+                  fullWidth
+                  label="Procedure"
+                  value={scheduleForm.procedure}
+                  onChange={(event) => updateFormField('procedure', event.target.value)}
+                />
+              </Grid>
+              <Grid xs={12} md={5}>
+                <TextField
+                  fullWidth
+                  label="Department"
+                  value={scheduleForm.department}
+                  onChange={(event) => updateFormField('department', event.target.value)}
+                />
+              </Grid>
+              <Grid xs={12}>
+                <TextField
+                  fullWidth
+                  label="Diagnosis"
+                  value={scheduleForm.diagnosis}
+                  onChange={(event) => updateFormField('diagnosis', event.target.value)}
+                />
+              </Grid>
+              <Grid xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Surgeon"
+                  value={scheduleForm.surgeon}
+                  onChange={(event) => updateFormField('surgeon', event.target.value)}
+                />
+              </Grid>
+              <Grid xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Anaesthetist"
+                  value={scheduleForm.anesthetist}
+                  onChange={(event) => updateFormField('anesthetist', event.target.value)}
+                />
+              </Grid>
+              <Grid xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Room"
+                  value={scheduleForm.roomId}
+                  onChange={(event) => updateFormField('roomId', event.target.value)}
+                >
+                  {ROOM_OPTIONS.map((room) => (
+                    <MenuItem key={room.id} value={room.id}>
+                      {room.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Priority"
+                  value={scheduleForm.priority}
+                  onChange={(event) => updateFormField('priority', event.target.value as CasePriority)}
+                >
+                  <MenuItem value="STAT">STAT</MenuItem>
+                  <MenuItem value="Urgent">Urgent</MenuItem>
+                  <MenuItem value="Elective">Elective</MenuItem>
+                </TextField>
               </Grid>
             </Grid>
           </Stack>
-        ) : null}
-      </Stack>
-      </Stack>
-
-      <Dialog open={scheduleDialogOpen} onClose={() => setScheduleDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Schedule New Surgery Case</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={1.5} sx={{ mt: 0.25 }}>
-            <Grid xs={12} md={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Patient Name"
-                value={scheduleForm.patientName}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, patientName: event.target.value }))}
-              />
-            </Grid>
-            <Grid xs={12} md={3}>
-              <TextField
-                fullWidth
-                size="small"
-                label="MRN"
-                value={scheduleForm.mrn}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, mrn: event.target.value.toUpperCase() }))}
-              />
-            </Grid>
-            <Grid xs={12} md={3}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Age / Gender"
-                value={scheduleForm.ageGender}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, ageGender: event.target.value }))}
-              />
-            </Grid>
-
-            <Grid xs={12} md={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Diagnosis"
-                value={scheduleForm.diagnosis}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, diagnosis: event.target.value }))}
-              />
-            </Grid>
-            <Grid xs={12} md={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Procedure"
-                value={scheduleForm.procedure}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, procedure: event.target.value }))}
-              />
-            </Grid>
-
-            <Grid xs={12} md={4}>
-              <TextField
-                fullWidth
-                size="small"
-                select
-                label="Specialty"
-                value={scheduleForm.specialty}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, specialty: event.target.value }))}
-              >
-                {['General Surgery', 'Orthopedics', 'Neurosurgery', 'Cardiothoracic', 'Gynecology', 'ENT', 'Urology'].map(
-                  (item) => (
-                    <MenuItem key={item} value={item}>
-                      {item}
-                    </MenuItem>
-                  )
-                )}
-              </TextField>
-            </Grid>
-            <Grid xs={12} md={4}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Surgeon"
-                value={scheduleForm.surgeon}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, surgeon: event.target.value }))}
-              />
-            </Grid>
-            <Grid xs={12} md={4}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Anesthetist"
-                value={scheduleForm.anesthetist}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, anesthetist: event.target.value }))}
-              />
-            </Grid>
-
-            <Grid xs={12} md={4}>
-              <TextField
-                fullWidth
-                size="small"
-                select
-                label="OT Room"
-                value={scheduleForm.roomId}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, roomId: event.target.value }))}
-              >
-                {rooms.map((room) => (
-                  <MenuItem key={room.id} value={room.id}>
-                    {room.label} ({room.suite})
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid xs={12} md={4}>
-              <TextField
-                fullWidth
-                size="small"
-                type="datetime-local"
-                label="Scheduled Date/Time"
-                InputLabelProps={{ shrink: true }}
-                value={scheduleForm.scheduledAt}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, scheduledAt: event.target.value }))}
-              />
-            </Grid>
-            <Grid xs={12} md={4}>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                label="Estimated Minutes"
-                value={scheduleForm.estimatedMinutes}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, estimatedMinutes: event.target.value }))}
-              />
-            </Grid>
-
-            <Grid xs={12} md={3}>
-              <TextField
-                fullWidth
-                size="small"
-                select
-                label="Priority"
-                value={scheduleForm.priority}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, priority: event.target.value as SurgeryPriority }))}
-              >
-                {(['STAT', 'Urgent', 'Elective'] as SurgeryPriority[]).map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {item}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid xs={12} md={3}>
-              <TextField
-                fullWidth
-                size="small"
-                select
-                label="ASA"
-                value={scheduleForm.asaClass}
-                onChange={(event) =>
-                  setScheduleForm((prev) => ({
-                    ...prev,
-                    asaClass: event.target.value as SurgeryCase['asaClass'],
-                  }))
-                }
-              >
-                {(['ASA I', 'ASA II', 'ASA III', 'ASA IV'] as SurgeryCase['asaClass'][]).map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {item}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid xs={12} md={3}>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                label="Blood Units"
-                value={scheduleForm.bloodUnits}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, bloodUnits: event.target.value }))}
-              />
-            </Grid>
-            <Grid xs={12} md={3}>
-              <TextField
-                fullWidth
-                size="small"
-                label="PACU Bed"
-                value={scheduleForm.pacuBed}
-                onChange={(event) => setScheduleForm((prev) => ({ ...prev, pacuBed: event.target.value }))}
-              />
-            </Grid>
-          </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setScheduleDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleScheduleCase} variant="contained">
-            Create Case
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={teamDialogOpen} onClose={() => setTeamDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Assign Surgical Team</DialogTitle>
-        <DialogContent>
-          <Stack spacing={1.25} sx={{ mt: 0.5 }}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Surgeon"
-              value={teamForm.surgeon}
-              onChange={(event) => setTeamForm((prev) => ({ ...prev, surgeon: event.target.value }))}
-            />
-            <TextField
-              fullWidth
-              size="small"
-              label="Anesthetist"
-              value={teamForm.anesthetist}
-              onChange={(event) => setTeamForm((prev) => ({ ...prev, anesthetist: event.target.value }))}
-            />
-            <TextField
-              fullWidth
-              size="small"
-              label="Nurse Lead"
-              value={teamForm.nurseLead}
-              onChange={(event) => setTeamForm((prev) => ({ ...prev, nurseLead: event.target.value }))}
-            />
-            <TextField
-              fullWidth
-              size="small"
-              label="PACU Bed"
-              value={teamForm.pacuBed}
-              onChange={(event) => setTeamForm((prev) => ({ ...prev, pacuBed: event.target.value }))}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setTeamDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveTeam} variant="contained">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={timelineDialogOpen} onClose={() => setTimelineDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add Intra-Op Timeline Event</DialogTitle>
-        <DialogContent>
-          <Stack spacing={1.25} sx={{ mt: 0.5 }}>
-            <TextField
-              fullWidth
-              size="small"
-              select
-              label="Event Type"
-              value={timelineForm.type}
-              onChange={(event) =>
-                setTimelineForm((prev) => ({
-                  ...prev,
-                  type: event.target.value as TimelineEventType,
-                }))
-              }
-            >
-              {(
-                [
-                  'Patient In Room',
-                  'Incision',
-                  'Specimen Sent',
-                  'Implant',
-                  'Blood Start',
-                  'Closure',
-                  'Critical Event',
-                  'PACU Transfer',
-                ] as TimelineEventType[]
-              ).map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item}
-                </MenuItem>
-              ))}
-            </TextField>
-
-            <TextField
-              fullWidth
-              size="small"
-              type="datetime-local"
-              label="Event Time"
-              InputLabelProps={{ shrink: true }}
-              value={timelineForm.time}
-              onChange={(event) => setTimelineForm((prev) => ({ ...prev, time: event.target.value }))}
-            />
-
-            <TextField
-              fullWidth
-              size="small"
-              label="Updated By"
-              value={timelineForm.by}
-              onChange={(event) => setTimelineForm((prev) => ({ ...prev, by: event.target.value }))}
-            />
-
-            <TextField
-              fullWidth
-              size="small"
-              label="Note"
-              multiline
-              minRows={3}
-              value={timelineForm.note}
-              onChange={(event) => setTimelineForm((prev) => ({ ...prev, note: event.target.value }))}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setTimelineDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleAddTimeline} variant="contained">
-            Add Event
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Cancel Surgical Case</DialogTitle>
-        <DialogContent>
-          <Stack spacing={1.25} sx={{ mt: 0.5 }}>
-            <Alert severity="warning">
-              <Typography variant="body2">
-                This action will mark the selected case as cancelled and log the reason in timeline.
-              </Typography>
-            </Alert>
-            <TextField
-              fullWidth
-              size="small"
-              label="Cancellation Reason"
-              multiline
-              minRows={3}
-              value={cancelReason}
-              onChange={(event) => setCancelReason(event.target.value)}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCancelDialogOpen(false)}>Back</Button>
-          <Button onClick={handleCancelCase} variant="contained" color="error">
-            Confirm Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={indentDialogOpen} onClose={() => setIndentDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Raise OT Indent Request</DialogTitle>
-        <DialogContent>
-          <Stack spacing={1.25} sx={{ mt: 0.5 }}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Item Name"
-              value={indentForm.item}
-              onChange={(event) => setIndentForm((prev) => ({ ...prev, item: event.target.value }))}
-            />
-            <TextField
-              fullWidth
-              size="small"
-              type="number"
-              label="Quantity"
-              value={indentForm.qty}
-              onChange={(event) => setIndentForm((prev) => ({ ...prev, qty: event.target.value }))}
-            />
-            <TextField
-              fullWidth
-              size="small"
-              select
-              label="Priority"
-              value={indentForm.priority}
-              onChange={(event) =>
-                setIndentForm((prev) => ({
-                  ...prev,
-                  priority: event.target.value as IndentForm['priority'],
-                }))
-              }
-            >
-              <MenuItem value="Routine">Routine</MenuItem>
-              <MenuItem value="Urgent">Urgent</MenuItem>
-              <MenuItem value="STAT">STAT</MenuItem>
-            </TextField>
-            <TextField
-              fullWidth
-              size="small"
-              label="Notes"
-              multiline
-              minRows={3}
-              value={indentForm.note}
-              onChange={(event) => setIndentForm((prev) => ({ ...prev, note: event.target.value }))}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIndentDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleIndentSubmit} variant="contained">
-            Send Indent
+          <Button variant="contained" onClick={handleScheduleCase} startIcon={<AddCircleOutlineIcon fontSize="small" />}>
+            Schedule & Open
           </Button>
         </DialogActions>
       </Dialog>
 
       <Snackbar
         open={toast.open}
-        autoHideDuration={3600}
+        autoHideDuration={3200}
         onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert
-          severity={toast.severity}
-          onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
+        <Alert onClose={() => setToast((prev) => ({ ...prev, open: false }))} severity={toast.severity} sx={{ width: '100%' }}>
           {toast.message}
         </Alert>
       </Snackbar>
