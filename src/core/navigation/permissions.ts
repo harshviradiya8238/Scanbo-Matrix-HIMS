@@ -90,6 +90,7 @@ export const ROLE_ORDER: SystemUserRole[] = [
   'RADIOLOGY_TECH',
   'PHARMACIST',
   'BILLING',
+  'PATIENT_PORTAL',
   'AUDITOR',
 ];
 
@@ -113,6 +114,8 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'doctors.*',
     'reports.*',
     'admin.*',
+    'financial-assistance.*',
+    // 'patient-portal.*',
     'help.read',
   ],
   DOCTOR: [
@@ -151,7 +154,9 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'diagnostics.read',
     'pharmacy.read',
     'reports.read',
+    // 'patient-portal.*',
     'help.read',
+    // 'financial-assistance.*',
   ],
   NURSE: [
     'dashboard.read',
@@ -196,6 +201,7 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'clinical.flow_overview.read',
     'billing.read',
     'doctors.read',
+    // 'patient-portal.*',
     'help.read',
   ],
   CARE_COORDINATOR: [
@@ -248,6 +254,7 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'dashboard.read',
     'patients.read',
     'billing.*',
+    'financial-assistance.*',
     'reports.billing.*',
     'help.read',
   ],

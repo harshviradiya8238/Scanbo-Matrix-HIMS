@@ -215,4 +215,5 @@ export type PatientPortalTabId =
   | 'chat'
   | 'settings'
   | 'family'
+  | 'financial-assistance'
   | 'share';

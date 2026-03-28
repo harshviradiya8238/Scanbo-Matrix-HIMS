@@ -70,6 +70,8 @@ import {
   AssignmentReturnOutlined,
   Shield,
   Vaccines,
+  VolunteerActivism,
+  BurstMode,
 } from "@mui/icons-material";
 import { NAV_GROUPS } from "@/src/core/navigation/nav-config";
 import { MenuItem, UserRole } from "@/src/core/navigation/types";
@@ -148,6 +150,8 @@ const iconMap: Record<string, React.ComponentType> = {
   AssignmentReturnOutlined,
   Shield,
   Vaccines,
+  VolunteerActivism,
+  PACS: BurstMode,
 };
 
 interface ModernSidebarProps {
@@ -165,9 +169,15 @@ export default function ModernSidebar({
   const { favorites, toggleFavorite, recentItems } = useNavigationState();
   const [hoveredItemId, setHoveredItemId] = React.useState<string | null>(null);
   const mainNavRef = React.useRef<HTMLDivElement | null>(null);
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Filter menu items by permissions and roles
   const filterItems = (items: MenuItem[]): MenuItem[] => {
+    if (!isMounted) return items; // Return raw items during SSR to match server
     return items
       .filter((item) => {
         // Check permissions
