@@ -128,7 +128,7 @@ function stockTableColumns(
     {
       field: "status",
       headerName: "Status",
-      width: 100,
+      // width: 100,
       renderCell: (row) => (
         <Chip
           size="small"
@@ -141,27 +141,27 @@ function stockTableColumns(
       field: "onHand",
       headerName: "On Hand",
       align: "right",
-      width: 100,
+      // width: 100,
       renderCell: (row) => row.onHand,
     },
     {
       field: "reserved",
       headerName: "Reserved",
       align: "right",
-      width: 100,
+      // width: 100,
       renderCell: (row) => row.reserved,
     },
     {
       field: "reorder",
       headerName: "Reorder",
       align: "right",
-      width: 100,
+      // width: 100,
       renderCell: (row) => row.item.reorderLevel,
     },
     {
       field: "coverage",
       headerName: "Coverage",
-      width: 160,
+      // width: 160,
       renderCell: (row) => {
         const health = stockHealth(row);
         const coverage =
@@ -172,7 +172,7 @@ function stockTableColumns(
               )
             : 0;
         return (
-          <Box sx={{ minWidth: 140 }}>
+          <Box sx={{}}>
             <LinearProgress
               variant="determinate"
               value={Math.max(0, coverage)}
@@ -199,7 +199,7 @@ function stockTableColumns(
     {
       field: "health",
       headerName: "Health",
-      width: 120,
+      // width: 120,
       renderCell: (row) => {
         const health = stockHealth(row);
         return (
@@ -220,13 +220,13 @@ function stockTableColumns(
     {
       field: "location",
       headerName: "Location",
-      width: 120,
+      // width: 120,
       renderCell: (row) => row.location || "--",
     },
     {
       field: "expiry",
       headerName: "Expiry",
-      width: 140,
+      // width: 140,
       renderCell: (row) => {
         if (!row.nextExpiry) return "--";
         const days = daysToExpiry(row.nextExpiry);
@@ -519,56 +519,56 @@ export default function PharmacyStockPage() {
       title="Pharmacy Stock"
       subtitle="Operational stock console linked to Inventory Item Master, PO, and GRN workflow."
       currentPageTitle="Stock"
-      fullHeight
     >
-      <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-        {!canRead ? (
-          <Alert severity="error">
-            You do not have access to Pharmacy Stock. Request
-            `pharmacy.stock.read`.
-          </Alert>
-        ) : null}
-
-        {canRead ? (
-          <>
-            {!canWrite ? (
-              <Alert severity="info">
-                You are in read-only mode for stock corrections.
-              </Alert>
-            ) : null}
-
-            <Alert severity="info">
-              New drug onboarding happens in <strong>Inventory Items</strong>.
-              New stock receipt happens via
-              <strong> GRN</strong>. Use this screen for monitoring and
-              controlled adjustments.
+      <Box sx={{ }}>
+        <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0 }}>
+          {!canRead ? (
+            <Alert severity="error">
+              You do not have access to Pharmacy Stock. Request
+              `pharmacy.stock.read`.
             </Alert>
+          ) : null}
 
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  sm: "repeat(2, minmax(0, 1fr))",
-                  lg: "repeat(3, minmax(0, 1fr))",
-                  xl: "repeat(5, minmax(0, 1fr))",
-                },
-                gap: 2,
-              }}
-            >
-              {metricTiles.map((tile) => (
-                <StatTile
-                  key={tile.label}
-                  label={tile.label}
-                  value={tile.value}
-                  subtitle={tile.subtitle}
-                  icon={tile.icon}
-                  variant="soft"
-                />
-              ))}
-            </Box>
+          {canRead ? (
+            <>
+              {!canWrite ? (
+                <Alert severity="info">
+                  You are in read-only mode for stock corrections.
+                </Alert>
+              ) : null}
 
-            <Box sx={{ mt: 2 }}>
+              <Alert severity="info">
+                New drug onboarding happens in <strong>Inventory Items</strong>.
+                New stock receipt happens via
+                <strong> GRN</strong>. Use this screen for monitoring and
+                controlled adjustments.
+              </Alert>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, minmax(0, 1fr))",
+                    lg: "repeat(3, minmax(0, 1fr))",
+                    xl: "repeat(5, minmax(0, 1fr))",
+                  },
+                  gap: 2,
+                }}
+              >
+                {metricTiles.map((tile) => (
+                  <StatTile
+                    key={tile.label}
+                    label={tile.label}
+                    value={tile.value}
+                    subtitle={tile.subtitle}
+                    icon={tile.icon}
+                    variant="soft"
+                  />
+                ))}
+              </Box>
+
+              {/* <Box sx={{ mt: 2 }}> */}
               <CommonDataGrid<StockViewRow>
                 rows={filteredRows}
                 columns={stockTableColumns(openAdjust, router)}
@@ -652,125 +652,126 @@ export default function PharmacyStockPage() {
                   </Stack>
                 }
               />
-            </Box>
+              {/* </Box> */}
 
-            {/* ── Filter Drawer ─────────────────────────────────────── */}
-            <Drawer
-              anchor="right"
-              open={filterDrawerOpen}
-              onClose={() => setFilterDrawerOpen(false)}
-              PaperProps={{
-                sx: {
-                  width: 320,
-                  p: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                },
-              }}
-            >
-              {/* Header */}
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                sx={{
-                  px: 3,
-                  py: 2,
-                  borderBottom: "1px solid",
-                  borderColor: "divider",
+              {/* ── Filter Drawer ─────────────────────────────────────── */}
+              <Drawer
+                anchor="right"
+                open={filterDrawerOpen}
+                onClose={() => setFilterDrawerOpen(false)}
+                PaperProps={{
+                  sx: {
+                    width: 320,
+                    p: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                  },
                 }}
               >
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <FilterListIcon fontSize="small" color="primary" />
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    Filters
-                  </Typography>
+                {/* Header */}
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{
+                    px: 3,
+                    py: 2,
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <FilterListIcon fontSize="small" color="primary" />
+                    <Typography variant="subtitle1" fontWeight={700}>
+                      Filters
+                    </Typography>
+                  </Stack>
+                  <IconButton
+                    size="small"
+                    onClick={() => setFilterDrawerOpen(false)}
+                  >
+                    ✕
+                  </IconButton>
                 </Stack>
-                <IconButton
-                  size="small"
-                  onClick={() => setFilterDrawerOpen(false)}
-                >
-                  ✕
-                </IconButton>
-              </Stack>
 
-              {/* Filter fields */}
-              <Stack spacing={2.5} sx={{ px: 3, py: 3, flex: 1 }}>
-                <TextField
-                  select
-                  size="small"
-                  fullWidth
-                  label="Stock Health"
-                  value={draftHealth}
-                  onChange={(e) =>
-                    setDraftHealth(e.target.value as StockFilter)
-                  }
-                >
-                  {(
-                    [
-                      "All",
-                      "Normal",
-                      "Low Stock",
-                      "Out of Stock",
-                      "Expiring Soon",
-                    ] as const
-                  ).map((v) => (
-                    <MenuItem key={v} value={v}>
-                      {v}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                {/* Filter fields */}
+                <Stack spacing={2.5} sx={{ px: 3, py: 3, flex: 1 }}>
+                  <TextField
+                    select
+                    size="small"
+                    fullWidth
+                    label="Stock Health"
+                    value={draftHealth}
+                    onChange={(e) =>
+                      setDraftHealth(e.target.value as StockFilter)
+                    }
+                  >
+                    {(
+                      [
+                        "All",
+                        "Normal",
+                        "Low Stock",
+                        "Out of Stock",
+                        "Expiring Soon",
+                      ] as const
+                    ).map((v) => (
+                      <MenuItem key={v} value={v}>
+                        {v}
+                      </MenuItem>
+                    ))}
+                  </TextField>
 
-                <TextField
-                  select
-                  size="small"
-                  fullWidth
-                  label="Item Status"
-                  value={draftStatus}
-                  onChange={(e) =>
-                    setDraftStatus(e.target.value as StatusFilter)
-                  }
-                >
-                  {(["All", "Active", "Inactive"] as const).map((v) => (
-                    <MenuItem key={v} value={v}>
-                      {v}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Stack>
+                  <TextField
+                    select
+                    size="small"
+                    fullWidth
+                    label="Item Status"
+                    value={draftStatus}
+                    onChange={(e) =>
+                      setDraftStatus(e.target.value as StatusFilter)
+                    }
+                  >
+                    {(["All", "Active", "Inactive"] as const).map((v) => (
+                      <MenuItem key={v} value={v}>
+                        {v}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Stack>
 
-              {/* Footer actions */}
-              <Divider />
-              <Stack direction="row" spacing={1.5} sx={{ px: 3, py: 2 }}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  onClick={() => {
-                    setDraftHealth("All");
-                    setDraftStatus("All");
-                    setHealthFilter("All");
-                    setStatusFilter("All");
-                    setFilterDrawerOpen(false);
-                  }}
-                >
-                  Reset
-                </Button>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={() => {
-                    setHealthFilter(draftHealth);
-                    setStatusFilter(draftStatus);
-                    setFilterDrawerOpen(false);
-                  }}
-                >
-                  Apply
-                </Button>
-              </Stack>
-            </Drawer>
-          </>
-        ) : null}
-      </Stack>
+                {/* Footer actions */}
+                <Divider />
+                <Stack direction="row" spacing={1.5} sx={{ px: 3, py: 2 }}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => {
+                      setDraftHealth("All");
+                      setDraftStatus("All");
+                      setHealthFilter("All");
+                      setStatusFilter("All");
+                      setFilterDrawerOpen(false);
+                    }}
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={() => {
+                      setHealthFilter(draftHealth);
+                      setStatusFilter(draftStatus);
+                      setFilterDrawerOpen(false);
+                    }}
+                  >
+                    Apply
+                  </Button>
+                </Stack>
+              </Drawer>
+            </>
+          ) : null}
+        </Stack>
+      </Box>
 
       <Dialog
         open={Boolean(selectedAdjustRow)}

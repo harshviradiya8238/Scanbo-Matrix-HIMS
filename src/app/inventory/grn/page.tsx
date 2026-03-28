@@ -1,4 +1,6 @@
-import InventoryGrnPage from '@/src/screens/inventory/InventoryGrnPage';
+"use client";
+
+import InventoryGrnPage from "@/src/screens/inventory/InventoryGrnPage";
 
 export default function GRNPage() {
   return <InventoryGrnPage />;

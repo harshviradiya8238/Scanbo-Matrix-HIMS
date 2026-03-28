@@ -379,7 +379,7 @@ export default function PatientProfilePage() {
         border: alpha(theme.palette.info.main, 0.2),
       },
     }),
-    [theme]
+    [theme],
   );
 
   const VITAL_NOTES = [
@@ -455,18 +455,18 @@ export default function PatientProfilePage() {
   const vitalHistorySorted = React.useMemo(
     () =>
       [...vitalHistory].sort((a, b) =>
-        b.recordedAt.localeCompare(a.recordedAt)
+        b.recordedAt.localeCompare(a.recordedAt),
       ),
-    [vitalHistory]
+    [vitalHistory],
   );
 
   const vitalTotalHistPages = Math.max(
     1,
-    Math.ceil(vitalHistorySorted.length / vitalRowsPerPage)
+    Math.ceil(vitalHistorySorted.length / vitalRowsPerPage),
   );
   const vitalPagedHistory = vitalHistorySorted.slice(
     vitalHistPage * vitalRowsPerPage,
-    vitalHistPage * vitalRowsPerPage + vitalRowsPerPage
+    vitalHistPage * vitalRowsPerPage + vitalRowsPerPage,
   );
 
   const getVitalValue = (r: (typeof vitalHistory)[0]) => {
@@ -504,14 +504,22 @@ export default function PatientProfilePage() {
                 ? "kg/m²"
                 : "";
 
-  const readingStatus = (val: string | number): "normal" | "elevated" | "high" | "low" => {
-    const n = typeof val === "string" ? parseFloat(val.replace(/[^\d.]/g, "")) : val;
+  const readingStatus = (
+    val: string | number,
+  ): "normal" | "elevated" | "high" | "low" => {
+    const n =
+      typeof val === "string" ? parseFloat(val.replace(/[^\d.]/g, "")) : val;
     if (Number.isNaN(n)) return "normal";
-    if (selectedVitalId === "bp") return n > 140 ? "elevated" : n > 120 ? "elevated" : "normal";
-    if (selectedVitalId === "hr") return n > 100 ? "high" : n < 60 ? "low" : "normal";
-    if (selectedVitalId === "spo2") return n < 95 ? "low" : n < 98 ? "elevated" : "normal";
-    if (selectedVitalId === "temp") return n > 99 ? "high" : n < 97 ? "low" : "normal";
-    if (selectedVitalId === "rr") return n > 20 ? "high" : n < 12 ? "low" : "normal";
+    if (selectedVitalId === "bp")
+      return n > 140 ? "elevated" : n > 120 ? "elevated" : "normal";
+    if (selectedVitalId === "hr")
+      return n > 100 ? "high" : n < 60 ? "low" : "normal";
+    if (selectedVitalId === "spo2")
+      return n < 95 ? "low" : n < 98 ? "elevated" : "normal";
+    if (selectedVitalId === "temp")
+      return n > 99 ? "high" : n < 97 ? "low" : "normal";
+    if (selectedVitalId === "rr")
+      return n > 20 ? "high" : n < 12 ? "low" : "normal";
     return "normal";
   };
 
@@ -1166,7 +1174,7 @@ export default function PatientProfilePage() {
               </Stack>
             </Card>
 
-            <Card  sx={{ p: 2, borderRadius: 2, minWidth: 0 }}>
+            <Card sx={{ p: 2, borderRadius: 2, minWidth: 0 }}>
               <Stack direction="row" spacing={1} alignItems="center">
                 <PersonOutlineIcon fontSize="small" color="primary" />
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -2103,7 +2111,7 @@ export default function PatientProfilePage() {
                                     ? `${vitalHistPage * vitalRowsPerPage + 1}-${Math.min(
                                         vitalHistPage * vitalRowsPerPage +
                                           vitalRowsPerPage,
-                                        vitalHistorySorted.length
+                                        vitalHistorySorted.length,
                                       )}`
                                     : "0-0"}
                                 </Typography>
@@ -2290,7 +2298,7 @@ export default function PatientProfilePage() {
                                                 }}
                                               >
                                                 {formatVitalDate(
-                                                  record.recordedAt
+                                                  record.recordedAt,
                                                 )}
                                               </Typography>
                                               {isLatest && (
@@ -2388,10 +2396,7 @@ export default function PatientProfilePage() {
                                   Page {vitalHistPage + 1} of{" "}
                                   {vitalTotalHistPages}
                                 </Typography>
-                                <Stack
-                                  direction="row"
-                                  spacing={0.5}
-                                >
+                                <Stack direction="row" spacing={0.5}>
                                   <Button
                                     size="small"
                                     variant="outlined"
@@ -2426,11 +2431,10 @@ export default function PatientProfilePage() {
                                   </Button>
                                   {Array.from(
                                     { length: vitalTotalHistPages },
-                                    (_, i) => i
+                                    (_, i) => i,
                                   )
                                     .filter(
-                                      (i) =>
-                                        Math.abs(i - vitalHistPage) <= 2
+                                      (i) => Math.abs(i - vitalHistPage) <= 2,
                                     )
                                     .map((i) => (
                                       <Button
@@ -2495,7 +2499,7 @@ export default function PatientProfilePage() {
                               </Stack>
                             </Box>
                           </Box>
-                          )}
+                        )}
                       </Stack>
                     </Box>
                   </Box>

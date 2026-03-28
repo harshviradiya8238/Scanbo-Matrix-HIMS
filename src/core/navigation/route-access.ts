@@ -1,4 +1,4 @@
-import { getMenuItemByRoute } from './nav-config';
+import { getMenuItemByRoute, getBreadcrumbPath } from './nav-config';
 import { hasPermission } from './permissions';
 import { getClinicalModuleBySlug } from '@/src/screens/clinical/module-registry';
 
@@ -79,13 +79,27 @@ export function getRouteAccessInfo(pathname: string): RouteAccessInfo | null {
     return { requiredPermissions: routeOverride.requiredPermissions, source: 'route-override' };
   }
 
-  const menuItem = getMenuItemByRoute(normalizedPathname);
-  if (menuItem?.requiredPermissions && menuItem.requiredPermissions.length > 0) {
-    return {
-      requiredPermissions: menuItem.requiredPermissions,
-      excludedRoles: menuItem.excludedRoles,
-      source: 'nav',
-    };
+  const pathItems = getBreadcrumbPath(normalizedPathname);
+  if (pathItems.length > 0) {
+    const requiredPermissions = new Set<string>();
+    const excludedRoles = new Set<string>();
+
+    pathItems.forEach(item => {
+      if (item.requiredPermissions) {
+        item.requiredPermissions.forEach(p => requiredPermissions.add(p));
+      }
+      if (item.excludedRoles) {
+        item.excludedRoles.forEach(r => excludedRoles.add(r));
+      }
+    });
+
+    if (requiredPermissions.size > 0 || excludedRoles.size > 0) {
+      return {
+        requiredPermissions: Array.from(requiredPermissions),
+        excludedRoles: Array.from(excludedRoles),
+        source: 'nav',
+      };
+    }
   }
 
   if (normalizedPathname.startsWith('/clinical/modules/')) {

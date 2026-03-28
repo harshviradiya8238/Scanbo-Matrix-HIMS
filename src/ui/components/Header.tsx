@@ -192,11 +192,11 @@ export default function Header({
     // 'INFECTION_CONTROL',
     // 'LAB_TECH',
     // 'RADIOLOGY_TECH',
-    // 'PHARMACIST',
-    // 'BILLING',
-    // 'INVENTORY',
+    "PHARMACIST",
+    "BILLING",
+    "INVENTORY",
     "PATIENT_PORTAL",
-    // 'AUDITOR',
+    "AUDITOR",
   ];
   const switchRoleIdSet = React.useMemo(
     () => new Set(switchRoleIds),

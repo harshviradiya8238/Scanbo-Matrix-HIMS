@@ -69,6 +69,7 @@ import {
   AccountBalanceWalletOutlined,
   AssignmentReturnOutlined,
   Shield,
+  Vaccines,
 } from "@mui/icons-material";
 import { NAV_GROUPS } from "@/src/core/navigation/nav-config";
 import { MenuItem, UserRole } from "@/src/core/navigation/types";
@@ -146,6 +147,7 @@ const iconMap: Record<string, React.ComponentType> = {
   AccountBalanceWalletOutlined,
   AssignmentReturnOutlined,
   Shield,
+  Vaccines,
 };
 
 interface ModernSidebarProps {
@@ -232,65 +234,26 @@ export default function ModernSidebar({
     setHoveredItemId(item.id);
   };
 
-  // Get recent menu items - only show leaf items (items with routes, not parent groups)
+  // Get recent menu items - only show leaf items (items with routes) that the user is allowed to see.
   const recentMenuItems = React.useMemo(() => {
+    // 1. First, compute all allowed leaf items based on the robust filterItems function
+    const allowedLeafItems = new Map<string, MenuItem>();
+    const collectAllowedLeafs = (items: MenuItem[]) => {
+      items.forEach((item) => {
+        if (item.route) allowedLeafItems.set(item.id, item);
+        if (item.children) collectAllowedLeafs(item.children);
+      });
+    };
+    NAV_GROUPS.forEach((group) => {
+      collectAllowedLeafs(filterItems(group.items));
+    });
+
+    // 2. Pick only those from the recentItems list
     const items: MenuItem[] = [];
-    const findItem = (
-      groups: typeof NAV_GROUPS,
-      id: string,
-    ): MenuItem | null => {
-      for (const group of groups) {
-        for (const item of group.items) {
-          if (item.id === id) return item;
-          if (item.children) {
-            const found = findItemInChildren(item.children, id);
-            if (found) return found;
-          }
-        }
-      }
-      return null;
-    };
-    const findItemInChildren = (
-      children: MenuItem[],
-      id: string,
-    ): MenuItem | null => {
-      for (const child of children) {
-        if (child.id === id) return child;
-        if (child.children) {
-          const found = findItemInChildren(child.children, id);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
     recentItems.forEach((id) => {
-      const item = findItem(NAV_GROUPS, id);
-      // Only include items that have a route (leaf items, not parent groups)
-      if (item && item.route) {
-        // Check permissions
-        const hasPerm =
-          !item.requiredPermissions ||
-          item.requiredPermissions.length === 0 ||
-          item.requiredPermissions.some((perm) =>
-            hasPermission(userPermissions, perm),
-          );
-
-        // Check roles
-        const hasRole =
-          !item.requiredRoles ||
-          item.requiredRoles.length === 0 ||
-          item.requiredRoles.includes(userRole);
-
-        // Hide for excluded roles (e.g. doctor should not see Admission & ADT in Recent)
-        const isExcluded =
-          item.excludedRoles?.some(
-            (r) =>
-              String(r).toUpperCase() === String(userRole ?? "").toUpperCase(),
-          ) ?? false;
-
-        if (hasPerm && hasRole && !isExcluded) {
-          items.push(item);
-        }
+      const allowedItem = allowedLeafItems.get(id);
+      if (allowedItem) {
+        items.push(allowedItem);
       }
     });
     return items.slice(0, 5);

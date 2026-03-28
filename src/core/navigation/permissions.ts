@@ -90,8 +90,6 @@ export const ROLE_ORDER: SystemUserRole[] = [
   'RADIOLOGY_TECH',
   'PHARMACIST',
   'BILLING',
-  'INVENTORY',
-  'PATIENT_PORTAL',
   'AUDITOR',
 ];
 
@@ -235,10 +233,15 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
   ],
   PHARMACIST: [
     'dashboard.read',
+    'patients.read',
+    'patients.profile.read',
     'clinical.prescriptions.write',
     'clinical.prescriptions.read',
     'pharmacy.*',
-    'inventory.items.read',
+    'inventory.*',
+    'reports.inventory.*',
+    'doctors.chat.read',
+    'billing.read',
     'help.read',
   ],
   BILLING: [
