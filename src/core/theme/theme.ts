@@ -46,8 +46,10 @@ const theme = createTheme(baseTheme, {
     MuiBackdrop: {
       styleOverrides: {
         root: {
-          backdropFilter: 'none',
-          WebkitBackdropFilter: 'none',
+          backgroundColor: alpha(baseTheme.palette.common.black, 0.34),
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          transition: 'backdrop-filter 180ms ease, -webkit-backdrop-filter 180ms ease',
         },
       },
     },

@@ -30,7 +30,6 @@ const genderOptions = [
 ];
 
 const bloodGroupOptions = [
-  { value: '', label: '-- Select --' },
   { value: 'A+', label: 'A+' },
   { value: 'A-', label: 'A-' },
   { value: 'B+', label: 'B+' },

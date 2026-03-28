@@ -155,6 +155,28 @@ export default function PatientListPage() {
 
   const handleMenuClose = () => setActionMenu(null);
 
+  const buildRouteWithMrn = (
+    route: string,
+    row: PatientRow,
+    extras?: Record<string, string>,
+  ) => {
+    const params = new URLSearchParams({ mrn: row.mrn });
+    Object.entries(extras ?? {}).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    return `${route}?${params.toString()}`;
+  };
+
+  const handleMenuNavigate = (
+    route: string,
+    extras?: Record<string, string>,
+  ) => {
+    const row = actionMenu?.row;
+    handleMenuClose();
+    if (!row) return;
+    router.push(buildRouteWithMrn(route, row, extras));
+  };
+
   const [filters, setFilters] = React.useState({
     status: "All",
     gender: "All",
@@ -1087,7 +1109,6 @@ export default function PatientListPage() {
         anchorEl={actionMenu?.anchor}
         open={Boolean(actionMenu)}
         onClose={handleMenuClose}
-        onClick={handleMenuClose}
         transformOrigin={{ horizontal: "right", vertical: "top" }}
         anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         PaperProps={{
@@ -1111,43 +1132,59 @@ export default function PatientListPage() {
           },
         }}
       >
-        <MenuItem
-          onClick={() =>
-            router.push(`/patients/profile/${actionMenu?.row?.mrn}`)
-          }
-        >
+        <MenuItem onClick={() => handleMenuNavigate("/patients/profile")}>
           <ListItemIcon sx={{ minWidth: 24 }}>
             <VisibilityIcon sx={{ fontSize: 18 }} />
           </ListItemIcon>
           <ListItemText primary="View Profile" />
         </MenuItem>
-        <MenuItem onClick={() => setActionMenu(null)}>
+        <MenuItem
+          onClick={() =>
+            handleMenuNavigate("/patients/registration", {
+              mode: "edit",
+              source: "patient-list",
+            })
+          }
+        >
           <ListItemIcon sx={{ minWidth: 24 }}>
             <EditIcon sx={{ fontSize: 18 }} />
           </ListItemIcon>
           <ListItemText primary="Edit Demographics" />
         </MenuItem>
         <Divider sx={{ my: 1, opacity: 0.6 }} />
-        <MenuItem onClick={() => setActionMenu(null)}>
+        <MenuItem
+          onClick={() =>
+            handleMenuNavigate("/appointments/calendar", {
+              booking: "1",
+              source: "patient-list",
+            })
+          }
+        >
           <ListItemIcon sx={{ minWidth: 24 }}>
             <CalendarMonthIcon sx={{ fontSize: 18 }} />
           </ListItemIcon>
           <ListItemText primary="New Appointment" />
         </MenuItem>
-        <MenuItem onClick={() => setActionMenu(null)}>
+        <MenuItem
+          onClick={() =>
+            handleMenuNavigate("/appointments/visit", {
+              source: "patient-list",
+            })
+          }
+        >
           <ListItemIcon sx={{ minWidth: 24 }}>
             <StartIcon sx={{ fontSize: 18 }} />
           </ListItemIcon>
           <ListItemText primary="Start Encounter" />
         </MenuItem>
-        <MenuItem onClick={() => setActionMenu(null)}>
+        <MenuItem onClick={() => handleMenuNavigate("/ipd/admissions")}>
           <ListItemIcon sx={{ minWidth: 24 }}>
             <AdmitIcon sx={{ fontSize: 18 }} />
           </ListItemIcon>
           <ListItemText primary="Admit Patient" />
         </MenuItem>
         <Divider sx={{ my: 1, opacity: 0.6 }} />
-        <MenuItem onClick={() => setActionMenu(null)}>
+        <MenuItem onClick={() => handleMenuNavigate("/billing/invoices")}>
           <ListItemIcon sx={{ minWidth: 24 }}>
             <InvoiceIcon sx={{ fontSize: 18 }} />
           </ListItemIcon>

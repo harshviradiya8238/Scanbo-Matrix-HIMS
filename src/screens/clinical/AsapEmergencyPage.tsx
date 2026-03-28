@@ -5672,40 +5672,9 @@ export default function AsapEmergencyPage() {
         }
       >
         <ModuleHeaderCard
-          title="Emergency Module"
-          description="Global ED operations are separated from patient-specific workspace to keep the flow clear for front-desk, nurses, and doctors."
-          chips={[
-            {
-              label: `Queue ${dashboardMetrics.totalPatients}`,
-              color: "primary",
-              variant: "outlined",
-            },
-            {
-              label: `${dashboardMetrics.criticalPatients} Critical`,
-              color: "error",
-              variant: "filled",
-            },
-            {
-              label: `${dashboardMetrics.availableBeds} Beds Free`,
-              color: "success",
-              variant: "outlined",
-            },
-            ...(selectedPatient
-              ? [
-                  {
-                    label: `Case: ${selectedPatient.id}`,
-                    color: "info" as const,
-                    variant: "outlined" as const,
-                  },
-                ]
-              : [
-                  {
-                    label: "Case: none selected",
-                    color: "default" as const,
-                    variant: "outlined" as const,
-                  },
-                ]),
-          ]}
+          title="Emergency "
+          description=""
+        
           actions={
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               <Button

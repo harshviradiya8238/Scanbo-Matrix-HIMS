@@ -290,7 +290,7 @@ export const CLINICAL_MODULES: ClinicalModuleDefinition[] = [
       'Used by anesthesiologists to record anesthesia assessment, intraoperative vitals, medications, and recovery notes.',
     audience: ['Anesthesiologists', 'Nurse Anesthetists'],
     appRoute: '/clinical/modules/anesthesia',
-    status: 'Planned',
+    status: 'Implemented',
     requiredPermissions: buildPermissions('surgery', 'anesthesia'),
     referenceUrl: 'https://www.epic.com/software/specialties/',
   },

@@ -63,7 +63,6 @@ import {
   CheckCircle as CheckCircleIcon,
   Description as DescriptionIcon,
   Download as DownloadIcon,
-  Group as GroupIcon,
   HealthAndSafety as HealthAndSafetyIcon,
   History as HistoryIcon,
   Hotel as HotelIcon,
@@ -439,31 +438,6 @@ const NOTIFICATION_FEED: NotificationFeedItem[] = [
     actionLabel: "Review",
     timestamp: "Yesterday",
   },
-];
-
-interface StakeholderStatusItem {
-  id: string;
-  role: string;
-  channel: string;
-  status: "sent" | "pending" | "queued";
-}
-
-const STAKEHOLDER_STATUS: StakeholderStatusItem[] = [
-  { id: "ss-1", role: "IPC Officer", channel: "SMS + App", status: "sent" },
-  { id: "ss-2", role: "HOD Medicine", channel: "Email + App", status: "sent" },
-  {
-    id: "ss-3",
-    role: "Nursing In-charge",
-    channel: "App Push",
-    status: "pending",
-  },
-  {
-    id: "ss-4",
-    role: "Microbiology Lab",
-    channel: "LIS Alert",
-    status: "sent",
-  },
-  { id: "ss-5", role: "CMO / Admin", channel: "Email", status: "queued" },
 ];
 
 interface SendToItem {
@@ -1280,49 +1254,6 @@ export default function InfectionControlPage() {
       severity: "success",
     });
   };
-
-  const stakeholderColumns = React.useMemo<
-    CommonColumn<StakeholderStatusItem>[]
-  >(
-    () => [
-      {
-        headerName: "Role",
-        field: "role",
-        width: 150,
-      },
-      {
-        headerName: "Channel",
-        field: "channel",
-        width: 120,
-      },
-      {
-        headerName: "Status",
-        field: "status",
-        width: 120,
-        renderCell: (row) => (
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <Box
-              sx={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                bgcolor:
-                  row.status === "sent"
-                    ? "success.main"
-                    : row.status === "pending" || row.status === "queued"
-                      ? "warning.main"
-                      : "grey.400",
-              }}
-            />
-            <Typography variant="body2" sx={{ textTransform: "capitalize" }}>
-              {row.status}
-            </Typography>
-          </Stack>
-        ),
-      },
-    ],
-    [],
-  );
 
   const handleCreateCase = () => {
     const sel = caseForm.patientSelect
@@ -2593,31 +2524,6 @@ export default function InfectionControlPage() {
                   </Stack>
                 </Card>
 
-                <Card
-                  elevation={0}
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    // border: "1px solid",
-                    // borderColor: alpha(theme.palette.primary.main, 0.14),
-                    boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
-                  }}
-                >
-                  <Stack spacing={1.25}>
-                    <Stack direction="row" alignItems="center" spacing={0.75}>
-                      <GroupIcon sx={{ fontSize: 18, color: "primary.main" }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        Stakeholder Status
-                      </Typography>
-                    </Stack>
-                    <CommonDataGrid<StakeholderStatusItem>
-                      rows={STAKEHOLDER_STATUS}
-                      columns={stakeholderColumns}
-                      getRowId={(row) => row.id}
-                      emptyTitle="No stakeholder status data found."
-                    />
-                  </Stack>
-                </Card>
               </Stack>
             </>
           ) : activeTab === "audit" ? (
