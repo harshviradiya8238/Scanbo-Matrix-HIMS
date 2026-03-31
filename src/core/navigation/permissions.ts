@@ -52,6 +52,14 @@ export const ROLE_METADATA: Record<
     label: 'Lab Technician',
     description: 'Processes laboratory orders and results.',
   },
+  LAB_MANAGER: {
+    label: 'Lab Manager',
+    description: 'Oversees laboratory operations, quality control, and staff assignments.',
+  },
+  PATHOLOGIST: {
+    label: 'Pathologist',
+    description: 'Final clinical review, verification, and sign-off on laboratory reports.',
+  },
   RADIOLOGY_TECH: {
     label: 'Radiology Technician',
     description: 'Manages imaging orders and radiology reporting.',
@@ -86,7 +94,9 @@ export const ROLE_ORDER: SystemUserRole[] = [
   'RECEPTION',
   'CARE_COORDINATOR',
   'INFECTION_CONTROL',
-  'LAB_TECH',
+  // 'LAB_TECH',
+  'LAB_MANAGER',
+  // 'PATHOLOGIST',
   'RADIOLOGY_TECH',
   'PHARMACIST',
   'BILLING',
@@ -225,12 +235,30 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'ipd.read',
     'help.read',
   ],
-  LAB_TECH: [
+  // LAB_TECH: [
+  //   'dashboard.read',
+  //   'orders.lab.read',
+  //   'diagnostics.lab.read',
+  //   'diagnostics.lab.samples.write',
+  //   'diagnostics.lab.results.write',
+  //   'help.read',
+  // ],
+  LAB_MANAGER: [
     'dashboard.read',
     'orders.lab.*',
     'diagnostics.lab.*',
+    'inventory.*',
+    'staff.*',
+    'reports.lab.*',
     'help.read',
   ],
+  // PATHOLOGIST: [
+  //   'dashboard.read',
+  //   'diagnostics.lab.read',
+  //   'diagnostics.lab.verify.write',
+  //   'diagnostics.lab.publish.write',
+  //   'help.read',
+  // ],
   RADIOLOGY_TECH: [
     'dashboard.read',
     'orders.radiology.*',

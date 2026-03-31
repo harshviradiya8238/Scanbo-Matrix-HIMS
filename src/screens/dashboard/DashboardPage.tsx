@@ -43,6 +43,7 @@ import {
 } from "@/src/screens/ipd/ipd-mock-data";
 import { useOpdData } from "@/src/store/opdHooks";
 import { CLINICAL_MODULES } from "@/src/screens/clinical/module-registry";
+import LabDashboardPage from "../lab/dashboard/LabDashboardPage";
 
 interface WardSummary {
   ward: string;
@@ -207,6 +208,9 @@ export default function DashboardPage() {
   // Show dedicated Pharmacy dashboard for PHARMACIST role
   if (role === "PHARMACIST") {
     return <PharmacyDashboardPage />;
+  }
+  if (role === "LAB_MANAGER") {
+    return <LabDashboardPage />;
   }
 
   return (

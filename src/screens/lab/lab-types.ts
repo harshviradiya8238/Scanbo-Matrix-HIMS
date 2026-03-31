@@ -123,6 +123,17 @@ export interface LabQCRecord {
   status: 'pass' | 'warn' | 'fail';
 }
 
+export interface LabPartition {
+  id: string;
+  parentId: string;
+  patient: string;
+  volume: string;
+  container: string;
+  analyses: string[];
+  department: string;
+  status: string;
+}
+
 export interface LabAuditLogEntry {
   ts: string;
   event: string;

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   Alert,
   Avatar,
@@ -100,6 +101,7 @@ export const MOCK_CASES: PatientCaseRow[] = [
 ];
 
 export default function PatientCasesPage() {
+  const router = useRouter();
   const theme = useTheme();
   const [rows] = React.useState<PatientCaseRow[]>(MOCK_CASES);
   const [snackbar, setSnackbar] = React.useState<string | null>(null);
@@ -182,7 +184,7 @@ export default function PatientCasesPage() {
               color="primary"
               onClick={(e) => {
                 e.stopPropagation();
-                setSnackbar(`View case ${row.id} (stub)`);
+                router.push(`/patients/profile?mrn=${row.mrn}`);
               }}
               sx={{ minWidth: "auto", p: 0.5, borderRadius: 1.5 }}
             >

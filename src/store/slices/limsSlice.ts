@@ -12,6 +12,7 @@ import type {
   LabSettings,
   SampleStatus,
   WorksheetStatus,
+  LabPartition,
 } from '@/src/screens/lab/lab-types';
 import { MOCK_LAB_SAMPLES } from '@/src/mocks/lab/labSamples';
 import { MOCK_LAB_WORKSHEETS } from '@/src/mocks/lab/labWorksheets';
@@ -23,6 +24,7 @@ import { MOCK_LAB_INVENTORY } from '@/src/mocks/lab/labInventory';
 import { MOCK_LAB_QC } from '@/src/mocks/lab/labQc';
 import { MOCK_LAB_SETTINGS } from '@/src/mocks/lab/labSettings';
 import { MOCK_LAB_AUDIT } from '@/src/mocks/lab/labAudit';
+import { MOCK_LAB_PARTITIONS } from '@/src/mocks/lab/labPartitions';
 
 export interface LimsState {
   samples: LabSample[];
@@ -35,6 +37,7 @@ export interface LimsState {
   qcRecords: LabQCRecord[];
   settings: LabSettings;
   auditLog: LabAuditLogEntry[];
+  partitions: LabPartition[];
 }
 
 const initialState: LimsState = {
@@ -48,6 +51,7 @@ const initialState: LimsState = {
   qcRecords: MOCK_LAB_QC,
   settings: MOCK_LAB_SETTINGS,
   auditLog: MOCK_LAB_AUDIT,
+  partitions: MOCK_LAB_PARTITIONS,
 };
 
 function refFromLowHigh(low: string, high: string): string {
@@ -132,32 +136,62 @@ const limsSlice = createSlice({
       }
     },
     addResult(state, action: PayloadAction<LabResultRow>) {
+      const { sampleId, analyte, result } = action.payload;
       const existing = state.results.findIndex(
         (x) =>
-          x.sampleId === action.payload.sampleId &&
+          x.sampleId === sampleId &&
           x.test === action.payload.test &&
-          x.analyte === action.payload.analyte
+          x.analyte === analyte
       );
       if (existing >= 0) {
         state.results[existing] = action.payload;
       } else {
         state.results.push(action.payload);
       }
-      updateSampleToAnalysedIfReady(state, action.payload.sampleId);
+      
+      // --- Automation: Reflex Testing ---
+      if (analyte === 'TSH' && parseFloat(result) > 10) {
+        const s = state.samples.find(x => x.id === sampleId);
+        if (s && !s.tests.includes('TFT')) {
+          s.tests.push('TFT');
+          state.auditLog.unshift({
+            ts: nowTimestamp(),
+            event: `Reflex: Added TFT due to TSH > 10 (${result})`,
+            user: 'System (Automation)',
+            sampleId: s.id
+          });
+        }
+      }
+
+      // --- Automation: Reagent Deduction ---
+      // Simple logic: Each analysis consumes 1 unit of a matching reagent
+      const reagent = state.inventory.find(i => i.name.toLowerCase().includes(analyte.toLowerCase()));
+      if (reagent) {
+        reagent.onHand = Math.max(0, reagent.onHand - 1);
+      }
+
+      updateSampleToAnalysedIfReady(state, sampleId);
     },
     addResults(state, action: PayloadAction<LabResultRow[]>) {
       const touchedSampleIds = new Set<string>();
 
       action.payload.forEach((row) => {
+        const { sampleId, analyte, result } = row;
         const existing = state.results.findIndex(
-          (x) => x.sampleId === row.sampleId && x.test === row.test && x.analyte === row.analyte
+          (x) => x.sampleId === sampleId && x.test === row.test && x.analyte === analyte
         );
         if (existing >= 0) {
           state.results[existing] = row;
         } else {
           state.results.push(row);
         }
-        touchedSampleIds.add(row.sampleId);
+        touchedSampleIds.add(sampleId);
+
+        // --- Automation: Reagent Deduction ---
+        const reagent = state.inventory.find(i => i.name.toLowerCase().includes(analyte.toLowerCase()));
+        if (reagent) {
+          reagent.onHand = Math.max(0, reagent.onHand - 1);
+        }
       });
 
       touchedSampleIds.forEach((sampleId) => {
@@ -254,6 +288,26 @@ const limsSlice = createSlice({
     appendAudit(state, action: PayloadAction<LabAuditLogEntry>) {
       state.auditLog.unshift(action.payload);
     },
+    autoVerifyNormalResults(state, action: PayloadAction<{ verifiedBy: string }>) {
+      const normalResults = state.results.filter(
+        (r) => r.status === 'pending' && r.flag === 'NORMAL'
+      );
+      
+      normalResults.forEach((r) => {
+        r.status = 'verified';
+        r.verifiedBy = action.payload.verifiedBy;
+        updateSampleToVerifiedIfReady(state, r.sampleId);
+      });
+    },
+    addPartition(state, action: PayloadAction<Omit<LabPartition, 'id' | 'status'>>) {
+      const n = state.partitions.length + 1;
+      const id = `${action.payload.parentId.replace('LAB-', '')}-P${n}`;
+      state.partitions.push({
+        ...action.payload,
+        id,
+        status: 'Received',
+      });
+    },
   },
 });
 
@@ -279,6 +333,8 @@ export const {
   addInventoryItem,
   adjustInventoryStock,
   appendAudit,
+  addPartition,
+  autoVerifyNormalResults,
 } = limsSlice.actions;
 
 export default limsSlice.reducer;

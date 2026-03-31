@@ -1,2 +1,5 @@
-import LabSamplesPage from '@/src/screens/lab/samples/LabSamplesPage';
-export default function Page() { return <LabSamplesPage />; }
+import IpdLabOrdersPage from "@/src/screens/lab/ipd-orders/IpdLabOrdersPage";
+
+export default function LabIpdOrdersPage() {
+  return <IpdLabOrdersPage />;
+}

@@ -9,7 +9,6 @@ import { ArrowBack as ArrowBackIcon, Download as DownloadIcon, Email as EmailIco
 import { useAppSelector } from '@/src/store/hooks';
 import { refFromLowHigh } from '@/src/store/slices/limsSlice';
 import { useLabTheme } from '../lab-theme';
-import LabWorkspaceCard from '../components/LabWorkspaceCard';
 
 const REPORT_TYPES = [
   { title: 'Certificate of Analysis', desc: 'Generate CoA PDF for verified samples', color: 'primary' as const, icon: '◱' },
@@ -102,18 +101,15 @@ export default function LabReportsPage() {
   if (reportId) {
     return (
       <PageTemplate title="Reports" currentPageTitle="Certificate of Analysis">
-        <LabWorkspaceCard current="reports">
           <Stack spacing={2}>
             <CoAView sampleId={reportId} onBack={() => router.push('/lab/reports')} />
           </Stack>
-        </LabWorkspaceCard>
       </PageTemplate>
     );
   }
 
   return (
     <PageTemplate title="Reports" subtitle="Generate and manage lab reports & certificates" currentPageTitle="Reports">
-      <LabWorkspaceCard current="reports">
         <Stack spacing={2}>
           <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' } }}>
         {REPORT_TYPES.map((r) => (
@@ -157,7 +153,6 @@ export default function LabReportsPage() {
           </TableContainer>
         </Box>
         </Stack>
-      </LabWorkspaceCard>
     </PageTemplate>
   );
 }

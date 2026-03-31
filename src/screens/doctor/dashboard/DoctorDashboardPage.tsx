@@ -442,6 +442,71 @@ export default function DoctorDashboardPage() {
           </Grid>
         </Grid>
 
+
+         {/* ─ Quick Links  (full width) ─ */}
+          <Grid item xs={12}>
+          <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Quick Links</Typography>
+              <Grid container spacing={1.5}>
+                {[
+                  { label: "OPD Queue",      icon: <PersonSearchIcon />,    route: "/appointments/queue",       color: "#1170b8" },
+                  { label: "My Schedule",    icon: <CalendarTodayIcon />,   route: "/doctors/schedule",         color: "#7c3aed" },
+                  { label: "IPD Care",       icon: <MedicalServicesIcon />, route: "/ipd/rounds",               color: "#0891b2" },
+                  { label: "Order Mgmt",     icon: <LocalHospitalIcon />,   route: "/ipd/orders-tests/orders",  color: "#c47d00" },
+                  { label: "Lab Results",    icon: <BiotechIcon />,         route: "/ipd/orders-tests/lab",     color: "#059669" },
+                  { label: "Chat",           icon: <ChatIcon />,            route: "/doctors/chat",             color: "#e11d48" },
+                  { label: "Patient Cases",  icon: <FolderSharedIcon />,    route: "/doctor/patient-cases",     color: "#0369a1" },
+                  { label: "Clin. Reports",  icon: <CheckCircleIcon />,     route: "/reports/clinical",         color: "#6d28d9" },
+                ].map((link) => (
+                  <Grid item xs={6} sm={4} md={3} key={link.route}>
+                  <Box
+                    onClick={() => router.push(link.route)}
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 0.75,
+                      py: 1.75,
+                      px: 1,
+                      borderRadius: 2,
+                      border: "1px solid",
+                      borderColor: alpha(link.color, 0.18),
+                      bgcolor: alpha(link.color, 0.06),
+                      cursor: "pointer",
+                      transition: "all 0.18s ease",
+                      "&:hover": {
+                        bgcolor: alpha(link.color, 0.14),
+                        borderColor: alpha(link.color, 0.4),
+                        transform: "translateY(-3px)",
+                        boxShadow: `0 6px 18px ${alpha(link.color, 0.2)}`,
+                      },
+                      "&:active": { transform: "translateY(0)" },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 42, height: 42, borderRadius: "50%",
+                        bgcolor: alpha(link.color, 0.15),
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: link.color,
+                        "& .MuiSvgIcon-root": { fontSize: 22 },
+                      }}
+                    >
+                      {link.icon}
+                    </Box>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: "text.primary", textAlign: "center", lineHeight: 1.2 }}>
+                      {link.label}
+                    </Typography>
+                  </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          </Card>
+          </Grid>
+
         {/* ── Main Grid ─────────────────────────────────────── */}
         <Grid container spacing={2} alignItems="stretch">
           {/* ─ Today's Schedule  (left) ─ */}
@@ -731,69 +796,7 @@ export default function DoctorDashboardPage() {
           </Card>
           </Grid>
 
-          {/* ─ Quick Links  (full width) ─ */}
-          <Grid item xs={12}>
-          <Card elevation={0} sx={{ p: 2, borderRadius: 2 }}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Quick Links</Typography>
-              <Grid container spacing={1.5}>
-                {[
-                  { label: "OPD Queue",      icon: <PersonSearchIcon />,    route: "/appointments/queue",       color: "#1170b8" },
-                  { label: "My Schedule",    icon: <CalendarTodayIcon />,   route: "/doctors/schedule",         color: "#7c3aed" },
-                  { label: "IPD Care",       icon: <MedicalServicesIcon />, route: "/ipd/rounds",               color: "#0891b2" },
-                  { label: "Order Mgmt",     icon: <LocalHospitalIcon />,   route: "/ipd/orders-tests/orders",  color: "#c47d00" },
-                  { label: "Lab Results",    icon: <BiotechIcon />,         route: "/ipd/orders-tests/lab",     color: "#059669" },
-                  { label: "Chat",           icon: <ChatIcon />,            route: "/doctors/chat",             color: "#e11d48" },
-                  { label: "Patient Cases",  icon: <FolderSharedIcon />,    route: "/doctor/patient-cases",     color: "#0369a1" },
-                  { label: "Clin. Reports",  icon: <CheckCircleIcon />,     route: "/reports/clinical",         color: "#6d28d9" },
-                ].map((link) => (
-                  <Grid item xs={6} sm={4} md={3} key={link.route}>
-                  <Box
-                    onClick={() => router.push(link.route)}
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 0.75,
-                      py: 1.75,
-                      px: 1,
-                      borderRadius: 2,
-                      border: "1px solid",
-                      borderColor: alpha(link.color, 0.18),
-                      bgcolor: alpha(link.color, 0.06),
-                      cursor: "pointer",
-                      transition: "all 0.18s ease",
-                      "&:hover": {
-                        bgcolor: alpha(link.color, 0.14),
-                        borderColor: alpha(link.color, 0.4),
-                        transform: "translateY(-3px)",
-                        boxShadow: `0 6px 18px ${alpha(link.color, 0.2)}`,
-                      },
-                      "&:active": { transform: "translateY(0)" },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 42, height: 42, borderRadius: "50%",
-                        bgcolor: alpha(link.color, 0.15),
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        color: link.color,
-                        "& .MuiSvgIcon-root": { fontSize: 22 },
-                      }}
-                    >
-                      {link.icon}
-                    </Box>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: "text.primary", textAlign: "center", lineHeight: 1.2 }}>
-                      {link.label}
-                    </Typography>
-                  </Box>
-                  </Grid>
-                ))}
-              </Grid>
-            </Box>
-          </Card>
-          </Grid>
+         
         </Grid>
       </Box>
     </PageTemplate>

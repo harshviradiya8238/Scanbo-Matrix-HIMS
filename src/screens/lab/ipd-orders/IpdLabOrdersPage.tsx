@@ -1,0 +1,517 @@
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import {
+  Box,
+  Button,
+  Chip,
+  Stack,
+  Typography,
+  Alert,
+  Tabs,
+  Tab,
+  Tooltip,
+} from "@/src/ui/components/atoms";
+import { useTheme, alpha } from "@mui/material";
+import {
+  LocalHospital as HospitalIcon,
+  Science as ScienceIcon,
+  CheckCircle as CheckCircleIcon,
+  HourglassEmpty as PendingIcon,
+  ArrowForward as ArrowForwardIcon,
+  FilterList as FilterIcon,
+  Refresh as RefreshIcon,
+} from "@mui/icons-material";
+import PageTemplate from "@/src/ui/components/PageTemplate";
+import WorkspaceHeaderCard from "@/src/ui/components/molecules/WorkspaceHeaderCard";
+import CommonDataGrid, {
+  type CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
+import StatTile from "@/src/ui/components/molecules/StatTile";
+import { Grid } from "@/src/ui/components/atoms";
+import { useAppSelector } from "@/src/store/hooks";
+import type { LabSample } from "../lab-types";
+import { useLabStatusConfig } from "../lab-status-config";
+import { useLabTheme } from "../lab-theme";
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+const PRIORITY_COLOR: Record<string, string> = {
+  STAT: "#ef4444",
+  URGENT: "#f97316",
+  NORMAL: "#3b82f6",
+  ROUTINE: "#6b7280",
+};
+
+function parseIpdNote(notes?: string): {
+  ward: string;
+  bed: string;
+  consultant: string;
+  dx: string;
+  order: string;
+} {
+  if (!notes)
+    return { ward: "—", bed: "—", consultant: "—", dx: "—", order: "—" };
+  const ward = notes.match(/Ward ([^,|]+)/)?.[1]?.trim() ?? "—";
+  const bed = notes.match(/Bed ([^\s|,]+)/)?.[1]?.trim() ?? "—";
+  const consultant = notes.match(/Consultant:\s*([^|]+)/)?.[1]?.trim() ?? "—";
+  const dx = notes.match(/Dx:\s*([^|]+)/)?.[1]?.trim() ?? "—";
+  const order = notes.match(/Order:\s*(.+)$/)?.[1]?.trim() ?? "—";
+  return { ward, bed, consultant, dx, order };
+}
+
+// ── Tab IDs ──────────────────────────────────────────────────────────────────
+const TABS = ["All", "Pending (New)", "In Progress", "Completed"];
+
+// ── Main Page ────────────────────────────────────────────────────────────────
+export default function IpdLabOrdersPage() {
+  const theme = useTheme();
+  const router = useRouter();
+  const lab = useLabTheme(theme);
+  const { sampleStatus } = useLabStatusConfig();
+  const { samples } = useAppSelector((s) => s.lims);
+
+  const [tab, setTab] = React.useState(0);
+
+  // Only show IPD-originated samples (identified by 'WARD-' prefix in client)
+  const ipdSamples = React.useMemo(
+    () => samples.filter((s) => s.client.startsWith("WARD-")),
+    [samples],
+  );
+
+  const tabFiltered = React.useMemo(() => {
+    if (tab === 1) return ipdSamples.filter((s) => s.status === "registered");
+    if (tab === 2)
+      return ipdSamples.filter(
+        (s) =>
+          s.status === "received" ||
+          s.status === "assigned" ||
+          s.status === "analysed",
+      );
+    if (tab === 3)
+      return ipdSamples.filter(
+        (s) => s.status === "verified" || s.status === "published",
+      );
+    return ipdSamples;
+  }, [ipdSamples, tab]);
+
+  // Stats
+  const pending = ipdSamples.filter((s) => s.status === "registered").length;
+  const inProgress = ipdSamples.filter(
+    (s) =>
+      s.status === "received" ||
+      s.status === "assigned" ||
+      s.status === "analysed",
+  ).length;
+  const completed = ipdSamples.filter(
+    (s) => s.status === "verified" || s.status === "published",
+  ).length;
+  const statCount = ipdSamples.filter((s) => s.priority === "STAT").length;
+
+  const columns: CommonColumn<LabSample>[] = [
+    {
+      headerName: "ORDER ID",
+      field: "id",
+      width: 160,
+      renderCell: (row) => (
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 700, color: "primary.main", cursor: "pointer" }}
+        >
+          {row.id}
+        </Typography>
+      ),
+    },
+    {
+      headerName: "PATIENT",
+      field: "patient",
+      width: 180,
+      renderCell: (row) => {
+        const { ward, bed } = parseIpdNote(row.notes);
+        return (
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              {row.patient}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {ward} · {bed}
+            </Typography>
+          </Box>
+        );
+      },
+    },
+    {
+      headerName: "PRIORITY",
+      field: "priority",
+      // width: 100,
+      renderCell: (row) => (
+        <Chip
+          label={row.priority}
+          size="small"
+          sx={{
+            bgcolor: alpha(PRIORITY_COLOR[row.priority] ?? "#6b7280", 0.15),
+            color: PRIORITY_COLOR[row.priority] ?? "#6b7280",
+            fontWeight: 700,
+            fontSize: "0.7rem",
+            border: `1px solid ${alpha(
+              PRIORITY_COLOR[row.priority] ?? "#6b7280",
+              0.35,
+            )}`,
+          }}
+        />
+      ),
+    },
+    {
+      headerName: "CONSULTANT",
+      field: "notes",
+      // width: 200,
+      renderCell: (row) => {
+        const { consultant } = parseIpdNote(row.notes);
+        return (
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {consultant}
+          </Typography>
+        );
+      },
+    },
+    {
+      headerName: "DIAGNOSIS",
+      field: "type",
+      width: 230,
+      renderCell: (row) => {
+        const { dx } = parseIpdNote(row.notes);
+        return (
+          <Tooltip title={dx}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                maxWidth: 220,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {dx}
+            </Typography>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      headerName: "TESTS ORDERED",
+      field: "tests",
+      width: 200,
+      renderCell: (row) => (
+        <Stack direction="row" spacing={0.5} flexWrap="wrap">
+          {row.tests.map((t) => (
+            <Chip
+              key={t}
+              label={t}
+              size="small"
+              sx={{
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                color: "primary.main",
+                fontSize: "0.68rem",
+                fontWeight: 600,
+              }}
+            />
+          ))}
+        </Stack>
+      ),
+    },
+    {
+      headerName: "SAMPLE TYPE",
+      field: "type",
+      width: 110,
+      renderCell: (row) => (
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <Box
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              bgcolor:
+                row.type === "Blood"
+                  ? "error.main"
+                  : row.type === "Urine"
+                    ? "warning.main"
+                    : row.type === "Serum"
+                      ? "info.main"
+                      : "text.secondary",
+            }}
+          />
+          <Typography variant="body2">{row.type}</Typography>
+        </Stack>
+      ),
+    },
+    {
+      headerName: "TIME",
+      field: "received",
+      width: 130,
+      renderCell: (row) => (
+        <Typography variant="body2" color="text.secondary">
+          {row.received?.slice(11) ?? row.date}
+        </Typography>
+      ),
+    },
+    {
+      headerName: "STATUS",
+      field: "status",
+      width: 130,
+      renderCell: (row) => {
+        const cfg = sampleStatus[row.status];
+        return (
+          <Chip size="small" label={cfg.label} sx={lab.chipSx(cfg.color)} />
+        );
+      },
+    },
+    {
+      headerName: "ACTION",
+      field: "id",
+      width: 110,
+      renderCell: (row) => (
+        <Button
+          size="small"
+          variant="outlined"
+          endIcon={<ArrowForwardIcon />}
+          onClick={() =>
+            router.push(`/lab/clients?sampleId=${row.id}&tab=entry`)
+          }
+          sx={{ fontSize: "0.75rem" }}
+        >
+          Open
+        </Button>
+      ),
+    },
+  ];
+
+  return (
+    <PageTemplate
+      title="Laboratory"
+      subtitle="Inpatient orders arriving from wards & ICU"
+      currentPageTitle="IPD Orders"
+    >
+      <Stack spacing={2.5}>
+        {/* ── Alert banner for STAT orders ───────────────────────────────── */}
+        {statCount > 0 && (
+          <Alert
+            severity="error"
+            icon={<HospitalIcon />}
+            sx={{
+              fontWeight: 600,
+              border: "1px solid",
+              borderColor: "error.light",
+              borderRadius: 2,
+            }}
+          >
+            {statCount} STAT order{statCount > 1 ? "s" : ""} pending immediate
+            processing. Review and assign analysts now.
+          </Alert>
+        )}
+
+        {/* ── KPI Strip ───────────────────────────────────────────────────── */}
+        <Grid container spacing={1.5}>
+          {[
+            {
+              label: "Total IPD Orders",
+              value: ipdSamples.length,
+              subtitle: "All active inpatient orders",
+              tone: "primary" as const,
+              icon: <HospitalIcon sx={{ fontSize: 26 }} />,
+            },
+            {
+              label: "Pending Receipt",
+              value: pending,
+              subtitle: "Registered, not yet received",
+              tone: "warning" as const,
+              icon: <PendingIcon sx={{ fontSize: 26 }} />,
+            },
+            {
+              label: "In Progress",
+              value: inProgress,
+              subtitle: "Received / Assigned / Analysed",
+              tone: "info" as const,
+              icon: <ScienceIcon sx={{ fontSize: 26 }} />,
+            },
+            {
+              label: "Completed",
+              value: completed,
+              subtitle: "Verified or published",
+              tone: "success" as const,
+              icon: <CheckCircleIcon sx={{ fontSize: 26 }} />,
+            },
+          ].map((kpi) => (
+            <Grid key={kpi.label} item xs={6} sm={3}>
+              <StatTile
+                label={kpi.label}
+                value={kpi.value}
+                subtitle={kpi.subtitle}
+                tone={kpi.tone}
+                icon={kpi.icon}
+                variant="soft"
+              />
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* ── Header card + Tabs ──────────────────────────────────────────── */}
+        <WorkspaceHeaderCard>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            spacing={1.5}
+          >
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Box
+                sx={{
+                  bgcolor: alpha(theme.palette.error.main, 0.12),
+                  p: 1.25,
+                  borderRadius: 1.5,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <HospitalIcon sx={{ color: "error.main" }} />
+              </Box>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                  Sample Orders Queue
+                </Typography>
+              </Box>
+            </Stack>
+            <Stack direction="row" spacing={1}>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<FilterIcon />}
+              >
+                Filter
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+              >
+                Refresh
+              </Button>
+            </Stack>
+          </Stack>
+
+          {/* Tabs */}
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            sx={{
+              mt: 2,
+              borderBottom: 1,
+              borderColor: "divider",
+              "& .MuiTab-root": { fontSize: "0.8rem", fontWeight: 600 },
+            }}
+          >
+            {TABS.map((label, i) => (
+              <Tab
+                key={label}
+                label={
+                  <Stack direction="row" alignItems="center" spacing={0.75}>
+                    <span>{label}</span>
+                    {i === 1 && pending > 0 && (
+                      <Chip
+                        label={pending}
+                        size="small"
+                        color="error"
+                        sx={{
+                          height: 18,
+                          fontSize: "0.65rem",
+                          fontWeight: 700,
+                        }}
+                      />
+                    )}
+                    {i === 2 && inProgress > 0 && (
+                      <Chip
+                        label={inProgress}
+                        size="small"
+                        color="warning"
+                        sx={{
+                          height: 18,
+                          fontSize: "0.65rem",
+                          fontWeight: 700,
+                        }}
+                      />
+                    )}
+                  </Stack>
+                }
+              />
+            ))}
+          </Tabs>
+        </WorkspaceHeaderCard>
+
+        {/* ── Data Grid ───────────────────────────────────────────────────── */}
+        <Box>
+          <CommonDataGrid<LabSample>
+            rows={tabFiltered}
+            columns={columns}
+            getRowId={(row) => row.id}
+            onRowClick={(row) =>
+              router.push(`/lab/clients?sampleId=${row.id}&tab=entry`)
+            }
+            emptyTitle="No IPD orders match this filter."
+          />
+        </Box>
+
+        {/* ── Workflow legend ─────────────────────────────────────────────── */}
+        <Box sx={{ ...lab.cardSx, p: 2 }}>
+          <Typography
+            variant="overline"
+            sx={{ color: "primary.main", fontWeight: 600, letterSpacing: 1 }}
+          >
+            IPD → Lab Workflow
+          </Typography>
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            flexWrap="wrap"
+            sx={{ mt: 1.5 }}
+          >
+            {[
+              { label: "Doctor places order (IPD)", color: "#6366f1" },
+              { label: "→" },
+              { label: "Sample Registered", color: "#f59e0b" },
+              { label: "→" },
+              { label: "Sample Collected & Received", color: "#3b82f6" },
+              { label: "→" },
+              { label: "Assigned to Analyst", color: "#8b5cf6" },
+              { label: "→" },
+              { label: "Analysis Done", color: "#06b6d4" },
+              { label: "→" },
+              { label: "Verified", color: "#22c55e" },
+              { label: "→" },
+              { label: "Published to Doctor", color: "#10b981" },
+            ].map((step, i) =>
+              step.label === "→" ? (
+                <Typography key={i} variant="caption" color="text.secondary">
+                  →
+                </Typography>
+              ) : (
+                <Chip
+                  key={step.label}
+                  size="small"
+                  label={step.label}
+                  sx={{
+                    bgcolor: alpha(step.color!, 0.12),
+                    color: step.color,
+                    fontWeight: 600,
+                    fontSize: "0.7rem",
+                    border: `1px solid ${alpha(step.color!, 0.3)}`,
+                  }}
+                />
+              ),
+            )}
+          </Stack>
+        </Box>
+      </Stack>
+    </PageTemplate>
+  );
+}

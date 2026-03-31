@@ -34,6 +34,8 @@ export type SystemUserRole =
   | 'CARE_COORDINATOR'
   | 'INFECTION_CONTROL'
   | 'LAB_TECH'
+  | 'LAB_MANAGER'
+  | 'PATHOLOGIST'
   | 'RADIOLOGY_TECH'
   | 'PHARMACIST'
   | 'BILLING'

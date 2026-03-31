@@ -6,4 +6,5 @@ export const MOCK_LAB_CLIENTS: LabClient[] = [
   { id: 'CL-003', name: 'National Lab', type: 'Lab', contact: 'Dr. K. Mehta', email: 'lab@nationallab.com', phone: '+91-79-4444333', city: 'Ahmedabad', address: 'CG Road, Ahmedabad', active: true, credit: true, discount: 15, notes: '' },
   { id: 'CL-004', name: 'HealthCare Plus', type: 'Hospital', contact: 'Mr. V. Jain', email: 'hcp@healthcare.com', phone: '+91-22-5555444', city: 'Mumbai', address: 'Andheri, Mumbai', active: false, credit: false, discount: 0, notes: 'On hold' },
   { id: 'CL-005', name: 'Oncology Center', type: 'Specialist', contact: 'Dr. L. Bose', email: 'lab@oncocenter.com', phone: '+91-33-6666555', city: 'Kolkata', address: 'Park Street, Kolkata', active: true, credit: true, discount: 20, notes: '' },
+  { id: 'WARD-4A', name: 'IPD - Ward 4A (General)', type: 'WARD', contact: 'Sr. Mary', email: 'ward4a@hospital.com', phone: '+91-99999-66666', city: 'Mumbai', address: 'Floor 4, Wing A', active: true, credit: false, discount: 0, notes: '' },
 ];

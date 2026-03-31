@@ -64,6 +64,7 @@ import {
   Share as ShareIcon,
   Pending as PendingIcon,
   MenuBook as MenuBookIcon,
+  TrackChanges as TrackChangesIcon,
   AccountBalance,
   DashboardOutlined,
   AccountBalanceWalletOutlined,
@@ -72,6 +73,13 @@ import {
   Vaccines,
   VolunteerActivism,
   BurstMode,
+  ListAlt,
+  Analytics,
+  ContentCut as ContentCutIcon,
+  Calculate as CalculateIcon,
+  Build as BuildIcon,
+  FactCheck,
+  Publish,
 } from "@mui/icons-material";
 import { NAV_GROUPS } from "@/src/core/navigation/nav-config";
 import { MenuItem, UserRole } from "@/src/core/navigation/types";
@@ -144,6 +152,7 @@ const iconMap: Record<string, React.ComponentType> = {
   Share: ShareIcon,
   Pending: PendingIcon,
   MenuBook: MenuBookIcon,
+  TrackChanges: TrackChangesIcon,
   AccountBalance,
   DashboardOutlined,
   AccountBalanceWalletOutlined,
@@ -152,6 +161,13 @@ const iconMap: Record<string, React.ComponentType> = {
   Vaccines,
   VolunteerActivism,
   PACS: BurstMode,
+  ListAlt: ListAlt,
+  Analytics: Analytics,
+  Calculate: CalculateIcon,
+  Build: BuildIcon,
+  FactCheck: FactCheck,
+  Publish: Publish,
+  ContentCut: ContentCutIcon,
 };
 
 interface ModernSidebarProps {

@@ -32,6 +32,7 @@ export type CommonColumn<R> = {
   flex?: number;
   align?: "left" | "center" | "right";
   renderCell?: (row: R) => React.ReactNode;
+  renderHeader?: () => React.ReactNode;
   valueGetter?: (row: R) => string | number | null | undefined;
 };
 
@@ -279,7 +280,7 @@ export default function CommonDataGrid<R extends object>({
                         : {}
                   }
                 >
-                  {col.headerName}
+                  {col.renderHeader ? col.renderHeader() : col.headerName}
                 </TableCell>
               ))}
             </TableRow>
