@@ -833,18 +833,8 @@ export default function QCSamplesPage() {
         content={
           <Stack spacing={2.5} sx={{ mt: 1 }}>
             <Box>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 700,
-                  color: "text.secondary",
-                  mb: 0.5,
-                  display: "block",
-                }}
-              >
-                QC Material
-              </Typography>
               <TextField
+                label="QC Material*"
                 fullWidth
                 size="small"
                 placeholder="Seronorm Level 1"
@@ -853,18 +843,8 @@ export default function QCSamplesPage() {
             </Box>
 
             <Box>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 700,
-                  color: "text.secondary",
-                  mb: 0.5,
-                  display: "block",
-                }}
-              >
-                Instrument
-              </Typography>
               <TextField
+                label="Instrument*"
                 fullWidth
                 size="small"
                 placeholder="Cobas 6000"
@@ -873,18 +853,8 @@ export default function QCSamplesPage() {
             </Box>
 
             <Box>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 700,
-                  color: "text.secondary",
-                  mb: 0.5,
-                  display: "block",
-                }}
-              >
-                Analyses
-              </Typography>
               <TextField
+                label="Analyses*"
                 fullWidth
                 size="small"
                 placeholder="Glucose, HbA1c..."
@@ -893,18 +863,8 @@ export default function QCSamplesPage() {
             </Box>
 
             <Box>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 700,
-                  color: "text.secondary",
-                  mb: 0.5,
-                  display: "block",
-                }}
-              >
-                Westgard Rules to Apply
-              </Typography>
               <TextField
+                label="Westgard Rules to Apply*"
                 fullWidth
                 size="small"
                 placeholder="1₂ₛ + 1₃ₛ + 2₂ₛ + R₄ₛ"

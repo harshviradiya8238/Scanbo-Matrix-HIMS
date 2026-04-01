@@ -308,6 +308,22 @@ const limsSlice = createSlice({
         status: 'Received',
       });
     },
+    addTestToSample(state, action: PayloadAction<{ sampleId: string; testCode: string }>) {
+      const s = state.samples.find((x) => x.id === action.payload.sampleId);
+      if (s && !s.tests.includes(action.payload.testCode)) {
+        s.tests.push(action.payload.testCode);
+      }
+    },
+    removeTestFromSample(state, action: PayloadAction<{ sampleId: string; testCode: string }>) {
+      const s = state.samples.find((x) => x.id === action.payload.sampleId);
+      if (s) {
+        s.tests = s.tests.filter((t) => t !== action.payload.testCode);
+        // Also remove results for this test code
+        state.results = state.results.filter(
+          (r) => !(r.sampleId === action.payload.sampleId && r.test === action.payload.testCode)
+        );
+      }
+    },
   },
 });
 
@@ -335,6 +351,8 @@ export const {
   appendAudit,
   addPartition,
   autoVerifyNormalResults,
+  addTestToSample,
+  removeTestFromSample,
 } = limsSlice.actions;
 
 export default limsSlice.reducer;

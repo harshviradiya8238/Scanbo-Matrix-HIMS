@@ -421,18 +421,9 @@ export default function TestCatalogPage() {
           <Stack spacing={2.5} sx={{ mt: 1 }}>
             <Stack direction="row" spacing={2.5}>
               <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color: "text.secondary",
-                    mb: 0.5,
-                    display: "block",
-                  }}
-                >
-                  Keyword (unique) *
-                </Typography>
+                
                 <TextField
+                  label="Keyword*"
                   fullWidth
                   size="small"
                   placeholder="e.g. HGB"
@@ -440,18 +431,8 @@ export default function TestCatalogPage() {
                 />
               </Box>
               <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color: "text.secondary",
-                    mb: 0.5,
-                    display: "block",
-                  }}
-                >
-                  Full Name *
-                </Typography>
                 <TextField
+                  label="Full Name*"
                   fullWidth
                   size="small"
                   placeholder="e.g. Haemoglobin"
@@ -462,18 +443,8 @@ export default function TestCatalogPage() {
 
             <Stack direction="row" spacing={2.5}>
               <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color: "text.secondary",
-                    mb: 0.5,
-                    display: "block",
-                  }}
-                >
-                  Category
-                </Typography>
                 <TextField
+                  label="Category*"
                   fullWidth
                   size="small"
                   placeholder="Haematology"
@@ -481,18 +452,8 @@ export default function TestCatalogPage() {
                 />
               </Box>
               <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color: "text.secondary",
-                    mb: 0.5,
-                    display: "block",
-                  }}
-                >
-                  Unit
-                </Typography>
                 <TextField
+                  label="Unit*"
                   fullWidth
                   size="small"
                   placeholder="e.g. g/dL"
@@ -503,18 +464,9 @@ export default function TestCatalogPage() {
 
             <Stack direction="row" spacing={2.5}>
               <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color: "text.secondary",
-                    mb: 0.5,
-                    display: "block",
-                  }}
-                >
-                  Normal Range (Male)
-                </Typography>
+              
                 <TextField
+                  label="Normal Range (Male)"
                   fullWidth
                   size="small"
                   placeholder="13.0–17.0"
@@ -522,18 +474,9 @@ export default function TestCatalogPage() {
                 />
               </Box>
               <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color: "text.secondary",
-                    mb: 0.5,
-                    display: "block",
-                  }}
-                >
-                  Normal Range (Female)
-                </Typography>
+               
                 <TextField
+                  label="Normal Range (Female)"
                   fullWidth
                   size="small"
                   placeholder="12.0–16.0"
@@ -544,18 +487,9 @@ export default function TestCatalogPage() {
 
             <Stack direction="row" spacing={2.5}>
               <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color: "text.secondary",
-                    mb: 0.5,
-                    display: "block",
-                  }}
-                >
-                  Critical Low
-                </Typography>
+               
                 <TextField
+                  label="Critical Low*"
                   fullWidth
                   size="small"
                   placeholder="e.g. 7.0"
@@ -563,18 +497,9 @@ export default function TestCatalogPage() {
                 />
               </Box>
               <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color: "text.secondary",
-                    mb: 0.5,
-                    display: "block",
-                  }}
-                >
-                  Critical High
-                </Typography>
+              
                 <TextField
+                  label="Critical High*"
                   fullWidth
                   size="small"
                   placeholder="e.g. 20.0"

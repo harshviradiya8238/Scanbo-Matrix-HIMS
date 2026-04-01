@@ -21,7 +21,11 @@ import {
   Search as SearchIcon,
   Science as ScienceIcon,
   AssignmentInd as UserIcon,
+  Assignment as AssignmentIcon,
+  Rule as RuleIcon,
+  Info as InfoIcon,
 } from "@mui/icons-material";
+import StatTile from "@/src/ui/components/molecules/StatTile";
 import PageTemplate from "@/src/ui/components/PageTemplate";
 import WorkspaceHeaderCard from "@/src/ui/components/molecules/WorkspaceHeaderCard";
 import CommonDataGrid, {
@@ -224,70 +228,71 @@ export default function LabPartitionsPage() {
                 </Typography>
               </Box>
             </Box>
-
-            <Stack direction="row" spacing={3}>
-              {(selectedSample
-                ? [
-                    {
-                      label: "Tests",
-                      value: selectedSample.tests.length.toString(),
-                      color: theme.palette.primary.main,
-                    },
-                    {
-                      label: "Partitions",
-                      value: filteredPartitions.length.toString(),
-                      color: theme.palette.info.main,
-                    },
-                    {
-                      label: "Status",
-                      value: selectedSample.status,
-                      color: theme.palette.success.main,
-                    },
-                  ]
-                : [
-                    {
-                      label: "Total Partitions",
-                      value: partitions.length.toString(),
-                      color: theme.palette.primary.main,
-                    },
-                    {
-                      label: "In Analysis",
-                      value: partitions
-                        .filter((p) => p.status === "In Analysis")
-                        .length.toString(),
-                      color: theme.palette.warning.main,
-                    },
-                    {
-                      label: "To Verify",
-                      value: partitions
-                        .filter((p) => p.status === "To be Verified")
-                        .length.toString(),
-                      color: theme.palette.secondary.main,
-                    },
-                  ]
-              ).map((stat) => (
-                <Box key={stat.label} sx={{ textAlign: "right" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "text.secondary",
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {stat.label}
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    sx={{ fontWeight: 800, color: stat.color, lineHeight: 1 }}
-                  >
-                    {stat.value}
-                  </Typography>
-                </Box>
-              ))}
-            </Stack>
           </Stack>
         </WorkspaceHeaderCard>
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+            gap: 2.5,
+          }}
+        >
+          {(selectedSample
+            ? [
+                {
+                  label: "Total Tests",
+                  value: selectedSample.tests.length.toString(),
+                  tone: "primary" as const,
+                  icon: <AssignmentIcon />,
+                },
+                {
+                  label: "Current Partitions",
+                  value: filteredPartitions.length.toString(),
+                  tone: "info" as const,
+                  icon: <ContentCutIcon />,
+                },
+                {
+                  label: "Current Status",
+                  value: selectedSample.status,
+                  tone: "success" as const,
+                  icon: <InfoIcon />,
+                },
+              ]
+            : [
+                {
+                  label: "Total Partitions",
+                  value: partitions.length.toString(),
+                  tone: "primary" as const,
+                  icon: <ContentCutIcon />,
+                },
+                {
+                  label: "In Analysis",
+                  value: partitions
+                    .filter((p) => p.status === "In Analysis")
+                    .length.toString(),
+                  tone: "warning" as const,
+                  icon: <ScienceIcon />,
+                },
+                {
+                  label: "To Verify",
+                  value: partitions
+                    .filter((p) => p.status === "To be Verified")
+                    .length.toString(),
+                  tone: "secondary" as const,
+                  icon: <RuleIcon />,
+                },
+              ]
+          ).map((stat) => (
+            <StatTile
+              key={stat.label}
+              label={stat.label}
+              value={stat.value}
+              tone={stat.tone}
+              icon={stat.icon}
+            />
+          ))}
+        </Box>
 
         <Box sx={{ ...lab.cardSx }}>
           <CommonDataGrid

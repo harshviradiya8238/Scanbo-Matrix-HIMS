@@ -459,19 +459,9 @@ export default function LabInstrumentsPage() {
         content={
           <Stack spacing={2.5} sx={{ mt: 1 }}>
             <Box>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 700,
-                  color: "text.secondary",
-                  mb: 0.5,
-                  display: "block",
-                }}
-              >
-                Instrument Name
-              </Typography>
               <TextField
                 fullWidth
+                label="Instrument Name"
                 size="small"
                 placeholder="e.g. Roche Cobas 6000"
                 sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
@@ -480,37 +470,17 @@ export default function LabInstrumentsPage() {
 
             <Stack direction="row" spacing={2}>
               <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color: "text.secondary",
-                    mb: 0.5,
-                    display: "block",
-                  }}
-                >
-                  Type
-                </Typography>
                 <TextField
                   fullWidth
+                  label="Type"
                   size="small"
                   placeholder="Haematology Analyser"
                   sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
                 />
               </Box>
               <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color: "text.secondary",
-                    mb: 0.5,
-                    display: "block",
-                  }}
-                >
-                  Interface Protocol
-                </Typography>
                 <TextField
+                  label="Interface Protocol"
                   fullWidth
                   size="small"
                   placeholder="ASTM"
@@ -520,19 +490,9 @@ export default function LabInstrumentsPage() {
             </Stack>
 
             <Box>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 700,
-                  color: "text.secondary",
-                  mb: 0.5,
-                  display: "block",
-                }}
-              >
-                Department
-              </Typography>
               <TextField
                 fullWidth
+                label="Department"
                 size="small"
                 placeholder="Haematology"
                 sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}

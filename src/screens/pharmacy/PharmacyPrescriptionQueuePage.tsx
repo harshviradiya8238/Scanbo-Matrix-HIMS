@@ -16,10 +16,11 @@ import {
   Grid,
   Paper,
   TextField,
-  MenuItem,
-  Select,
+  // MenuItem,
+  // Select,
   InputAdornment,
   Badge,
+  MenuItem,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -47,6 +48,7 @@ import {
 } from "@mui/icons-material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { StatTile } from "@/src/ui/components/molecules";
+import { Select } from "@/src/ui/components";
 
 // ── TYPES ──────────────────────────────────────────────────────────
 type Medication = {

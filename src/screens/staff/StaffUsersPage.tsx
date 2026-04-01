@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import * as React from "react";
+import PageTemplate from "@/src/ui/components/PageTemplate";
 import {
   Alert,
   Avatar,
@@ -10,15 +10,15 @@ import {
   Chip,
   Divider,
   IconButton,
+  InputAdornment,
   MenuItem,
   Snackbar,
   Stack,
-  TextField,
   Tooltip,
   Typography,
-} from '@/src/ui/components/atoms';
-import { Card, CardHeader, CommonDialog, StatTile } from '@/src/ui/components/molecules';
-import { alpha, useTheme } from '@/src/ui/theme';
+  Paper,
+} from "@mui/material";
+import { alpha, useTheme, styled } from "@mui/material/styles";
 import {
   Add as AddIcon,
   CheckCircle as CheckCircleIcon,
@@ -26,44 +26,154 @@ import {
   Edit as EditIcon,
   PauseCircle as PauseCircleIcon,
   Person as PersonIcon,
-} from '@mui/icons-material';
-import { useStaffStore, StaffUserStatus } from '@/src/core/staff/staffStore';
-import { usePermission } from '@/src/core/auth/usePermission';
+  Search as SearchIcon,
+  Shield as ShieldIcon,
+  Groups as GroupsIcon,
+  Lock as LockIcon,
+  VerifiedUser as VerifiedUserIcon,
+  MailOutline as MailOutlineIcon,
+  Phone as PhoneIcon,
+  BadgeOutlined as BadgeOutlinedIcon,
+  BusinessCenter as BusinessCenterIcon,
+  AccessTime as AccessTimeIcon,
+  Close as CloseIcon,
+  CheckCircleOutlined,
+} from "@mui/icons-material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
+import { useStaffStore, StaffUserStatus } from "@/src/core/staff/staffStore";
+import { usePermission } from "@/src/core/auth/usePermission";
+import { TextField } from "@/src/ui/components";
+import { WorkspaceHeaderCard, StatTile } from "@/src/ui/components/molecules";
+import { cardShadow } from "@/src/core/theme/tokens";
+import { Grid } from "@/src/ui/components/layout";
 
+const Card = styled(Paper)({
+  backgroundColor: "#FFFFFF",
+  border: "1px solid #E3EAF3",
+  borderRadius: 12,
+  boxShadow: cardShadow,
+  overflow: "hidden",
+});
+
+const SectionTag = styled(Typography)({
+  fontSize: "0.68rem",
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#9BAAC3",
+  marginBottom: 3,
+});
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 const PERMISSION_GROUPS = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'patients', label: 'Patients' },
-  { id: 'appointments', label: 'Appointments' },
-  { id: 'clinical', label: 'Clinical' },
-  { id: 'ipd', label: 'Inpatient' },
-  { id: 'orders', label: 'Orders' },
-  { id: 'diagnostics', label: 'Diagnostics' },
-  { id: 'pharmacy', label: 'Pharmacy' },
-  { id: 'billing', label: 'Billing' },
-  { id: 'inventory', label: 'Inventory' },
-  { id: 'reports', label: 'Reports' },
-  { id: 'admin', label: 'Admin' },
-  { id: 'staff', label: 'Staff' },
-  { id: 'help', label: 'Help' },
+  { id: "dashboard", label: "Dashboard" },
+  { id: "patients", label: "Patients" },
+  { id: "appointments", label: "Appointments" },
+  { id: "clinical", label: "Clinical" },
+  { id: "ipd", label: "Inpatient" },
+  { id: "orders", label: "Orders" },
+  { id: "diagnostics", label: "Diagnostics" },
+  { id: "pharmacy", label: "Pharmacy" },
+  { id: "billing", label: "Billing" },
+  { id: "inventory", label: "Inventory" },
+  { id: "reports", label: "Reports" },
+  { id: "admin", label: "Admin" },
+  { id: "staff", label: "Staff" },
+  { id: "help", label: "Help" },
 ];
 
-const statusTone: Record<StaffUserStatus, { label: string; color: 'success' | 'warning' | 'default' }>
-  = {
-    active: { label: 'Active', color: 'success' },
-    invited: { label: 'Invited', color: 'warning' },
-    suspended: { label: 'Suspended', color: 'default' },
-  };
+const STATUS_STYLE: Record<
+  StaffUserStatus,
+  {
+    label: string;
+    color: string;
+    bg: string;
+    chipColor: "success" | "warning" | "default";
+  }
+> = {
+  active: {
+    label: "Active",
+    color: "#16A34A",
+    bg: "#DCFCE7",
+    chipColor: "success",
+  },
+  invited: {
+    label: "Invited",
+    color: "#D97706",
+    bg: "#FEF3C7",
+    chipColor: "warning",
+  },
+  suspended: {
+    label: "Suspended",
+    color: "#6B7A99",
+    bg: "#F1F5FB",
+    chipColor: "default",
+  },
+};
+
+const AVATAR_COLORS = [
+  "#1172BA",
+  // "#8B5CF6",
+  // "#10B981",
+  // "#F59E0B",
+  // "#EF4444",
+  // "#EC4899",
+  // "#06B6D4",
+];
 
 const getInitials = (name: string) =>
   name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
     .slice(0, 2)
     .toUpperCase();
 
+const getAvatarColor = (name: string) =>
+  AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <Stack direction="row" spacing={1.5} alignItems="flex-start">
+      <Box sx={{ mt: 0.2, color: "text.secondary", flexShrink: 0 }}>{icon}</Box>
+      <Box>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            fontSize: 10,
+          }}
+        >
+          {label}
+        </Typography>
+        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          {value || "—"}
+        </Typography>
+      </Box>
+    </Stack>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function StaffUsersPage() {
-  const theme = useTheme();
   const {
     roles,
     roleMap,
@@ -73,74 +183,83 @@ export default function StaffUsersPage() {
     deleteUser,
     setUserStatus,
   } = useStaffStore();
+  const theme = useTheme();
   const permissionGate = usePermission();
-  const canManageUsers = permissionGate(['staff.users.write', 'staff.users.manage']);
+  const canManageUsers = permissionGate([
+    "staff.users.write",
+    "staff.users.manage",
+  ]);
 
-  const [selectedUserId, setSelectedUserId] = React.useState<string>(users[0]?.id ?? '');
-  const [userSearch, setUserSearch] = React.useState('');
-  const [roleFilter, setRoleFilter] = React.useState<string>('all');
-  const [statusFilter, setStatusFilter] = React.useState<'all' | StaffUserStatus>('all');
+  const [selectedUserId, setSelectedUserId] = React.useState<string>(
+    users[0]?.id ?? "",
+  );
+  const [userSearch, setUserSearch] = React.useState("");
+  const [roleFilter, setRoleFilter] = React.useState<string>("all");
+  const [statusFilter, setStatusFilter] = React.useState<
+    "all" | StaffUserStatus
+  >("all");
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingUserId, setEditingUserId] = React.useState<string | null>(null);
-  const [userDraft, setUserDraft] = React.useState({
-    name: '',
-    email: '',
-    phone: '',
-    roleId: roles[0]?.id ?? 'HOSPITAL_ADMIN',
-    department: '',
-    title: '',
-    status: 'invited' as StaffUserStatus,
-  });
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [userDraft, setUserDraft] = React.useState({
+    name: "",
+    email: "",
+    phone: "",
+    roleId: roles[0]?.id ?? "HOSPITAL_ADMIN",
+    department: "",
+    title: "",
+    status: "invited" as StaffUserStatus,
+  });
   const [snackbar, setSnackbar] = React.useState({
     open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error' | 'info',
+    message: "",
+    severity: "success" as "success" | "error" | "info",
   });
 
   React.useEffect(() => {
-    if (!selectedUserId && users.length > 0) {
-      setSelectedUserId(users[0].id);
-    }
+    if (!selectedUserId && users.length > 0) setSelectedUserId(users[0].id);
   }, [users, selectedUserId]);
 
   const selectedUser = React.useMemo(
-    () => users.find((user) => user.id === selectedUserId) ?? users[0],
-    [users, selectedUserId]
+    () => users.find((u) => u.id === selectedUserId) ?? users[0],
+    [users, selectedUserId],
   );
 
-  const filteredUsers = React.useMemo(() => {
-    return users.filter((user) => {
-      const query = userSearch.toLowerCase();
-      const matchesSearch =
-        user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query);
-      const matchesRole = roleFilter === 'all' || user.roleId === roleFilter;
-      const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  }, [users, userSearch, roleFilter, statusFilter]);
+  const filteredUsers = React.useMemo(
+    () =>
+      users.filter((u) => {
+        const q = userSearch.toLowerCase();
+        return (
+          (u.name.toLowerCase().includes(q) ||
+            u.email.toLowerCase().includes(q)) &&
+          (roleFilter === "all" || u.roleId === roleFilter) &&
+          (statusFilter === "all" || u.status === statusFilter)
+        );
+      }),
+    [users, userSearch, roleFilter, statusFilter],
+  );
 
-  const statusCounts = React.useMemo(() => {
-    return users.reduce(
-      (acc, user) => {
-        acc[user.status] += 1;
-        return acc;
-      },
-      { active: 0, invited: 0, suspended: 0 }
-    );
-  }, [users]);
+  const statusCounts = React.useMemo(
+    () =>
+      users.reduce(
+        (acc, u) => {
+          acc[u.status] += 1;
+          return acc;
+        },
+        { active: 0, invited: 0, suspended: 0 },
+      ),
+    [users],
+  );
 
   const accessGroups = React.useMemo(() => {
     if (!selectedUser) return [];
-    const rolePermissions = roleMap.get(selectedUser.roleId)?.permissions ?? [];
-    if (rolePermissions.includes('*')) return ['Full Platform Access'];
-    const groupLabels = new Map(PERMISSION_GROUPS.map((group) => [group.id, group.label]));
+    const perms = roleMap.get(selectedUser.roleId)?.permissions ?? [];
+    if (perms.includes("*")) return ["Full Platform Access"];
+    const groupLabels = new Map(PERMISSION_GROUPS.map((g) => [g.id, g.label]));
     const groups = new Set<string>();
-    rolePermissions.forEach((perm) => {
-      const [groupId] = perm.split('.');
-      if (groupId) {
-        groups.add(groupLabels.get(groupId) ?? groupId.toUpperCase());
-      }
+    perms.forEach((p) => {
+      const [g] = p.split(".");
+      if (g) groups.add(groupLabels.get(g) ?? g.toUpperCase());
     });
     return Array.from(groups).slice(0, 10);
   }, [selectedUser, roleMap]);
@@ -148,13 +267,13 @@ export default function StaffUsersPage() {
   const handleOpenCreate = () => {
     setEditingUserId(null);
     setUserDraft({
-      name: '',
-      email: '',
-      phone: '',
-      roleId: roles[0]?.id ?? 'HOSPITAL_ADMIN',
-      department: '',
-      title: '',
-      status: 'invited',
+      name: "",
+      email: "",
+      phone: "",
+      roleId: roles[0]?.id ?? "HOSPITAL_ADMIN",
+      department: "",
+      title: "",
+      status: "invited",
     });
     setDialogOpen(true);
   };
@@ -165,10 +284,10 @@ export default function StaffUsersPage() {
     setUserDraft({
       name: selectedUser.name,
       email: selectedUser.email,
-      phone: selectedUser.phone ?? '',
+      phone: selectedUser.phone ?? "",
       roleId: selectedUser.roleId,
-      department: selectedUser.department ?? '',
-      title: selectedUser.title ?? '',
+      department: selectedUser.department ?? "",
+      title: selectedUser.title ?? "",
       status: selectedUser.status,
     });
     setDialogOpen(true);
@@ -176,42 +295,59 @@ export default function StaffUsersPage() {
 
   const handleSaveUser = () => {
     if (!userDraft.name.trim() || !userDraft.email.trim()) {
-      setSnackbar({ open: true, message: 'Name and email are required.', severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: "Name and email are required.",
+        severity: "error",
+      });
       return;
     }
-
     if (editingUserId) {
       updateUser(editingUserId, { ...userDraft });
-      setSnackbar({ open: true, message: 'User updated.', severity: 'success' });
-      setDialogOpen(false);
-      return;
+      setSnackbar({
+        open: true,
+        message: "User updated.",
+        severity: "success",
+      });
+    } else {
+      const newId = addUser({ ...userDraft });
+      if (newId) {
+        setSelectedUserId(newId);
+        setSnackbar({
+          open: true,
+          message: "User invited successfully.",
+          severity: "success",
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: "Unable to create user.",
+          severity: "error",
+        });
+        return;
+      }
     }
-
-    const newUserId = addUser({ ...userDraft });
-    if (newUserId) {
-      setSelectedUserId(newUserId);
-      setSnackbar({ open: true, message: 'User invited successfully.', severity: 'success' });
-      setDialogOpen(false);
-      return;
-    }
-
-    setSnackbar({ open: true, message: 'Unable to create user.', severity: 'error' });
+    setDialogOpen(false);
   };
 
   const handleToggleStatus = () => {
     if (!selectedUser) return;
-    const nextStatus: StaffUserStatus =
-      selectedUser.status === 'suspended' ? 'active' : selectedUser.status === 'invited' ? 'active' : 'suspended';
-    setUserStatus(selectedUser.id, nextStatus);
+    const next: StaffUserStatus =
+      selectedUser.status === "suspended"
+        ? "active"
+        : selectedUser.status === "invited"
+          ? "active"
+          : "suspended";
+    setUserStatus(selectedUser.id, next);
     setSnackbar({
       open: true,
       message:
-        nextStatus === 'active' && selectedUser.status === 'invited'
-          ? 'User activated.'
-          : nextStatus === 'active'
-          ? 'User re-activated.'
-          : 'User suspended.',
-      severity: 'info',
+        next === "active"
+          ? selectedUser.status === "invited"
+            ? "User activated."
+            : "User re-activated."
+          : "User suspended.",
+      severity: "info",
     });
   };
 
@@ -219,9 +355,12 @@ export default function StaffUsersPage() {
     if (!selectedUser) return;
     deleteUser(selectedUser.id);
     setDeleteDialogOpen(false);
-    setSelectedUserId('');
-    setSnackbar({ open: true, message: 'User removed.', severity: 'info' });
+    setSelectedUserId("");
+    setSnackbar({ open: true, message: "User removed.", severity: "info" });
   };
+
+  const draft = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setUserDraft((prev) => ({ ...prev, [key]: e.target.value }));
 
   return (
     <PageTemplate
@@ -230,398 +369,812 @@ export default function StaffUsersPage() {
       currentPageTitle="User Management"
     >
       <Stack spacing={2.5}>
-        <Card
-          elevation={0}
-          sx={{
-            p: 2.5,
-            borderRadius: 3,
-            border: '1px solid',
-            borderColor: alpha(theme.palette.info.main, 0.2),
-            background: `linear-gradient(135deg, ${alpha(theme.palette.info.light, 0.18)}, ${alpha(
-              theme.palette.info.main,
-              0.08
-            )})`,
-          }}
-        >
-          <Stack spacing={1.5}>
-            <Stack direction="row" spacing={1} flexWrap="wrap">
-              <Chip size="small" label="Staff Directory" color="info" />
-              <Chip size="small" variant="outlined" label={`${users.length} users`} />
-              {!canManageUsers ? (
-                <Chip size="small" variant="outlined" color="warning" label="Read-only" />
-              ) : null}
+        {/* ── Header ── */}
+        <WorkspaceHeaderCard>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            justifyContent="space-between"
+            alignItems={{ md: "center" }}
+            spacing={2}
+          >
+            <Stack spacing={1.5}>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Chip
+                  size="small"
+                  label="Staff Directory"
+                  sx={{
+                    bgcolor: alpha(theme.palette.primary.main, 0.12),
+                    color: "primary.main",
+                    fontWeight: 700,
+                  }}
+                />
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={`${users.length} users`}
+                  sx={{
+                    borderColor: alpha(theme.palette.primary.main, 0.3),
+                  }}
+                />
+                {!canManageUsers && (
+                  <Chip
+                    size="small"
+                    label="Read-only"
+                    sx={{
+                      bgcolor: alpha(theme.palette.warning.main, 0.12),
+                      color: "warning.dark",
+                      fontWeight: 700,
+                    }}
+                  />
+                )}
+              </Stack>
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 800, color: "primary.main" }}
+              >
+                Staff Access &amp; User Directory
+              </Typography>
             </Stack>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>
-              Staff Access &amp; User Directory
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Centralize onboarding, track role assignments, and monitor staff account status in one place.
-            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreate}
+              disabled={!canManageUsers}
+              sx={{
+                px: 3,
+                py: 1.25,
+                fontWeight: 700,
+                fontSize: 14,
+                boxShadow: cardShadow,
+                whiteSpace: "nowrap",
+              }}
+            >
+              Invite User
+            </Button>
           </Stack>
-        </Card>
+        </WorkspaceHeaderCard>
 
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
+        {/* ── Stat Cards ── */}
+        <Grid container spacing={2}>
+          <Grid xs={12} md={4}>
             <StatTile
-              label="Active users"
+              label="Active Users"
               value={statusCounts.active}
               subtitle="Currently enabled"
+              icon={<CheckCircleIcon />}
               tone="success"
-              icon={<CheckCircleIcon fontSize="small" />}
             />
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
+          </Grid>
+          <Grid xs={12} md={4}>
+            {" "}
             <StatTile
-              label="Pending invites"
+              label="Pending Invites"
               value={statusCounts.invited}
               subtitle="Awaiting activation"
+              icon={<MailOutlineIcon />}
               tone="warning"
-              icon={<PersonIcon fontSize="small" />}
             />
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
+          </Grid>
+          <Grid xs={12} md={4}>
             <StatTile
               label="Suspended"
               value={statusCounts.suspended}
               subtitle="Access disabled"
-              tone="secondary"
-              icon={<PauseCircleIcon fontSize="small" />}
+              icon={<PauseCircleIcon />}
+              tone="info"
             />
-          </Box>
-        </Stack>
+          </Grid>
+        </Grid>
 
+        {/* ── Main Grid ── */}
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '7fr 5fr' },
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "7fr 5fr" },
             gap: 2,
           }}
         >
-          <Box>
-            <Card elevation={0} sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider' }}>
-              <CardHeader
-                title="User List"
-                subtitle="Filter and search staff members"
-                action={
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={handleOpenCreate}
-                    disabled={!canManageUsers}
-                  >
-                    Invite User
-                  </Button>
-                }
-              />
-              <Box sx={{ px: 2, pt: 1.5, pb: 2 }}>
-                <Stack spacing={1.5}>
-                  <TextField
-                    size="small"
-                    placeholder="Search by name or email"
-                    value={userSearch}
-                    onChange={(event) => setUserSearch(event.target.value)}
-                  />
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                    <TextField
-                      select
-                      size="small"
-                      label="Role"
-                      value={roleFilter}
-                      onChange={(event) => setRoleFilter(event.target.value)}
-                      sx={{ flex: 1 }}
-                    >
-                      <MenuItem value="all">All roles</MenuItem>
-                      {roles.map((role) => (
-                        <MenuItem key={role.id} value={role.id}>
-                          {role.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      select
-                      size="small"
-                      label="Status"
-                      value={statusFilter}
-                      onChange={(event) => setStatusFilter(event.target.value as 'all' | StaffUserStatus)}
-                      sx={{ flex: 1 }}
-                    >
-                      <MenuItem value="all">All statuses</MenuItem>
-                      <MenuItem value="active">Active</MenuItem>
-                      <MenuItem value="invited">Invited</MenuItem>
-                      <MenuItem value="suspended">Suspended</MenuItem>
-                    </TextField>
-                  </Stack>
-                </Stack>
-
-                <Stack spacing={1.5} sx={{ mt: 2 }}>
-                  {filteredUsers.map((user) => {
-                    const roleLabel = roleMap.get(user.roleId)?.label ?? user.roleId;
-                    const statusInfo = statusTone[user.status];
-                    const isSelected = user.id === selectedUser?.id;
-
-                    return (
-                      <Box
-                        key={user.id}
-                        onClick={() => setSelectedUserId(user.id)}
-                        sx={{
-                          borderRadius: 2,
-                          border: '1px solid',
-                          borderColor: isSelected ? 'primary.main' : 'divider',
-                          p: 1.5,
-                          cursor: 'pointer',
-                          backgroundColor: isSelected ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-                        }}
-                      >
-                        <Stack direction="row" spacing={1.5} alignItems="center">
-                          <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.18), color: 'primary.main' }}>
-                            {getInitials(user.name)}
-                          </Avatar>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                              {user.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {user.email}
-                            </Typography>
-                            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 0.75 }}>
-                              <Chip size="small" label={roleLabel} variant="outlined" />
-                              <Chip size="small" label={statusInfo.label} color={statusInfo.color} />
-                            </Stack>
-                          </Box>
-                        </Stack>
-                      </Box>
-                    );
-                  })}
-                  {filteredUsers.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">
-                      No users found. Try adjusting filters.
-                    </Typography>
-                  ) : null}
-                </Stack>
-              </Box>
-            </Card>
-          </Box>
-
-          <Box>
-            <Stack spacing={2}>
-              <Card elevation={0} sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider' }}>
-                <CardHeader
-                  title={selectedUser?.name ?? 'User Profile'}
-                  subtitle={selectedUser?.email ?? 'Select a user to view details'}
-                  action={
-                    <Stack direction="row" spacing={1}>
-                      <Tooltip title="Edit user">
-                        <span>
-                          <IconButton size="small" onClick={handleOpenEdit} disabled={!selectedUser || !canManageUsers}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                      <Tooltip title="Delete user">
-                        <span>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => setDeleteDialogOpen(true)}
-                            disabled={!selectedUser || !canManageUsers}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    </Stack>
-                  }
+          {/* Left: User List */}
+          <Card>
+            {/* List header */}
+            <Box
+              sx={{
+                px: 2.5,
+                py: 2,
+                borderBottom: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+                sx={{ mb: 1.5 }}
+              >
+                <Box>
+                  <SectionTag>User List</SectionTag>
+                  <Typography variant="caption" color="text.secondary">
+                    Filter and search staff members
+                  </Typography>
+                </Box>
+                <Chip
+                  label={`${filteredUsers.length} shown`}
+                  size="small"
+                  sx={{
+                    bgcolor: alpha("#3B6FE8", 0.08),
+                    color: "primary.main",
+                    fontWeight: 600,
+                  }}
                 />
-                <Box sx={{ px: 2, pt: 1.5, pb: 2 }}>
-                  {selectedUser ? (
-                    <Stack spacing={1.5}>
+              </Stack>
+
+              {/* Filters */}
+              <Stack spacing={1.25}>
+                <TextField
+                  fullWidth
+                  placeholder="Search by name or email..."
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon
+                          sx={{ fontSize: 18, color: "text.secondary" }}
+                        />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
+                  <TextField
+                    select
+                    label="Role"
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                    sx={{ flex: 1 }}
+                  >
+                    <MenuItem value="all">All roles</MenuItem>
+                    {roles.map((r) => (
+                      <MenuItem key={r.id} value={r.id}>
+                        {r.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    select
+                    label="Status"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    sx={{ flex: 1 }}
+                  >
+                    <MenuItem value="all">All statuses</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="invited">Invited</MenuItem>
+                    <MenuItem value="suspended">Suspended</MenuItem>
+                  </TextField>
+                </Stack>
+              </Stack>
+            </Box>
+
+            {/* User rows */}
+            <Box sx={{ p: 2, maxHeight: 520, overflowY: "auto" }}>
+              <Stack spacing={1.25}>
+                {filteredUsers.map((user) => {
+                  const roleLabel =
+                    roleMap.get(user.roleId)?.label ?? user.roleId;
+                  const s = STATUS_STYLE[user.status];
+                  const isSelected = user.id === selectedUser?.id;
+                  const avatarColor = getAvatarColor(user.name);
+                  return (
+                    <Box
+                      key={user.id}
+                      onClick={() => setSelectedUserId(user.id)}
+                      sx={{
+                        borderRadius: 2.5,
+                        p: 1.75,
+                        cursor: "pointer",
+                        border: "1.5px solid",
+                        borderColor: isSelected ? "primary.main" : "divider",
+                        bgcolor: isSelected
+                          ? alpha("#3B6FE8", 0.05)
+                          : "background.paper",
+                        transition: "all 0.15s ease",
+                        "&:hover": {
+                          borderColor: isSelected
+                            ? "primary.main"
+                            : alpha("#3B6FE8", 0.35),
+                          bgcolor: isSelected
+                            ? alpha("#3B6FE8", 0.05)
+                            : alpha("#3B6FE8", 0.025),
+                        },
+                      }}
+                    >
                       <Stack direction="row" spacing={1.5} alignItems="center">
                         <Avatar
                           sx={{
-                            bgcolor: alpha(theme.palette.info.main, 0.18),
-                            color: theme.palette.info.main,
-                            width: 56,
-                            height: 56,
+                            width: 40,
+                            height: 40,
+                            bgcolor: isSelected
+                              ? avatarColor
+                              : alpha(avatarColor, 0.15),
+                            color: isSelected ? "#fff" : avatarColor,
+                            fontWeight: 700,
+                            fontSize: 14,
                           }}
                         >
-                          {getInitials(selectedUser.name)}
+                          {getInitials(user.name)}
                         </Avatar>
-                        <Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                            {selectedUser.name}
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="center"
+                          >
+                            <Typography
+                              variant="subtitle2"
+                              noWrap
+                              sx={{ fontWeight: 700 }}
+                            >
+                              {user.name}
+                            </Typography>
+                            <Chip
+                              size="small"
+                              label={s.label}
+                              sx={{
+                                height: 22,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                bgcolor: s.bg,
+                                color: s.color,
+                                ml: 1,
+                              }}
+                            />
+                          </Stack>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            noWrap
+                          >
+                            {user.email}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {selectedUser.title || 'No title provided'}
-                          </Typography>
+                          <Stack
+                            direction="row"
+                            spacing={0.75}
+                            flexWrap="wrap"
+                            sx={{ mt: 0.75 }}
+                          >
+                            <Chip
+                              size="small"
+                              label={roleLabel}
+                              variant="outlined"
+                              sx={{
+                                height: 20,
+                                fontSize: 11,
+                                borderColor: "divider",
+                              }}
+                            />
+                            {user.department ? (
+                              <Chip
+                                size="small"
+                                label={user.department}
+                                sx={{
+                                  height: 20,
+                                  fontSize: 11,
+                                  bgcolor: "background.default",
+                                }}
+                              />
+                            ) : null}
+                          </Stack>
                         </Box>
                       </Stack>
+                    </Box>
+                  );
+                })}
+                {filteredUsers.length === 0 && (
+                  <Box sx={{ py: 5, textAlign: "center" }}>
+                    <GroupsIcon
+                      sx={{
+                        fontSize: 40,
+                        color: "text.secondary",
+                        mb: 1,
+                        opacity: 0.4,
+                      }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      No users found. Try adjusting filters.
+                    </Typography>
+                  </Box>
+                )}
+              </Stack>
+            </Box>
+          </Card>
 
-                      <Divider />
+          {/* Right: Profile + Access */}
+          <Stack spacing={2}>
+            {/* User Profile Card */}
+            <Card>
+              {/* Profile header bar */}
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 2,
+                  // background: selectedUser
+                  //   ? `linear-gradient(135deg, ${alpha(getAvatarColor(selectedUser.name), 0.12)}, ${alpha(getAvatarColor(selectedUser.name), 0.04)})`
+                  //   : "background.default",
+                  borderBottom: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <SectionTag>User Profile</SectionTag>
+                  <Stack direction="row" spacing={0.75}>
+                    <Tooltip title="Edit user">
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={handleOpenEdit}
+                          disabled={!selectedUser || !canManageUsers}
+                          sx={{
+                            bgcolor: alpha("#3B6FE8", 0.08),
+                            "&:hover": { bgcolor: alpha("#3B6FE8", 0.15) },
+                          }}
+                        >
+                          <EditIcon
+                            fontSize="small"
+                            sx={{ color: "primary.main" }}
+                          />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Tooltip title="Delete user">
+                      <span>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => setDeleteDialogOpen(true)}
+                          disabled={!selectedUser || !canManageUsers}
+                          sx={{
+                            bgcolor: alpha("#EF4444", 0.08),
+                            "&:hover": { bgcolor: alpha("#EF4444", 0.15) },
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </Stack>
+                </Stack>
+              </Box>
 
-                      <Stack spacing={1}>
-                        <Typography variant="caption" color="text.secondary">
-                          Contact
-                        </Typography>
-                        <Typography variant="body2">{selectedUser.email}</Typography>
-                        <Typography variant="body2">{selectedUser.phone || 'No phone on file'}</Typography>
-                      </Stack>
-
-                      <Stack direction="row" spacing={1} flexWrap="wrap">
-                        <Chip size="small" label={roleMap.get(selectedUser.roleId)?.label ?? selectedUser.roleId} />
-                        <Chip size="small" label={statusTone[selectedUser.status].label} />
-                        {selectedUser.department ? (
-                          <Chip size="small" label={selectedUser.department} variant="outlined" />
-                        ) : null}
-                      </Stack>
-
-                      <Stack spacing={0.5}>
-                        <Typography variant="caption" color="text.secondary">
-                          Last login
-                        </Typography>
-                        <Typography variant="body2">{selectedUser.lastLogin || 'Not available'}</Typography>
-                      </Stack>
-
-                      <Button
-                        variant="outlined"
-                        onClick={handleToggleStatus}
-                        disabled={!canManageUsers}
+              <Box sx={{ px: 2.5, py: 2 }}>
+                {selectedUser ? (
+                  <Stack spacing={2}>
+                    {/* Avatar + name */}
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Avatar
+                        sx={{
+                          width: 56,
+                          height: 56,
+                          bgcolor: getAvatarColor(selectedUser.name),
+                          fontWeight: 800,
+                          fontSize: 20,
+                        }}
                       >
-                        {selectedUser.status === 'suspended'
-                          ? 'Re-activate User'
-                          : selectedUser.status === 'invited'
-                          ? 'Activate User'
-                          : 'Suspend User'}
-                      </Button>
+                        {getInitials(selectedUser.name)}
+                      </Avatar>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{ fontWeight: 800 }}
+                        >
+                          {selectedUser.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {selectedUser.title || "No title provided"}
+                        </Typography>
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          sx={{ mt: 0.75 }}
+                          flexWrap="wrap"
+                        >
+                          <Chip
+                            size="small"
+                            label={
+                              roleMap.get(selectedUser.roleId)?.label ??
+                              selectedUser.roleId
+                            }
+                            sx={{
+                              height: 20,
+                              fontSize: 11,
+                              bgcolor: alpha("#3B6FE8", 0.1),
+                              color: "primary.main",
+                              fontWeight: 700,
+                            }}
+                          />
+                          <Chip
+                            size="small"
+                            label={STATUS_STYLE[selectedUser.status].label}
+                            sx={{
+                              height: 20,
+                              fontSize: 11,
+                              bgcolor: STATUS_STYLE[selectedUser.status].bg,
+                              color: STATUS_STYLE[selectedUser.status].color,
+                              fontWeight: 700,
+                            }}
+                          />
+                        </Stack>
+                      </Box>
                     </Stack>
-                  ) : (
-                    <Alert severity="info">Select a user to see profile details.</Alert>
-                  )}
-                </Box>
-              </Card>
 
-              <Card elevation={0} sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider' }}>
-                <CardHeader
-                  title="Access Snapshot"
-                  subtitle="Highlights of the selected user's role permissions"
-                />
-                <Box sx={{ px: 2, pt: 1.5, pb: 2 }}>
-                  {selectedUser ? (
-                    <Stack spacing={1.25}>
-                      <Stack direction="row" spacing={1} flexWrap="wrap">
-                        {accessGroups.map((group) => (
-                          <Chip key={group} size="small" label={group} variant="outlined" />
-                        ))}
-                        {accessGroups.length === 0 ? (
-                          <Typography variant="body2" color="text.secondary">
-                            No permissions assigned.
-                          </Typography>
-                        ) : null}
-                      </Stack>
-                      <Typography variant="caption" color="text.secondary">
-                        Role permissions update automatically when role profiles change.
-                      </Typography>
+                    <Divider />
+
+                    {/* Info rows */}
+                    <Stack spacing={1.5}>
+                      <InfoRow
+                        icon={<MailOutlineIcon sx={{ fontSize: 16 }} />}
+                        label="Email"
+                        value={selectedUser.email}
+                      />
+                      <InfoRow
+                        icon={<PhoneIcon sx={{ fontSize: 16 }} />}
+                        label="Phone"
+                        value={selectedUser.phone ?? ""}
+                      />
+                      <InfoRow
+                        icon={<BadgeOutlinedIcon sx={{ fontSize: 16 }} />}
+                        label="Department"
+                        value={selectedUser.department ?? ""}
+                      />
+                      <InfoRow
+                        icon={<AccessTimeIcon sx={{ fontSize: 16 }} />}
+                        label="Last Login"
+                        value={selectedUser.lastLogin ?? "Not available"}
+                      />
                     </Stack>
-                  ) : (
-                    <Alert severity="info">Select a user to view access summary.</Alert>
-                  )}
+
+                    <Divider />
+
+                    {/* Status toggle */}
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      onClick={handleToggleStatus}
+                      disabled={!canManageUsers}
+                      startIcon={
+                        selectedUser.status === "suspended" ? (
+                          <CheckCircleOutlined />
+                        ) : (
+                          <PauseCircleIcon />
+                        )
+                      }
+                      sx={{
+                        fontWeight: 700,
+                        borderRadius: 2.5,
+                        py: 1,
+                        borderColor:
+                          selectedUser.status === "suspended"
+                            ? "#22C55E"
+                            : "#EF4444",
+                        color:
+                          selectedUser.status === "suspended"
+                            ? "#16A34A"
+                            : "#DC2626",
+                        "&:hover": {
+                          bgcolor:
+                            selectedUser.status === "suspended"
+                              ? alpha("#22C55E", 0.08)
+                              : alpha("#EF4444", 0.08),
+                        },
+                      }}
+                    >
+                      {selectedUser.status === "suspended"
+                        ? "Re-activate User"
+                        : selectedUser.status === "invited"
+                          ? "Activate User"
+                          : "Suspend User"}
+                    </Button>
+                  </Stack>
+                ) : (
+                  <Box sx={{ py: 3, textAlign: "center" }}>
+                    <PersonIcon
+                      sx={{
+                        fontSize: 40,
+                        color: "text.secondary",
+                        opacity: 0.3,
+                        mb: 1,
+                      }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      Select a user to see profile details.
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </Card>
+
+            {/* Access Snapshot Card */}
+            <Card>
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 2,
+                  borderBottom: "1px solid",
+                  borderColor: "divider",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                <ShieldIcon sx={{ color: "primary.main", fontSize: 20 }} />
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    Access Snapshot
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Role-based permission highlights
+                  </Typography>
                 </Box>
-              </Card>
-            </Stack>
-          </Box>
+              </Box>
+              <Box sx={{ px: 2.5, py: 2 }}>
+                {selectedUser ? (
+                  <Stack spacing={1.5}>
+                    <Stack
+                      direction="row"
+                      spacing={0.75}
+                      flexWrap="wrap"
+                      useFlexGap
+                    >
+                      {accessGroups.map((group) => (
+                        <Chip
+                          key={group}
+                          size="small"
+                          label={group}
+                          icon={
+                            <LockIcon sx={{ fontSize: "14px !important" }} />
+                          }
+                          sx={{
+                            height: 26,
+                            fontSize: 12,
+                            bgcolor: alpha(theme.palette.primary.main, 0.07),
+                            color: "primary.main",
+                            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                          }}
+                        />
+                      ))}
+                      {accessGroups.length === 0 && (
+                        <Typography variant="body2" color="text.secondary">
+                          No permissions assigned.
+                        </Typography>
+                      )}
+                    </Stack>
+                    <Box
+                      sx={{
+                        px: 1.5,
+                        py: 1,
+                        borderRadius: 2,
+                        bgcolor: alpha(theme.palette.warning.main, 0.06),
+                        border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary">
+                        <VerifiedUserIcon
+                          sx={{
+                            fontSize: 12,
+                            verticalAlign: "middle",
+                            mr: 0.5,
+                            color: "warning.dark",
+                          }}
+                        />
+                        Role permissions update automatically when role profiles
+                        change.
+                      </Typography>
+                    </Box>
+                  </Stack>
+                ) : (
+                  <Box sx={{ py: 2, textAlign: "center" }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Select a user to view access summary.
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </Card>
+          </Stack>
         </Box>
       </Stack>
 
-      <CommonDialog
+      {/* ── Invite / Edit Dialog ── */}
+      <Dialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        title={editingUserId ? 'Edit User' : 'Invite User'}
         maxWidth="sm"
-        content={
-          <Stack spacing={1.5} sx={{ mt: 1 }}>
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 2,
+                  bgcolor: alpha("#3B6FE8", 0.1),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <PersonIcon sx={{ color: "primary.main" }} />
+              </Box>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                {editingUserId ? "Edit User" : "Invite User"}
+              </Typography>
+            </Stack>
+            <IconButton size="small" onClick={() => setDialogOpen(false)}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={1.75} sx={{ pt: 1 }}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.75}>
+              <TextField
+                fullWidth
+                label="Full Name"
+                value={userDraft.name}
+                onChange={draft("name")}
+              />
+              <TextField
+                fullWidth
+                label="Email"
+                value={userDraft.email}
+                onChange={draft("email")}
+              />
+            </Stack>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.75}>
+              <TextField
+                fullWidth
+                label="Phone"
+                value={userDraft.phone}
+                onChange={draft("phone")}
+              />
+              <TextField
+                fullWidth
+                label="Title"
+                value={userDraft.title}
+                onChange={draft("title")}
+              />
+            </Stack>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.75}>
+              <TextField
+                fullWidth
+                label="Department"
+                value={userDraft.department}
+                onChange={draft("department")}
+              />
+              <TextField
+                fullWidth
+                select
+                label="Status"
+                value={userDraft.status}
+                onChange={draft("status")}
+              >
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="invited">Invited</MenuItem>
+                <MenuItem value="suspended">Suspended</MenuItem>
+              </TextField>
+            </Stack>
             <TextField
-              label="Full Name"
-              value={userDraft.name}
-              onChange={(event) => setUserDraft((prev) => ({ ...prev, name: event.target.value }))}
-            />
-            <TextField
-              label="Email"
-              value={userDraft.email}
-              onChange={(event) => setUserDraft((prev) => ({ ...prev, email: event.target.value }))}
-            />
-            <TextField
-              label="Phone"
-              value={userDraft.phone}
-              onChange={(event) => setUserDraft((prev) => ({ ...prev, phone: event.target.value }))}
-            />
-            <TextField
+              fullWidth
               select
               label="Role"
               value={userDraft.roleId}
-              onChange={(event) => setUserDraft((prev) => ({ ...prev, roleId: event.target.value }))}
+              onChange={draft("roleId")}
             >
-              {roles.map((role) => (
-                <MenuItem key={role.id} value={role.id}>
-                  {role.label}
+              {roles.map((r) => (
+                <MenuItem key={r.id} value={r.id}>
+                  {r.label}
                 </MenuItem>
               ))}
             </TextField>
-            <TextField
-              label="Department"
-              value={userDraft.department}
-              onChange={(event) => setUserDraft((prev) => ({ ...prev, department: event.target.value }))}
-            />
-            <TextField
-              label="Title"
-              value={userDraft.title}
-              onChange={(event) => setUserDraft((prev) => ({ ...prev, title: event.target.value }))}
-            />
-            <TextField
-              select
-              label="Status"
-              value={userDraft.status}
-              onChange={(event) => setUserDraft((prev) => ({ ...prev, status: event.target.value as StaffUserStatus }))}
-            >
-              <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="invited">Invited</MenuItem>
-              <MenuItem value="suspended">Suspended</MenuItem>
-            </TextField>
           </Stack>
-        }
-        actions={
-          <>
-            <Button variant="text" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="contained" onClick={handleSaveUser} disabled={!canManageUsers}>
-              {editingUserId ? 'Save Changes' : 'Send Invite'}
-            </Button>
-          </>
-        }
-      />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            variant="text"
+            onClick={() => setDialogOpen(false)}
+            sx={{ color: "text.secondary" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSaveUser}
+            disabled={!canManageUsers}
+            sx={{
+              px: 3,
+              fontWeight: 700,
+              boxShadow: `0 4px 12px ${alpha("#3B6FE8", 0.25)}`,
+            }}
+          >
+            {editingUserId ? "Save Changes" : "Send Invite"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      <CommonDialog
+      {/* ── Delete Confirm Dialog ── */}
+      <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
-        title="Delete User"
-        description="This will remove the user from the directory. This action cannot be undone."
-        cancelLabel="Cancel"
-        confirmLabel="Delete User"
-        confirmColor="error"
-        onConfirm={handleDeleteUser}
-        confirmButtonProps={{ disabled: !canManageUsers }}
-      />
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Box
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: 2,
+                bgcolor: alpha("#EF4444", 0.1),
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <DeleteIcon sx={{ color: "error.main" }} />
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Delete User
+            </Typography>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            This will permanently remove <strong>{selectedUser?.name}</strong>{" "}
+            from the directory. This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            variant="text"
+            onClick={() => setDeleteDialogOpen(false)}
+            sx={{ color: "text.secondary" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteUser}
+            disabled={!canManageUsers}
+            sx={{ px: 3, fontWeight: 700 }}
+          >
+            Delete User
+          </Button>
+        </DialogActions>
+      </Dialog>
 
+      {/* ── Snackbar ── */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3500}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          sx={{ width: "100%", borderRadius: 2 }}
         >
           {snackbar.message}
         </Alert>

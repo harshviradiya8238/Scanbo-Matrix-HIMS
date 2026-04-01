@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Box,
   Typography,
@@ -15,6 +16,9 @@ import {
   TableRow,
   Chip,
   Alert,
+  Menu,
+  MenuItem,
+  IconButton,
 } from "@/src/ui/components/atoms";
 import { useTheme, alpha } from "@mui/material/styles";
 import {
@@ -28,6 +32,8 @@ import {
   LocalHospital as HospitalIcon,
   Science as ScienceIcon,
   Person as PersonIcon,
+  Add as AddIcon,
+  DeleteOutline as DeleteIcon,
 } from "@mui/icons-material";
 import { useLabTheme } from "../../lab-theme";
 import { useAppDispatch, useAppSelector } from "@/src/store/hooks";
@@ -35,6 +41,8 @@ import {
   addResults,
   appendAudit,
   updateSampleStatus,
+  addTestToSample,
+  removeTestFromSample,
 } from "@/src/store/slices/limsSlice";
 import type { LabResultRow } from "../../lab-types";
 
@@ -380,6 +388,41 @@ const TEST_PARAMETERS: Record<string, Parameter[]> = {
       isFormula: true,
     },
   ],
+  THYROID: [
+    {
+      analysis: "TSH",
+      keyword: "TSH",
+      method: "ECLIA",
+      result: "",
+      unit: "µIU/mL",
+      refRange: "0.45–4.5",
+      flag: "Normal",
+      status: "Draft",
+      testCode: "THYROID",
+    },
+    {
+      analysis: "Free T4 (FT4)",
+      keyword: "FT4",
+      method: "ECLIA",
+      result: "",
+      unit: "ng/dL",
+      refRange: "0.82–1.77",
+      flag: "Normal",
+      status: "Draft",
+      testCode: "THYROID",
+    },
+    {
+      analysis: "Free T3 (FT3)",
+      keyword: "FT3",
+      method: "ECLIA",
+      result: "",
+      unit: "pg/mL",
+      refRange: "2.0–4.4",
+      flag: "Normal",
+      status: "Draft",
+      testCode: "THYROID",
+    },
+  ],
 };
 
 function inferFlag(keyword: string, value: string): FlagType {
@@ -404,6 +447,9 @@ function inferFlag(keyword: string, value: string): FlagType {
     INSUL: [2, 25],
     UREA: [15, 40],
     EGFR: [60, 999],
+    TSH: [0.45, 4.5],
+    FT4: [0.82, 1.77],
+    FT3: [2.0, 4.4],
   };
   const r = ranges[keyword];
   if (!r) return "Normal";
@@ -648,6 +694,13 @@ export default function ResultEntryTab({ sampleId }: { sampleId?: string }) {
     results,
     tests: testCatalog,
   } = useAppSelector((s) => s.lims);
+  const router = useRouter();
+
+  const switchableSamples = samples.filter((s) => s.status !== "published");
+
+  const handleSwitchSample = (newId: string) => {
+    router.push(`/lab/analysis-results?sampleId=${newId}&tab=entry`);
+  };
 
   // Find the actual sample from Redux
   const sample = sampleId ? samples.find((s) => s.id === sampleId) : null;
@@ -695,6 +748,41 @@ export default function ResultEntryTab({ sampleId }: { sampleId?: string }) {
 
   const [params, setParams] = React.useState<Parameter[]>(initialParams);
   const [saved, setSaved] = React.useState(false);
+  const [addMenuAnchor, setAddMenuAnchor] = React.useState<null | HTMLElement>(
+    null,
+  );
+
+  const handleAddPanel = (panelCode: string) => {
+    setAddMenuAnchor(null);
+    if (sample) {
+      dispatch(addTestToSample({ sampleId: sample.id, testCode: panelCode }));
+    } else {
+      const templateRows = TEST_PARAMETERS[panelCode] ?? [];
+      setParams((prev) => {
+        const existingKeywords = new Set(prev.map((p) => p.keyword));
+        const newRows = templateRows.filter(
+          (r) => !existingKeywords.has(r.keyword),
+        );
+        return [...prev, ...newRows];
+      });
+    }
+  };
+
+  const handleRemovePanel = (panelCode: string) => {
+    if (
+      window.confirm(
+        `Are you sure you want to remove the ${panelCode} panel and its results?`,
+      )
+    ) {
+      if (sample) {
+        dispatch(
+          removeTestFromSample({ sampleId: sample.id, testCode: panelCode }),
+        );
+      } else {
+        setParams((prev) => prev.filter((p) => p.testCode !== panelCode));
+      }
+    }
+  };
 
   // Re-initialise if sample changes
   React.useEffect(() => {
@@ -1015,6 +1103,109 @@ export default function ResultEntryTab({ sampleId }: { sampleId?: string }) {
                 {sample?.analyst ?? "Sysmex XN-1000"}
               </Typography>
             </Box>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+              onClick={(e) => setAddMenuAnchor(e.currentTarget)}
+              sx={{
+                fontSize: "0.75rem",
+                textTransform: "none",
+                borderRadius: "8px",
+                borderColor: T.activeBorder,
+                color: T.activeColor,
+                height: 32,
+              }}
+            >
+              Add Test
+            </Button>
+            <Menu
+              anchorEl={addMenuAnchor}
+              open={Boolean(addMenuAnchor)}
+              onClose={() => setAddMenuAnchor(null)}
+              PaperProps={{
+                sx: {
+                  mt: 1,
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                  borderRadius: "10px",
+                },
+              }}
+            >
+              {Object.keys(TEST_PARAMETERS).map((code) => (
+                <MenuItem
+                  key={code}
+                  onClick={() => handleAddPanel(code)}
+                  sx={{ fontSize: "0.85rem", py: 1, px: 2 }}
+                >
+                  {code} Panel
+                </MenuItem>
+              ))}
+            </Menu>
+
+            <Box sx={{ width: 1.5, height: 24, bgcolor: T.border, mx: 0.5 }} />
+
+            <TextField
+              select
+              size="small"
+              value={sampleId ?? ""}
+              onChange={(e) => handleSwitchSample(e.target.value)}
+              sx={{
+                width: 250,
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "10px",
+                  bgcolor: T.white,
+                  height: 32,
+                  fontSize: "0.78rem",
+                  fontWeight: 600,
+                },
+              }}
+              SelectProps={{
+                displayEmpty: true,
+                renderValue: (v: any) => {
+                  if (!v) return "Switch Sample...";
+                  const s = samples.find((x) => x.id === v);
+                  return s ? `${s.id} — ${s.patient}` : v;
+                },
+              }}
+            >
+              {switchableSamples.map((s) => (
+                <MenuItem
+                  key={s.id}
+                  value={s.id}
+                  sx={{
+                    py: 1,
+                    px: 1.5,
+                    borderBottom: `1px solid ${alpha(T.border, 0.5)}`,
+                    "&:last-child": { borderBottom: 0 },
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      sx={{ fontSize: "0.82rem", fontWeight: 700, mb: 0.2 }}
+                    >
+                      {s.id}
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography
+                        sx={{ fontSize: "0.7rem", color: T.textSecondary }}
+                      >
+                        {s.patient}
+                      </Typography>
+                      <Chip
+                        label={s.status}
+                        size="small"
+                        sx={{
+                          height: 16,
+                          fontSize: "0.55rem",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                        }}
+                      />
+                    </Stack>
+                  </Box>
+                </MenuItem>
+              ))}
+            </TextField>
           </Stack>
         </Box>
 
@@ -1057,103 +1248,171 @@ export default function ResultEntryTab({ sampleId }: { sampleId?: string }) {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {params.map((param, i) => {
-                  const f = getFlagTokens(param.flag);
-                  const isCritical = param.flag.includes("Critical");
-                  const isAbn = param.flag === "High" || param.flag === "Low";
-                  return (
-                    <TableRow
-                      key={i}
-                      sx={{
-                        bgcolor: isCritical
-                          ? alpha(T.criticalBg, 0.5)
-                          : T.white,
-                        "& td": {
-                          border: "none",
-                          py: 1,
-                          borderTop: `1px solid ${isCritical ? T.criticalBorder : T.border}`,
-                        },
-                        "& td:first-of-type": {
-                          borderLeft: `2px solid ${isCritical ? T.criticalText : isAbn ? T.abnFieldBorder : "transparent"}`,
-                          borderRadius: "8px 0 0 8px",
-                        },
-                        "& td:last-of-type": { borderRadius: "0 8px 8px 0" },
-                      }}
-                    >
-                      <TableCell>
-                        <Typography
-                          sx={{ fontSize: "0.82rem", fontWeight: 700 }}
+                {Object.entries(
+                  params.reduce(
+                    (acc, p) => {
+                      const group = p.testCode || "Other";
+                      if (!acc[group]) acc[group] = [];
+                      acc[group].push(p);
+                      return acc;
+                    },
+                    {} as Record<string, Parameter[]>,
+                  ),
+                ).map(([group, groupParams]) => (
+                  <React.Fragment key={group}>
+                    <TableRow>
+                      <TableCell
+                        colSpan={8}
+                        sx={{
+                          py: 0.5,
+                          px: 2,
+                          bgcolor: alpha(T.activeBg, 0.4),
+                          borderBottom: `1px solid ${T.activeBorder} !important`,
+                        }}
+                      >
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
                         >
-                          {param.analysis}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          sx={{ fontSize: "0.72rem", color: T.activeColor }}
-                        >
-                          {param.keyword}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          sx={{ fontSize: "0.75rem", color: T.textMuted }}
-                        >
-                          {param.method}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          size="small"
-                          value={param.result}
-                          disabled={param.isFormula}
-                          onChange={(e) =>
-                            handleResultChange(param.keyword, e.target.value)
-                          }
-                          placeholder="Enter value"
-                          sx={{
-                            width: 90,
-                            "& .MuiOutlinedInput-root": {
-                              height: 28,
-                              fontSize: "0.8rem",
-                              fontWeight: 700,
-                              bgcolor: param.isFormula ? T.surface : f.fieldBg,
-                              color: f.text,
-                              "& fieldset": { borderColor: f.fieldBorder },
-                            },
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="caption">{param.unit}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="caption">
-                          {param.refRange}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <FlagBadge flag={param.flag} />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={param.status}
-                          sx={{
-                            fontSize: "0.6rem",
-                            fontWeight: 700,
-                            bgcolor:
-                              param.status === "Entered" ? T.okBg : T.activeBg,
-                            color:
-                              param.status === "Entered"
-                                ? T.okText
-                                : T.activeColor,
-                            borderRadius: "5px",
-                          }}
-                        />
+                          <Typography
+                            sx={{
+                              fontSize: "0.7rem",
+                              fontWeight: 800,
+                              color: T.activeColor,
+                              letterSpacing: "0.05em",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {group} Panel
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRemovePanel(group)}
+                            sx={{
+                              color: T.criticalText,
+                              "&:hover": { bgcolor: alpha(T.criticalBg, 0.6) },
+                            }}
+                          >
+                            <DeleteIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Stack>
                       </TableCell>
                     </TableRow>
-                  );
-                })}
+                    {groupParams.map((param, i) => {
+                      const f = getFlagTokens(param.flag);
+                      const isCritical = param.flag.includes("Critical");
+                      const isAbn =
+                        param.flag === "High" || param.flag === "Low";
+                      return (
+                        <TableRow
+                          key={param.keyword + i}
+                          sx={{
+                            bgcolor: isCritical
+                              ? alpha(T.criticalBg, 0.5)
+                              : T.white,
+                            "& td": {
+                              border: "none",
+                              py: 0.8,
+                              borderBottom: `1px solid ${T.border} !important`,
+                            },
+                            "& td:first-of-type": {
+                              borderLeft: `2px solid ${isCritical ? T.criticalText : isAbn ? T.abnFieldBorder : "transparent"} !important`,
+                            },
+                          }}
+                        >
+                          <TableCell>
+                            <Typography
+                              sx={{ fontSize: "0.82rem", fontWeight: 700 }}
+                            >
+                              {param.analysis}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              sx={{ fontSize: "0.72rem", color: T.activeColor }}
+                            >
+                              {param.keyword}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              sx={{ fontSize: "0.75rem", color: T.textMuted }}
+                            >
+                              {param.method}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              size="small"
+                              value={param.result}
+                              disabled={param.isFormula}
+                              onChange={(e) =>
+                                handleResultChange(
+                                  param.keyword,
+                                  e.target.value,
+                                )
+                              }
+                              placeholder="0.00"
+                              sx={{
+                                width: 90,
+                                "& .MuiOutlinedInput-root": {
+                                  height: 28,
+                                  fontSize: "0.8rem",
+                                  fontWeight: 700,
+                                  bgcolor: param.isFormula
+                                    ? T.surface
+                                    : f.fieldBg,
+                                  color: f.text,
+                                  "& fieldset": { borderColor: f.fieldBorder },
+                                },
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              variant="caption"
+                              sx={{ fontWeight: 500 }}
+                            >
+                              {param.unit}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: T.textSecondary }}
+                            >
+                              {param.refRange}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <FlagBadge flag={param.flag} />
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              size="small"
+                              label={param.status}
+                              sx={{
+                                fontSize: "0.6rem",
+                                fontWeight: 700,
+                                bgcolor:
+                                  param.status === "Entered"
+                                    ? T.okBg
+                                    : T.activeBg,
+                                color:
+                                  param.status === "Entered"
+                                    ? T.okText
+                                    : T.activeColor,
+                                borderRadius: "5px",
+                                height: 20,
+                              }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
               </TableBody>
             </Table>
           </TableContainer>

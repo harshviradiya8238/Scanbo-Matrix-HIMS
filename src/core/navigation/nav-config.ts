@@ -362,14 +362,22 @@ export const NAV_GROUPS: NavGroup[] = [
           },
         ]
       },
+      
+     
+    ],
+  },
+  {
+    id: 'laboratory',
+    label: 'Laboratory',
+    items: [
       {
-        id: 'laboratory',
+        id: 'laboratory-sample-lifecycle',
         label: 'Sample Lifecycle',
         iconName: 'Science',
         type: 'group',
         requiredPermissions: ['diagnostics.lab.read'],
         excludedRoles: ['PHARMACIST'],
-        order: 4,
+        order: 1,
         children: [
           { id: 'lab-dashboard', label: 'Dashboard', iconName: 'Dashboard', route: '/lab/dashboard', type: 'item', requiredPermissions: ['diagnostics.lab.read'], excludedRoles: ['LAB_MANAGER'], order: 1 },
           { id: 'lab-samples', label: 'Samples', iconName: 'LocalHospital', route: '/lab/samples', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 1, badgeCount: 2 },
@@ -378,19 +386,19 @@ export const NAV_GROUPS: NavGroup[] = [
           { id: 'lab-partitions', label: 'Sample Partition', iconName: 'ContentCut', route: '/lab/partitions', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 3 },
         ],
       },
-      {
+       {
         id: 'lab-analysis-workflow',
         label: 'Analysis Workflow',
         iconName: 'Timeline',
         type: 'group',
         requiredPermissions: ['diagnostics.lab.read'],
-        order: 4,
+        order: 2,
         children: [
           { id: 'lab-aw-worksheets', label: 'Worksheets', iconName: 'Assignment', route: '/lab/worksheets', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 1 },
-          {id:'lab-clients',label:'Clients',iconName:'People',route:'/lab/clients',type:'item',requiredPermissions:['diagnostics.lab.read'],order:4},
+          {id:'lab-analysis-results',label:'Analysis Results',iconName:'People',route:'/lab/analysis-results',type:'item',requiredPermissions:['diagnostics.lab.read'],order: 2},
           // { id: 'lab-aw-verification', label: 'Verification', iconName: 'FactCheck', route: '/lab/verification', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 3, badgeCount: 11 },
           // { id: 'lab-aw-publish', label: 'Publish Reports', iconName: 'Publish', route: '/lab/publish', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 4 },
-          { id: 'lab-aw-invalidations', label: 'Invalidations', iconName: 'Undo', route: '/lab/invalidations', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 5 },
+          { id: 'lab-aw-invalidations', label: 'Invalidations', iconName: 'Undo', route: '/lab/invalidations', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 3 },
         ]
       },
       {
@@ -399,13 +407,13 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'Analytics',
         type: 'group',
         requiredPermissions: ['diagnostics.lab.read'],
-        order: 5,
+        order: 3,
         children: [
           { id: 'lab-qc-samples', label: 'QC Samples', iconName: 'Analytics', route: '/lab/qc', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 1 },
           // { id: 'lab-qc-levey-jennings', label: 'Levey-Jennings', iconName: 'Timeline', route: '/lab/qc/charts', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 2 },
-          { id: 'lab-qc-calculations', label: 'Calculations', iconName: 'Calculate', route: '/lab/qc/calculations', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 3 },
-          { id: 'lab-qc-methods', label: 'Methods', iconName: 'Build', route: '/lab/qc/methods', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 4 },
-          { id: 'lab-qc-audit', label: 'Audit Trail', iconName: 'History', route: '/lab/qc/audit', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 5 },
+          { id: 'lab-qc-calculations', label: 'Calculations', iconName: 'Calculate', route: '/lab/qc/calculations', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 2 },
+          { id: 'lab-qc-methods', label: 'Methods', iconName: 'Build', route: '/lab/qc/methods', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 3 },
+          { id: 'lab-qc-audit', label: 'Audit Trail', iconName: 'History', route: '/lab/qc/audit', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 4 },
         ],
       },
       {
@@ -414,17 +422,17 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'Settings',
         type: 'group',
         requiredPermissions: ['diagnostics.lab.read'],
-        order: 6,
+        order: 4,
         children: [
           { id: 'lab-test-catalog', label: 'Test Catalog', iconName: 'MenuBook', route: '/lab/test-catalog', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 1 },
           { id: 'lab-analysis-profiles', label: 'Analysis Profiles', iconName: 'TrackChanges', route: '/lab/analysis-profiles', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 2 },
           { id: 'lab-instruments-setup', label: 'Instruments', iconName: 'Science', route: '/lab/instruments', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 3 },
           // { id: 'lab-reagents', label: 'Reagents', iconName: 'Vaccines', route: '/lab/reagents', type: 'item', requiredPermissions: ['diagnostics.lab.read', 'pharmacy.read'], order: 4, badgeCount: 3 },
-          { id: 'lab-departments', label: 'Departments', iconName: 'CorporateFare', route: '/lab/departments', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 5 },
+          { id: 'lab-departments', label: 'Departments', iconName: 'CorporateFare', route: '/lab/departments', type: 'item', requiredPermissions: ['diagnostics.lab.read'], order: 4 },
         ],
       },
       
-    ],
+    ]
   },
   {
     id: 'operations',

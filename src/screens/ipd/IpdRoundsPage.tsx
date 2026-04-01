@@ -3970,8 +3970,6 @@ export default function IpdRoundsPage() {
                   </TableContainer>
                 </Card>
               </Grid>
-
-            
             </Grid>
           ) : null}
 
@@ -4284,7 +4282,6 @@ export default function IpdRoundsPage() {
                   </Box>
                 </Card>
               </Grid>
-
             </Grid>
           ) : null}
 
@@ -4385,13 +4382,6 @@ export default function IpdRoundsPage() {
                       <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                         Related Workflow Shortcuts
                       </Typography>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => openProcedureDialog("Consult")}
-                      >
-                        + Request Consult
-                      </Button>
                     </Stack>
                   </Box>
                   <Box sx={{ p: 2 }}>
@@ -5221,7 +5211,7 @@ export default function IpdRoundsPage() {
             </Stack>
           }
           content={
-            <Stack spacing={1.1}>
+            <Stack spacing={1.1} sx={{ mt: 2 }}>
               <Grid container spacing={1.2}>
                 <Grid xs={6}>
                   <TextField
@@ -5276,7 +5266,6 @@ export default function IpdRoundsPage() {
                 </Grid>
               </Grid>
               <TextField
-                size="small"
                 label={
                   procedureDraft.type === "Consult"
                     ? "Consult Title"

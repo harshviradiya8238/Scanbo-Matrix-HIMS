@@ -1,7 +1,6 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import PageTemplate from '@/src/ui/components/PageTemplate';
+import * as React from "react";
 import {
   Alert,
   Box,
@@ -25,849 +24,1228 @@ import {
   TableRow,
   TextField,
   Typography,
-} from '@/src/ui/components/atoms';
-import { CommonDialog } from '@/src/ui/components/molecules';
-import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { Add as AddIcon, Close as CloseIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { NAV_GROUPS } from '@/src/core/navigation/nav-config';
-import { CLINICAL_MODULES } from '@/src/screens/clinical/module-registry';
-import { useStaffStore } from '@/src/core/staff/staffStore';
-import { usePermission } from '@/src/core/auth/usePermission';
-import { hasPermission } from '@/src/core/navigation/permissions';
+  Paper,
+  Tooltip,
+  InputAdornment,
+} from "@mui/material";
+import {
+  Add as AddIcon,
+  Close as CloseIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+  Shield as ShieldIcon,
+  Group as GroupIcon,
+  FilterList as FilterListIcon,
+  AdminPanelSettings as AdminPanelSettingsIcon,
+  ArrowForward as ArrowForwardIcon,
+  CheckCircleOutline as CheckCircleOutlineIcon,
+  AccessTime as AccessTimeIcon,
+  CancelOutlined as CancelOutlinedIcon,
+  ListAlt as ListAltIcon,
+} from "@mui/icons-material";
+import { alpha, styled } from "@mui/material/styles";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import { WorkspaceHeaderCard, StatTile } from "@/src/ui/components/molecules";
+import { cardShadow } from "@/src/core/theme/tokens";
 
-const PERMISSION_GROUPS = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'patients', label: 'Patients' },
-  { id: 'appointments', label: 'Appointments' },
-  { id: 'clinical', label: 'Clinical' },
-  { id: 'clinical_core', label: 'Clinical Core' },
-  { id: 'ipd', label: 'Inpatient' },
-  { id: 'emergency', label: 'Emergency' },
-  { id: 'surgery', label: 'Surgery' },
-  { id: 'radiology', label: 'Radiology' },
-  { id: 'laboratory', label: 'Laboratory' },
-  { id: 'orders', label: 'Orders' },
-  { id: 'diagnostics', label: 'Diagnostics' },
-  { id: 'pharmacy', label: 'Pharmacy' },
-  { id: 'patient_access', label: 'Patient Access' },
-  { id: 'scheduling', label: 'Scheduling' },
-  { id: 'revenue_cycle', label: 'Revenue Cycle' },
-  { id: 'billing', label: 'Billing' },
-  { id: 'inventory', label: 'Inventory' },
-  { id: 'patient_portal', label: 'Patient Portal' },
-  { id: 'interoperability', label: 'Interoperability' },
-  { id: 'population_health', label: 'Population Health' },
-  { id: 'oncology', label: 'Oncology' },
-  { id: 'cardiology', label: 'Cardiology' },
-  { id: 'reports', label: 'Reports' },
-  { id: 'admin', label: 'Admin' },
-  { id: 'staff', label: 'Staff' },
-  { id: 'help', label: 'Help' },
+const Card = styled(Paper)({
+  backgroundColor: "#FFFFFF",
+  border: "1px solid #E3EAF3",
+  borderRadius: 12,
+  boxShadow: "0 1px 4px rgba(27,43,80,0.06)",
+  overflow: "hidden",
+});
+
+const SectionTag = styled(Typography)({
+  fontSize: "0.68rem",
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#9BAAC3",
+  marginBottom: 3,
+});
+
+const ScrollBox = styled(Box)({
+  overflowY: "auto",
+  "&::-webkit-scrollbar": { width: 5 },
+  "&::-webkit-scrollbar-track": { background: "transparent" },
+  "&::-webkit-scrollbar-thumb": { background: "#CBD5E1", borderRadius: 4 },
+  "&::-webkit-scrollbar-thumb:hover": { background: "#94A3B8" },
+});
+
+const MonoTag = styled(Box)({
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "2px 8px",
+  borderRadius: 5,
+  backgroundColor: "#F4F7FB",
+  border: "1px solid #E3EAF3",
+  fontFamily: "monospace",
+  fontSize: "0.7rem",
+  color: "#4B5E82",
+  fontWeight: 500,
+  whiteSpace: "nowrap",
+});
+
+const PageShell = styled(Box)({
+  // minHeight: "100vh",
+  padding: 24,
+});
+
+interface GroupTagProps {
+  accent: string;
+}
+const GroupTag = styled(Box, {
+  shouldForwardProp: (p) => p !== "accent",
+})<GroupTagProps>(({ accent }) => ({
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "2px 8px",
+  borderRadius: 20,
+  fontSize: "0.68rem",
+  fontWeight: 700,
+  color: accent,
+  backgroundColor: alpha(accent, 0.09),
+  border: `1px solid ${alpha(accent, 0.2)}`,
+  whiteSpace: "nowrap",
+}));
+
+// ─── Static data ─────────────────────────────────────────────────────────────
+
+const MOCK_ROLES = [
+  {
+    id: "HOSPITAL_ADMIN",
+    label: "Hospital Admin",
+    description: "Full system access",
+    isSystem: true,
+    isActive: true,
+    permissions: ["*"],
+  },
+  {
+    id: "DOCTOR",
+    label: "Doctor",
+    description: "Clinical access and patient management",
+    isSystem: true,
+    isActive: true,
+    permissions: [
+      "clinical.read",
+      "patients.read",
+      "patients.write",
+      "appointments.read",
+      "orders.read",
+      "orders.write",
+    ],
+  },
+  {
+    id: "NURSE",
+    label: "Nurse",
+    description: "Patient care and vitals management",
+    isSystem: false,
+    isActive: true,
+    permissions: ["clinical.read", "patients.read", "appointments.read"],
+  },
+  {
+    id: "PHARMACIST",
+    label: "Pharmacist",
+    description: "Pharmacy and medication management",
+    isSystem: false,
+    isActive: true,
+    permissions: ["pharmacy.read", "pharmacy.write", "orders.read"],
+  },
+  {
+    id: "RECEPTIONIST",
+    label: "Receptionist",
+    description: "Front desk and scheduling",
+    isSystem: false,
+    isActive: true,
+    permissions: ["scheduling.read", "scheduling.write", "patients.read"],
+  },
+  {
+    id: "BILLING_STAFF",
+    label: "Billing Staff",
+    description: "Revenue and billing operations",
+    isSystem: false,
+    isActive: false,
+    permissions: ["billing.read", "billing.write", "revenue_cycle.read"],
+  },
 ];
 
-const EXTRA_PERMISSIONS = [
-  'staff.users.write',
-  'staff.roles.write',
-  'staff.roster.write',
-  'admin.audit.write',
-  'reports.analytics.write',
+const ALL_PERMISSIONS = [
+  {
+    key: "clinical.read",
+    group: "clinical",
+    feature: "Clinical Records",
+    action: "read",
+  },
+  {
+    key: "clinical.write",
+    group: "clinical",
+    feature: "Clinical Records",
+    action: "write",
+  },
+  {
+    key: "patients.read",
+    group: "patients",
+    feature: "Patient Records",
+    action: "read",
+  },
+  {
+    key: "patients.write",
+    group: "patients",
+    feature: "Patient Records",
+    action: "write",
+  },
+  {
+    key: "appointments.read",
+    group: "appointments",
+    feature: "Appointments",
+    action: "read",
+  },
+  {
+    key: "appointments.write",
+    group: "appointments",
+    feature: "Appointments",
+    action: "write",
+  },
+  { key: "orders.read", group: "orders", feature: "Orders", action: "read" },
+  { key: "orders.write", group: "orders", feature: "Orders", action: "write" },
+  {
+    key: "pharmacy.read",
+    group: "pharmacy",
+    feature: "Pharmacy",
+    action: "read",
+  },
+  {
+    key: "pharmacy.write",
+    group: "pharmacy",
+    feature: "Pharmacy",
+    action: "write",
+  },
+  { key: "billing.read", group: "billing", feature: "Billing", action: "read" },
+  {
+    key: "billing.write",
+    group: "billing",
+    feature: "Billing",
+    action: "write",
+  },
+  {
+    key: "revenue_cycle.read",
+    group: "revenue_cycle",
+    feature: "Revenue Cycle",
+    action: "read",
+  },
+  {
+    key: "scheduling.read",
+    group: "scheduling",
+    feature: "Scheduling",
+    action: "read",
+  },
+  {
+    key: "scheduling.write",
+    group: "scheduling",
+    feature: "Scheduling",
+    action: "write",
+  },
+  {
+    key: "radiology.read",
+    group: "radiology",
+    feature: "Radiology",
+    action: "read",
+  },
+  {
+    key: "radiology.write",
+    group: "radiology",
+    feature: "Radiology",
+    action: "write",
+  },
+  {
+    key: "laboratory.read",
+    group: "laboratory",
+    feature: "Laboratory",
+    action: "read",
+  },
+  {
+    key: "laboratory.write",
+    group: "laboratory",
+    feature: "Laboratory",
+    action: "write",
+  },
+  { key: "reports.read", group: "reports", feature: "Reports", action: "read" },
+  {
+    key: "admin.audit.read",
+    group: "admin",
+    feature: "Audit Logs",
+    action: "read",
+  },
+  {
+    key: "staff.users.write",
+    group: "staff",
+    feature: "User Management",
+    action: "write",
+  },
+  {
+    key: "staff.roles.write",
+    group: "staff",
+    feature: "Role Management",
+    action: "write",
+  },
 ];
 
-const toTitleCase = (value: string) =>
-  value
-    .replace(/[._]/g, ' ')
-    .replace(/\b\w/g, (match) => match.toUpperCase());
-
-type PermissionMeta = {
-  key: string;
-  groupId: string;
-  groupLabel: string;
-  featureKey: string;
-  featureLabel: string;
-  action: string;
-  actionLabel: string;
-  isWildcard: boolean;
+const GROUP_COLORS: Record<string, string> = {
+  clinical: "#7C5CFC",
+  patients: "#3B7DD8",
+  appointments: "#10B981",
+  orders: "#F59E0B",
+  pharmacy: "#EC4899",
+  billing: "#0891B2",
+  revenue_cycle: "#0891B2",
+  scheduling: "#16A34A",
+  radiology: "#8B5CF6",
+  laboratory: "#EA580C",
+  reports: "#6366F1",
+  admin: "#EF4444",
+  staff: "#374151",
 };
 
-export default function RolesPermissionsPage() {
-  const { roles, users, addRole, updateRole, deleteRole } = useStaffStore();
-  const permissionGate = usePermission();
-  const canManageRoles = permissionGate(['staff.roles.write', 'staff.roles.manage']);
+const toLabel = (s: string) =>
+  s.replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-  const [selectedRoleId, setSelectedRoleId] = React.useState<string>(roles[0]?.id ?? '');
+// ─── Page ───────────────────────────────────────────────────────────────────
+
+export default function RolesPermissionsPage() {
+  const [roles, setRoles] = React.useState(MOCK_ROLES);
+  const [selectedRoleId, setSelectedRoleId] = React.useState(MOCK_ROLES[0].id);
   const [roleForm, setRoleForm] = React.useState({
-    label: '',
-    description: '',
+    label: "",
+    description: "",
     isActive: true,
   });
-  const [roleSearch, setRoleSearch] = React.useState('');
-  const [rolesDialogOpen, setRolesDialogOpen] = React.useState(false);
-
-  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [moduleFilter, setModuleFilter] = React.useState("all");
+  const [featureSearch, setFeatureSearch] = React.useState("");
+  const [assignedSearch, setAssignedSearch] = React.useState("");
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [roleSearch, setRoleSearch] = React.useState("");
+  const [viewAllOpen, setViewAllOpen] = React.useState(false);
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [createDraft, setCreateDraft] = React.useState({
-    label: '',
-    description: '',
-    cloneFromId: '',
+    label: "",
+    description: "",
+    cloneFromId: "",
   });
-
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [deleteReassignRoleId, setDeleteReassignRoleId] = React.useState('');
-
-  const [moduleFilter, setModuleFilter] = React.useState('all');
-  const [featureSearch, setFeatureSearch] = React.useState('');
-  const [privilegeSearch, setPrivilegeSearch] = React.useState('');
-  const [assignedSearch, setAssignedSearch] = React.useState('');
-  const [selectedAvailable, setSelectedAvailable] = React.useState<Set<string>>(() => new Set());
-
+  const [reassignTo, setReassignTo] = React.useState("");
   const [snackbar, setSnackbar] = React.useState({
     open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error' | 'info',
+    message: "",
+    severity: "success" as "success" | "error" | "info",
   });
 
-  React.useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const main = document.querySelector('main');
-    if (!main) return;
-    const prevOverflow = main.style.overflow;
-    main.style.overflow = 'hidden';
-    return () => {
-      main.style.overflow = prevOverflow;
-    };
-  }, []);
-
-  React.useEffect(() => {
-    if (!selectedRoleId && roles.length > 0) {
-      setSelectedRoleId(roles[0].id);
-    }
-  }, [roles, selectedRoleId]);
-
   const selectedRole = React.useMemo(
-    () => roles.find((role) => role.id === selectedRoleId) ?? roles[0],
-    [roles, selectedRoleId]
+    () => roles.find((r) => r.id === selectedRoleId) ?? roles[0],
+    [roles, selectedRoleId],
   );
-  const fullAccess = Boolean(selectedRole?.permissions.includes('*'));
+  const fullAccess = selectedRole?.permissions.includes("*") ?? false;
 
   React.useEffect(() => {
     if (!selectedRole) return;
     setRoleForm({
       label: selectedRole.label,
       description: selectedRole.description,
-      isActive: selectedRole.isActive ?? true,
+      isActive: selectedRole.isActive,
     });
-  }, [selectedRole?.id, selectedRole?.label, selectedRole?.description, selectedRole?.isActive]);
+    setSelected(new Set());
+  }, [selectedRole?.id]);
 
-  React.useEffect(() => {
-    setSelectedAvailable(new Set());
-  }, [selectedRoleId]);
-
-  const roleDirty = Boolean(
+  const roleDirty =
     selectedRole &&
-      (roleForm.label.trim() !== selectedRole.label ||
-        roleForm.description.trim() !== selectedRole.description ||
-        roleForm.isActive !== (selectedRole.isActive ?? true))
+    (roleForm.label.trim() !== selectedRole.label ||
+      roleForm.description.trim() !== selectedRole.description ||
+      roleForm.isActive !== selectedRole.isActive);
+
+  const assignedPerms = fullAccess
+    ? []
+    : ALL_PERMISSIONS.filter((p) => selectedRole?.permissions.includes(p.key));
+  const availablePerms = fullAccess
+    ? []
+    : ALL_PERMISSIONS.filter((p) => !selectedRole?.permissions.includes(p.key));
+
+  const filteredAvailable = availablePerms.filter((p) => {
+    if (moduleFilter !== "all" && p.group !== moduleFilter) return false;
+    if (
+      featureSearch &&
+      !p.feature.toLowerCase().includes(featureSearch.toLowerCase()) &&
+      !p.key.toLowerCase().includes(featureSearch.toLowerCase())
+    )
+      return false;
+    return true;
+  });
+
+  const filteredAssigned = assignedPerms.filter((p) => {
+    if (!assignedSearch) return true;
+    return (
+      p.feature.toLowerCase().includes(assignedSearch.toLowerCase()) ||
+      p.key.toLowerCase().includes(assignedSearch.toLowerCase())
+    );
+  });
+
+  const filteredRoles = roles.filter(
+    (r) =>
+      !roleSearch || r.label.toLowerCase().includes(roleSearch.toLowerCase()),
   );
 
-  const roleUserCounts = React.useMemo(() => {
-    const counts = new Map<string, number>();
-    users.forEach((user) => {
-      counts.set(user.roleId, (counts.get(user.roleId) ?? 0) + 1);
-    });
-    return counts;
-  }, [users]);
+  const visibleKeys = filteredAvailable.map((p) => p.key);
+  const allVisSelected =
+    visibleKeys.length > 0 && visibleKeys.every((k) => selected.has(k));
+  const someVisSelected = visibleKeys.some((k) => selected.has(k));
 
-  const groupLabelMap = React.useMemo(
-    () => new Map(PERMISSION_GROUPS.map((group) => [group.id, group.label])),
-    []
-  );
-  const getGroupLabel = React.useCallback(
-    (groupId: string) => groupLabelMap.get(groupId) ?? toTitleCase(groupId),
-    [groupLabelMap]
-  );
+  const notify = (
+    message: string,
+    severity: "success" | "error" | "info" = "success",
+  ) => setSnackbar({ open: true, message, severity });
 
-  const permissionCatalog = React.useMemo<PermissionMeta[]>(() => {
-    const permissionSet = new Set<string>();
+  const updateRole = (id: string, patch: Partial<(typeof MOCK_ROLES)[0]>) =>
+    setRoles((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
-    roles.forEach((role) => role.permissions.forEach((perm) => permissionSet.add(perm)));
-    NAV_GROUPS.forEach((group) => {
-      group.items.forEach((item) => {
-        item.requiredPermissions?.forEach((perm) => permissionSet.add(perm));
-        item.children?.forEach((child) => {
-          child.requiredPermissions?.forEach((perm) => permissionSet.add(perm));
-        });
-      });
-    });
-    CLINICAL_MODULES.forEach((moduleDefinition) => {
-      (moduleDefinition.requiredPermissions ?? []).forEach((perm) => permissionSet.add(perm));
-    });
-    EXTRA_PERMISSIONS.forEach((perm) => permissionSet.add(perm));
-
-    permissionSet.delete('*');
-
-    return Array.from(permissionSet)
-      .filter(Boolean)
-      .map((permission) => {
-        const parts = permission.split('.');
-        const groupId = parts[0] ?? '';
-        const action = parts.length > 1 ? parts[parts.length - 1] : '';
-        const subjectParts = parts.length > 2 ? parts.slice(1, -1) : [];
-        const featureKey = subjectParts.join('.');
-        const featureLabel = featureKey ? toTitleCase(featureKey) : getGroupLabel(groupId);
-        const actionLabel = action ? (action === '*' ? 'All' : toTitleCase(action)) : '';
-
-        return {
-          key: permission,
-          groupId,
-          groupLabel: getGroupLabel(groupId),
-          featureKey,
-          featureLabel,
-          action,
-          actionLabel,
-          isWildcard: action === '*',
-        };
-      })
-      .sort((a, b) => {
-        const groupCompare = a.groupLabel.localeCompare(b.groupLabel);
-        if (groupCompare !== 0) return groupCompare;
-        const featureCompare = a.featureLabel.localeCompare(b.featureLabel);
-        if (featureCompare !== 0) return featureCompare;
-        const actionCompare = a.actionLabel.localeCompare(b.actionLabel);
-        if (actionCompare !== 0) return actionCompare;
-        return a.key.localeCompare(b.key);
-      });
-  }, [roles, getGroupLabel]);
-
-  const moduleOptions = React.useMemo(() => {
-    const map = new Map<string, string>();
-    permissionCatalog.forEach((perm) => {
-      if (!map.has(perm.groupId)) {
-        map.set(perm.groupId, perm.groupLabel);
-      }
-    });
-    return Array.from(map.entries())
-      .map(([id, label]) => ({ id, label }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [permissionCatalog]);
-
-  const availablePermissions = React.useMemo(() => {
-    if (!selectedRole) return [];
-    return permissionCatalog.filter((perm) => !hasPermission(selectedRole.permissions, perm.key));
-  }, [permissionCatalog, selectedRole]);
-
-  const assignedPermissions = React.useMemo(() => {
-    if (!selectedRole) return [];
-    const assigned = new Set(selectedRole.permissions);
-    return permissionCatalog.filter((perm) => assigned.has(perm.key));
-  }, [permissionCatalog, selectedRole]);
-
-  const filteredAvailable = React.useMemo(() => {
-    const featureQuery = featureSearch.trim().toLowerCase();
-    const privilegeQuery = privilegeSearch.trim().toLowerCase();
-
-    return availablePermissions.filter((perm) => {
-      if (moduleFilter !== 'all' && perm.groupId !== moduleFilter) return false;
-      if (featureQuery) {
-        const featureMatch =
-          perm.featureLabel.toLowerCase().includes(featureQuery) ||
-          perm.featureKey.toLowerCase().includes(featureQuery);
-        if (!featureMatch) return false;
-      }
-      if (privilegeQuery) {
-        const privilegeMatch =
-          perm.key.toLowerCase().includes(privilegeQuery) ||
-          perm.actionLabel.toLowerCase().includes(privilegeQuery);
-        if (!privilegeMatch) return false;
-      }
-      return true;
-    });
-  }, [availablePermissions, featureSearch, privilegeSearch, moduleFilter]);
-
-  const filteredAssigned = React.useMemo(() => {
-    const query = assignedSearch.trim().toLowerCase();
-    if (!query) return assignedPermissions;
-    return assignedPermissions.filter((perm) => {
-      return (
-        perm.groupLabel.toLowerCase().includes(query) ||
-        perm.featureLabel.toLowerCase().includes(query) ||
-        perm.key.toLowerCase().includes(query)
-      );
-    });
-  }, [assignedPermissions, assignedSearch]);
-
-  const visibleAvailableKeys = React.useMemo(
-    () => filteredAvailable.map((perm) => perm.key),
-    [filteredAvailable]
-  );
-
-  const allVisibleSelected =
-    visibleAvailableKeys.length > 0 && visibleAvailableKeys.every((key) => selectedAvailable.has(key));
-  const someVisibleSelected = visibleAvailableKeys.some((key) => selectedAvailable.has(key));
-
-  const filteredRoles = React.useMemo(() => {
-    const query = roleSearch.trim().toLowerCase();
-    if (!query) return roles;
-    return roles.filter((role) => {
-      return role.label.toLowerCase().includes(query) || role.id.toLowerCase().includes(query);
-    });
-  }, [roles, roleSearch]);
-
-  const handleToggleFullAccess = () => {
-    if (!selectedRole) return;
-    if (selectedRole.permissions.includes('*')) {
-      updateRole(selectedRole.id, { permissions: [] });
-    } else {
-      updateRole(selectedRole.id, { permissions: ['*'] });
-    }
-  };
-
-  const handleSaveRole = () => {
-    if (!selectedRole) return;
-    if (!roleForm.label.trim()) {
-      setSnackbar({ open: true, message: 'Role name is required.', severity: 'error' });
-      return;
-    }
-    updateRole(selectedRole.id, {
+  const handleSave = () => {
+    if (!roleForm.label.trim())
+      return notify("Role name is required.", "error");
+    updateRole(selectedRole!.id, {
       label: roleForm.label,
       description: roleForm.description,
       isActive: roleForm.isActive,
     });
-    setSnackbar({ open: true, message: 'Role updated successfully.', severity: 'success' });
+    notify("Role updated successfully.");
   };
 
-  const handleOpenCreate = () => {
-    setCreateDraft({
-      label: '',
-      description: '',
-      cloneFromId: selectedRole?.id ?? roles[0]?.id ?? '',
-    });
-    setCreateDialogOpen(true);
-  };
+  const handleToggleFullAccess = () =>
+    updateRole(selectedRole!.id, { permissions: fullAccess ? [] : ["*"] });
 
-  const handleCreateRole = () => {
-    if (!createDraft.label.trim()) {
-      setSnackbar({ open: true, message: 'Role name is required.', severity: 'error' });
-      return;
-    }
-    const newRoleId = addRole({
-      label: createDraft.label,
-      description: createDraft.description,
-      cloneFromId: createDraft.cloneFromId || undefined,
-    });
-    if (newRoleId) {
-      setSelectedRoleId(newRoleId);
-      setCreateDialogOpen(false);
-      setSnackbar({ open: true, message: 'New role created.', severity: 'success' });
-      return;
-    }
-    setSnackbar({ open: true, message: 'Unable to create role.', severity: 'error' });
-  };
-
-  const handleOpenDelete = () => {
-    if (!selectedRole || selectedRole.isSystem) return;
-    setDeleteReassignRoleId(
-      roles.find((item) => item.id === 'HOSPITAL_ADMIN')?.id ??
-        roles.find((item) => item.id !== selectedRole.id)?.id ??
-        ''
-    );
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteRole = () => {
-    if (!selectedRole || selectedRole.isSystem) return;
-    deleteRole(selectedRole.id, deleteReassignRoleId);
-    setSnackbar({ open: true, message: 'Role removed and users reassigned.', severity: 'info' });
-    setDeleteDialogOpen(false);
-    setSelectedRoleId('');
-  };
-
-  const toggleAvailablePermission = (permissionKey: string) => {
-    setSelectedAvailable((prev) => {
-      const next = new Set(prev);
-      if (next.has(permissionKey)) {
-        next.delete(permissionKey);
-      } else {
-        next.add(permissionKey);
-      }
-      return next;
-    });
-  };
-
-  const handleSelectAll = () => {
-    setSelectedAvailable((prev) => {
-      const next = new Set(prev);
-      if (allVisibleSelected) {
-        visibleAvailableKeys.forEach((key) => next.delete(key));
-      } else {
-        visibleAvailableKeys.forEach((key) => next.add(key));
-      }
-      return next;
-    });
-  };
-
-  const handleAssignPrivileges = () => {
-    if (!selectedRole || !canManageRoles || selectedAvailable.size === 0) return;
+  const handleAssign = () => {
+    if (!selectedRole || selected.size === 0) return;
     const next = new Set(selectedRole.permissions);
-    selectedAvailable.forEach((permission) => next.add(permission));
+    selected.forEach((k) => next.add(k));
     updateRole(selectedRole.id, { permissions: Array.from(next) });
-    setSelectedAvailable(new Set());
-    setSnackbar({ open: true, message: 'Privileges assigned successfully.', severity: 'success' });
+    setSelected(new Set());
+    notify("Privileges assigned successfully.");
   };
 
-  const handleRemovePrivilege = (permissionKey: string) => {
-    if (!selectedRole || !canManageRoles) return;
-    const next = new Set(selectedRole.permissions);
-    if (!next.has(permissionKey)) return;
-    next.delete(permissionKey);
-    updateRole(selectedRole.id, { permissions: Array.from(next) });
+  const handleRemove = (key: string) => {
+    if (!selectedRole) return;
+    updateRole(selectedRole.id, {
+      permissions: selectedRole.permissions.filter((p) => p !== key),
+    });
   };
 
+  const handleCreate = () => {
+    if (!createDraft.label.trim())
+      return notify("Role name is required.", "error");
+    const id =
+      createDraft.label.toUpperCase().replace(/\s+/g, "_") + "_" + Date.now();
+    const cloneFrom = roles.find((r) => r.id === createDraft.cloneFromId);
+    setRoles((prev) => [
+      ...prev,
+      {
+        id,
+        label: createDraft.label,
+        description: createDraft.description,
+        isSystem: false,
+        isActive: true,
+        permissions: cloneFrom ? [...cloneFrom.permissions] : [],
+      },
+    ]);
+    setSelectedRoleId(id);
+    setCreateOpen(false);
+    notify("New role created.");
+  };
+
+  const handleDelete = () => {
+    if (!selectedRole || selectedRole.isSystem) return;
+    setRoles((prev) => prev.filter((r) => r.id !== selectedRole.id));
+    setSelectedRoleId(roles.find((r) => r.id !== selectedRole.id)?.id ?? "");
+    setDeleteOpen(false);
+    notify("Role deleted.", "info");
+  };
+
+  const groups = Array.from(
+    new Set(ALL_PERMISSIONS.map((p) => p.group)),
+  ).sort();
+  const totalRoles = roles.length;
+  const activeRoles = roles.filter((r) => r.isActive).length;
+  const systemRoles = roles.filter((r) => r.isSystem).length;
+  const customRoles = roles.filter((r) => !r.isSystem).length;
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <PageTemplate title="Role Management" subtitle={undefined} currentPageTitle="Role Management" fullHeight>
-      <Stack spacing={2} sx={{ flex: 1, minHeight: 0, height: '100%', overflow: 'hidden' }}>
-        <Box sx={{ flexShrink: 0 }}>
+    <PageShell>
+        {/* Header */}
+        <WorkspaceHeaderCard sx={{ mb: 2 }}>
           <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={1}
-            alignItems={{ xs: 'flex-start', md: 'center' }}
+            direction="row"
+            alignItems="center"
             justifyContent="space-between"
           >
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Role Details
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Update role information and access status
-              </Typography>
-            </Box>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Button size="small" variant="outlined" onClick={() => setRolesDialogOpen(true)}>
-                View All
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 2.5,
+                  background: "#1172BA",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 3px 10px rgba(59,125,216,0.32)",
+                }}
+              >
+                <AdminPanelSettingsIcon sx={{ color: "#fff", fontSize: 20 }} />
+              </Box>
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: "primary.main",
+                    lineHeight: 1.15,
+                    fontSize: "1rem",
+                    fontWeight: 800,
+                  }}
+                >
+                  Role Management
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Manage roles &amp; assign granular permissions
+                </Typography>
+              </Box>
+            </Stack>
+
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => setViewAllOpen(true)}
+                sx={{
+                  borderColor: "rgba(17, 114, 186, 0.24)",
+                  color: "#6B7A99",
+                  fontSize: "0.77rem",
+                  "&:hover": {
+                    borderColor: "#3B7DD8",
+                    color: "#3B7DD8",
+                    bgcolor: alpha("#3B7DD8", 0.04),
+                  },
+                }}
+              >
+                View All Roles
               </Button>
               <Button
-                size="small"
                 variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleOpenCreate}
-                disabled={!canManageRoles}
+                size="small"
+                startIcon={<AddIcon sx={{ fontSize: 15 }} />}
+                onClick={() => {
+                  setCreateDraft({
+                    label: "",
+                    description: "",
+                    cloneFromId: selectedRole?.id ?? "",
+                  });
+                  setCreateOpen(true);
+                }}
+                sx={{ bgcolor: "#1172BA", fontSize: "0.77rem" }}
               >
                 Create Role
               </Button>
             </Stack>
           </Stack>
-          <Grid container spacing={1.5} alignItems="center" sx={{ mt: 0.5 }}>
-            <Grid item xs={12} md={3}>
-              <TextField
-                select
-                size="small"
-                label="Role"
-                value={selectedRole?.id ?? ''}
-                onChange={(event) => setSelectedRoleId(event.target.value)}
-              >
-                {roles.map((role) => (
-                  <MenuItem key={role.id} value={role.id}>
-                    {role.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <TextField
-                size="small"
-                label="Role Name"
-                placeholder="e.g., Finance"
-                value={roleForm.label}
-                onChange={(event) => setRoleForm((prev) => ({ ...prev, label: event.target.value }))}
-                disabled={!selectedRole || !canManageRoles}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                size="small"
-                label="Description"
-                placeholder="Describe this role"
-                value={roleForm.description}
-                onChange={(event) => setRoleForm((prev) => ({ ...prev, description: event.target.value }))}
-                disabled={!selectedRole || !canManageRoles}
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Stack direction="row" spacing={2} alignItems="center">
+        </WorkspaceHeaderCard>
+
+        {/* Stat cards — replaced with StatTile */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, 1fr)",
+              lg: "repeat(4, 1fr)",
+            },
+            gap: 2,
+            mb: 2,
+          }}
+        >
+          {[
+            {
+              label: "Total Roles",
+              value: totalRoles,
+              tone: "info",
+              icon: <ListAltIcon />,
+            },
+            {
+              label: "Custom",
+              value: customRoles,
+              tone: "warning",
+              icon: <AccessTimeIcon />,
+            },
+            {
+              label: "Active",
+              value: activeRoles,
+              tone: "success",
+              icon: <CheckCircleOutlineIcon />,
+            },
+            {
+              label: "System",
+              value: systemRoles,
+              tone: "error",
+              icon: <CancelOutlinedIcon />,
+            },
+          ].map((s) => (
+            <StatTile
+              key={s.label}
+              label={s.label}
+              value={s.value}
+              tone={s.tone as any}
+              icon={s.icon}
+              variant="soft"
+            />
+          ))}
+        </Box>
+
+        {/* Role config card */}
+        <Card sx={{ mb: 2, p: 2 }}>
+          <Stack direction="row" alignItems="flex-start" justifyContent="space-between" mb={1.5}>
+            <Box>
+              <SectionTag>Role Configuration</SectionTag>
+              <Typography variant="subtitle2" sx={{ color: '#1A2332', fontSize: '0.84rem' }}>
+                Update role details and access level
+              </Typography>
+            </Box>
+            {selectedRole && (
+              <Stack direction="row" spacing={0.75}>
+                <Chip size="small" label={selectedRole.isSystem ? 'System' : 'Custom'}
+                  sx={{ bgcolor: alpha(selectedRole.isSystem ? '#7C5CFC' : '#3B7DD8', 0.1),
+                        color: selectedRole.isSystem ? '#7C5CFC' : '#3B7DD8',
+                        border: `1px solid ${alpha(selectedRole.isSystem ? '#7C5CFC' : '#3B7DD8', 0.2)}` }} />
+                <Chip size="small" label={selectedRole.isActive ? 'Active' : 'Inactive'}
+                  sx={{ bgcolor: alpha(selectedRole.isActive ? '#10B981' : '#94A3B8', 0.1),
+                        color: selectedRole.isActive ? '#10B981' : '#94A3B8',
+                        border: `1px solid ${alpha(selectedRole.isActive ? '#10B981' : '#94A3B8', 0.2)}` }} />
+                {fullAccess && (
+                  <Chip size="small" label="Full Access"
+                    sx={{ bgcolor: alpha('#F59E0B', 0.1), color: '#D97706', border: `1px solid ${alpha('#F59E0B', 0.25)}` }} />
+                )}
+              </Stack>
+            )}
+          </Stack>
+
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25} alignItems={{ md: 'center' }}>
+            <TextField
+              select label="Role"
+              value={selectedRole?.id ?? ''}
+              onChange={(e) => setSelectedRoleId(e.target.value)}
+              InputProps={{ startAdornment: <InputAdornment position="start"><ShieldIcon sx={{ fontSize: 14, color: '#9BAAC3' }} /></InputAdornment> }}
+            >
+              {roles.map((r) => (
+                <MenuItem key={r.id} value={r.id}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: r.isActive ? '#10B981' : '#CBD5E1', flexShrink: 0 }} />
+                    <Typography variant="body2">{r.label}</Typography>
+                  </Stack>
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              label="Role Name" placeholder="e.g., Finance Manager"
+              value={roleForm.label}
+              onChange={(e) =>
+                setRoleForm((p) => ({ ...p, label: e.target.value }))
+              }
+              disabled={!selectedRole}
+            />
+
+            <TextField
+              label="Description"
+              placeholder="Describe key responsibilities"
+              value={roleForm.description}
+              onChange={(e) =>
+                setRoleForm((p) => ({ ...p, description: e.target.value }))
+              }
+              disabled={!selectedRole}
+              sx={{ flex: 1 }}
+            />
+
+            <Stack direction="row" alignItems="center">
+              <Tooltip title="Active roles can be assigned to users">
                 <FormControlLabel
+                  sx={{ mr: 0.5 }}
                   control={
                     <Switch
+                      size="small"
                       checked={roleForm.isActive}
-                      onChange={(event) =>
-                        setRoleForm((prev) => ({ ...prev, isActive: event.target.checked }))
+                      onChange={(e) =>
+                        setRoleForm((p) => ({
+                          ...p,
+                          isActive: e.target.checked,
+                        }))
                       }
-                      disabled={!selectedRole || !canManageRoles}
+                      disabled={!selectedRole}
                     />
                   }
-                  label="Active"
+                  label={
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        color: "#4B5E82",
+                        fontSize: "0.77rem",
+                      }}
+                    >
+                      Active
+                    </Typography>
+                  }
                 />
+              </Tooltip>
+              <Tooltip title="Grant unrestricted access to all features">
                 <FormControlLabel
+                  sx={{ mr: 0 }}
                   control={
                     <Checkbox
                       size="small"
                       checked={fullAccess}
                       onChange={handleToggleFullAccess}
-                      disabled={!selectedRole || !canManageRoles}
+                      disabled={!selectedRole}
+                      sx={{ "&.Mui-checked": { color: "#F59E0B" } }}
                     />
                   }
-                  label="Full Access"
+                  label={
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        color: "#4B5E82",
+                        fontSize: "0.77rem",
+                      }}
+                    >
+                      Full Access
+                    </Typography>
+                  }
                 />
-              </Stack>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              {selectedRole ? (
-                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                  <Chip
-                    size="small"
-                    label={selectedRole.isSystem ? 'System role' : 'Custom role'}
-                    variant="outlined"
-                  />
-                  <Chip
-                    size="small"
-                    label={`${roleUserCounts.get(selectedRole.id) ?? 0} users`}
-                    variant="outlined"
-                  />
-                  {fullAccess ? <Chip size="small" label="Full access" color="success" /> : null}
-                </Stack>
-              ) : null}
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Stack direction="row" spacing={1} alignItems="center" justifyContent={{ md: 'flex-end' }}>
-                <Button
-                  variant="contained"
-                  onClick={handleSaveRole}
-                  disabled={!selectedRole || !canManageRoles || !roleDirty}
-                >
-                  Save
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  startIcon={<DeleteIcon />}
-                  onClick={handleOpenDelete}
-                  disabled={!selectedRole || selectedRole.isSystem || !canManageRoles}
-                >
-                  Delete
-                </Button>
-              </Stack>
-            </Grid>
-          </Grid>
-        </Box>
+              </Tooltip>
+            </Stack>
 
-        <Grid
-          container
-          spacing={2}
-          sx={{
-            flex: '1 1 0',
-            minHeight: 0,
-            alignItems: 'stretch',
-            flexWrap: 'nowrap',
-            overflow: 'hidden',
-          }}
-        >
-          <Grid item xs={6} md={6} sx={{ minHeight: 0, height: '100%', display: 'flex', minWidth: 0 }}>
-            <Box
-              sx={{
-                flex: 1,
-                minHeight: 0,
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <Box sx={{ pb: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Assign Privileges
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Select features and attach to this role
-                </Typography>
-              </Box>
-              <Box
+            <Stack direction="row" spacing={0.75} flexShrink={0}>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleSave}
+                disabled={!selectedRole || !roleDirty}
+                sx={{ px: 2, bgcolor: "#3B7DD8", fontSize: "0.77rem" }}
+              >
+                Save
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                color="error"
+                startIcon={<DeleteIcon sx={{ fontSize: 14 }} />}
+                onClick={() => {
+                  setReassignTo(
+                    roles.find((r) => r.id !== selectedRole?.id)?.id ?? "",
+                  );
+                  setDeleteOpen(true);
+                }}
+                disabled={!selectedRole || selectedRole.isSystem}
                 sx={{
-                  flex: 1,
-                  minHeight: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 1.5,
-                  overflow: 'hidden',
+                  fontSize: "0.77rem",
+                  borderColor: alpha("#EF4444", 0.35),
+                  "&:hover": {
+                    borderColor: "#EF4444",
+                    bgcolor: alpha("#EF4444", 0.04),
+                  },
                 }}
               >
-                <Grid container spacing={1} alignItems="center">
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      select
-                      size="small"
-                      label="Module"
-                      value={moduleFilter}
-                      onChange={(event) => setModuleFilter(event.target.value)}
-                      disabled={!selectedRole}
-                    >
-                      <MenuItem value="all">All modules</MenuItem>
-                      {moduleOptions.map((module) => (
-                        <MenuItem key={module.id} value={module.id}>
-                          {module.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      size="small"
-                      label="Feature"
-                      placeholder="Search feature"
-                      value={featureSearch}
-                      onChange={(event) => setFeatureSearch(event.target.value)}
-                      disabled={!selectedRole}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      size="small"
-                      label="Privileges"
-                      placeholder="Search privilege"
-                      value={privilegeSearch}
-                      onChange={(event) => setPrivilegeSearch(event.target.value)}
-                      disabled={!selectedRole}
-                    />
-                  </Grid>
-                </Grid>
+                Delete
+              </Button>
+            </Stack>
+          </Stack>
+        </Card>
 
-                {!selectedRole ? (
-                  <Alert severity="info">Select a role to manage privileges.</Alert>
-                ) : null}
-                {fullAccess ? (
-                  <Alert severity="info">Full access enabled. Disable it to assign granular privileges.</Alert>
-                ) : null}
-
-                <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', overflow: 'hidden' }}>
-                  <TableContainer
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      flex: 1,
-                      minHeight: 0,
-                      height: '100%',
-                      overflow: 'auto',
-                      '& .MuiTableCell-root': { py: 0.75 },
-                    }}
+        {/* Two-column permissions */}
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          sx={{ height: 600 }}
+        >
+          {/* Left — Available */}
+          <Card
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+          >
+            <Box
+              sx={{
+                px: 2,
+                pt: 1.75,
+                pb: 1.5,
+                borderBottom: "1px solid #F0F4FA",
+              }}
+            >
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                mb={1}
+              >
+                <Box>
+                  <SectionTag>Available Privileges</SectionTag>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ color: "#1A2332", fontSize: "0.82rem" }}
                   >
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 700, width: 70 }}>Select</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Feature</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Privileges</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {filteredAvailable.map((permission) => (
-                          <TableRow key={permission.key}>
-                            <TableCell align="center">
+                    Select &amp; assign to{" "}
+                    <strong>{selectedRole?.label}</strong>
+                  </Typography>
+                </Box>
+                <Chip
+                  size="small"
+                  label={`${filteredAvailable.length} available`}
+                  sx={{
+                    bgcolor: alpha("#3B7DD8", 0.08),
+                    color: "#3B7DD8",
+                    border: `1px solid ${alpha("#3B7DD8", 0.15)}`,
+                  }}
+                />
+              </Stack>
+
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  select
+                  label="Module"
+                  value={moduleFilter}
+                  onChange={(e) => setModuleFilter(e.target.value)}
+                  disabled={!selectedRole || fullAccess}
+                  sx={{ flex: "0 0 44%" }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <FilterListIcon
+                          sx={{ fontSize: 14, color: "#9BAAC3" }}
+                        />
+                      </InputAdornment>
+                    ),
+                  }}
+                >
+                  <MenuItem value="all">
+                    <Typography variant="body2">All Modules</Typography>
+                  </MenuItem>
+                  {groups.map((g) => (
+                    <MenuItem key={g} value={g}>
+                      <Typography variant="body2">{toLabel(g)}</Typography>
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                fullWidth
+                  label="Search"
+                  placeholder="Feature or key..."
+                  value={featureSearch}
+                  onChange={(e) => setFeatureSearch(e.target.value)}
+                  disabled={!selectedRole || fullAccess}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ fontSize: 14, color: "#9BAAC3" }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Stack>
+            </Box>
+
+            {fullAccess && (
+              <Alert
+                severity="info"
+                icon={false}
+                sx={{
+                  m: 1.5,
+                  py: 0.75,
+                  borderRadius: 2,
+                  fontSize: "0.77rem",
+                  bgcolor: alpha("#3B7DD8", 0.06),
+                  color: "#2563EB",
+                  border: `1px solid ${alpha("#3B7DD8", 0.15)}`,
+                }}
+              >
+                Full access enabled — disable to assign granular privileges.
+              </Alert>
+            )}
+
+            <ScrollBox sx={{ flex: 1 }}>
+              <TableContainer>
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ width: 44, px: 1.5 }}>
+                        <Checkbox
+                          size="small"
+                          checked={allVisSelected}
+                          indeterminate={!allVisSelected && someVisSelected}
+                          onChange={() => {
+                            const next = new Set(selected);
+                            if (allVisSelected)
+                              visibleKeys.forEach((k) => next.delete(k));
+                            else visibleKeys.forEach((k) => next.add(k));
+                            setSelected(next);
+                          }}
+                          disabled={
+                            !selectedRole ||
+                            fullAccess ||
+                            filteredAvailable.length === 0
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>Feature</TableCell>
+                      <TableCell>Permission Key</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredAvailable.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={3}
+                          sx={{ textAlign: "center", py: 5 }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            {fullAccess
+                              ? "Full access active"
+                              : "No permissions available"}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredAvailable.map((perm) => {
+                        const color = GROUP_COLORS[perm.group] ?? "#6B7A99";
+                        const isChecked = selected.has(perm.key);
+                        return (
+                          <TableRow
+                            key={perm.key}
+                            selected={isChecked}
+                            sx={{ cursor: "pointer" }}
+                            onClick={() => {
+                              const next = new Set(selected);
+                              next.has(perm.key)
+                                ? next.delete(perm.key)
+                                : next.add(perm.key);
+                              setSelected(next);
+                            }}
+                          >
+                            <TableCell
+                              sx={{ px: 1.5 }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <Checkbox
                                 size="small"
-                                checked={selectedAvailable.has(permission.key)}
-                                onChange={() => toggleAvailablePermission(permission.key)}
-                                disabled={!selectedRole || fullAccess || !canManageRoles}
+                                checked={isChecked}
+                                onChange={() => {
+                                  const next = new Set(selected);
+                                  next.has(perm.key)
+                                    ? next.delete(perm.key)
+                                    : next.add(perm.key);
+                                  setSelected(next);
+                                }}
+                                disabled={!selectedRole || fullAccess}
                               />
                             </TableCell>
                             <TableCell>
-                              <Stack spacing={0.25}>
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                  {permission.featureLabel}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {permission.groupLabel}
-                                </Typography>
+                              <Stack
+                                direction="row"
+                                alignItems="center"
+                                spacing={1}
+                              >
+                                <Box
+                                  sx={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: "50%",
+                                    bgcolor: color,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <Box>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 600, color: "#1A2332" }}
+                                  >
+                                    {perm.feature}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ color, fontWeight: 600 }}
+                                  >
+                                    {toLabel(perm.group)}
+                                  </Typography>
+                                </Box>
                               </Stack>
                             </TableCell>
                             <TableCell>
-                              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                                  {permission.key}
-                                </Typography>
-                                {permission.isWildcard ? (
-                                  <Chip size="small" label="Wildcard" variant="outlined" />
-                                ) : null}
-                              </Stack>
+                              <MonoTag>{perm.key}</MonoTag>
                             </TableCell>
                           </TableRow>
-                        ))}
-                        {filteredAvailable.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={3}>
-                              <Typography variant="body2" color="text.secondary">
-                                Select a module or search to load available privileges.
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        ) : null}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Box>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </ScrollBox>
 
-                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={allVisibleSelected}
-                        indeterminate={!allVisibleSelected && someVisibleSelected}
-                        onChange={handleSelectAll}
-                        disabled={!selectedRole || fullAccess || filteredAvailable.length === 0 || !canManageRoles}
-                      />
-                    }
-                    label="Select All"
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={handleAssignPrivileges}
-                    disabled={!selectedRole || fullAccess || selectedAvailable.size === 0 || !canManageRoles}
-                  >
-                    Assign Privileges
-                  </Button>
-                </Stack>
-              </Box>
-            </Box>
-          </Grid>
-
-          <Grid item xs={6} md={6} sx={{ minHeight: 0, height: '100%', display: 'flex', minWidth: 0 }}>
             <Box
               sx={{
-                flex: 1,
-                minHeight: 0,
-                display: 'flex',
-                flexDirection: 'column',
+                px: 2,
+                py: 1.25,
+                borderTop: "1px solid #F0F4FA",
+                bgcolor: "#FAFBFD",
               }}
             >
-              <Box sx={{ pb: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Configured Privileges
-                </Typography>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+              >
                 <Typography variant="caption" color="text.secondary">
-                  Privileges already granted
+                  {selected.size > 0
+                    ? `${selected.size} privilege${selected.size > 1 ? "s" : ""} selected`
+                    : "Check rows to select"}
                 </Typography>
-              </Box>
-              <Box
+                <Button
+                  variant="contained"
+                  size="small"
+                  endIcon={<ArrowForwardIcon sx={{ fontSize: 14 }} />}
+                  onClick={handleAssign}
+                  disabled={!selectedRole || fullAccess || selected.size === 0}
+                  sx={{ bgcolor: "#3B7DD8", fontSize: "0.76rem", px: 1.75 }}
+                >
+                  Assign{selected.size > 0 ? ` (${selected.size})` : ""}
+                </Button>
+              </Stack>
+            </Box>
+          </Card>
+
+          {/* Right — Configured */}
+          <Card
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+          >
+            <Box
+              sx={{
+                px: 2,
+                pt: 1.75,
+                pb: 1.5,
+                borderBottom: "1px solid #F0F4FA",
+              }}
+            >
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                mb={1}
+              >
+                <Box>
+                  <SectionTag>Configured Privileges</SectionTag>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ color: "#1A2332", fontSize: "0.82rem" }}
+                  >
+                    Currently granted to <strong>{selectedRole?.label}</strong>
+                  </Typography>
+                </Box>
+                <Chip
+                  size="small"
+                  label={
+                    fullAccess
+                      ? "Full Access"
+                      : `${assignedPerms.length} granted`
+                  }
+                  sx={{
+                    bgcolor: fullAccess
+                      ? alpha("#F59E0B", 0.12)
+                      : alpha("#10B981", 0.1),
+                    color: fullAccess ? "#D97706" : "#10B981",
+                    border: `1px solid ${alpha(fullAccess ? "#F59E0B" : "#10B981", 0.22)}`,
+                    fontWeight: 700,
+                  }}
+                />
+              </Stack>
+              <TextField
+                placeholder="Search assigned privileges..."
+                value={assignedSearch}
+                fullWidth
+                onChange={(e) => setAssignedSearch(e.target.value)}
+                disabled={!selectedRole || fullAccess}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ fontSize: 14, color: "#9BAAC3" }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Box>
+
+            {fullAccess && (
+              <Alert
+                severity="warning"
+                icon={false}
                 sx={{
-                  flex: 1,
-                  minHeight: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 1.5,
-                  overflow: 'hidden',
+                  m: 1.5,
+                  py: 0.75,
+                  borderRadius: 2,
+                  fontSize: "0.77rem",
+                  bgcolor: alpha("#F59E0B", 0.08),
+                  color: "#92400E",
+                  border: `1px solid ${alpha("#F59E0B", 0.25)}`,
                 }}
               >
-                <TextField
-                  size="small"
-                  label="Search"
-                  placeholder="Search assigned privileges"
-                  value={assignedSearch}
-                  onChange={(event) => setAssignedSearch(event.target.value)}
-                  disabled={!selectedRole}
-                />
+                Full access grants all permissions including future ones.
+              </Alert>
+            )}
 
-                {fullAccess ? (
-                  <Alert severity="info">Full access enabled. Disable it to manage assigned privileges.</Alert>
-                ) : null}
-
-                <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', overflow: 'hidden' }}>
-                  <TableContainer
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      flex: 1,
-                      minHeight: 0,
-                      height: '100%',
-                      overflow: 'auto',
-                      '& .MuiTableCell-root': { py: 0.75 },
-                    }}
-                  >
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 700 }}>Module</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Feature</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Privileges</TableCell>
-                          <TableCell sx={{ fontWeight: 700, width: 60 }} />
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {filteredAssigned.map((permission) => (
-                          <TableRow key={permission.key}>
+            <ScrollBox sx={{ flex: 1 }}>
+              <TableContainer>
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Module</TableCell>
+                      <TableCell>Feature</TableCell>
+                      <TableCell>Key</TableCell>
+                      <TableCell sx={{ width: 44 }} />
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredAssigned.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          sx={{ textAlign: "center", py: 5 }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            {fullAccess
+                              ? "Full access — all permissions granted"
+                              : "No privileges assigned yet"}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredAssigned.map((perm) => {
+                        const color = GROUP_COLORS[perm.group] ?? "#6B7A99";
+                        return (
+                          <TableRow key={perm.key}>
                             <TableCell>
-                              <Typography variant="body2">{permission.groupLabel}</Typography>
+                              <GroupTag accent={color}>
+                                {toLabel(perm.group)}
+                              </GroupTag>
                             </TableCell>
                             <TableCell>
-                              <Typography variant="body2">{permission.featureLabel}</Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                                  {permission.key}
-                                </Typography>
-                                {permission.isWildcard ? (
-                                  <Chip size="small" label="Wildcard" variant="outlined" />
-                                ) : null}
-                              </Stack>
-                            </TableCell>
-                            <TableCell align="center">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleRemovePrivilege(permission.key)}
-                                disabled={!selectedRole || fullAccess || !canManageRoles}
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600, color: "#1A2332" }}
                               >
-                                <CloseIcon fontSize="small" />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {filteredAssigned.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4}>
-                              <Typography variant="body2" color="text.secondary">
-                                No privileges assigned yet.
+                                {perm.feature}
                               </Typography>
                             </TableCell>
+                            <TableCell>
+                              <MonoTag>{perm.key}</MonoTag>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Tooltip title="Remove privilege">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleRemove(perm.key)}
+                                  disabled={!selectedRole || fullAccess}
+                                  sx={{
+                                    width: 24,
+                                    height: 24,
+                                    color: "#C4CEDE",
+                                    "&:hover": {
+                                      color: "#EF4444",
+                                      bgcolor: alpha("#EF4444", 0.08),
+                                    },
+                                  }}
+                                >
+                                  <CloseIcon sx={{ fontSize: 14 }} />
+                                </IconButton>
+                              </Tooltip>
+                            </TableCell>
                           </TableRow>
-                        ) : null}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Box>
-              </Box>
-            </Box>
-          </Grid>
-        </Grid>
-      </Stack>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </ScrollBox>
 
-      <CommonDialog
-        open={rolesDialogOpen}
-        onClose={() => setRolesDialogOpen(false)}
-        title="All Roles"
-        maxWidth="sm"
-        content={
-          <Stack spacing={1.5} sx={{ mt: 1 }}>
+            {!fullAccess && filteredAssigned.length > 0 && (
+              <Box
+                sx={{
+                  px: 2,
+                  py: 1.25,
+                  borderTop: "1px solid #F0F4FA",
+                  bgcolor: "#FAFBFD",
+                }}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  {filteredAssigned.length} privilege
+                  {filteredAssigned.length !== 1 ? "s" : ""} configured
+                </Typography>
+              </Box>
+            )}
+          </Card>
+        </Stack>
+
+        {/* ── Dialogs ── */}
+
+        {/* View All */}
+        <Dialog
+          open={viewAllOpen}
+          onClose={() => setViewAllOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ pb: 0.5 }}>
+            <Typography variant="h6" sx={{ fontSize: "1rem" }}>
+              All Roles
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {roles.length} roles configured
+            </Typography>
+          </DialogTitle>
+          <DialogContent>
             <TextField
-              size="small"
-              placeholder="Search roles"
+              placeholder="Search roles..."
               value={roleSearch}
-              onChange={(event) => setRoleSearch(event.target.value)}
+              onChange={(e) => setRoleSearch(e.target.value)}
+              sx={{ mb: 1.5, mt: 1 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ fontSize: 14, color: "#9BAAC3" }} />
+                  </InputAdornment>
+                ),
+              }}
             />
             <List
               dense
               sx={{
-                border: '1px solid',
-                borderColor: 'divider',
+                bgcolor: "#F7F9FD",
                 borderRadius: 2,
-                maxHeight: 360,
-                overflow: 'auto',
+                border: "1px solid #E3EAF3",
+                p: 0.5,
               }}
             >
               {filteredRoles.map((role) => (
@@ -876,134 +1254,219 @@ export default function RolesPermissionsPage() {
                   selected={role.id === selectedRole?.id}
                   onClick={() => {
                     setSelectedRoleId(role.id);
-                    setRolesDialogOpen(false);
+                    setViewAllOpen(false);
                   }}
+                  sx={{ borderRadius: 2, mb: 0.25, py: 0.75 }}
                 >
-                  <ListItemText
-                    primary={role.label}
-                    secondary={`${role.isSystem ? 'System' : 'Custom'} · ${
-                      roleUserCounts.get(role.id) ?? 0
-                    } users`}
+                  <Box
+                    sx={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      bgcolor: role.isActive ? "#10B981" : "#CBD5E1",
+                      mr: 1.5,
+                      flexShrink: 0,
+                    }}
                   />
-                  {role.permissions.includes('*') ? (
-                    <Chip size="small" label="Full access" color="success" />
-                  ) : (
-                    <Chip size="small" label={`${role.permissions.length} perms`} variant="outlined" />
-                  )}
+                  <ListItemText
+                    primary={
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {role.label}
+                      </Typography>
+                    }
+                    secondary={
+                      <Typography variant="caption" color="text.secondary">
+                        {role.description}
+                      </Typography>
+                    }
+                  />
+                  <Chip
+                    size="small"
+                    label={
+                      role.permissions.includes("*")
+                        ? "Full Access"
+                        : `${role.permissions.length} perms`
+                    }
+                    sx={{
+                      ml: 1,
+                      bgcolor: role.permissions.includes("*")
+                        ? alpha("#F59E0B", 0.1)
+                        : "#F4F7FB",
+                      color: role.permissions.includes("*")
+                        ? "#D97706"
+                        : "#6B7A99",
+                      border: `1px solid ${role.permissions.includes("*") ? alpha("#F59E0B", 0.25) : "#E3EAF3"}`,
+                    }}
+                  />
                 </ListItemButton>
               ))}
-              {filteredRoles.length === 0 ? (
-                <Box sx={{ px: 2, py: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No roles found.
-                  </Typography>
-                </Box>
-              ) : null}
             </List>
-          </Stack>
-        }
-        actions={
-          <Button variant="text" onClick={() => setRolesDialogOpen(false)}>
-            Close
-          </Button>
-        }
-      />
-
-      <CommonDialog
-        open={createDialogOpen}
-        onClose={() => setCreateDialogOpen(false)}
-        title="Create New Role"
-        maxWidth="sm"
-        content={
-          <Stack spacing={1.5} sx={{ mt: 1 }}>
-            <TextField
-              label="Role Name"
-              placeholder="e.g., Quality Reviewer"
-              value={createDraft.label}
-              onChange={(event) => setCreateDraft((prev) => ({ ...prev, label: event.target.value }))}
-            />
-            <TextField
-              label="Role Description"
-              placeholder="Describe the key responsibility"
-              value={createDraft.description}
-              onChange={(event) => setCreateDraft((prev) => ({ ...prev, description: event.target.value }))}
-            />
-            <TextField
-              select
-              label="Clone Permissions From"
-              value={createDraft.cloneFromId}
-              onChange={(event) => setCreateDraft((prev) => ({ ...prev, cloneFromId: event.target.value }))}
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setViewAllOpen(false)}
+              sx={{ borderColor: "#E3EAF3", color: "#6B7A99" }}
             >
-              {roles.map((role) => (
-                <MenuItem key={role.id} value={role.id}>
-                  {role.label}
-                </MenuItem>
-              ))}
-            </TextField>
-            <Alert severity="info">
-              Permissions can be adjusted after the role is created using the privilege lists.
-            </Alert>
-          </Stack>
-        }
-        actions={
-          <>
-            <Button variant="text" onClick={() => setCreateDialogOpen(false)}>
-              Cancel
+              Close
             </Button>
-            <Button variant="contained" onClick={handleCreateRole} disabled={!canManageRoles}>
-              Create Role
-            </Button>
-          </>
-        }
-      />
+          </DialogActions>
+        </Dialog>
 
-      <CommonDialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        title="Delete Role"
-        maxWidth="sm"
-        content={
-          <Stack spacing={1.5} sx={{ mt: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              Users assigned to this role must be reassigned before deletion.
+        {/* Create */}
+        <Dialog
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ pb: 0.5 }}>
+            <Typography variant="h6" sx={{ fontSize: "1rem" }}>
+              Create New Role
             </Typography>
-            <TextField
-              select
-              label="Reassign users to"
-              value={deleteReassignRoleId}
-              onChange={(event) => setDeleteReassignRoleId(event.target.value)}
-            >
-              {roles
-                .filter((role) => role.id !== selectedRole?.id)
-                .map((role) => (
-                  <MenuItem key={role.id} value={role.id}>
-                    {role.label}
+            <Typography variant="caption" color="text.secondary">
+              Configure a custom role with specific privileges
+            </Typography>
+          </DialogTitle>
+          <DialogContent>
+            <Stack spacing={1.75} sx={{ mt: 1 }}>
+              <TextField
+                label="Role Name *"
+                placeholder="e.g., Quality Reviewer"
+                value={createDraft.label}
+                onChange={(e) =>
+                  setCreateDraft((p) => ({ ...p, label: e.target.value }))
+                }
+              />
+              <TextField
+                label="Description"
+                placeholder="Describe key responsibilities"
+                value={createDraft.description}
+                onChange={(e) =>
+                  setCreateDraft((p) => ({ ...p, description: e.target.value }))
+                }
+              />
+              <TextField
+                select
+                label="Clone Permissions From"
+                value={createDraft.cloneFromId}
+                onChange={(e) =>
+                  setCreateDraft((p) => ({ ...p, cloneFromId: e.target.value }))
+                }
+              >
+                <MenuItem value="">
+                  <Typography variant="body2">Start empty</Typography>
+                </MenuItem>
+                {roles.map((r) => (
+                  <MenuItem key={r.id} value={r.id}>
+                    <Typography variant="body2">{r.label}</Typography>
                   </MenuItem>
                 ))}
-            </TextField>
-          </Stack>
-        }
-        cancelLabel="Cancel"
-        confirmLabel="Delete Role"
-        confirmColor="error"
-        onConfirm={handleDeleteRole}
-        confirmButtonProps={{ disabled: !canManageRoles }}
-      />
+              </TextField>
+              <Alert
+                severity="info"
+                icon={false}
+                sx={{
+                  py: 0.75,
+                  borderRadius: 2,
+                  fontSize: "0.77rem",
+                  bgcolor: alpha("#3B7DD8", 0.06),
+                  color: "#2563EB",
+                  border: `1px solid ${alpha("#3B7DD8", 0.15)}`,
+                }}
+              >
+                You can fine-tune permissions after the role is created.
+              </Alert>
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setCreateOpen(false)}
+              sx={{ borderColor: "#E3EAF3", color: "#6B7A99" }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleCreate}
+              sx={{ bgcolor: "#3B7DD8" }}
+            >
+              Create Role
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3500}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
+        {/* Delete */}
+        <Dialog
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          maxWidth="xs"
+          fullWidth
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </PageTemplate>
+          <DialogTitle sx={{ pb: 0.5 }}>
+            <Typography
+              variant="h6"
+              sx={{ fontSize: "1rem", color: "#EF4444" }}
+            >
+              Delete Role
+            </Typography>
+          </DialogTitle>
+          <DialogContent>
+            <Stack spacing={1.75} sx={{ mt: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Users assigned to <strong>{selectedRole?.label}</strong> must be
+                reassigned before deletion.
+              </Typography>
+              <TextField
+                select
+                label="Reassign users to"
+                value={reassignTo}
+                onChange={(e) => setReassignTo(e.target.value)}
+              >
+                {roles
+                  .filter((r) => r.id !== selectedRole?.id)
+                  .map((r) => (
+                    <MenuItem key={r.id} value={r.id}>
+                      <Typography variant="body2">{r.label}</Typography>
+                    </MenuItem>
+                  ))}
+              </TextField>
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setDeleteOpen(false)}
+              sx={{ borderColor: "#E3EAF3", color: "#6B7A99" }}
+            >
+              Cancel
+            </Button>
+            <Button variant="contained" color="error" onClick={handleDelete}>
+              Delete Role
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Snackbar */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3500}
+          onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <Alert
+            severity={snackbar.severity}
+            onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
+            sx={{
+              borderRadius: 2,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+              fontSize: "0.81rem",
+            }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </PageShell>
   );
 }

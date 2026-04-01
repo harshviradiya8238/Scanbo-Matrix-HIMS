@@ -9,10 +9,9 @@ import {
   Stack,
   Typography,
   Alert,
-  Tabs,
-  Tab,
   Tooltip,
 } from "@/src/ui/components/atoms";
+import CommonTabs from "@/src/ui/components/molecules/CommonTabs";
 import { useTheme, alpha } from "@mui/material";
 import {
   LocalHospital as HospitalIcon,
@@ -60,9 +59,6 @@ function parseIpdNote(notes?: string): {
   return { ward, bed, consultant, dx, order };
 }
 
-// ── Tab IDs ──────────────────────────────────────────────────────────────────
-const TABS = ["All", "Pending (New)", "In Progress", "Completed"];
-
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function IpdLabOrdersPage() {
   const theme = useTheme();
@@ -71,7 +67,7 @@ export default function IpdLabOrdersPage() {
   const { sampleStatus } = useLabStatusConfig();
   const { samples } = useAppSelector((s) => s.lims);
 
-  const [tab, setTab] = React.useState(0);
+  const [tab, setTab] = React.useState("all");
 
   // Only show IPD-originated samples (identified by 'WARD-' prefix in client)
   const ipdSamples = React.useMemo(
@@ -80,15 +76,16 @@ export default function IpdLabOrdersPage() {
   );
 
   const tabFiltered = React.useMemo(() => {
-    if (tab === 1) return ipdSamples.filter((s) => s.status === "registered");
-    if (tab === 2)
+    if (tab === "pending")
+      return ipdSamples.filter((s) => s.status === "registered");
+    if (tab === "in_progress")
       return ipdSamples.filter(
         (s) =>
           s.status === "received" ||
           s.status === "assigned" ||
           s.status === "analysed",
       );
-    if (tab === 3)
+    if (tab === "completed")
       return ipdSamples.filter(
         (s) => s.status === "verified" || s.status === "published",
       );
@@ -275,9 +272,10 @@ export default function IpdLabOrdersPage() {
           size="small"
           variant="outlined"
           endIcon={<ArrowForwardIcon />}
-          onClick={() =>
-            router.push(`/lab/clients?sampleId=${row.id}&tab=entry`)
-          }
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/lab/analysis-results?sampleId=${row.id}&tab=entry`);
+          }}
           sx={{ fontSize: "0.75rem" }}
         >
           Open
@@ -376,7 +374,10 @@ export default function IpdLabOrdersPage() {
                 <HospitalIcon sx={{ color: "error.main" }} />
               </Box>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 800, color: "#1172BA" }}
+                >
                   Sample Orders Queue
                 </Typography>
               </Box>
@@ -398,53 +399,6 @@ export default function IpdLabOrdersPage() {
               </Button>
             </Stack>
           </Stack>
-
-          {/* Tabs */}
-          <Tabs
-            value={tab}
-            onChange={(_, v) => setTab(v)}
-            sx={{
-              mt: 2,
-              borderBottom: 1,
-              borderColor: "divider",
-              "& .MuiTab-root": { fontSize: "0.8rem", fontWeight: 600 },
-            }}
-          >
-            {TABS.map((label, i) => (
-              <Tab
-                key={label}
-                label={
-                  <Stack direction="row" alignItems="center" spacing={0.75}>
-                    <span>{label}</span>
-                    {i === 1 && pending > 0 && (
-                      <Chip
-                        label={pending}
-                        size="small"
-                        color="error"
-                        sx={{
-                          height: 18,
-                          fontSize: "0.65rem",
-                          fontWeight: 700,
-                        }}
-                      />
-                    )}
-                    {i === 2 && inProgress > 0 && (
-                      <Chip
-                        label={inProgress}
-                        size="small"
-                        color="warning"
-                        sx={{
-                          height: 18,
-                          fontSize: "0.65rem",
-                          fontWeight: 700,
-                        }}
-                      />
-                    )}
-                  </Stack>
-                }
-              />
-            ))}
-          </Tabs>
         </WorkspaceHeaderCard>
 
         {/* ── Data Grid ───────────────────────────────────────────────────── */}
@@ -454,9 +408,69 @@ export default function IpdLabOrdersPage() {
             columns={columns}
             getRowId={(row) => row.id}
             onRowClick={(row) =>
-              router.push(`/lab/clients?sampleId=${row.id}&tab=entry`)
+              router.push(`/lab/analysis-results?sampleId=${row.id}&tab=entry`)
             }
             emptyTitle="No IPD orders match this filter."
+            toolbarRight={
+              <CommonTabs
+                value={tab}
+                onChange={(v) => setTab(v)}
+                tabs={[
+                  { id: "all", label: "All" },
+                  {
+                    id: "pending",
+                    label: (
+                      <Stack direction="row" alignItems="center" spacing={0.75}>
+                        <span>Pending (New)</span>
+                        {pending > 0 && (
+                          <Chip
+                            label={pending}
+                            size="small"
+                            sx={{
+                              height: 18,
+                              minWidth: 18,
+                              fontSize: "0.68rem",
+                              fontWeight: 700,
+                              bgcolor:
+                                tab === "pending"
+                                  ? "common.white"
+                                  : alpha(theme.palette.primary.main, 0.1),
+                              color: "primary.main",
+                            }}
+                          />
+                        )}
+                      </Stack>
+                    ),
+                  },
+                  {
+                    id: "in_progress",
+                    label: (
+                      <Stack direction="row" alignItems="center" spacing={0.75}>
+                        <span>In Progress</span>
+                        {inProgress > 0 && (
+                          <Chip
+                            label={inProgress}
+                            size="small"
+                            sx={{
+                              height: 18,
+                              minWidth: 18,
+                              fontSize: "0.68rem",
+                              fontWeight: 700,
+                              bgcolor:
+                                tab === "in_progress"
+                                  ? "common.white"
+                                  : alpha(theme.palette.primary.main, 0.1),
+                              color: "primary.main",
+                            }}
+                          />
+                        )}
+                      </Stack>
+                    ),
+                  },
+                  { id: "completed", label: "Completed" },
+                ]}
+              />
+            }
           />
         </Box>
 
