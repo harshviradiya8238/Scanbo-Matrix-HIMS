@@ -1,4 +1,4 @@
-import OpdVisitPage from '@/src/screens/opd/OpdVisitPage';
+import OpdVisitPage from "@/src/screens/opd/OpdVisit/OpdVisitPage";
 
 interface EncounterPageProps {
   params: Promise<{ encounterId: string }>;

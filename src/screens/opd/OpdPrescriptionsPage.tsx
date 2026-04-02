@@ -41,8 +41,8 @@ import {
   buildEncounterRoute,
   resolveEncounterFromState,
 } from './opd-encounter';
-import OpdLayout from './components/OpdLayout';
-import OpdTable from './components/OpdTable';
+import OpdLayout from './common/components/OpdLayout';
+import OpdTable from './common/components/OpdTable';
 
 interface OpdPrescriptionsPageProps {
   encounterId?: string;

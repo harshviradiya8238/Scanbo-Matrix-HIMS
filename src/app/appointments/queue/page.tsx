@@ -1,4 +1,4 @@
-import OpdQueuePage from '@/src/screens/opd/OpdQueuePage';
+import OpdQueuePage from "@/src/screens/opd/OpdQueue/OpdQueuePage";
 
 export default function QueuePage() {
   return <OpdQueuePage />;

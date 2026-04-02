@@ -9,7 +9,7 @@ import RegistrationAdtPage from "@/src/screens/clinical/RegistrationAdtPage";
 import WelcomeKioskPage from "@/src/screens/clinical/WelcomeKioskPage";
 import OpTimeSurgeryPage from "@/src/screens/clinical/OpTimeSurgeryPage";
 import AnesthesiaPage from "@/src/screens/clinical/AnesthesiaPage";
-import OpdCalendarPage from "@/src/screens/opd/OpdCalendarPage";
+import OpdCalendarPage from "@/src/screens/opd/OpdCalendar/OpdCalendarPage";
 import RadiantImagingPage from "@/src/screens/clinical/RadiantImagingPage";
 import IpdRoundsPage from "@/src/screens/ipd/IpdRoundsPage";
 import LabDashboardPage from "@/src/screens/lab/dashboard/LabDashboardPage";

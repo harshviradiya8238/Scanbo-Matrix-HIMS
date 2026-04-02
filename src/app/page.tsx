@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 import {
   Box,
   AppBar,
@@ -12,19 +12,22 @@ import {
   TextField,
   Toolbar,
   Typography,
-} from '@/src/ui/components/atoms';
-import { useTheme } from '@/src/ui/theme';
-import { useUser } from '@/src/core/auth/UserContext';
-import { getRoleLabel } from '@/src/core/navigation/permissions';
-import type { UserRole } from '@/src/core/navigation/types';
-import { getOpdRoleFlowProfile, OPD_LOGIN_ROLES } from '@/src/screens/opd/opd-role-flow';
+} from "@/src/ui/components/atoms";
+import { useTheme } from "@/src/ui/theme";
+import { useUser } from "@/src/core/auth/UserContext";
+import { getRoleLabel } from "@/src/core/navigation/permissions";
+import type { UserRole } from "@/src/core/navigation/types";
+import {
+  getOpdRoleFlowProfile,
+  OPD_LOGIN_ROLES,
+} from "@/src/screens/opd/opd-role-flow";
 
 export default function HomePage() {
   const theme = useTheme();
   const { role, setRole } = useUser();
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [loginRole, setLoginRole] = React.useState<UserRole>('HOSPITAL_ADMIN');
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [loginRole, setLoginRole] = React.useState<UserRole>("HOSPITAL_ADMIN");
 
   React.useEffect(() => {
     if (OPD_LOGIN_ROLES.includes(role)) {
@@ -39,22 +42,27 @@ export default function HomePage() {
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       handleSignIn();
     }
   };
 
   return (
     <>
-      <AppBar 
-        position="sticky" 
+      <AppBar
+        position="sticky"
         elevation={1}
         sx={{
           backgroundColor: theme.palette.primary.light,
         }}
       >
         <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 600 }} color="primary.main">
+          <Typography
+            variant="h6"
+            component="div"
+            sx={{ flexGrow: 1, fontWeight: 600 }}
+            color="primary.main"
+          >
             Scanbo HIMS
           </Typography>
         </Toolbar>
@@ -62,11 +70,11 @@ export default function HomePage() {
 
       <Box
         sx={{
-          minHeight: 'calc(100vh - 64px)',
+          minHeight: "calc(100vh - 64px)",
           backgroundColor: theme.palette.background.default,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           py: 4,
         }}
       >
@@ -79,7 +87,12 @@ export default function HomePage() {
             }}
           >
             <Stack spacing={3}>
-              <Typography variant="h4" component="h1" align="center" sx={{ fontWeight: 600 }}>
+              <Typography
+                variant="h4"
+                component="h1"
+                align="center"
+                sx={{ fontWeight: 600 }}
+              >
                 Sign In
               </Typography>
 
@@ -109,7 +122,9 @@ export default function HomePage() {
                 label="Login Perspective"
                 select
                 value={loginRole}
-                onChange={(event) => setLoginRole(event.target.value as UserRole)}
+                onChange={(event) =>
+                  setLoginRole(event.target.value as UserRole)
+                }
                 fullWidth
                 helperText="Use this to preview role-based OPD workflows."
               >
