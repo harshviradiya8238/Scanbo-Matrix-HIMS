@@ -8,7 +8,12 @@ import { addAppointment, updateAppointment } from '@/src/store/slices/opdSlice';
 import { getOpdRoleFlowProfile } from '@/src/screens/opd/opd-role-flow';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
 import { formatIsoDate, defaultDepartment, getSlotDurationMinutes, toMinutes, rangesOverlap } from '../utils/opd-calendar.utils';
-import { BookingErrors, BookingForm, CalendarView } from "../types/opd-calendar.types";
+import {
+  BookingErrors,
+  BookingForm,
+  CalendarView,
+  SlotCheckResult,
+} from "../types/opd-calendar.types";
 
 function buildDefaultBooking(
   providers: string[],
@@ -160,7 +165,7 @@ export function useOpdCalendar() {
   const availabilityProvider =
     directProvider || (providerFilter !== "All" ? providerFilter : null);
 
-  const slotCheck = useMemo(() => {
+  const slotCheck = useMemo<SlotCheckResult>(() => {
     const isConflict = hasOverlappingAppointment(
       booking.date,
       booking.time,
@@ -168,7 +173,8 @@ export function useOpdCalendar() {
     );
     return {
       status: isConflict ? "Conflicted" : "Available",
-      tone: (isConflict ? "error" : "success") as any,
+      available: !isConflict,
+      tone: isConflict ? "error" : "success",
       message: isConflict ? "Selected time is already booked." : "",
     };
   }, [
