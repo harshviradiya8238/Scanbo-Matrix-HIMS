@@ -8,8 +8,13 @@ import { addAppointment, updateAppointment } from '@/src/store/slices/opdSlice';
 import { getOpdRoleFlowProfile } from '@/src/screens/opd/opd-role-flow';
 import { getPatientByMrn } from '@/src/mocks/global-patients';
 import { formatIsoDate, defaultDepartment, getSlotDurationMinutes, toMinutes, rangesOverlap } from '../utils/opd-calendar.utils';
+import { BookingErrors, BookingForm, CalendarView } from "../types/opd-calendar.types";
 
-function buildDefaultBooking(providers: string[], slotTimes: string[], date: string) {
+function buildDefaultBooking(
+  providers: string[],
+  slotTimes: string[],
+  date: string,
+): BookingForm {
   return {
     provider: providers[0] || '',
     time: slotTimes[0] || '',
@@ -19,8 +24,9 @@ function buildDefaultBooking(providers: string[], slotTimes: string[], date: str
     phone: '',
     ageGender: '',
     department: defaultDepartment,
-    type: 'Consultation',
-    payerType: 'Self Pay'
+    visitType: "New",
+    payerType: "General",
+    chiefComplaint: "",
   };
 }
 
@@ -39,16 +45,16 @@ export function useOpdCalendar() {
   const [directDepartment, setDirectDepartment] = useState(defaultDepartment);
   const [directProvider, setDirectProvider] = useState<string | null>(null);
   
-  const [booking, setBooking] = useState(() => 
+  const [booking, setBooking] = useState<BookingForm>(() => 
     buildDefaultBooking(providers, slotTimes, appointments[0]?.date ?? formatIsoDate(new Date()))
   );
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<BookingErrors>({});
   const [selectedPatientOption, setSelectedPatientOption] = useState<any>(null);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<any>(null);
   const [slotLocked, setSlotLocked] = useState(false);
-  const [calendarView, setCalendarView] = useState('timeGridWeek');
+  const [calendarView, setCalendarView] = useState<CalendarView>("timeGridWeek");
   const [calendarTitle, setCalendarTitle] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [eventAnchor, setEventAnchor] = useState<any>(null);
@@ -177,6 +183,15 @@ export function useOpdCalendar() {
     return providersByDepartment.get(directDepartment) ?? [];
   }, [directDepartment, providers, providersByDepartment]);
 
+  const directAvailability = useMemo(() => {
+    if (!directProvider) return null;
+    return (
+      availability.find(
+        (entry) => entry.provider === directProvider && entry.date === directDate,
+      ) ?? null
+    );
+  }, [availability, directDate, directProvider]);
+
   const availableSlotCount = useMemo(() => {
     return 12; // Simplified logic or mock value for UI display
   }, []);
@@ -227,8 +242,8 @@ export function useOpdCalendar() {
   }, [router]);
 
   const updateBookingField = useCallback(
-    (field: string, value: any) => {
-      setBooking((prev: any) => ({ ...prev, [field]: value }));
+    <K extends keyof BookingForm>(field: K, value: BookingForm[K]) => {
+      setBooking((prev) => ({ ...prev, [field]: value }));
       if (errors[field]) {
         setErrors((prev) => {
           const next = { ...prev };
@@ -244,7 +259,7 @@ export function useOpdCalendar() {
     (sendToQueue: boolean) => {
       if (!guardCalendarAction("Create Booking")) return;
 
-      const nextErrors: Record<string, string> = {};
+      const nextErrors: BookingErrors = {};
       if (!booking.patientName) nextErrors.patientName = "Patient is required.";
       if (!booking.date) nextErrors.date = "Date is required.";
       if (!booking.time) nextErrors.time = "Time is required.";
@@ -266,11 +281,11 @@ export function useOpdCalendar() {
           provider: booking.provider,
           department: booking.department,
           status: sendToQueue ? "Checked-In" : "Scheduled",
-          visitType: (booking as any).visitType || "New",
+          visitType: booking.visitType,
           phone: booking.phone,
           ageGender: booking.ageGender,
-          chiefComplaint: (booking as any).chiefComplaint || "",
-          payerType: (booking as any).payerType || "General",
+          chiefComplaint: booking.chiefComplaint,
+          payerType: booking.payerType,
         }),
       );
 
@@ -297,10 +312,10 @@ export function useOpdCalendar() {
           date: booking.date,
           time: booking.time,
           provider: booking.provider,
-          visitType: (booking as any).visitType || "New",
+          visitType: booking.visitType,
           phone: booking.phone,
           ageGender: booking.ageGender,
-          chiefComplaint: (booking as any).chiefComplaint || "",
+          chiefComplaint: booking.chiefComplaint,
         },
       }),
     );
@@ -346,10 +361,10 @@ export function useOpdCalendar() {
       phone: appointment.phone || "",
       ageGender: appointment.ageGender || "",
       department: appointment.department,
-      visitType: appointment.type || "New",
+      visitType: appointment.visitType || "New",
       payerType: "General",
       chiefComplaint: appointment.chiefComplaint || "",
-    } as any);
+    });
     setSelectedPatientOption(getPatientByMrn(appointment.mrn));
     setSlotLocked(true);
     setBookingOpen(true);
@@ -386,7 +401,7 @@ export function useOpdCalendar() {
     setDirectDepartment(department);
   }, []);
 
-  const handleDirectProviderChange = useCallback((provider: string) => {
+  const handleDirectProviderChange = useCallback((provider: string | null) => {
     setDirectProvider(provider);
   }, []);
 
@@ -446,6 +461,7 @@ export function useOpdCalendar() {
     patientName,
     patientMrn,
     slotCheck,
+    directAvailability,
     directProviderOptions,
     availableSlotCount,
     guardCalendarAction,
