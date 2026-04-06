@@ -18,20 +18,20 @@ import GlobalPatientSearch from "@/src/ui/components/molecules/GlobalPatientSear
 import AvatarWithName from "@/src/ui/components/molecules/AvatarWithName";
 import { useTheme, alpha, Breadcrumbs, Typography } from "@mui/material";
 import {
-  Notifications as NotificationsIcon,
+  NotificationsNone as NotificationsIcon,
   Person as PersonIcon,
   Settings as SettingsIcon,
   Logout as LogoutIcon,
   ExpandMore as ExpandMoreIcon,
-  PersonAdd as PersonAddIcon,
-  Event as EventIcon,
+  PersonAddAlt1 as PersonAddIcon,
+  CalendarTodayOutlined as EventIcon,
   Dashboard as DashboardIcon,
   People as PeopleIcon,
   ReceiptLong as ReceiptLongIcon,
   BarChart as BarChartIcon,
-  Apps as AppsIcon,
+  AppsOutlined as AppsIcon,
   Menu as MenuIcon,
-  Queue as QueueIcon,
+  QueueOutlined as QueueIcon,
   NavigateNext as NavNextIcon,
   ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
@@ -264,11 +264,12 @@ export default function Header({
     backgroundColor: "#FFFFFF",
     border: `1px solid ${surfaceBorder}`,
     "& .MuiSvgIcon-root": {
-      color: alpha(theme.palette.text.primary, 0.65),
+      color: "#5A7184",
+      fontSize: 18,
     },
     "&:hover": {
       backgroundColor: "#F5F8FB",
-      borderColor: alpha(accentColor, 0.28),
+      borderColor: surfaceBorder,
       "& .MuiSvgIcon-root": {
         color: accentColor,
       },
@@ -409,7 +410,7 @@ export default function Header({
                           fontWeight: isLast ? 700 : 500,
                           color: "inherit",
                           whiteSpace: "nowrap",
-                          lineHeight: 1,
+                          lineHeight: 1.4,
                           textOverflow: "ellipsis",
                           overflow: "hidden",
                           maxWidth: 180,

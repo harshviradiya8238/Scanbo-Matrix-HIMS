@@ -207,8 +207,8 @@ export default function PatientPortalWorkspaceCard({
         </Box>
       )}
 
-      {/* ── Page content with standard padding ── */}
-      <Box sx={{ px: { xs: 2, sm: 3 }, pt: hidePatientBar ? 2 : 0, pb: 3, backgroundColor: theme.palette.common.white }}>
+      {/* ── Page content — transparent, cards bring their own white background ── */}
+      <Box sx={{ pb: 1, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {showBackNav && (
           <Stack
             direction="row"

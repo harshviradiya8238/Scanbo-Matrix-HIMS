@@ -80,7 +80,7 @@ export default function ContactDetailsStep({
       sx={{
         border: "1px solid",
         borderColor: "divider",
-        borderRadius: 2,
+        borderRadius: '16px',
         overflow: "hidden",
       }}
     >

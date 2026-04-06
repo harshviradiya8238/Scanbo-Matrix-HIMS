@@ -180,7 +180,7 @@ export default function ModernSidebar({
   userRole,
 }: ModernSidebarProps) {
   const theme = useTheme();
-  const sidebarNavy = theme.palette.primary.main;
+  const sidebarNavy = "#0A4472";
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { isExpanded, toggle } = useSidebarState();
   const { favorites, toggleFavorite, recentItems } = useNavigationState();
@@ -292,9 +292,7 @@ export default function ModernSidebar({
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        backgroundColor: sidebarNavy,
-        position: "relative",
-        zIndex: theme.zIndex.drawer,
+        backgroundColor: "#0A4472",
       }}
     >
       {/* Header with Logo and Toggle */}
@@ -313,18 +311,30 @@ export default function ModernSidebar({
         }}
       >
         <Box
-          component="img"
-          src={"/scanbo.svg"}
-          alt="Scanbo logo"
           sx={{
-            height: isExpanded ? 44 : 34,
-            width: "auto",
-            objectFit: "contain",
-            objectPosition: "center",
-            display: "block",
-            filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.34))",
+            backgroundColor: "#FFFFFF",
+            borderRadius: "12px",
+            px: isExpanded ? 1.5 : 1,
+            py: 0.75,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.18)",
           }}
-        />
+        >
+          <Box
+            component="img"
+            src={"/scanbo.svg"}
+            alt="Scanbo logo"
+            sx={{
+              height: isExpanded ? 36 : 28,
+              width: "auto",
+              objectFit: "contain",
+              objectPosition: "center",
+              display: "block",
+            }}
+          />
+        </Box>
         {!isMobile && null}
       </Box>
 
@@ -539,11 +549,7 @@ export default function ModernSidebar({
       sx={{
         width: "100%",
         height: "100%",
-        overflowX: "hidden",
-        borderRadius: "22px",
-        backgroundColor: sidebarNavy,
-        border: `1px solid ${alpha("#FFFFFF", 0.1)}`,
-        boxShadow: `0 16px 28px ${alpha("#0D1B2A", 0.16)}`,
+        backgroundColor: "#0A4472",
       }}
     >
       {drawerContent}

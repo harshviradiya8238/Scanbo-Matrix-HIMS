@@ -125,8 +125,8 @@ export default function GlobalPatientSearch({
               <InputAdornment position="start" sx={{ pl: isCompact ? 0.45 : 0.75 }}>
                 <SearchIcon
                   sx={{
-                    fontSize: isCompact ? 18 : 20,
-                    color: theme.palette.text.secondary,
+                    fontSize: isCompact ? 16 : 20,
+                    color: '#9AAFBF',
                   }}
                 />
               </InputAdornment>
@@ -135,16 +135,19 @@ export default function GlobalPatientSearch({
           sx={{
             '& .MuiOutlinedInput-root': {
               minHeight: isCompact ? 40 : 50,
-              borderRadius: isCompact ? 2.5 : 2.5,
+              borderRadius: isCompact ? '10px' : '10px',
               backgroundColor: isCompact
                 ? '#F5F8FB'
                 : alpha(theme.palette.primary.main, 0.04),
-              border: isCompact
-                ? `1px solid ${surfaceBorder}`
-                : undefined,
+              border: isCompact ? `1px solid ${surfaceBorder}` : undefined,
+              '& .MuiOutlinedInput-notchedOutline': isCompact
+                ? { border: 'none' }
+                : {},
               '& .MuiInputBase-input': {
                 py: isCompact ? 0.9 : 1.3,
                 fontSize: isCompact ? '0.8rem' : '1rem',
+                color: '#0D1B2A',
+                '&::placeholder': { color: '#9AAFBF', opacity: 1 },
               },
               '&:hover': {
                 backgroundColor: isCompact
@@ -153,10 +156,10 @@ export default function GlobalPatientSearch({
               },
               '&.Mui-focused': {
                 backgroundColor: theme.palette.background.paper,
-                borderColor: alpha(theme.palette.primary.main, 0.3),
-                '& fieldset': {
-                  borderColor: theme.palette.primary.main,
-                },
+                border: isCompact ? `1px solid ${alpha(theme.palette.primary.main, 0.4)}` : undefined,
+                '& .MuiOutlinedInput-notchedOutline': isCompact
+                  ? { border: 'none' }
+                  : { borderColor: theme.palette.primary.main },
               },
             },
           }}

@@ -15,9 +15,9 @@ export default function Footer() {
     <Box
       component="footer"
       sx={{
-        borderTop: `1px solid ${theme.palette.divider}`,
-        backgroundColor: alpha(theme.palette.background.paper, 0.98),
-        backdropFilter: 'blur(6px)',
+        backgroundColor: '#FFFFFF',
+        borderRadius: { xs: '14px', md: '22px' },
+        border: '1px solid #DDE8F0',
         height: APP_FOOTER_STICKY_HEIGHT,
         minHeight: APP_FOOTER_STICKY_HEIGHT,
         display: 'flex',
@@ -26,6 +26,7 @@ export default function Footer() {
         py: 0,
         px: { xs: 2, sm: 3 },
         textAlign: 'center',
+        flexShrink: 0,
       }}
     >
       <Text variant="caption" >

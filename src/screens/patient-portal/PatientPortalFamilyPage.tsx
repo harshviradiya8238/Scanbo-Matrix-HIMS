@@ -22,7 +22,7 @@ import {
   Typography,
 } from '@/src/ui/components/atoms';
 import { Card, CommonDialog, StatTile } from '@/src/ui/components/molecules';
-import DataTable from '@/src/ui/components/organisms/DataTable';
+import CommonDataGrid, { CommonColumn } from '@/src/components/table/CommonDataGrid';
 import { alpha, useTheme } from '@/src/ui/theme';
 import {
   Add as AddIcon,
@@ -30,14 +30,10 @@ import {
   Close as CloseIcon,
   FilterList as FilterListIcon,
   Hotel as HotelIcon,
+  MoreVert as MoreVertIcon,
   PeopleAlt as PeopleAltIcon,
   PersonAddAlt as PersonAddAltIcon,
 } from '@mui/icons-material';
-import {
-  GridActionsCellItem,
-  GridColDef,
-  GridRenderCellParams,
-} from '@mui/x-data-grid';
 import PatientPortalWorkspaceCard from './components/PatientPortalWorkspaceCard';
 import { FAMILY_MEMBERS } from './patient-portal-mock-data';
 import type { FamilyMember } from './patient-portal-types';
@@ -201,35 +197,32 @@ export default function PatientPortalFamilyPage() {
     setSnackbar('Family member removed.');
   };
 
-  const columns = React.useMemo<GridColDef<FamilyPortalRow>[]>(
+  const columns = React.useMemo<CommonColumn<FamilyPortalRow>[]>(
     () => [
       {
         field: 'mrn',
-        headerName: 'MRN/Patient ID',
+        headerName: 'MRN / Patient ID',
         width: 150,
+        renderCell: (row) => (
+          <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main', fontFamily: 'monospace' }}>
+            {row.mrn}
+          </Typography>
+        ),
       },
       {
         field: 'name',
         headerName: 'Name',
-        width: 240,
-        renderCell: (params: GridRenderCellParams<FamilyPortalRow>) => (
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ height: '100%', width: '100%' }}>
-            <Avatar
-              sx={{
-                width: 32,
-                height: 32,
-                fontSize: 13,
-                bgcolor: params.row.avatarColor || 'primary.main',
-              }}
-            >
-              {getInitials(params.row.name)}
+        renderCell: (row) => (
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Avatar sx={{ width: 32, height: 32, fontSize: 13, bgcolor: row.avatarColor || alpha(theme.palette.primary.main, 0.12), color: 'primary.main', fontWeight: 700 }}>
+              {getInitials(row.name)}
             </Avatar>
-            <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
-                {params.row.name}
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main', lineHeight: 1.2 }} noWrap>
+                {row.name}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.25 }} noWrap>
-                {params.row.relation}
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem', display: 'block', lineHeight: 1.2 }} noWrap>
+                {row.relation}
               </Typography>
             </Box>
           </Stack>
@@ -238,98 +231,72 @@ export default function PatientPortalFamilyPage() {
       {
         field: 'ageGender',
         headerName: 'Age / Gender',
-        width: 140,
-        valueGetter: (_value, row) => `${row?.age ?? '—'} / ${row?.gender ?? '—'}`,
+        valueGetter: (row) => `${row?.age ?? '—'} / ${row?.gender ?? '—'}`,
       },
       {
         field: 'phone',
         headerName: 'Phone',
         width: 150,
-        renderCell: (params: GridRenderCellParams<FamilyPortalRow>) => (
-          <Stack direction="row" alignItems="center" sx={{ height: '100%', width: '100%' }}>
-            <Typography variant="body2">{maskPhoneNumber(params.row.phone || '')}</Typography>
-          </Stack>
+        renderCell: (row) => (
+          <Typography variant="body2">{maskPhoneNumber(row.phone || '')}</Typography>
         ),
       },
       {
         field: 'city',
         headerName: 'City',
-        width: 130,
+        width: 120,
       },
       {
         field: 'status',
         headerName: 'Status',
-        width: 130,
-        renderCell: (params) => (
+        renderCell: (row) => (
           <Chip
-            label={params.row.status || 'Pending'}
+            label={row.status || 'Pending'}
             size="small"
-            color={statusColors[params.row.status || 'Pending']}
-            variant={params.row.status === 'Active' ? 'filled' : 'outlined'}
+            color={statusColors[row.status || 'Pending']}
+            variant={row.status === 'Active' ? 'filled' : 'outlined'}
           />
         ),
       },
       {
         field: 'tags',
         headerName: 'Tags',
-        width: 220,
-        renderCell: (params: GridRenderCellParams<FamilyPortalRow>) => (
+        width: 200,
+        renderCell: (row) => (
           <Stack direction="row" spacing={0.5} flexWrap="wrap">
-            {params.row.tags.length === 0 && (
-              <Typography variant="caption" color="text.secondary">
-                —
-              </Typography>
+            {row.tags.length === 0 ? (
+              <Typography variant="caption" color="text.secondary">—</Typography>
+            ) : (
+              row.tags.map((tag) => (
+                <Chip key={`${row.id}-${tag}`} label={tag} size="small" variant="outlined" />
+              ))
             )}
-            {params.row.tags.map((tag) => (
-              <Chip key={`${params.row.id}-${tag}`} label={tag} size="small" variant="outlined" />
-            ))}
           </Stack>
         ),
       },
       {
         field: 'createdAt',
         headerName: 'Created At',
-        width: 140,
-        valueGetter: (_value, row) =>
-          row?.createdAt ? new Date(row.createdAt).toLocaleDateString() : '—',
+        width: 120,
+        valueGetter: (row) => row?.createdAt ? new Date(row.createdAt).toLocaleDateString() : '—',
       },
       {
         field: 'actions',
         headerName: 'Actions',
-        type: 'actions',
-        width: 120,
-        getActions: (params) => [
-          <GridActionsCellItem
-            key="view"
-            label="View profile"
-            onClick={() => {
-              setSelectedMember(params.row);
-              setDetailsOpen(true);
-            }}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="register"
-            label="Open registration"
-            onClick={() => router.push(buildRegistrationRoute())}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="appointment"
-            label="Book appointment"
-            onClick={() => setSnackbar('Book appointment (stub)')}
-            showInMenu
-          />,
-          <GridActionsCellItem
-            key="remove"
-            label="Remove"
-            onClick={() => setConfirmDeleteId(params.row.id)}
-            showInMenu
-          />,
-        ],
+        width: 80,
+        align: 'center',
+        renderCell: (row) => (
+          <IconButton
+            size="small"
+            onClick={() => { setSelectedMember(row); setDetailsOpen(true); }}
+            sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+          >
+            <MoreVertIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        ),
       },
     ],
-    [router]
+    [theme, router]
   );
 
   const totalMembers = rows.length;
@@ -366,12 +333,12 @@ export default function PatientPortalFamilyPage() {
 
   return (
     <PatientPortalWorkspaceCard current="family">
-      <Stack spacing={2}>
+      <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0 }}>
         <Card
           elevation={0}
           sx={{
             p: 2,
-            borderRadius: 2.5,
+            flexShrink: 0,
           }}
         >
           <Stack
@@ -410,7 +377,8 @@ export default function PatientPortalFamilyPage() {
         <Box
           sx={{
             display: 'grid',
-            gap: 2,
+            gap: 1.25,
+            flexShrink: 0,
             gridTemplateColumns: {
               xs: '1fr',
               sm: 'repeat(2, minmax(0, 1fr))',
@@ -429,48 +397,43 @@ export default function PatientPortalFamilyPage() {
           ))}
         </Box>
 
-        <Card sx={{ ...sectionCard, p: 2 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Family Registry
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {filteredRows.length} members
-              </Typography>
-            </Box>
-            <Stack direction="row" spacing={1}>
-              <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => setFilterDrawerOpen(true)}>
-                Filters
-              </Button>
-              <Button variant="text" onClick={clearFilters}>
-                Clear filters
-              </Button>
-            </Stack>
-          </Stack>
-
-          <DataTable
-            tableId="family-member-list"
-            persistKey="family-member-list-v1"
+        <Card sx={{ ...sectionCard, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <CommonDataGrid<FamilyPortalRow>
             columns={columns}
             rows={filteredRows}
-            autoHeight
-            rowHeight={72}
-            pageSizeOptions={[10, 25, 50]}
-            initialState={{ paginationModel: { page: 0, pageSize: 10 } }}
-            toolbarConfig={{
-              title: 'Family Members',
-              showSavedViews: false,
-              showPrint: true,
-              showExport: false,
-              emptyCtaLabel: 'Add Family Member',
-              onEmptyCtaClick: () => router.push(buildRegistrationRoute()),
-            }}
-            onRowClick={(params) => {
-              setSelectedMember(params.row as FamilyPortalRow);
-              setDetailsOpen(true);
-            }}
-            checkboxSelection={false}
+            getRowId={(row) => row.mrn}
+            searchPlaceholder="Search by name, MRN, phone..."
+            searchFields={['mrn', 'name', 'phone', 'city', 'relation']}
+            showSerialNo={false}
+            rowHeight={64}
+            filterDropdowns={[
+              {
+                id: 'status',
+                placeholder: 'Status',
+                value: filters.status,
+                options: ['All', 'Active', 'Pending'],
+                onChange: (v) => setFilters((f) => ({ ...f, status: v })),
+              },
+              {
+                id: 'relation',
+                placeholder: 'Relation',
+                value: filters.relation,
+                options: RELATIONS,
+                onChange: (v) => setFilters((f) => ({ ...f, relation: v })),
+              },
+            ]}
+            toolbarRight={
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => router.push(buildRegistrationRoute())}
+                sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
+              >
+                Add Family Member
+              </Button>
+            }
+            onRowClick={(row) => { setSelectedMember(row); setDetailsOpen(true); }}
           />
         </Card>
       </Stack>

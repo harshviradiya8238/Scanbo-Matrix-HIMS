@@ -32,11 +32,11 @@ const theme = createTheme(baseTheme, {
       styleOverrides: {
         html: {
           fontFamily: baseTheme.typography.fontFamily,
-          fontSize: '17px',
+          fontSize: '14px',
         },
         body: {
           fontFamily: baseTheme.typography.fontFamily,
-          fontSize: '1rem',
+          fontSize: '13px',
         },
         '*, *::before, *::after': {
           fontFamily: 'inherit',
@@ -66,14 +66,14 @@ const theme = createTheme(baseTheme, {
       styleOverrides: {
         root: {
           padding: 8,
-          borderRadius: 8,
+          borderRadius: 16,
           display: 'flex',
           flexDirection: 'column',
           boxShadow: cardShadow,
-          border: 'none',
-          backgroundColor: 'transparent',
+          border: `1px solid #DDE8F0`,
+          backgroundColor: baseTheme.palette.common.white,
           '&.MuiCard-outlined': {
-            border: 'none',
+            border: `1px solid #DDE8F0`,
           },
         },
       },
@@ -81,7 +81,7 @@ const theme = createTheme(baseTheme, {
     MuiCardHeader: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 16,
           backgroundColor: 'transparent',
         },
       },
@@ -143,7 +143,8 @@ const theme = createTheme(baseTheme, {
             borderColor: baseTheme.palette.action.disabledBackground,
           },
           '& input, & textarea, & .MuiSelect-select': {
-            padding: baseTheme.spacing(1, 1.75),
+            padding: '9px 13px',
+            fontSize: '13px',
           },
           '& input::placeholder, & textarea::placeholder': {
             color: baseTheme.palette.text.secondary,
@@ -253,12 +254,12 @@ const theme = createTheme(baseTheme, {
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 16,
           boxShadow: cardShadow,
-          border: 'none',
-          backgroundColor: 'transparent',
+          border: `1px solid #DDE8F0`,
+          backgroundColor: baseTheme.palette.common.white,
           '&.MuiPaper-outlined': {
-            border: 'none',
+            border: `1px solid #DDE8F0`,
           },
         },
         elevation1: {

@@ -49,7 +49,7 @@ export default function SidebarItem({
 }: SidebarItemProps) {
   const theme = useTheme();
   const brandPrimary = theme.palette.primary.main;
-  const sidebarNavy = theme.palette.primary.main;
+  const sidebarNavy = "#0A4472";
   const router = useRouter();
   const pathname = usePathname();
   const activeRoute = React.useMemo(() => resolveNavigationRoute(pathname ?? ''), [pathname]);

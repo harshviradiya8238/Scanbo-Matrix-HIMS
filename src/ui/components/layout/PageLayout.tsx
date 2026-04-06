@@ -11,6 +11,7 @@ interface PageLayoutProps {
   children?: React.ReactNode;
   currentPageTitle?: string;
   fullHeight?: boolean;
+  noPadding?: boolean;
 }
 
 export default function PageLayout({
@@ -22,6 +23,7 @@ export default function PageLayout({
   children,
   currentPageTitle,
   fullHeight,
+  noPadding = false,
 }: PageLayoutProps) {
   const rootSx = fullHeight
     ? {
@@ -36,19 +38,19 @@ export default function PageLayout({
     : { width: '100%', margin: 0, padding: 0 };
   const contentSx = fullHeight
     ? {
-        px: { xs: 2, sm: 3 },
-        pb: 2,
+        px: noPadding ? 0 : { xs: 2, sm: 3 },
+        pb: noPadding ? 0 : 2,
         flex: 1,
         minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
       }
-    : { px: { xs: 2, sm: 3 }, pb: 2 };
+    : { px: noPadding ? 0 : { xs: 2, sm: 3 }, pb: noPadding ? 0 : 2 };
 
   return (
     <Box sx={rootSx}>
-      {header
+      {!noPadding && (header
         ? header
         : title
         ? (
@@ -60,7 +62,7 @@ export default function PageLayout({
             currentPageTitle={currentPageTitle}
           />
         )
-        : null}
+        : null)}
       <Box sx={contentSx}>{children}</Box>
     </Box>
   );

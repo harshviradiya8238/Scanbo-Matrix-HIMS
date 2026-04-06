@@ -925,35 +925,24 @@ export default function PatientPortalAppointmentsPage() {
         </Alert>
       ) : null}
 
-      <Box ref={bookingSectionRef} sx={{ mb: 2 }}>
-        <Card
-          elevation={0}
+      <Box ref={bookingSectionRef} sx={{ mb: 1 }}>
+        <Box
           sx={{
-            ...sectionCard,
-            border: 'none',
-            boxShadow: 'none',
-            backgroundColor: 'transparent',
+            display: 'grid',
+            gap: 1.25,
+            gridTemplateColumns: {
+              xs: '1fr',
+              lg: 'minmax(0, 1fr) 430px',
+              xl: 'minmax(0, 1fr) 460px',
+            },
           }}
         >
-          <Box sx={{ p: 0 }}>
-            <Box
-              sx={{
-                display: 'grid',
-                gap: 1.5,
-                gridTemplateColumns: {
-                  xs: '1fr',
-                  lg: 'minmax(0, 1fr) 430px',
-                  xl: 'minmax(0, 1fr) 460px',
-                },
-              }}
-            >
               <Card
                 elevation={0}
                 sx={{
-                  border: 'none',
                   borderRadius: 2,
                   overflow: 'hidden',
-                  backgroundColor: 'transparent',
+                  backgroundColor: '#FFFFFF',
                   boxShadow: 'none',
                 }}
               >
@@ -1220,10 +1209,9 @@ export default function PatientPortalAppointmentsPage() {
                 <Card
                   elevation={0}
                   sx={{
-                    border: 'none',
                     borderRadius: 2,
                     overflow: 'hidden',
-                    backgroundColor: 'transparent',
+                    backgroundColor: '#FFFFFF',
                     boxShadow: 'none',
                   }}
                 >
@@ -1882,10 +1870,9 @@ export default function PatientPortalAppointmentsPage() {
                 <Card
                   elevation={0}
                   sx={{
-                    border: 'none',
                     borderRadius: 2,
                     overflow: 'hidden',
-                    backgroundColor: 'transparent',
+                    backgroundColor: '#FFFFFF',
                     boxShadow: 'none',
                   }}
                 >
@@ -1941,10 +1928,8 @@ export default function PatientPortalAppointmentsPage() {
                   </Stack>
                 </Card>
               </Stack>
-            </Box>
           </Box>
-        </Card>
-      </Box>
+        </Box>
 
       <Snackbar
         open={snackbar.open}

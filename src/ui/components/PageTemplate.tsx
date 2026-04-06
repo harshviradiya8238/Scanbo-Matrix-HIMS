@@ -13,6 +13,7 @@ interface PageTemplateProps {
   children?: React.ReactNode;
   currentPageTitle?: string;
   fullHeight?: boolean;
+  noPadding?: boolean;
 }
 
 export default function PageTemplate({
@@ -24,6 +25,7 @@ export default function PageTemplate({
   children,
   currentPageTitle,
   fullHeight,
+  noPadding,
 }: PageTemplateProps) {
   return (
     <PageLayout
@@ -34,6 +36,7 @@ export default function PageTemplate({
       header={header}
       currentPageTitle={currentPageTitle ?? title}
       fullHeight={fullHeight}
+      noPadding={noPadding}
     >
       {children || (
         <Section>

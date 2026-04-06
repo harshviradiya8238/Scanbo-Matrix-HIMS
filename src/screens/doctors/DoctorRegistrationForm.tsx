@@ -3,8 +3,9 @@
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import StepperForm from '@/src/ui/components/forms/StepperForm';
-import { Box, Chip, Stack, Typography } from '@/src/ui/components/atoms';
+import { Box, Typography } from '@/src/ui/components/atoms';
 import { DoctorRegistrationFormData } from './types/doctor-registration.types';
+import PatientCountryToggle, { RegistrationCountry } from '@/src/screens/patients/PatientRegister/components/PatientCountryToggle';
 import {
   doctorAvailabilitySchema,
   doctorDocumentsSchema,
@@ -153,40 +154,30 @@ export default function DoctorRegistrationForm({ onSubmit, onCancel }: DoctorReg
         stickyFooter
         compactNavigation
         showHeaderDivider={false}
-        headerContent={
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={0.65}
-            justifyContent="space-between"
-            alignItems={{ xs: 'flex-start', sm: 'center' }}
-          >
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-              Doctor Registration
+        navigationBottomContent={(formik, context) => {
+          if (context.activeStep !== 0) return null;
+          const selectedCountry: RegistrationCountry =
+            formik.values.registrationCountry === 'india' ? 'india' : 'international';
+          return (
+            <PatientCountryToggle
+              compact
+              value={selectedCountry}
+              onChange={(nextCountry) => {
+                void formik.setFieldValue('registrationCountry', nextCountry, false);
+              }}
+            />
+          );
+        }}
+        headerContent={(context) => (
+          <Box sx={{ flexShrink: 0 }}>
+            <Typography sx={{ fontSize: '15px', fontWeight: 700, color: '#0D1B2A', lineHeight: 1.2 }}>
+              Create Doctor Profile
             </Typography>
-            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-              <Chip
-                size="small"
-                color="primary"
-                label="Doctor"
-                sx={{ height: 22, '& .MuiChip-label': { px: 0.95, fontSize: 11.5, fontWeight: 600 } }}
-              />
-              <Chip
-                size="small"
-                variant="outlined"
-                color="primary"
-                label="3-Step Flow"
-                sx={{ height: 22, '& .MuiChip-label': { px: 0.95, fontSize: 11.5, fontWeight: 600 } }}
-              />
-              <Chip
-                size="small"
-                variant="outlined"
-                color="success"
-                label="Personal + Documents + Availability"
-                sx={{ height: 22, '& .MuiChip-label': { px: 0.95, fontSize: 11.5, fontWeight: 600 } }}
-              />
-            </Box>
-          </Stack>
-        }
+            <Typography sx={{ fontSize: '11px', color: '#9AAFBF', marginTop: '2px' }}>
+              Step {context.activeStep + 1} of {context.steps.length}
+            </Typography>
+          </Box>
+        )}
         submitButtonText="Register Doctor"
         cancelButtonText="Back"
       />

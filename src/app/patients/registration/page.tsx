@@ -171,10 +171,10 @@ export default function RegistrationPage() {
       }
       currentPageTitle="Registration"
       fullHeight
+      noPadding
     >
       <Box
         sx={{
-          mx: "auto",
           flex: 1,
           minHeight: 0,
           display: "flex",

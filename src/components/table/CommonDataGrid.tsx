@@ -163,12 +163,15 @@ export default function CommonDataGrid<R extends object>({
     <Paper
       elevation={0}
       sx={{
-        borderRadius: 2,
-        border: "1px solid",
-        borderColor: "rgba(17, 114, 186, 0.14)",
+        borderRadius: '16px',
+        border: "1px solid #DDE8F0",
         overflow: "hidden",
         boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
         width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        flex: 1,
+        minHeight: 0,
       }}
     >
       {/* ── Toolbar ── */}
@@ -245,7 +248,7 @@ export default function CommonDataGrid<R extends object>({
       )}
 
       {/* ── Table ── */}
-      <TableContainer>
+      <TableContainer sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         <Table sx={{ minWidth: 700 }} size="small">
           {/* Headers */}
           <TableHead>
@@ -374,7 +377,7 @@ export default function CommonDataGrid<R extends object>({
         </Table>
       </TableContainer>
 
-      {/* ── Pagination ── */}
+      {/* ── Pagination — always at bottom ── */}
       <TablePagination
         component="div"
         count={filtered.length}
@@ -387,6 +390,7 @@ export default function CommonDataGrid<R extends object>({
         }}
         rowsPerPageOptions={rowsPerPageOptions}
         sx={{
+          flexShrink: 0,
           borderTop: "1px solid",
           borderColor: "divider",
           "& .MuiTablePagination-toolbar": { fontSize: "0.8rem" },

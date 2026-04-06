@@ -98,10 +98,10 @@ export default function DoctorIdentityStep({ values, setFieldValue }: DoctorIden
     text: string;
   } | null>(null);
 
-  const handleCountryChange = (country: 'india' | 'international') => {
-    setFieldValue('registrationCountry', country);
+  // Reset MCI sync message when country toggles from the header
+  React.useEffect(() => {
     setMciSyncMessage(null);
-  };
+  }, [values.registrationCountry]);
 
   const handlePullFromMci = async () => {
     const normalizedReg = values.nmcRegNumber.trim().toUpperCase();
@@ -145,79 +145,6 @@ export default function DoctorIdentityStep({ values, setFieldValue }: DoctorIden
 
   return (
     <Stack spacing={2}>
-      {/* Country Selector Cards */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
-        <Box
-          role="button"
-          tabIndex={0}
-          onClick={() => handleCountryChange('india')}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleCountryChange('india');
-            }
-          }}
-          sx={{
-            flex: 1,
-            borderRadius: 2,
-            px: 1.4,
-            py: 1.15,
-            cursor: 'pointer',
-            border: '1.5px solid',
-            borderColor: isIndia ? 'primary.main' : 'divider',
-            backgroundColor: isIndia ? alpha(theme.palette.primary.main, 0.08) : 'background.paper',
-            transition: 'all .2s ease',
-          }}
-        >
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography sx={{ fontSize: 19 }}>🇮🇳</Typography>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                India Registration
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                NMC / State Medical Council license
-              </Typography>
-            </Box>
-          </Stack>
-        </Box>
-
-        <Box
-          role="button"
-          tabIndex={0}
-          onClick={() => handleCountryChange('international')}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleCountryChange('international');
-            }
-          }}
-          sx={{
-            flex: 1,
-            borderRadius: 2,
-            px: 1.4,
-            py: 1.15,
-            cursor: 'pointer',
-            border: '1.5px solid',
-            borderColor: !isIndia ? 'info.main' : 'divider',
-            backgroundColor: !isIndia ? alpha(theme.palette.info.main, 0.08) : 'background.paper',
-            transition: 'all .2s ease',
-          }}
-        >
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography sx={{ fontSize: 19 }}>🌍</Typography>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                International Registration
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Foreign medical license & credentials
-              </Typography>
-            </Box>
-          </Stack>
-        </Box>
-      </Stack>
-
       {/* Registration Details Card */}
       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
         <Box sx={{ px: 2.5, py: 1.6, backgroundColor: softSurface }}>

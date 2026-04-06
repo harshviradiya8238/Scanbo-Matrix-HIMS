@@ -36,13 +36,10 @@ export default function StatTile({
       sx={{
         p: 2,
         // mb: 2,
-        borderRadius: 2,
-        border: isOutlined ? "1px solid" : "none",
-        borderColor: isOutlined ? alpha(palette.main, 0.2) : "transparent",
+        borderRadius: '16px',
         boxShadow: cardShadow,
-        backgroundColor: isOutlined
-          ? theme.palette.background.paper
-          : alpha(palette.main, 0.08),
+        backgroundColor: '#FFFFFF',
+        border: '1px solid #DDE8F0',
         ...sx,
       }}
     >

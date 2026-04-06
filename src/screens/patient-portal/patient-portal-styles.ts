@@ -6,13 +6,13 @@ import type { Theme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 
 /** Outer section card — same as IPD sectionCardSx */
-export const ppSectionCard = (theme: Theme) => ({
+export const ppSectionCard = (_theme: Theme) => ({
   p: 0,
-  border: '1px solid',
-  borderColor: alpha(theme.palette.primary.main, 0.14),
-  borderRadius: 2.5,
+  border: '1px solid #DDE8F0',
+  borderRadius: '16px',
   boxShadow: 'none',
   overflow: 'hidden',
+  backgroundColor: '#FFFFFF',
 } as const);
 
 /** Tinted header row inside a section card */

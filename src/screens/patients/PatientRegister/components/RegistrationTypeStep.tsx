@@ -1216,7 +1216,7 @@ export default function RegistrationTypeStep({
             sx={{
               width: "100%",
               p: 1.5,
-              borderRadius: 2,
+              borderRadius: '16px',
               background: "linear-gradient(135deg, #4c1d95, #7c3aed)",
               color: "#fff",
             }}
@@ -1618,7 +1618,7 @@ export default function RegistrationTypeStep({
         sx={{
           border: "1px solid",
           borderColor: "divider",
-          borderRadius: 2,
+          borderRadius: '16px',
           overflow: "hidden",
         }}
       >
@@ -1654,35 +1654,54 @@ export default function RegistrationTypeStep({
             <Box
               sx={{
                 mb: 2,
-                p: 1.25,
-                borderRadius: 1.5,
-                border: "1px solid",
-                borderColor: alpha("#7c3aed", 0.28),
-                backgroundColor: alpha("#7c3aed", 0.06),
+                p: 1.5,
+                borderRadius: '16px',
+                border: "1.5px solid #BDD9F5",
+                background: "linear-gradient(135deg, #EFF6FF 0%, #E8F3FB 100%)",
               }}
             >
               <Stack
                 direction={{ xs: "column", sm: "row" }}
                 justifyContent="space-between"
+                alignItems={{ xs: "flex-start", sm: "center" }}
                 spacing={1}
               >
-                <Box>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ color: "#5b21b6", fontWeight: 700 }}
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Box
+                    sx={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 1.5,
+                      backgroundColor: "#1172BA",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
                   >
-                    ABHA - Ayushman Bharat Health Account
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: "#6d28d9" }}>
-                    Link, verify, or create ABHA for ABDM-ready registration.
-                  </Typography>
-                </Box>
-                <Stack direction="row" spacing={0.75}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                  </Box>
+                  <Box>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ color: "#0A4472", fontWeight: 700 }}
+                    >
+                      ABHA — Ayushman Bharat Health Account
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#5BA4D4", display: "block" }}>
+                      Link, verify, or create ABHA for ABDM-ready registration.
+                    </Typography>
+                  </Box>
+                </Stack>
+                <Stack direction="row" spacing={0.75} flexShrink={0}>
                   <Button
                     size="small"
                     variant="contained"
                     type="button"
                     onClick={() => openAbhaFlow("link")}
+                    sx={{ backgroundColor: "#1172BA", "&:hover": { backgroundColor: "#0D5A94" } }}
                   >
                     Link ABHA
                   </Button>
@@ -1691,6 +1710,7 @@ export default function RegistrationTypeStep({
                     variant="outlined"
                     type="button"
                     onClick={() => openAbhaFlow("create")}
+                    sx={{ color: "#1172BA", borderColor: "#1172BA", "&:hover": { backgroundColor: "#E8F3FB" } }}
                   >
                     Create ABHA
                   </Button>

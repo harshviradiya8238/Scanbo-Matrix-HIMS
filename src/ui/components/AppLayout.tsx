@@ -28,8 +28,8 @@ const SIDEBAR_WIDTH_COLLAPSED = 82;
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const theme = useTheme();
-  const shellBackground = "#FFFFFF";
-  const sidebarBackground = theme.palette.primary.main;
+  const shellBackground = "#EBF2F8";
+  const sidebarBackground = "#0A4472";
   const surfaceWhite = "#FFFFFF";
   const surfaceBorder = "#DDE8F0";
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -109,6 +109,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Sidebar */}
       <Box
         component="aside"
+        style={{ backgroundColor: "#0A4472" }}
         sx={{
           display: { xs: "none", md: "flex" },
           position: "sticky",
@@ -119,7 +120,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
           width: sidebarWidth,
           minWidth: sidebarWidth,
           maxWidth: sidebarWidth,
-          backgroundColor: sidebarBackground,
           borderRadius: { md: "22px" },
           boxShadow: `0 16px 28px ${alpha("#0D1B2A", 0.14)}`,
           zIndex: theme.zIndex.drawer,
@@ -134,7 +134,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <Sidebar userPermissions={permissions} userRole={role} />
       </Box>
 
-      {/* Main Content Area (Header + Body) */}
+      {/* Right column: Header + Body as separate cards */}
       <Box
         sx={{
           flex: 1,
@@ -143,14 +143,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
           minWidth: 0,
           minHeight: 0,
           gap: { xs: 0.75, md: 1.25 },
-          backgroundColor: surfaceWhite,
-          borderRadius: { xs: "14px", md: "22px" },
-          border: `1px solid ${surfaceBorder}`,
-          boxShadow: `0 10px 22px ${alpha("#0D1B2A", 0.05)}`,
-          overflow: "hidden",
         }}
       >
-        {/* Sticky Header */}
+        {/* Sticky Header — separate card */}
         <Box
           component="header"
           sx={{
@@ -160,12 +155,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
             width: "100%",
             flexShrink: 0,
             backgroundColor: surfaceWhite,
+            borderRadius: { xs: "14px", md: "22px" },
+            border: `1px solid ${surfaceBorder}`,
+            boxShadow: `0 4px 12px ${alpha("#0D1B2A", 0.06)}`,
+            overflow: "hidden",
           }}
         >
           <AppHeader userName="RMD Hospital" />
         </Box>
 
-        {/* Main Content */}
+        {/* Main Content — transparent, each page card floats on blue shell */}
         <Box
           component="main"
           sx={{
@@ -173,32 +172,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
             minHeight: 0,
             overflowY: "auto",
             overflowX: "hidden",
-            backgroundColor: surfaceWhite,
             width: "100%",
-            margin: 0,
-            padding: 0,
             display: "flex",
             flexDirection: "column",
+            backgroundColor: "transparent",
           }}
         >
-          <Box
-            sx={{
-              flex: 1,
-              minHeight: 0,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {hasAccess ? (
-              children
-            ) : (
-              <AccessDenied
-                requiredPermissions={accessInfo?.requiredPermissions ?? []}
-                currentRole={role}
-              />
-            )}
-          </Box>
+          {hasAccess ? (
+            children
+          ) : (
+            <AccessDenied
+              requiredPermissions={accessInfo?.requiredPermissions ?? []}
+              currentRole={role}
+            />
+          )}
         </Box>
+
+        {/* Footer — always at bottom, outside scroll area */}
         <Footer />
       </Box>
     </Box>

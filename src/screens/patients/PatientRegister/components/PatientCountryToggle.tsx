@@ -41,11 +41,8 @@ export default function PatientCountryToggle({
 
   return (
     <Stack
-      direction={{ xs: 'column', sm: 'row' }}
+      direction="row"
       spacing={compact ? 0.55 : 0.8}
-      sx={{
-        p: compact ? 0 : 0,
-      }}
     >
       {OPTIONS.map((option) => {
         const selected = option.value === value;
@@ -63,57 +60,68 @@ export default function PatientCountryToggle({
               }
             }}
             sx={{
-              flex: 1,
-              minWidth: 0,
-              borderRadius: compact ? 1 : 1.2,
-              px: compact ? 0.8 : 1.05,
-              py: compact ? 0.5 : 0.72,
+              display: 'flex',
+              alignItems: 'center',
+              gap: compact ? '6px' : '8px',
+              borderRadius: '999px',
+              px: compact ? '10px' : '14px',
+              py: compact ? '5px' : '7px',
               cursor: 'pointer',
-              border: selected ? '1.5px solid' : '1px solid',
-              borderColor: selected ? 'primary.main' : 'divider',
-              backgroundColor: selected ? alpha(theme.palette.primary.main, 0.11) : theme.palette.background.paper,
-              boxShadow: selected ? `0 2px 8px ${alpha(theme.palette.primary.main, 0.16)}` : 'none',
-              transition: 'all 120ms ease-in-out',
+              border: '1.5px solid',
+              borderColor: selected ? theme.palette.primary.main : '#DDE8F0',
+              backgroundColor: theme.palette.background.paper,
+              transition: 'border-color 120ms ease-in-out',
               '&:hover': {
-                borderColor: selected ? 'primary.main' : alpha(theme.palette.primary.main, 0.3),
-                backgroundColor: selected ? alpha(theme.palette.primary.main, 0.13) : alpha(theme.palette.primary.main, 0.035),
+                borderColor: selected
+                  ? theme.palette.primary.main
+                  : alpha(theme.palette.primary.main, 0.35),
               },
             }}
           >
-            <Stack direction="row" spacing={compact ? 0.45 : 0.75} alignItems="center">
-              <Typography sx={{ fontSize: compact ? 13.5 : 15.5, lineHeight: 1 }}>
-                {option.emoji}
-              </Typography>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography
-                  variant="subtitle2"
+            {/* Emoji */}
+            <Typography sx={{ fontSize: compact ? 13 : 15, lineHeight: 1 }}>
+              {option.emoji}
+            </Typography>
+
+            {/* Label */}
+            <Typography
+              sx={{
+                fontWeight: 600,
+                color: selected ? '#0D1B2A' : '#5A7184',
+                fontSize: compact ? '12px' : '13px',
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {option.title}
+            </Typography>
+
+            {/* Radio dot */}
+            <Box
+              sx={{
+                width: compact ? 14 : 16,
+                height: compact ? 14 : 16,
+                borderRadius: '50%',
+                border: `1.5px solid`,
+                borderColor: selected ? theme.palette.primary.main : '#C8D8E4',
+                backgroundColor: selected ? theme.palette.primary.main : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {selected && (
+                <Box
                   sx={{
-                    fontWeight: 700,
-                    color: selected ? 'primary.main' : 'text.primary',
-                    fontSize: compact ? 12.5 : 13.5,
-                    lineHeight: 1.2,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                    width: compact ? 5 : 6,
+                    height: compact ? 5 : 6,
+                    borderRadius: '50%',
+                    backgroundColor: '#FFFFFF',
                   }}
-                >
-                  {option.title}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: selected ? 'primary.main' : 'text.secondary',
-                    fontSize: compact ? 11 : 11,
-                    lineHeight: 1.2,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {option.subtitle}
-                </Typography>
-              </Box>
-            </Stack>
+                />
+              )}
+            </Box>
           </Box>
         );
       })}

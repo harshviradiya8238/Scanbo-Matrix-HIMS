@@ -3,7 +3,7 @@
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import StepperForm from "@/src/ui/components/forms/StepperForm";
-import { Box, Chip, Stack, Typography } from "@/src/ui/components/atoms";
+import { Box, Typography } from "@/src/ui/components/atoms";
 import { PatientRegistrationFormData } from "./types/patient-registration.types";
 import {
   familyInfoSchema,
@@ -254,66 +254,20 @@ export default function CommonRegistrationForm({
             />
           );
         }}
-        headerContent={
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={0.65}
-            justifyContent="space-between"
-            alignItems={{ xs: "flex-start", sm: "center" }}
-          >
+        headerContent={(context) => (
+          <Box sx={{ flexShrink: 0 }}>
             <Typography
-              variant="subtitle1"
-              sx={{ fontWeight: 700, lineHeight: 1.2 }}
+              sx={{ fontSize: "15px", fontWeight: 700, color: "#0D1B2A", lineHeight: 1.2 }}
             >
-              {isFamilyMode
-                ? "Create Family Member Profile (Patient Registration Flow)"
-                : "Create a Complete Patient Profile"}
+              {isFamilyMode ? "Create Family Member Profile" : "Create Patient Profile"}
             </Typography>
-            <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-              <Chip
-                size="small"
-                color="primary"
-                label={isFamilyMode ? "Family Member" : "Patient"}
-                sx={{
-                  height: 22,
-                  "& .MuiChip-label": {
-                    px: 0.95,
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                  },
-                }}
-              />
-              <Chip
-                size="small"
-                variant="outlined"
-                color="primary"
-                label="Shared Registration Component"
-                sx={{
-                  height: 22,
-                  "& .MuiChip-label": {
-                    px: 0.95,
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                  },
-                }}
-              />
-              <Chip
-                size="small"
-                variant="outlined"
-                color="success"
-                label="Patient Info + Referral"
-                sx={{
-                  height: 22,
-                  "& .MuiChip-label": {
-                    px: 0.95,
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                  },
-                }}
-              />
-            </Box>
-          </Stack>
-        }
+            <Typography
+              sx={{ fontSize: "11px", color: "#9AAFBF", marginTop: "2px" }}
+            >
+              Step {context.activeStep + 1} of {context.steps.length}
+            </Typography>
+          </Box>
+        )}
         submitButtonText={isFamilyMode ? "Register Family Member" : "Register"}
         cancelButtonText="Back"
       />
