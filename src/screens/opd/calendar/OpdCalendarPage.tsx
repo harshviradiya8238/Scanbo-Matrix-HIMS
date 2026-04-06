@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
-import type { DateClickArg } from '@fullcalendar/interaction';
+import * as React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import type { DateClickArg } from "@fullcalendar/interaction";
 import type {
   DatesSetArg,
   EventClickArg,
   EventContentArg,
   EventInput,
-} from '@fullcalendar/core';
-import PageTemplate from '@/src/ui/components/PageTemplate';
+} from "@fullcalendar/core";
+import PageTemplate from "@/src/ui/components/PageTemplate";
 import {
   Alert,
   Autocomplete,
@@ -31,14 +31,14 @@ import {
   TextField,
   Typography,
   SelectChangeEvent,
-} from '@/src/ui/components/atoms';
-import { Card } from '@/src/ui/components/molecules';
-import Grid from '@/src/ui/components/layout/AlignedGrid';
-import { alpha, useTheme } from '@/src/ui/theme';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs, { Dayjs } from 'dayjs';
+} from "@/src/ui/components/atoms";
+import { Card } from "@/src/ui/components/molecules";
+import Grid from "@/src/ui/components/layout/AlignedGrid";
+import { alpha, useTheme } from "@/src/ui/theme";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs, { Dayjs } from "dayjs";
 import {
   CalendarMonth as CalendarMonthIcon,
   CheckCircle as CheckCircleIcon,
@@ -51,21 +51,29 @@ import {
   Group as GroupIcon,
   PersonAdd as PersonAddIcon,
   WarningAmber as WarningAmberIcon,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 import {
   AppointmentStatus,
   OpdAppointment,
   ProviderAvailability,
   ProviderSlot,
   VisitType,
-} from '../opd-mock-data';
-import { useMrnParam } from '@/src/core/patients/useMrnParam';
-import { getPatientByMrn, GLOBAL_PATIENTS, GlobalPatient } from '@/src/mocks/global-patients';
-import { useUser } from '@/src/core/auth/UserContext';
-import { useAppDispatch } from '@/src/store/hooks';
-import { addAppointment, addEncounter, updateAppointment } from '@/src/store/slices/opdSlice';
-import { useOpdData } from '@/src/store/opdHooks';
-import { getOpdRoleFlowProfile } from '../opd-role-flow';
+} from "../opd-mock-data";
+import { useMrnParam } from "@/src/core/patients/useMrnParam";
+import {
+  getPatientByMrn,
+  GLOBAL_PATIENTS,
+  GlobalPatient,
+} from "@/src/mocks/global-patients";
+import { useUser } from "@/src/core/auth/UserContext";
+import { useAppDispatch } from "@/src/store/hooks";
+import {
+  addAppointment,
+  addEncounter,
+  updateAppointment,
+} from "@/src/store/slices/opdSlice";
+import { useOpdData } from "@/src/store/opdHooks";
+import { getOpdRoleFlowProfile } from "../opd-role-flow";
 
 interface BookingForm {
   date: string;
@@ -77,38 +85,42 @@ interface BookingForm {
   ageGender: string;
   phone: string;
   visitType: VisitType;
-  payerType: 'General' | 'Insurance' | 'Corporate';
+  payerType: "General" | "Insurance" | "Corporate";
   chiefComplaint: string;
 }
 
 type BookingErrors = Partial<Record<keyof BookingForm, string>>;
-type CalendarView = 'timeGridWeek' | 'timeGridDay' | 'dayGridMonth';
+type CalendarView = "timeGridWeek" | "timeGridDay" | "dayGridMonth";
 
-const appointmentStatusColor: Record<AppointmentStatus, 'default' | 'info' | 'warning' | 'success' | 'error'> = {
-  Scheduled: 'default',
-  'Checked-In': 'info',
-  'In Triage': 'warning',
-  'In Consultation': 'warning',
-  Completed: 'success',
-  'No Show': 'error',
-  Cancelled: 'error',
+const appointmentStatusColor: Record<
+  AppointmentStatus,
+  "default" | "info" | "warning" | "success" | "error"
+> = {
+  Pending: "default",
+  Scheduled: "default",
+  "Checked-In": "info",
+  "In Triage": "warning",
+  "In Consultation": "warning",
+  Completed: "success",
+  "No Show": "error",
+  Cancelled: "error",
 };
 
 const formatIsoDate = (date: Date) => {
   const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
 const formatTime = (date: Date) => {
-  const hours = `${date.getHours()}`.padStart(2, '0');
-  const minutes = `${date.getMinutes()}`.padStart(2, '0');
+  const hours = `${date.getHours()}`.padStart(2, "0");
+  const minutes = `${date.getMinutes()}`.padStart(2, "0");
   return `${hours}:${minutes}`;
 };
 
 const toMinutes = (value: string) => {
-  const [hours, minutes] = value.split(':').map(Number);
+  const [hours, minutes] = value.split(":").map(Number);
   return hours * 60 + minutes;
 };
 
@@ -116,24 +128,28 @@ const addMinutesToTime = (value: string, minutesToAdd: number) => {
   const total = toMinutes(value) + minutesToAdd;
   const hours = Math.floor(total / 60);
   const minutes = total % 60;
-  return `${`${hours}`.padStart(2, '0')}:${`${minutes}`.padStart(2, '0')}`;
+  return `${`${hours}`.padStart(2, "0")}:${`${minutes}`.padStart(2, "0")}`;
 };
 
-const rangesOverlap = (start: number, end: number, otherStart: number, otherEnd: number) =>
-  start < otherEnd && end > otherStart;
+const rangesOverlap = (
+  start: number,
+  end: number,
+  otherStart: number,
+  otherEnd: number,
+) => start < otherEnd && end > otherStart;
 
 const getInitials = (name: string) =>
   name
-    .split(' ')
+    .split(" ")
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase())
     .slice(0, 2)
-    .join('');
+    .join("");
 
 const formatDuration = (minutes: number) => {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  return `${`${hours}`.padStart(2, '0')}:${`${mins}`.padStart(2, '0')}:00`;
+  return `${`${hours}`.padStart(2, "0")}:${`${mins}`.padStart(2, "0")}:00`;
 };
 
 const isSameDate = (left: Date, right: Date) =>
@@ -146,29 +162,41 @@ const getSlotDurationMinutes = (slots: string[]) => {
   return Math.max(10, toMinutes(slots[1]) - toMinutes(slots[0]));
 };
 
-const calendarMinTime = '00:00:00';
-const calendarMaxTime = '24:00:00';
-const defaultDepartment = 'General Medicine';
-type SlotCheckTone = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
-type SlotCheckResult = { status: string; available: boolean; tone: SlotCheckTone; message: string };
+const calendarMinTime = "00:00:00";
+const calendarMaxTime = "24:00:00";
+const defaultDepartment = "General Medicine";
+type SlotCheckTone =
+  | "default"
+  | "primary"
+  | "secondary"
+  | "error"
+  | "info"
+  | "success"
+  | "warning";
+type SlotCheckResult = {
+  status: string;
+  available: boolean;
+  tone: SlotCheckTone;
+  message: string;
+};
 
 function buildDefaultBooking(
   providers: string[],
   slotTimes: string[],
-  defaultDate: string
+  defaultDate: string,
 ): BookingForm {
   return {
     date: defaultDate,
-    time: slotTimes[0] ?? '09:00',
-    provider: providers[0] ?? '',
+    time: slotTimes[0] ?? "09:00",
+    provider: providers[0] ?? "",
     department: defaultDepartment,
-    patientName: '',
-    mrn: '',
-    ageGender: '',
-    phone: '',
-    visitType: 'New',
-    payerType: 'General',
-    chiefComplaint: '',
+    patientName: "",
+    mrn: "",
+    ageGender: "",
+    phone: "",
+    visitType: "New",
+    payerType: "General",
+    chiefComplaint: "",
   };
 }
 
@@ -181,32 +209,32 @@ export default function OpdCalendarPage() {
   const calendarContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mrnParam = useMrnParam();
   const statsPillSx = {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: 0.75,
     px: 1.1,
     py: 0.45,
     borderRadius: 999,
-    border: '1px solid',
+    border: "1px solid",
     borderColor: alpha(theme.palette.divider, 0.4),
     bgcolor: alpha(theme.palette.background.default, 0.6),
   };
   const statsLabelSx = {
     fontWeight: 600,
     color: theme.palette.primary.main,
-    fontSize: '0.72rem',
-    letterSpacing: '0.02em',
+    fontSize: "0.72rem",
+    letterSpacing: "0.02em",
   };
   const statsCountSx = {
     width: 22,
     height: 22,
-    borderRadius: '50%',
+    borderRadius: "50%",
     bgcolor: theme.palette.primary.main,
     color: theme.palette.common.white,
     fontWeight: 700,
-    fontSize: '0.7rem',
-    display: 'grid',
-    placeItems: 'center',
+    fontSize: "0.7rem",
+    display: "grid",
+    placeItems: "center",
   };
 
   const dispatch = useAppDispatch();
@@ -218,45 +246,63 @@ export default function OpdCalendarPage() {
     status: opdStatus,
     error: opdError,
   } = useOpdData();
-  const [availability, setAvailability] = React.useState<ProviderAvailability[]>(providerAvailability);
+  const [availability, setAvailability] =
+    React.useState<ProviderAvailability[]>(providerAvailability);
   const [selectedDate, setSelectedDate] = React.useState(
-    appointments[0]?.date ?? formatIsoDate(new Date())
+    appointments[0]?.date ?? formatIsoDate(new Date()),
   );
   const [directDate, setDirectDate] = React.useState(() => selectedDate);
-  const [providerFilter, setProviderFilter] = React.useState<'All' | string>('All');
-  const [directDepartment, setDirectDepartment] = React.useState(defaultDepartment);
-  const [directProvider, setDirectProvider] = React.useState<string | null>(null);
+  const [providerFilter, setProviderFilter] = React.useState<"All" | string>(
+    "All",
+  );
+  const [directDepartment, setDirectDepartment] =
+    React.useState(defaultDepartment);
+  const [directProvider, setDirectProvider] = React.useState<string | null>(
+    null,
+  );
   const [booking, setBooking] = React.useState<BookingForm>(() =>
-    buildDefaultBooking(providers, slotTimes, appointments[0]?.date ?? formatIsoDate(new Date()))
+    buildDefaultBooking(
+      providers,
+      slotTimes,
+      appointments[0]?.date ?? formatIsoDate(new Date()),
+    ),
   );
   const [errors, setErrors] = React.useState<BookingErrors>({});
-  const [selectedPatientOption, setSelectedPatientOption] = React.useState<GlobalPatient | null>(null);
+  const [selectedPatientOption, setSelectedPatientOption] =
+    React.useState<GlobalPatient | null>(null);
   const [bookingOpen, setBookingOpen] = React.useState(false);
-  const [editingAppointment, setEditingAppointment] = React.useState<OpdAppointment | null>(null);
+  const [editingAppointment, setEditingAppointment] =
+    React.useState<OpdAppointment | null>(null);
   const [slotLocked, setSlotLocked] = React.useState(false);
-  const [calendarView, setCalendarView] = React.useState<CalendarView>('timeGridWeek');
-  const [calendarTitle, setCalendarTitle] = React.useState('');
-  const [selectedEvent, setSelectedEvent] = React.useState<OpdAppointment | null>(null);
-  const [eventAnchor, setEventAnchor] = React.useState<HTMLElement | null>(null);
-  const [calendarRange, setCalendarRange] = React.useState<{ start: Date; end: Date } | null>(
-    null
+  const [calendarView, setCalendarView] =
+    React.useState<CalendarView>("timeGridWeek");
+  const [calendarTitle, setCalendarTitle] = React.useState("");
+  const [selectedEvent, setSelectedEvent] =
+    React.useState<OpdAppointment | null>(null);
+  const [eventAnchor, setEventAnchor] = React.useState<HTMLElement | null>(
+    null,
   );
+  const [calendarRange, setCalendarRange] = React.useState<{
+    start: Date;
+    end: Date;
+  } | null>(null);
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
-    severity: 'success' | 'error' | 'info' | 'warning';
+    severity: "success" | "error" | "info" | "warning";
   }>({
     open: false,
-    message: '',
-    severity: 'success',
+    message: "",
+    severity: "success",
   });
   const [mrnApplied, setMrnApplied] = React.useState(false);
-  const [registrationPayloadApplied, setRegistrationPayloadApplied] = React.useState(false);
+  const [registrationPayloadApplied, setRegistrationPayloadApplied] =
+    React.useState(false);
   const roleProfile = React.useMemo(() => getOpdRoleFlowProfile(role), [role]);
   const canManageCalendar = roleProfile.capabilities.canManageCalendar;
   const slotDurationMinutes = React.useMemo(
     () => getSlotDurationMinutes(slotTimes),
-    [slotTimes]
+    [slotTimes],
   );
 
   const guardCalendarAction = React.useCallback(
@@ -265,11 +311,11 @@ export default function OpdCalendarPage() {
       setSnackbar({
         open: true,
         message: `${roleProfile.label} has read-only calendar access. ${actionLabel} is restricted.`,
-        severity: 'warning',
+        severity: "warning",
       });
       return false;
     },
-    [canManageCalendar, roleProfile.label]
+    [canManageCalendar, roleProfile.label],
   );
 
   React.useEffect(() => {
@@ -289,7 +335,7 @@ export default function OpdCalendarPage() {
 
   React.useEffect(() => {
     const container = calendarContainerRef.current;
-    if (!container || typeof ResizeObserver === 'undefined') return;
+    if (!container || typeof ResizeObserver === "undefined") return;
     let frame: number | null = null;
 
     const handleResize = () => {
@@ -313,22 +359,25 @@ export default function OpdCalendarPage() {
 
   const seededPatient = React.useMemo(
     () => getPatientByMrn(booking.mrn || mrnParam),
-    [booking.mrn, mrnParam]
+    [booking.mrn, mrnParam],
   );
   const activePatient = selectedPatientOption ?? seededPatient ?? null;
   const patientName = booking.patientName || seededPatient?.name;
   const patientMrn = booking.mrn || seededPatient?.mrn || mrnParam;
   const patientSummary = {
-    name: booking.patientName || activePatient?.name || '',
-    mrn: booking.mrn || activePatient?.mrn || mrnParam || '',
-    ageGender: booking.ageGender || activePatient?.ageGender || '',
-    phone: booking.phone || activePatient?.phone || '',
-    department: booking.department || activePatient?.department || directDepartment || '',
+    name: booking.patientName || activePatient?.name || "",
+    mrn: booking.mrn || activePatient?.mrn || mrnParam || "",
+    ageGender: booking.ageGender || activePatient?.ageGender || "",
+    phone: booking.phone || activePatient?.phone || "",
+    department:
+      booking.department || activePatient?.department || directDepartment || "",
   };
 
   const departmentOptions = React.useMemo(() => {
     const departments = new Set<string>();
-    appointments.forEach((appointment) => departments.add(appointment.department));
+    appointments.forEach((appointment) =>
+      departments.add(appointment.department),
+    );
     if (seededPatient?.department) {
       departments.add(seededPatient.department);
     }
@@ -375,23 +424,26 @@ export default function OpdCalendarPage() {
     if (!directProvider) return null;
     return (
       availability.find(
-        (entry) => entry.provider === directProvider && entry.date === directDate
+        (entry) =>
+          entry.provider === directProvider && entry.date === directDate,
       ) ?? null
     );
   }, [availability, directDate, directProvider]);
 
   const directSlots = React.useMemo(() => {
     if (!directAvailability) return [];
-    return [...directAvailability.slots].sort((a, b) => a.time.localeCompare(b.time));
+    return [...directAvailability.slots].sort((a, b) =>
+      a.time.localeCompare(b.time),
+    );
   }, [directAvailability]);
 
   const availableSlotCount = React.useMemo(
-    () => directSlots.filter((slot) => slot.status === 'Available').length,
-    [directSlots]
+    () => directSlots.filter((slot) => slot.status === "Available").length,
+    [directSlots],
   );
 
   const availabilityProvider =
-    directProvider || (providerFilter !== 'All' ? providerFilter : null);
+    directProvider || (providerFilter !== "All" ? providerFilter : null);
 
   const appointmentStats = React.useMemo(() => {
     const date = directDate;
@@ -401,14 +453,18 @@ export default function OpdCalendarPage() {
 
     appointments.forEach((appointment) => {
       if (appointment.date !== date) return;
-      if (directDepartment && appointment.department !== directDepartment) return;
+      if (directDepartment && appointment.department !== directDepartment)
+        return;
       if (directProvider && appointment.provider !== directProvider) return;
 
-      if (appointment.status === 'Checked-In') {
+      if (appointment.status === "Checked-In") {
         checkedIn += 1;
-      } else if (appointment.status === 'In Triage' || appointment.status === 'In Consultation') {
+      } else if (
+        appointment.status === "In Triage" ||
+        appointment.status === "In Consultation"
+      ) {
         inTriageConsult += 1;
-      } else if (appointment.status === 'No Show') {
+      } else if (appointment.status === "No Show") {
         noShow += 1;
       }
     });
@@ -416,8 +472,10 @@ export default function OpdCalendarPage() {
     return { checkedIn, inTriageConsult, noShow };
   }, [appointments, directDate, directDepartment, directProvider]);
 
-
-  const updateBookingField = <K extends keyof BookingForm,>(field: K, value: BookingForm[K]) => {
+  const updateBookingField = <K extends keyof BookingForm>(
+    field: K,
+    value: BookingForm[K],
+  ) => {
     setBooking((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => {
@@ -431,11 +489,11 @@ export default function OpdCalendarPage() {
   const getSlotForSelection = React.useCallback(
     (provider: string, date: string, time: string) => {
       const availabilityEntry = availability.find(
-        (entry) => entry.provider === provider && entry.date === date
+        (entry) => entry.provider === provider && entry.date === date,
       );
       return availabilityEntry?.slots.find((slot) => slot.time === time);
     },
-    [availability]
+    [availability],
   );
 
   const hasOverlappingAppointment = React.useCallback(
@@ -444,173 +502,215 @@ export default function OpdCalendarPage() {
       const endMinutes = startMinutes + slotDurationMinutes;
       return appointments.some((appointment) => {
         if (appointment.date !== date) return false;
-        if (appointment.status === 'Cancelled') return false;
+        if (appointment.status === "Cancelled") return false;
         if (excludeId && appointment.id === excludeId) return false;
         const apptStart = toMinutes(appointment.time);
         const apptEnd = apptStart + slotDurationMinutes;
         return rangesOverlap(startMinutes, endMinutes, apptStart, apptEnd);
       });
     },
-    [appointments, slotDurationMinutes]
+    [appointments, slotDurationMinutes],
   );
 
   const getSlotCheck = React.useCallback(
-    (provider: string, date: string, time: string, editTarget?: OpdAppointment | null): SlotCheckResult => {
+    (
+      provider: string,
+      date: string,
+      time: string,
+      editTarget?: OpdAppointment | null,
+    ): SlotCheckResult => {
       if (!provider || !date || !time) {
-        return { status: 'Select time', available: false, tone: 'info' as const, message: '' };
+        return {
+          status: "Select time",
+          available: false,
+          tone: "info" as const,
+          message: "",
+        };
       }
 
       if (hasOverlappingAppointment(date, time, editTarget?.id)) {
         return {
-          status: 'Overlap',
+          status: "Overlap",
           available: false,
-          tone: 'error' as const,
-          message: 'Conflicts with another appointment.',
+          tone: "error" as const,
+          message: "Conflicts with another appointment.",
         };
       }
 
       const slot = getSlotForSelection(provider, date, time);
       const isSameSlot = Boolean(
         editTarget &&
-          provider === editTarget.provider &&
-          date === editTarget.date &&
-          time === editTarget.time
+        provider === editTarget.provider &&
+        date === editTarget.date &&
+        time === editTarget.time,
       );
 
-      if (!slot || slot.status === 'Available') {
-        return { status: 'Available', available: true, tone: 'success' as const, message: '' };
+      if (!slot || slot.status === "Available") {
+        return {
+          status: "Available",
+          available: true,
+          tone: "success" as const,
+          message: "",
+        };
       }
 
       if (isSameSlot) {
-        return { status: slot.status, available: true, tone: 'info' as const, message: '' };
+        return {
+          status: slot.status,
+          available: true,
+          tone: "info" as const,
+          message: "",
+        };
       }
 
-      const tone: SlotCheckTone = slot.status === 'Booked' ? 'error' : 'warning';
-      return { status: slot.status, available: false, tone, message: `Slot is ${slot.status.toLowerCase()}.` };
+      const tone: SlotCheckTone =
+        slot.status === "Booked" ? "error" : "warning";
+      return {
+        status: slot.status,
+        available: false,
+        tone,
+        message: `Slot is ${slot.status.toLowerCase()}.`,
+      };
     },
-    [getSlotForSelection, hasOverlappingAppointment]
+    [getSlotForSelection, hasOverlappingAppointment],
   );
 
-  const ensureAvailabilitySlot = React.useCallback((provider: string, date: string, time: string) => {
-    setAvailability((prev) => {
-      let foundEntry = false;
-      const next = prev.map((entry) => {
-        if (entry.provider !== provider || entry.date !== date) return entry;
-        foundEntry = true;
-        const slotExists = entry.slots.some((slot) => slot.time === time);
-        if (slotExists) return entry;
-        return {
-          ...entry,
-          slots: [...entry.slots, { time, status: 'Available' as const }],
-        };
-      });
-      if (!foundEntry) {
-        next.push({
-          provider,
-          date,
-          location: 'Main OPD Wing',
-          slots: [{ time, status: 'Available' as const }],
-        });
-      }
-      return next;
-    });
-  }, []);
-
-  const markSlotBooked = React.useCallback((provider: string, date: string, time: string) => {
-    setAvailability((prev) => {
-      let foundEntry = false;
-      const next: ProviderAvailability[] = prev.map((entry) => {
-        if (entry.provider !== provider || entry.date !== date) return entry;
-        foundEntry = true;
-        const slotExists = entry.slots.some((slot) => slot.time === time);
-        if (!slotExists) {
+  const ensureAvailabilitySlot = React.useCallback(
+    (provider: string, date: string, time: string) => {
+      setAvailability((prev) => {
+        let foundEntry = false;
+        const next = prev.map((entry) => {
+          if (entry.provider !== provider || entry.date !== date) return entry;
+          foundEntry = true;
+          const slotExists = entry.slots.some((slot) => slot.time === time);
+          if (slotExists) return entry;
           return {
             ...entry,
-            slots: [...entry.slots, { time, status: 'Booked' as const }],
+            slots: [...entry.slots, { time, status: "Available" as const }],
           };
-        }
-        return {
-          ...entry,
-          slots: entry.slots.map((slot) =>
-            slot.time === time ? { ...slot, status: 'Booked' as const } : slot
-          ),
-        };
-      });
-      if (!foundEntry) {
-        next.push({
-          provider,
-          date,
-          location: 'Main OPD Wing',
-          slots: [{ time, status: 'Booked' as const }],
         });
-      }
-      return next;
-    });
-  }, []);
+        if (!foundEntry) {
+          next.push({
+            provider,
+            date,
+            location: "Main OPD Wing",
+            slots: [{ time, status: "Available" as const }],
+          });
+        }
+        return next;
+      });
+    },
+    [],
+  );
 
-  const markSlotAvailable = React.useCallback((provider: string, date: string, time: string) => {
-    setAvailability((prev) => {
-      let foundEntry = false;
-      const next: ProviderAvailability[] = prev.map((entry) => {
-        if (entry.provider !== provider || entry.date !== date) return entry;
-        foundEntry = true;
-        const slotExists = entry.slots.some((slot) => slot.time === time);
-        if (!slotExists) {
+  const markSlotBooked = React.useCallback(
+    (provider: string, date: string, time: string) => {
+      setAvailability((prev) => {
+        let foundEntry = false;
+        const next: ProviderAvailability[] = prev.map((entry) => {
+          if (entry.provider !== provider || entry.date !== date) return entry;
+          foundEntry = true;
+          const slotExists = entry.slots.some((slot) => slot.time === time);
+          if (!slotExists) {
+            return {
+              ...entry,
+              slots: [...entry.slots, { time, status: "Booked" as const }],
+            };
+          }
           return {
             ...entry,
-            slots: [...entry.slots, { time, status: 'Available' as const }],
+            slots: entry.slots.map((slot) =>
+              slot.time === time
+                ? { ...slot, status: "Booked" as const }
+                : slot,
+            ),
           };
-        }
-        return {
-          ...entry,
-          slots: entry.slots.map((slot) =>
-            slot.time === time ? { ...slot, status: 'Available' as const } : slot
-          ),
-        };
-      });
-      if (!foundEntry) {
-        next.push({
-          provider,
-          date,
-          location: 'Main OPD Wing',
-          slots: [{ time, status: 'Available' as const }],
         });
-      }
-      return next;
-    });
-  }, []);
+        if (!foundEntry) {
+          next.push({
+            provider,
+            date,
+            location: "Main OPD Wing",
+            slots: [{ time, status: "Booked" as const }],
+          });
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const markSlotAvailable = React.useCallback(
+    (provider: string, date: string, time: string) => {
+      setAvailability((prev) => {
+        let foundEntry = false;
+        const next: ProviderAvailability[] = prev.map((entry) => {
+          if (entry.provider !== provider || entry.date !== date) return entry;
+          foundEntry = true;
+          const slotExists = entry.slots.some((slot) => slot.time === time);
+          if (!slotExists) {
+            return {
+              ...entry,
+              slots: [...entry.slots, { time, status: "Available" as const }],
+            };
+          }
+          return {
+            ...entry,
+            slots: entry.slots.map((slot) =>
+              slot.time === time
+                ? { ...slot, status: "Available" as const }
+                : slot,
+            ),
+          };
+        });
+        if (!foundEntry) {
+          next.push({
+            provider,
+            date,
+            location: "Main OPD Wing",
+            slots: [{ time, status: "Available" as const }],
+          });
+        }
+        return next;
+      });
+    },
+    [],
+  );
 
   const handleSelectPatient = (patient: GlobalPatient | null) => {
     setSelectedPatientOption(patient);
     if (!patient) return;
-    updateBookingField('patientName', patient.name);
-    updateBookingField('mrn', patient.mrn);
-    updateBookingField('ageGender', patient.ageGender);
-    updateBookingField('phone', patient.phone);
-    updateBookingField('department', patient.department);
+    updateBookingField("patientName", patient.name);
+    updateBookingField("mrn", patient.mrn);
+    updateBookingField("ageGender", patient.ageGender);
+    updateBookingField("phone", patient.phone);
+    updateBookingField("department", patient.department);
     setDirectDepartment(patient.department);
   };
 
   const handleDirectSlotPick = React.useCallback(
-    (slot: ProviderSlot, overrides?: { provider?: string; date?: string; department?: string }) => {
-      if (!guardCalendarAction('Booking workflow')) return;
-      if (slot.status !== 'Available') return;
+    (
+      slot: ProviderSlot,
+      overrides?: { provider?: string; date?: string; department?: string },
+    ) => {
+      if (!guardCalendarAction("Booking workflow")) return;
+      if (slot.status !== "Available") return;
       const selectedProvider = overrides?.provider ?? directProvider;
       const selectedDate = overrides?.date ?? directDate;
       const selectedDepartment = overrides?.department ?? directDepartment;
       if (!selectedProvider || !selectedDepartment) {
         setSnackbar({
           open: true,
-          message: 'Select a department and doctor before choosing a slot.',
-          severity: 'info',
+          message: "Select a department and doctor before choosing a slot.",
+          severity: "info",
         });
         return;
       }
       if (hasOverlappingAppointment(selectedDate, slot.time)) {
         setSnackbar({
           open: true,
-          message: 'This slot overlaps another appointment.',
-          severity: 'info',
+          message: "This slot overlaps another appointment.",
+          severity: "info",
         });
         return;
       }
@@ -619,10 +719,10 @@ export default function OpdCalendarPage() {
       setDirectDepartment(selectedDepartment);
       setProviderFilter(selectedProvider);
       ensureAvailabilitySlot(selectedProvider, selectedDate, slot.time);
-      updateBookingField('date', selectedDate);
-      updateBookingField('time', slot.time);
-      updateBookingField('provider', selectedProvider);
-      updateBookingField('department', selectedDepartment);
+      updateBookingField("date", selectedDate);
+      updateBookingField("time", slot.time);
+      updateBookingField("provider", selectedProvider);
+      updateBookingField("department", selectedDepartment);
       setEditingAppointment(null);
       setSlotLocked(true);
       setBookingOpen(true);
@@ -635,7 +735,7 @@ export default function OpdCalendarPage() {
       guardCalendarAction,
       hasOverlappingAppointment,
       updateBookingField,
-    ]
+    ],
   );
 
   const handleDateClick = React.useCallback(
@@ -643,38 +743,40 @@ export default function OpdCalendarPage() {
       const calendarApi = calendarRef.current?.getApi();
       const clickedDate = formatIsoDate(arg.date);
 
-      if (arg.view.type === 'dayGridMonth') {
-        calendarApi?.changeView('timeGridDay', clickedDate);
-        setCalendarView('timeGridDay');
+      if (arg.view.type === "dayGridMonth") {
+        calendarApi?.changeView("timeGridDay", clickedDate);
+        setCalendarView("timeGridDay");
         setSelectedDate(clickedDate);
         setDirectDate(clickedDate);
         return;
       }
 
       if (!canManageCalendar) {
-        guardCalendarAction('Slot selection');
+        guardCalendarAction("Slot selection");
         return;
       }
 
       const clickedTime = formatTime(arg.date);
-      const provider = availabilityProvider || (providerFilter === 'All' ? booking.provider : providerFilter);
+      const provider =
+        availabilityProvider ||
+        (providerFilter === "All" ? booking.provider : providerFilter);
       const slot = getSlotForSelection(provider, clickedDate, clickedTime);
 
       if (hasOverlappingAppointment(clickedDate, clickedTime)) {
         setSnackbar({
           open: true,
-          message: 'This time overlaps another appointment.',
-          severity: 'info',
+          message: "This time overlaps another appointment.",
+          severity: "info",
         });
         return;
       }
 
       if (availabilityProvider) {
-        if (!slot || slot.status !== 'Available') {
+        if (!slot || slot.status !== "Available") {
           setSnackbar({
             open: true,
-            message: 'Please choose an available slot from the calendar.',
-            severity: 'info',
+            message: "Please choose an available slot from the calendar.",
+            severity: "info",
           });
           return;
         }
@@ -689,11 +791,11 @@ export default function OpdCalendarPage() {
         return;
       }
 
-      if (slot && slot.status !== 'Available') {
+      if (slot && slot.status !== "Available") {
         setSnackbar({
           open: true,
           message: `${slot.time} is ${slot.status.toLowerCase()}. Choose another slot.`,
-          severity: 'info',
+          severity: "info",
         });
         return;
       }
@@ -722,45 +824,53 @@ export default function OpdCalendarPage() {
       providerFilter,
       canManageCalendar,
       guardCalendarAction,
-    ]
+    ],
   );
 
-  const handleEventClick = React.useCallback((arg: EventClickArg) => {
-    const extended = arg.event.extendedProps as {
-      kind?: string;
-      appointment?: OpdAppointment;
-      slot?: ProviderSlot;
-      provider?: string;
-      date?: string;
-      department?: string;
-    };
+  const handleEventClick = React.useCallback(
+    (arg: EventClickArg) => {
+      const extended = arg.event.extendedProps as {
+        kind?: string;
+        appointment?: OpdAppointment;
+        slot?: ProviderSlot;
+        provider?: string;
+        date?: string;
+        department?: string;
+      };
 
-    if (extended.kind === 'availability' && extended.slot && extended.provider && extended.date) {
-      setSelectedEvent(null);
-      setEventAnchor(null);
-      handleDirectSlotPick(extended.slot, {
-        provider: extended.provider,
-        date: extended.date,
-        department: extended.department,
-      });
-      return;
-    }
+      if (
+        extended.kind === "availability" &&
+        extended.slot &&
+        extended.provider &&
+        extended.date
+      ) {
+        setSelectedEvent(null);
+        setEventAnchor(null);
+        handleDirectSlotPick(extended.slot, {
+          provider: extended.provider,
+          date: extended.date,
+          department: extended.department,
+        });
+        return;
+      }
 
-    if (!extended.appointment) return;
-    setSelectedEvent(extended.appointment);
-    setEventAnchor(arg.el);
-  }, [handleDirectSlotPick]);
+      if (!extended.appointment) return;
+      setSelectedEvent(extended.appointment);
+      setEventAnchor(arg.el);
+    },
+    [handleDirectSlotPick],
+  );
 
   const handleDatesSet = React.useCallback((arg: DatesSetArg) => {
     setCalendarTitle(arg.view.title);
     setCalendarView(arg.view.type as CalendarView);
     setCalendarRange({ start: arg.start, end: arg.end });
-    if (arg.view.type === 'dayGridMonth') {
+    if (arg.view.type === "dayGridMonth") {
       setSelectedDate(formatIsoDate(arg.view.currentStart));
       return;
     }
     setSelectedDate(formatIsoDate(arg.start));
-    if (arg.view.type === 'timeGridDay') {
+    if (arg.view.type === "timeGridDay") {
       setDirectDate(formatIsoDate(arg.start));
     }
   }, []);
@@ -775,7 +885,7 @@ export default function OpdCalendarPage() {
   }, [selectedDate, bookingOpen]);
 
   React.useEffect(() => {
-    if (providerFilter !== 'All') {
+    if (providerFilter !== "All") {
       setBooking((prev) => ({
         ...prev,
         provider: providerFilter,
@@ -812,18 +922,18 @@ export default function OpdCalendarPage() {
 
   const handleDirectDepartmentChange = (value: string) => {
     setDirectDepartment(value);
-    updateBookingField('department', value);
+    updateBookingField("department", value);
     setDirectProvider(null);
-    setProviderFilter('All');
+    setProviderFilter("All");
   };
 
   const handleDirectProviderChange = (value: string | null) => {
     setDirectProvider(value);
     if (value) {
-      updateBookingField('provider', value);
+      updateBookingField("provider", value);
       setProviderFilter(value);
     } else {
-      setProviderFilter('All');
+      setProviderFilter("All");
     }
   };
 
@@ -831,7 +941,7 @@ export default function OpdCalendarPage() {
     if (!value) return;
     setDirectDate(value);
     setSelectedDate(value);
-    updateBookingField('date', value);
+    updateBookingField("date", value);
     const calendarApi = calendarRef.current?.getApi();
     if (calendarApi) {
       calendarApi.gotoDate(value);
@@ -840,33 +950,36 @@ export default function OpdCalendarPage() {
 
   const handleMiniCalendarChange = (value: Dayjs | null) => {
     if (!value) return;
-    const nextDate = value.format('YYYY-MM-DD');
+    const nextDate = value.format("YYYY-MM-DD");
     handleDirectDateChange(nextDate);
   };
 
   const flowMrn = booking.mrn || mrnParam;
   const withMrn = React.useCallback(
     (route: string) => (flowMrn ? `${route}?mrn=${flowMrn}` : route),
-    [flowMrn]
+    [flowMrn],
   );
 
   const openPatientRegistrationFromCalendar = React.useCallback(() => {
-    if (!guardCalendarAction('Patient registration')) return;
+    if (!guardCalendarAction("Patient registration")) return;
 
     const params = new URLSearchParams();
-    params.set('source', 'opd-calendar');
-    params.set('returnTo', '/appointments/calendar');
+    params.set("source", "opd-calendar");
+    params.set("returnTo", "/appointments/calendar");
 
     const nextDate = booking.date || directDate;
-    const nextTime = booking.time || slotTimes[0] || '09:00';
+    const nextTime = booking.time || slotTimes[0] || "09:00";
     const nextProvider =
-      booking.provider || directProvider || (providerFilter !== 'All' ? providerFilter : '');
-    const nextDepartment = booking.department || directDepartment || defaultDepartment;
+      booking.provider ||
+      directProvider ||
+      (providerFilter !== "All" ? providerFilter : "");
+    const nextDepartment =
+      booking.department || directDepartment || defaultDepartment;
 
-    if (nextDate) params.set('date', nextDate);
-    if (nextTime) params.set('time', nextTime);
-    if (nextProvider) params.set('provider', nextProvider);
-    if (nextDepartment) params.set('department', nextDepartment);
+    if (nextDate) params.set("date", nextDate);
+    if (nextTime) params.set("time", nextTime);
+    if (nextProvider) params.set("provider", nextProvider);
+    if (nextDepartment) params.set("department", nextDepartment);
 
     router.push(`/patients/registration?${params.toString()}`);
   }, [
@@ -884,13 +997,25 @@ export default function OpdCalendarPage() {
   ]);
 
   const slotCheck = React.useMemo(
-    () => getSlotCheck(booking.provider, booking.date, booking.time, editingAppointment),
-    [booking.provider, booking.date, booking.time, editingAppointment, getSlotCheck]
+    () =>
+      getSlotCheck(
+        booking.provider,
+        booking.date,
+        booking.time,
+        editingAppointment,
+      ),
+    [
+      booking.provider,
+      booking.date,
+      booking.time,
+      editingAppointment,
+      getSlotCheck,
+    ],
   );
 
   const openEditBooking = React.useCallback(
     (appointment: OpdAppointment) => {
-      if (!guardCalendarAction('Reschedule')) return;
+      if (!guardCalendarAction("Reschedule")) return;
       setEditingAppointment(appointment);
       setSlotLocked(false);
       setErrors({});
@@ -918,7 +1043,7 @@ export default function OpdCalendarPage() {
       setSelectedEvent(null);
       setEventAnchor(null);
     },
-    [guardCalendarAction]
+    [guardCalendarAction],
   );
 
   const closeBooking = React.useCallback(() => {
@@ -930,15 +1055,15 @@ export default function OpdCalendarPage() {
 
   const [dateParamApplied, setDateParamApplied] = React.useState(false);
   React.useEffect(() => {
-    const dateParam = searchParams.get('date');
+    const dateParam = searchParams.get("date");
     if (!dateParam || dateParamApplied) return;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) return;
     handleDirectDateChange(dateParam);
-    const timeParam = searchParams.get('time');
+    const timeParam = searchParams.get("time");
     if (timeParam && /^\d{2}:\d{2}$/.test(timeParam)) {
       window.requestAnimationFrame(() => {
         const calendarApi = calendarRef.current?.getApi();
-        if (calendarApi && typeof calendarApi.scrollToTime === 'function') {
+        if (calendarApi && typeof calendarApi.scrollToTime === "function") {
           calendarApi.scrollToTime(`${timeParam}:00`);
         }
       });
@@ -946,18 +1071,21 @@ export default function OpdCalendarPage() {
     setDateParamApplied(true);
   }, [dateParamApplied, handleDirectDateChange, searchParams]);
 
-  const [appointmentParamApplied, setAppointmentParamApplied] = React.useState(false);
+  const [appointmentParamApplied, setAppointmentParamApplied] =
+    React.useState(false);
   React.useEffect(() => {
-    const appointmentId = searchParams.get('appointmentId');
+    const appointmentId = searchParams.get("appointmentId");
     if (!appointmentId || appointmentParamApplied) return;
-    const target = appointments.find((appointment) => appointment.id === appointmentId);
+    const target = appointments.find(
+      (appointment) => appointment.id === appointmentId,
+    );
     if (!target) return;
 
     const calendarApi = calendarRef.current?.getApi();
     if (calendarApi) {
-      calendarApi.changeView('timeGridDay', target.date);
+      calendarApi.changeView("timeGridDay", target.date);
       calendarApi.gotoDate(target.date);
-      if (typeof calendarApi.scrollToTime === 'function') {
+      if (typeof calendarApi.scrollToTime === "function") {
         calendarApi.scrollToTime(`${target.time}:00`);
       }
     }
@@ -987,31 +1115,36 @@ export default function OpdCalendarPage() {
 
   React.useEffect(() => {
     if (registrationPayloadApplied) return;
-    const source = searchParams.get('source');
-    const registrationStatus = searchParams.get('registration');
-    if (source !== 'registration' || registrationStatus !== 'success') return;
+    const source = searchParams.get("source");
+    const registrationStatus = searchParams.get("registration");
+    if (source !== "registration" || registrationStatus !== "success") return;
 
-    const returnedPatientName = searchParams.get('patientName') || '';
-    const returnedPhone = searchParams.get('phone') || '';
-    const returnedAge = searchParams.get('age') || '';
-    const returnedGenderRaw = searchParams.get('gender') || '';
-    const returnedDepartment = searchParams.get('department') || booking.department || directDepartment || defaultDepartment;
-    const returnedDate = searchParams.get('date') || booking.date || directDate;
-    const returnedTime = searchParams.get('time') || booking.time || slotTimes[0] || '09:00';
+    const returnedPatientName = searchParams.get("patientName") || "";
+    const returnedPhone = searchParams.get("phone") || "";
+    const returnedAge = searchParams.get("age") || "";
+    const returnedGenderRaw = searchParams.get("gender") || "";
+    const returnedDepartment =
+      searchParams.get("department") ||
+      booking.department ||
+      directDepartment ||
+      defaultDepartment;
+    const returnedDate = searchParams.get("date") || booking.date || directDate;
+    const returnedTime =
+      searchParams.get("time") || booking.time || slotTimes[0] || "09:00";
     const returnedProvider =
-      searchParams.get('provider') ||
+      searchParams.get("provider") ||
       booking.provider ||
       directProvider ||
-      (providerFilter !== 'All' ? providerFilter : providers[0] || '');
+      (providerFilter !== "All" ? providerFilter : providers[0] || "");
 
     const normalizedGender = returnedGenderRaw
       ? `${returnedGenderRaw.charAt(0).toUpperCase()}${returnedGenderRaw.slice(1).toLowerCase()}`
-      : '';
+      : "";
     const returnedAgeGender = returnedAge
-      ? `${returnedAge} / ${normalizedGender || 'Unknown'}`
+      ? `${returnedAge} / ${normalizedGender || "Unknown"}`
       : normalizedGender
-      ? `— / ${normalizedGender}`
-      : '';
+        ? `— / ${normalizedGender}`
+        : "";
 
     setSelectedPatientOption(null);
     setDirectDepartment(returnedDepartment);
@@ -1030,7 +1163,7 @@ export default function OpdCalendarPage() {
       patientName: returnedPatientName || prev.patientName,
       phone: returnedPhone || prev.phone,
       ageGender: returnedAgeGender || prev.ageGender,
-      mrn: '',
+      mrn: "",
     }));
     setErrors({});
     setEditingAppointment(null);
@@ -1040,8 +1173,8 @@ export default function OpdCalendarPage() {
       open: true,
       message: returnedPatientName
         ? `${returnedPatientName} registered. Complete appointment booking.`
-        : 'Patient registered. Complete appointment booking.',
-      severity: 'success',
+        : "Patient registered. Complete appointment booking.",
+      severity: "success",
     });
     setRegistrationPayloadApplied(true);
   }, [
@@ -1062,14 +1195,14 @@ export default function OpdCalendarPage() {
   const validateBooking = (): boolean => {
     const nextErrors: BookingErrors = {};
     const requiredFields: Array<[keyof BookingForm, string]> = [
-      ['date', 'Date'],
-      ['time', 'Time'],
-      ['provider', 'Provider'],
-      ['department', 'Department'],
-      ['patientName', 'Patient name'],
-      ['phone', 'Phone'],
-      ['visitType', 'Visit type'],
-      ['chiefComplaint', 'Chief complaint'],
+      ["date", "Date"],
+      ["time", "Time"],
+      ["provider", "Provider"],
+      ["department", "Department"],
+      ["patientName", "Patient name"],
+      ["phone", "Phone"],
+      ["visitType", "Visit type"],
+      ["chiefComplaint", "Chief complaint"],
     ];
 
     requiredFields.forEach(([field, label]) => {
@@ -1083,28 +1216,37 @@ export default function OpdCalendarPage() {
   };
 
   const handleCreateBooking = (sendToQueue: boolean) => {
-    if (!guardCalendarAction('Create booking')) return;
+    if (!guardCalendarAction("Create booking")) return;
     const valid = validateBooking();
     if (!valid) {
       setSnackbar({
         open: true,
-        message: 'Please complete all required booking fields.',
-        severity: 'error',
+        message: "Please complete all required booking fields.",
+        severity: "error",
       });
       return;
     }
 
-    const slotCheckResult = getSlotCheck(booking.provider, booking.date, booking.time, null);
+    const slotCheckResult = getSlotCheck(
+      booking.provider,
+      booking.date,
+      booking.time,
+      null,
+    );
     if (!slotCheckResult.available) {
       setSnackbar({
         open: true,
-        message: slotCheckResult.message || 'Selected slot is not available.',
-        severity: 'error',
+        message: slotCheckResult.message || "Selected slot is not available.",
+        severity: "error",
       });
       return;
     }
 
-    const slot = getSlotForSelection(booking.provider, booking.date, booking.time);
+    const slot = getSlotForSelection(
+      booking.provider,
+      booking.date,
+      booking.time,
+    );
     if (!slot) {
       ensureAvailabilitySlot(booking.provider, booking.date, booking.time);
     }
@@ -1117,9 +1259,9 @@ export default function OpdCalendarPage() {
       department: booking.department,
       patientName: booking.patientName,
       mrn: booking.mrn || `MRN-${Math.floor(Math.random() * 900000 + 100000)}`,
-      ageGender: booking.ageGender || 'Unknown',
+      ageGender: booking.ageGender || "Unknown",
       visitType: booking.visitType,
-      status: sendToQueue ? 'Checked-In' : 'Scheduled',
+      status: sendToQueue ? "Checked-In" : "Scheduled",
       chiefComplaint: booking.chiefComplaint,
       payerType: booking.payerType,
       phone: booking.phone,
@@ -1134,7 +1276,7 @@ export default function OpdCalendarPage() {
       message: sendToQueue
         ? `Booking created and sent to queue for ${created.patientName}.`
         : `Booking created for ${created.patientName}.`,
-      severity: 'success',
+      severity: "success",
     });
 
     if (sendToQueue) {
@@ -1148,28 +1290,28 @@ export default function OpdCalendarPage() {
           ageGender: created.ageGender,
           doctor: created.provider,
           department: created.department,
-          status: 'ARRIVED',
-          queuePriority: 'Routine',
+          status: "ARRIVED",
+          queuePriority: "Routine",
           appointmentTime: created.time,
           chiefComplaint: created.chiefComplaint,
-          triageNote: 'Sent from calendar to OPD queue.',
-          allergies: ['No known allergies'],
+          triageNote: "Sent from calendar to OPD queue.",
+          allergies: ["No known allergies"],
           problems: [],
           notes: [],
           orders: [],
           prescriptions: [],
           vitals: {
-            bp: '',
-            hr: '',
-            rr: '',
-            temp: '',
-            spo2: '',
-            weightKg: '',
-            bmi: '',
+            bp: "",
+            hr: "",
+            rr: "",
+            temp: "",
+            spo2: "",
+            weightKg: "",
+            bmi: "",
           },
-        })
+        }),
       );
-      router.push(withMrn('/appointments/queue'));
+      router.push(withMrn("/appointments/queue"));
     }
 
     setBooking((prev) => ({
@@ -1181,14 +1323,14 @@ export default function OpdCalendarPage() {
   };
 
   const handleUpdateBooking = () => {
-    if (!guardCalendarAction('Update booking')) return;
+    if (!guardCalendarAction("Update booking")) return;
     if (!editingAppointment) return;
     const valid = validateBooking();
     if (!valid) {
       setSnackbar({
         open: true,
-        message: 'Please complete all required booking fields.',
-        severity: 'error',
+        message: "Please complete all required booking fields.",
+        severity: "error",
       });
       return;
     }
@@ -1197,26 +1339,32 @@ export default function OpdCalendarPage() {
       booking.provider,
       booking.date,
       booking.time,
-      editingAppointment
+      editingAppointment,
     );
     if (!slotCheckResult.available) {
       setSnackbar({
         open: true,
-        message: slotCheckResult.message || 'Selected slot is not available.',
-        severity: 'error',
+        message: slotCheckResult.message || "Selected slot is not available.",
+        severity: "error",
       });
       return;
     }
 
     const old = editingAppointment;
     const changedSlot =
-      old.provider !== booking.provider || old.date !== booking.date || old.time !== booking.time;
+      old.provider !== booking.provider ||
+      old.date !== booking.date ||
+      old.time !== booking.time;
 
     if (changedSlot) {
       if (!hasOverlappingAppointment(old.date, old.time, old.id)) {
         markSlotAvailable(old.provider, old.date, old.time);
       }
-      const slot = getSlotForSelection(booking.provider, booking.date, booking.time);
+      const slot = getSlotForSelection(
+        booking.provider,
+        booking.date,
+        booking.time,
+      );
       if (!slot) {
         ensureAvailabilitySlot(booking.provider, booking.date, booking.time);
       }
@@ -1240,61 +1388,69 @@ export default function OpdCalendarPage() {
           payerType: booking.payerType,
           phone: booking.phone,
         },
-      })
+      }),
     );
 
     setSnackbar({
       open: true,
       message: `Appointment rescheduled for ${booking.patientName}.`,
-      severity: 'success',
+      severity: "success",
     });
 
     closeBooking();
   };
 
-  const appointmentEvents = React.useMemo<EventInput[]>(
-    () => {
-      const filtered = appointments.filter(
-        (appointment) =>
-          (providerFilter === 'All' || appointment.provider === providerFilter) &&
-          appointment.status !== 'Cancelled'
-      );
+  const appointmentEvents = React.useMemo<EventInput[]>(() => {
+    const filtered = appointments.filter(
+      (appointment) =>
+        (providerFilter === "All" || appointment.provider === providerFilter) &&
+        appointment.status !== "Cancelled",
+    );
 
-      const sorted = [...filtered].sort((a, b) => {
-        if (a.date !== b.date) return a.date.localeCompare(b.date);
-        const timeDiff = toMinutes(a.time) - toMinutes(b.time);
-        if (timeDiff !== 0) return timeDiff;
-        return a.id.localeCompare(b.id);
-      });
+    const sorted = [...filtered].sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      const timeDiff = toMinutes(a.time) - toMinutes(b.time);
+      if (timeDiff !== 0) return timeDiff;
+      return a.id.localeCompare(b.id);
+    });
 
-      const intervalsByDate = new Map<string, Array<[number, number]>>();
-      const nonOverlapping = sorted.filter((appointment) => {
-        const startMinutes = toMinutes(appointment.time);
-        const endMinutes = startMinutes + slotDurationMinutes;
-        const intervals = intervalsByDate.get(appointment.date) ?? [];
-        if (intervals.some(([start, end]) => rangesOverlap(startMinutes, endMinutes, start, end))) {
-          return false;
-        }
-        intervals.push([startMinutes, endMinutes]);
-        intervalsByDate.set(appointment.date, intervals);
-        return true;
-      });
+    const intervalsByDate = new Map<string, Array<[number, number]>>();
+    const nonOverlapping = sorted.filter((appointment) => {
+      const startMinutes = toMinutes(appointment.time);
+      const endMinutes = startMinutes + slotDurationMinutes;
+      const intervals = intervalsByDate.get(appointment.date) ?? [];
+      if (
+        intervals.some(([start, end]) =>
+          rangesOverlap(startMinutes, endMinutes, start, end),
+        )
+      ) {
+        return false;
+      }
+      intervals.push([startMinutes, endMinutes]);
+      intervalsByDate.set(appointment.date, intervals);
+      return true;
+    });
 
-      return nonOverlapping.map((appointment) => ({
-        id: appointment.id,
-        title: appointment.patientName,
-        start: `${appointment.date}T${appointment.time}:00`,
-        end: `${appointment.date}T${addMinutesToTime(appointment.time, slotDurationMinutes)}:00`,
-        classNames:
-          selectedEvent && selectedEvent.id === appointment.id ? ['fc-event-selected'] : [],
-        extendedProps: { kind: 'appointment', appointment },
-      }));
-    },
-    [appointments, providerFilter, selectedEvent, slotDurationMinutes]
-  );
+    return nonOverlapping.map((appointment) => ({
+      id: appointment.id,
+      title: appointment.patientName,
+      start: `${appointment.date}T${appointment.time}:00`,
+      end: `${appointment.date}T${addMinutesToTime(appointment.time, slotDurationMinutes)}:00`,
+      classNames:
+        selectedEvent && selectedEvent.id === appointment.id
+          ? ["fc-event-selected"]
+          : [],
+      extendedProps: { kind: "appointment", appointment },
+    }));
+  }, [appointments, providerFilter, selectedEvent, slotDurationMinutes]);
 
   const availabilityEvents = React.useMemo<EventInput[]>(() => {
-    if (!availabilityProvider || !calendarRange || calendarView === 'dayGridMonth') return [];
+    if (
+      !availabilityProvider ||
+      !calendarRange ||
+      calendarView === "dayGridMonth"
+    )
+      return [];
     const start = calendarRange.start;
     const end = calendarRange.end;
 
@@ -1306,18 +1462,18 @@ export default function OpdCalendarPage() {
       })
       .flatMap((entry) =>
         entry.slots
-          .filter((slot) => slot.status === 'Available')
+          .filter((slot) => slot.status === "Available")
           .filter((slot) => {
             return !hasOverlappingAppointment(entry.date, slot.time);
           })
           .map((slot) => ({
             id: `avail-${availabilityProvider}-${entry.date}-${slot.time}`,
-            title: 'Available',
+            title: "Available",
             start: `${entry.date}T${slot.time}:00`,
             end: `${entry.date}T${addMinutesToTime(slot.time, slotDurationMinutes)}:00`,
-            classNames: ['fc-availability-event'],
+            classNames: ["fc-availability-event"],
             extendedProps: {
-              kind: 'availability',
+              kind: "availability",
               slot,
               provider: availabilityProvider,
               date: entry.date,
@@ -1326,7 +1482,7 @@ export default function OpdCalendarPage() {
                 directDepartment ||
                 booking.department,
             },
-          }))
+          })),
       );
   }, [
     availabilityProvider,
@@ -1342,54 +1498,76 @@ export default function OpdCalendarPage() {
 
   const events = React.useMemo<EventInput[]>(
     () => [...appointmentEvents, ...availabilityEvents],
-    [appointmentEvents, availabilityEvents]
+    [appointmentEvents, availabilityEvents],
   );
 
-  const renderEventContent = React.useCallback(
-    (arg: EventContentArg) => {
-      const kind = (arg.event.extendedProps as { kind?: string }).kind;
-      if (kind === 'availability') {
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.1, whiteSpace: 'nowrap' }}>
-              {arg.timeText}
-            </span>
-          </div>
-        );
-      }
-
-      const appointment = (arg.event.extendedProps as { appointment?: OpdAppointment }).appointment;
+  const renderEventContent = React.useCallback((arg: EventContentArg) => {
+    const kind = (arg.event.extendedProps as { kind?: string }).kind;
+    if (kind === "availability") {
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.1, whiteSpace: 'nowrap' }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              lineHeight: 1.1,
+              whiteSpace: "nowrap",
+            }}
+          >
             {arg.timeText}
-          </span>
-          <span style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.1, wordBreak: 'break-word' }}>
-            {appointment?.patientName ?? arg.event.title}
           </span>
         </div>
       );
-    },
-    []
-  );
+    }
+
+    const appointment = (
+      arg.event.extendedProps as { appointment?: OpdAppointment }
+    ).appointment;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            lineHeight: 1.1,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {arg.timeText}
+        </span>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            lineHeight: 1.1,
+            wordBreak: "break-word",
+          }}
+        >
+          {appointment?.patientName ?? arg.event.title}
+        </span>
+      </div>
+    );
+  }, []);
 
   const getStatusTone = React.useCallback(
     (status: AppointmentStatus) => {
       const tone = appointmentStatusColor[status];
-      return tone === 'default' ? theme.palette.grey[600] : theme.palette[tone].main;
+      return tone === "default"
+        ? theme.palette.grey[600]
+        : theme.palette[tone].main;
     },
-    [theme.palette]
+    [theme.palette],
   );
 
   const handleNewBooking = React.useCallback(() => {
-    if (!guardCalendarAction('Create booking')) return;
+    if (!guardCalendarAction("Create booking")) return;
     setEditingAppointment(null);
     setSlotLocked(false);
     setBooking((prev) => ({
       ...prev,
       date: selectedDate,
       time: prev.time || slotTimes[0],
-      provider: providerFilter === 'All' ? prev.provider : providerFilter,
+      provider: providerFilter === "All" ? prev.provider : providerFilter,
     }));
     setBookingOpen(true);
   }, [guardCalendarAction, providerFilter, selectedDate, slotTimes]);
@@ -1397,42 +1575,56 @@ export default function OpdCalendarPage() {
   const handlePrev = () => calendarRef.current?.getApi().prev();
   const handleNext = () => calendarRef.current?.getApi().next();
   const handleToday = () => calendarRef.current?.getApi().today();
-  const handleViewSelect = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent) => {
+  const handleViewSelect = (
+    event:
+      | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+      | SelectChangeEvent,
+  ) => {
     const value = (event.target as HTMLInputElement).value as CalendarView;
     if (!value) return;
     setCalendarView(value);
     calendarRef.current?.getApi().changeView(value);
   };
 
-  const dayHeaderContent = React.useCallback((arg: { date: Date; view: { type: string } }) => {
-    const dayName = arg.date
-      .toLocaleDateString(undefined, { weekday: 'short' })
-      .toUpperCase();
-    if (arg.view.type === 'dayGridMonth') {
+  const dayHeaderContent = React.useCallback(
+    (arg: { date: Date; view: { type: string } }) => {
+      const dayName = arg.date
+        .toLocaleDateString(undefined, { weekday: "short" })
+        .toUpperCase();
+      if (arg.view.type === "dayGridMonth") {
+        return {
+          html: `<div class="fc-scanbo-dayhead"><div class="fc-scanbo-dayname">${dayName}</div></div>`,
+        };
+      }
+      const dayNum = arg.date.getDate();
+      const today = isSameDate(arg.date, new Date());
       return {
-        html: `<div class="fc-scanbo-dayhead"><div class="fc-scanbo-dayname">${dayName}</div></div>`,
+        html: `<div class="fc-scanbo-dayhead"><div class="fc-scanbo-dayname">${dayName}</div><div class="fc-scanbo-daynum${today ? " is-today" : ""}">${dayNum}</div></div>`,
       };
-    }
-    const dayNum = arg.date.getDate();
-    const today = isSameDate(arg.date, new Date());
-    return {
-      html: `<div class="fc-scanbo-dayhead"><div class="fc-scanbo-dayname">${dayName}</div><div class="fc-scanbo-daynum${today ? ' is-today' : ''}">${dayNum}</div></div>`,
-    };
-  }, []);
+    },
+    [],
+  );
 
   return (
     <PageTemplate title="Appointments Calendar" currentPageTitle="Calendar">
       <Stack spacing={2}>
         {!canManageCalendar ? (
           <Alert severity="info">
-            {roleProfile.label} view is read-only for calendar booking. Use queue for consultation actions.
+            {roleProfile.label} view is read-only for calendar booking. Use
+            queue for consultation actions.
           </Alert>
         ) : null}
         <Grid container spacing={2}>
           <Grid item xs={12}>
             <Card
               elevation={0}
-              sx={{ p: 0, borderRadius: 3, border: 'none', boxShadow: 'none', overflow: 'hidden' }}
+              sx={{
+                p: 0,
+                borderRadius: 3,
+                border: "none",
+                boxShadow: "none",
+                overflow: "hidden",
+              }}
             >
               <Stack spacing={1}>
                 <Stack
@@ -1440,21 +1632,27 @@ export default function OpdCalendarPage() {
                   sx={{
                     p: 1.5,
                     pb: 1,
-                    position: 'sticky',
+                    position: "sticky",
                     top: 0,
                     zIndex: 4,
-                    backdropFilter: 'blur(6px)',
-                    borderBottom: '1px solid',
+                    backdropFilter: "blur(6px)",
+                    borderBottom: "1px solid",
                     borderColor: alpha(theme.palette.divider, 0.2),
                   }}
                 >
                   <Stack
-                    direction={{ xs: 'column', md: 'row' }}
+                    direction={{ xs: "column", md: "row" }}
                     spacing={1.5}
-                    alignItems={{ xs: 'flex-start', md: 'center' }}
+                    alignItems={{ xs: "flex-start", md: "center" }}
                     justifyContent="space-between"
                   >
-                    <Stack direction="row" spacing={1.2} alignItems="center" flexWrap="wrap" sx={{ flexShrink: 0 }}>
+                    <Stack
+                      direction="row"
+                      spacing={1.2}
+                      alignItems="center"
+                      flexWrap="wrap"
+                      sx={{ flexShrink: 0 }}
+                    >
                       <Button
                         size="small"
                         variant="outlined"
@@ -1467,7 +1665,7 @@ export default function OpdCalendarPage() {
                         size="small"
                         onClick={handlePrev}
                         aria-label="Previous"
-                        sx={{ border: '1px solid', borderColor: 'divider' }}
+                        sx={{ border: "1px solid", borderColor: "divider" }}
                       >
                         <ChevronLeftIcon fontSize="small" />
                       </IconButton>
@@ -1475,22 +1673,25 @@ export default function OpdCalendarPage() {
                         size="small"
                         onClick={handleNext}
                         aria-label="Next"
-                        sx={{ border: '1px solid', borderColor: 'divider' }}
+                        sx={{ border: "1px solid", borderColor: "divider" }}
                       >
                         <ChevronRightIcon fontSize="small" />
                       </IconButton>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700, ml: 1 }}>
-                        {calendarTitle || 'Calendar'}
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ fontWeight: 700, ml: 1 }}
+                      >
+                        {calendarTitle || "Calendar"}
                       </Typography>
                     </Stack>
                     <Box
                       sx={{
                         flex: 1,
                         minWidth: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: { xs: 'flex-start', md: 'center' },
-                        overflowX: 'auto',
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: { xs: "flex-start", md: "center" },
+                        overflowX: "auto",
                         py: 0.25,
                       }}
                     >
@@ -1499,8 +1700,8 @@ export default function OpdCalendarPage() {
                         spacing={1}
                         alignItems="center"
                         sx={{
-                          flexWrap: 'nowrap',
-                          '& > *': { flexShrink: 0 },
+                          flexWrap: "nowrap",
+                          "& > *": { flexShrink: 0 },
                         }}
                       >
                         <Box
@@ -1508,7 +1709,10 @@ export default function OpdCalendarPage() {
                             ...statsPillSx,
                             px: 1.4,
                             py: 0.55,
-                            borderColor: alpha(theme.palette.primary.main, 0.25),
+                            borderColor: alpha(
+                              theme.palette.primary.main,
+                              0.25,
+                            ),
                             bgcolor: alpha(theme.palette.primary.main, 0.08),
                             boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.08)}`,
                           }}
@@ -1523,7 +1727,10 @@ export default function OpdCalendarPage() {
                             ...statsPillSx,
                             px: 1.4,
                             py: 0.55,
-                            borderColor: alpha(theme.palette.primary.main, 0.25),
+                            borderColor: alpha(
+                              theme.palette.primary.main,
+                              0.25,
+                            ),
                             bgcolor: alpha(theme.palette.primary.main, 0.08),
                             boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.08)}`,
                           }}
@@ -1531,14 +1738,19 @@ export default function OpdCalendarPage() {
                           <Typography variant="caption" sx={statsLabelSx}>
                             Checked-In
                           </Typography>
-                          <Box sx={statsCountSx}>{appointmentStats.checkedIn}</Box>
+                          <Box sx={statsCountSx}>
+                            {appointmentStats.checkedIn}
+                          </Box>
                         </Box>
                         <Box
                           sx={{
                             ...statsPillSx,
                             px: 1.4,
                             py: 0.55,
-                            borderColor: alpha(theme.palette.primary.main, 0.25),
+                            borderColor: alpha(
+                              theme.palette.primary.main,
+                              0.25,
+                            ),
                             bgcolor: alpha(theme.palette.primary.main, 0.08),
                             boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.08)}`,
                           }}
@@ -1546,14 +1758,19 @@ export default function OpdCalendarPage() {
                           <Typography variant="caption" sx={statsLabelSx}>
                             In Triage / Consult
                           </Typography>
-                          <Box sx={statsCountSx}>{appointmentStats.inTriageConsult}</Box>
+                          <Box sx={statsCountSx}>
+                            {appointmentStats.inTriageConsult}
+                          </Box>
                         </Box>
                         <Box
                           sx={{
                             ...statsPillSx,
                             px: 1.4,
                             py: 0.55,
-                            borderColor: alpha(theme.palette.primary.main, 0.25),
+                            borderColor: alpha(
+                              theme.palette.primary.main,
+                              0.25,
+                            ),
                             bgcolor: alpha(theme.palette.primary.main, 0.08),
                             boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.08)}`,
                           }}
@@ -1566,9 +1783,9 @@ export default function OpdCalendarPage() {
                       </Stack>
                     </Box>
                     <Stack
-                      direction={{ xs: 'column', md: 'row' }}
+                      direction={{ xs: "column", md: "row" }}
                       spacing={1}
-                      alignItems={{ xs: 'stretch', md: 'center' }}
+                      alignItems={{ xs: "stretch", md: "center" }}
                       sx={{ flexShrink: 0 }}
                     >
                       <TextField
@@ -1576,14 +1793,21 @@ export default function OpdCalendarPage() {
                         select
                         label="View"
                         value={calendarView}
-                        onChange={(e) => handleViewSelect(e as SelectChangeEvent)}
+                        onChange={(e) =>
+                          handleViewSelect(e as SelectChangeEvent)
+                        }
                         sx={{ minWidth: 140 }}
                       >
                         <MenuItem value="dayGridMonth">Month</MenuItem>
                         <MenuItem value="timeGridWeek">Week</MenuItem>
                         <MenuItem value="timeGridDay">Day</MenuItem>
                       </TextField>
-                      <Button size="small" variant="contained" disabled={!canManageCalendar} onClick={handleNewBooking}>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        disabled={!canManageCalendar}
+                        onClick={handleNewBooking}
+                      >
                         New Booking
                       </Button>
                     </Stack>
@@ -1592,182 +1816,206 @@ export default function OpdCalendarPage() {
 
                 <Box
                   sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) 320px' },
+                    display: "grid",
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      lg: "minmax(0, 1fr) 320px",
+                    },
                     gap: 2,
-                    alignItems: 'stretch',
+                    alignItems: "stretch",
                   }}
                 >
                   <Box
                     ref={calendarContainerRef}
                     sx={{
-                      borderTop: 'none',
-                      height: { xs: '70vh', md: '78vh' },
+                      borderTop: "none",
+                      height: { xs: "70vh", md: "78vh" },
                       minWidth: 0,
-                      '& .fc': {
-                        fontFamily: 'Nunito, sans-serif',
+                      "& .fc": {
+                        fontFamily: "Nunito, sans-serif",
                         color: theme.palette.text.primary,
-                        '--fc-border-color': alpha(theme.palette.divider, 0.15),
-                        '--fc-page-bg-color': theme.palette.background.paper,
-                        '--fc-neutral-bg-color': alpha(theme.palette.primary.main, 0.04),
-                        '--fc-today-bg-color': alpha(theme.palette.primary.main, 0.08),
+                        "--fc-border-color": alpha(theme.palette.divider, 0.15),
+                        "--fc-page-bg-color": theme.palette.background.paper,
+                        "--fc-neutral-bg-color": alpha(
+                          theme.palette.primary.main,
+                          0.04,
+                        ),
+                        "--fc-today-bg-color": alpha(
+                          theme.palette.primary.main,
+                          0.08,
+                        ),
                       },
-                      '& .fc-toolbar': {
+                      "& .fc-toolbar": {
                         m: 0,
                         p: 1.5,
-                        display: 'flex',
-                        flexWrap: 'wrap',
+                        display: "flex",
+                        flexWrap: "wrap",
                         gap: 1,
-                        borderBottom: '1px solid',
-                        borderColor: 'divider',
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
                         bgcolor: alpha(theme.palette.primary.main, 0.04),
                       },
-                      '& .fc-toolbar-title': {
-                        fontSize: '1.1rem',
+                      "& .fc-toolbar-title": {
+                        fontSize: "1.1rem",
                         fontWeight: 700,
                       },
-                      '& .fc-button': {
+                      "& .fc-button": {
                         backgroundColor: theme.palette.primary.main,
                         borderColor: theme.palette.primary.main,
                         color: theme.palette.common.white,
-                        textTransform: 'capitalize',
-                        boxShadow: 'none',
+                        textTransform: "capitalize",
+                        boxShadow: "none",
                         borderRadius: 10,
-                        padding: '6px 12px',
+                        padding: "6px 12px",
                         fontWeight: 600,
                       },
-                      '& .fc-button:hover': {
+                      "& .fc-button:hover": {
                         backgroundColor: theme.palette.primary.dark,
                         borderColor: theme.palette.primary.dark,
                       },
-                      '& .fc-button-primary:not(:disabled).fc-button-active': {
+                      "& .fc-button-primary:not(:disabled).fc-button-active": {
                         backgroundColor: theme.palette.secondary.main,
                         borderColor: theme.palette.secondary.main,
                       },
-                      '& .fc-button:disabled': {
+                      "& .fc-button:disabled": {
                         backgroundColor: alpha(theme.palette.primary.main, 0.3),
-                        borderColor: 'transparent',
+                        borderColor: "transparent",
                         color: theme.palette.common.white,
                       },
-                      '& .fc-scrollgrid': {
-                        borderColor: 'transparent',
+                      "& .fc-scrollgrid": {
+                        borderColor: "transparent",
                       },
-                      '& .fc-theme-standard td, & .fc-theme-standard th': {
+                      "& .fc-theme-standard td, & .fc-theme-standard th": {
                         borderColor: alpha(theme.palette.divider, 0.1),
                       },
-                      '& .fc-col-header-cell': {
+                      "& .fc-col-header-cell": {
                         bgcolor: alpha(theme.palette.primary.main, 0.06),
                         fontWeight: 600,
                         color: theme.palette.text.primary,
                         borderColor: alpha(theme.palette.divider, 0.2),
                       },
-                      '& .fc-col-header-cell-cushion': {
+                      "& .fc-col-header-cell-cushion": {
                         padding: 0,
-                        textDecoration: 'none',
-                        color: 'inherit',
-                        display: 'flex',
-                        justifyContent: 'center',
+                        textDecoration: "none",
+                        color: "inherit",
+                        display: "flex",
+                        justifyContent: "center",
                       },
-                      '& .fc-scanbo-dayhead': {
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                      "& .fc-scanbo-dayhead": {
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
                         gap: 6,
-                        padding: '10px 0 8px',
+                        padding: "10px 0 8px",
                       },
-                      '& .fc-scanbo-dayname': {
-                        fontSize: '0.8rem',
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
+                      "& .fc-scanbo-dayname": {
+                        fontSize: "0.8rem",
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
                         fontWeight: 700,
                         color: theme.palette.text.secondary,
                       },
-                      '& .fc-scanbo-daynum': {
-                        fontSize: '1.35rem',
+                      "& .fc-scanbo-daynum": {
+                        fontSize: "1.35rem",
                         fontWeight: 700,
-                        borderRadius: '50%',
+                        borderRadius: "50%",
                         width: 40,
                         height: 40,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         color: theme.palette.text.primary,
                       },
-                      '& .fc-scanbo-daynum.is-today': {
+                      "& .fc-scanbo-daynum.is-today": {
                         backgroundColor: theme.palette.primary.main,
                         color: theme.palette.common.white,
                       },
-                      '& .fc-daygrid-day-top': {
-                        flexDirection: 'column',
-                        alignItems: 'center',
+                      "& .fc-daygrid-day-top": {
+                        flexDirection: "column",
+                        alignItems: "center",
                         paddingTop: 10,
                       },
-                      '& .fc-timegrid-slot-label': {
+                      "& .fc-timegrid-slot-label": {
                         color: theme.palette.text.secondary,
-                        fontSize: '0.8rem',
+                        fontSize: "0.8rem",
                       },
-                      '& .fc-timegrid-axis': {
+                      "& .fc-timegrid-axis": {
                         borderColor: alpha(theme.palette.divider, 0.2),
                         color: theme.palette.text.secondary,
-                        fontSize: '0.8rem',
+                        fontSize: "0.8rem",
                       },
-                      '& .fc-timegrid-axis-frame': {
-                        backgroundColor: alpha(theme.palette.primary.main, 0.03),
+                      "& .fc-timegrid-axis-frame": {
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.03,
+                        ),
                       },
-                      '& .fc-timegrid-divider': {
+                      "& .fc-timegrid-divider": {
                         borderColor: alpha(theme.palette.divider, 0.2),
-                        backgroundColor: alpha(theme.palette.primary.main, 0.02),
+                        backgroundColor: alpha(
+                          theme.palette.primary.main,
+                          0.02,
+                        ),
                       },
-                      '& .fc-daygrid-day.fc-day-today, & .fc-timegrid-col.fc-day-today': {
-                        backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                      },
-                      '& .fc-event': {
+                      "& .fc-daygrid-day.fc-day-today, & .fc-timegrid-col.fc-day-today":
+                        {
+                          backgroundColor: alpha(
+                            theme.palette.primary.main,
+                            0.08,
+                          ),
+                        },
+                      "& .fc-event": {
                         borderRadius: 10,
-                        padding: '3px 6px',
-                        boxShadow: 'none',
+                        padding: "3px 6px",
+                        boxShadow: "none",
                       },
-                      '& .fc-timegrid-event': {
+                      "& .fc-timegrid-event": {
                         minHeight: 34,
                       },
-                      '& .fc-timegrid-event-harness, & .fc-timegrid-event-harness-inset': {
-                        left: '2px !important',
-                        right: '2px !important',
-                      },
-                      '& .fc-event-selected': {
+                      "& .fc-timegrid-event-harness, & .fc-timegrid-event-harness-inset":
+                        {
+                          left: "2px !important",
+                          right: "2px !important",
+                        },
+                      "& .fc-event-selected": {
                         boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.35)}`,
                       },
-                      '& .fc-event-main': {
+                      "& .fc-event-main": {
                         color: theme.palette.text.primary,
-                        fontSize: '0.85rem',
+                        fontSize: "0.85rem",
                         lineHeight: 1.3,
-                        overflow: 'hidden',
+                        overflow: "hidden",
                       },
-                      '& .fc-event-time': {
+                      "& .fc-event-time": {
                         fontWeight: 700,
-                        fontSize: '0.8rem',
+                        fontSize: "0.8rem",
                       },
-                      '& .fc-event-title': {
+                      "& .fc-event-title": {
                         fontWeight: 700,
                       },
-                      '& .fc-view-harness': {
-                        minHeight: '100%',
+                      "& .fc-view-harness": {
+                        minHeight: "100%",
                       },
-                      '& .fc-timegrid-slot': {
+                      "& .fc-timegrid-slot": {
                         borderColor: alpha(theme.palette.divider, 0.2),
                         height: 36,
                       },
-                      '& .fc-timegrid-slot-minor': {
-                        borderColor: 'transparent',
+                      "& .fc-timegrid-slot-minor": {
+                        borderColor: "transparent",
                       },
-                      '& .fc-timegrid-now-indicator-line': {
+                      "& .fc-timegrid-now-indicator-line": {
                         borderColor: theme.palette.primary.main,
                       },
                     }}
                   >
                     <FullCalendar
                       ref={calendarRef}
-                      plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                      plugins={[
+                        dayGridPlugin,
+                        timeGridPlugin,
+                        interactionPlugin,
+                      ]}
                       initialView={calendarView}
                       initialDate={selectedDate}
                       headerToolbar={false}
@@ -1775,9 +2023,18 @@ export default function OpdCalendarPage() {
                       slotMinTime={calendarMinTime}
                       slotMaxTime={calendarMaxTime}
                       slotDuration={formatDuration(slotDurationMinutes)}
-                      slotLabelFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short', omitZeroMinute: true }}
+                      slotLabelFormat={{
+                        hour: "numeric",
+                        minute: "2-digit",
+                        meridiem: "short",
+                        omitZeroMinute: true,
+                      }}
                       slotLabelInterval={{ hours: 1 }}
-                      eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
+                      eventTimeFormat={{
+                        hour: "numeric",
+                        minute: "2-digit",
+                        meridiem: "short",
+                      }}
                       scrollTime="00:00:00"
                       nowIndicator
                       allDaySlot={false}
@@ -1797,28 +2054,36 @@ export default function OpdCalendarPage() {
                       dayHeaderContent={dayHeaderContent}
                       eventContent={renderEventContent}
                       eventDidMount={(info) => {
-                        const kind = (info.event.extendedProps as { kind?: string }).kind;
-                        if (kind === 'availability') {
-                          info.el.style.backgroundColor = 'transparent';
+                        const kind = (
+                          info.event.extendedProps as { kind?: string }
+                        ).kind;
+                        if (kind === "availability") {
+                          info.el.style.backgroundColor = "transparent";
                           info.el.style.border = `1px solid ${alpha(theme.palette.primary.main, 0.7)}`;
                           info.el.style.color = theme.palette.primary.main;
-                          info.el.style.borderRadius = '10px';
-                          info.el.style.boxShadow = 'none';
-                          info.el.style.cursor = 'pointer';
+                          info.el.style.borderRadius = "10px";
+                          info.el.style.boxShadow = "none";
+                          info.el.style.cursor = "pointer";
                           return;
                         }
 
-                        const appointment = (info.event.extendedProps as { appointment?: OpdAppointment })
-                          .appointment;
+                        const appointment = (
+                          info.event.extendedProps as {
+                            appointment?: OpdAppointment;
+                          }
+                        ).appointment;
                         if (!appointment) return;
                         const tone = getStatusTone(appointment.status);
                         info.el.style.backgroundColor = alpha(tone, 0.22);
                         info.el.style.border = `1px solid ${alpha(tone, 0.55)}`;
                         info.el.style.color = theme.palette.text.primary;
-                        info.el.style.borderRadius = '10px';
+                        info.el.style.borderRadius = "10px";
                         info.el.style.boxShadow = `0 1px 2px ${alpha(tone, 0.2)}`;
-                        info.el.style.cursor = 'pointer';
-                        if (selectedEvent && appointment.id === selectedEvent.id) {
+                        info.el.style.cursor = "pointer";
+                        if (
+                          selectedEvent &&
+                          appointment.id === selectedEvent.id
+                        ) {
                           info.el.style.boxShadow = `0 0 0 2px ${alpha(theme.palette.primary.main, 0.35)}`;
                         }
                       }}
@@ -1830,24 +2095,24 @@ export default function OpdCalendarPage() {
                     sx={{
                       p: 1.5,
                       borderRadius: 2.5,
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      boxShadow: 'none',
-                      alignSelf: 'stretch',
-                      height: '100%',
+                      border: "none",
+                      backgroundColor: "transparent",
+                      boxShadow: "none",
+                      alignSelf: "stretch",
+                      height: "100%",
                     }}
                   >
-                    <Stack spacing={1.5} sx={{ height: '100%' }}>
+                    <Stack spacing={1.5} sx={{ height: "100%" }}>
                       {patientName ? (
                         <Box
                           sx={{
-                            display: 'flex',
-                            alignItems: 'center',
+                            display: "flex",
+                            alignItems: "center",
                             gap: 1,
                             px: 1.2,
                             py: 1,
                             borderRadius: 2,
-                            border: '1px solid',
+                            border: "1px solid",
                             borderColor: alpha(theme.palette.primary.main, 0.2),
                             bgcolor: alpha(theme.palette.primary.main, 0.06),
                           }}
@@ -1856,7 +2121,7 @@ export default function OpdCalendarPage() {
                             sx={{
                               width: 34,
                               height: 34,
-                              fontSize: '0.8rem',
+                              fontSize: "0.8rem",
                               bgcolor: alpha(theme.palette.primary.main, 0.18),
                               color: theme.palette.primary.main,
                               fontWeight: 700,
@@ -1865,12 +2130,17 @@ export default function OpdCalendarPage() {
                             {getInitials(patientName)}
                           </Avatar>
                           <Box sx={{ minWidth: 0 }}>
-                            
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                            <Typography
+                              variant="subtitle2"
+                              sx={{ fontWeight: 700, lineHeight: 1.2 }}
+                            >
                               {patientName}
                             </Typography>
                             {patientMrn ? (
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
                                 MRN {patientMrn}
                               </Typography>
                             ) : null}
@@ -1878,16 +2148,15 @@ export default function OpdCalendarPage() {
                         </Box>
                       ) : null}
                       {patientName ? <Divider /> : null}
-                      <Stack
-                        spacing={1.2}
-                     
-                      >
+                      <Stack spacing={1.2}>
                         <TextField
                           size="small"
                           select
                           label="Department"
                           value={directDepartment}
-                          onChange={(event) => handleDirectDepartmentChange(event.target.value)}
+                          onChange={(event) =>
+                            handleDirectDepartmentChange(event.target.value)
+                          }
                           fullWidth
                         >
                           <MenuItem value="">Select department</MenuItem>
@@ -1904,89 +2173,89 @@ export default function OpdCalendarPage() {
                           onChange={handleMiniCalendarChange}
                           showDaysOutsideCurrentMonth
                           sx={{
-                            height: 'auto',
+                            height: "auto",
                             minHeight: 0,
                             borderRadius: 0,
-                            border: 'none',
-                            backgroundColor: 'transparent',
+                            border: "none",
+                            backgroundColor: "transparent",
                             p: 0,
-                            alignSelf: 'stretch',
-                            width: '100%',
-                            maxWidth: '100%',
-                            '& .MuiDateCalendar-viewTransitionContainer': {
+                            alignSelf: "stretch",
+                            width: "100%",
+                            maxWidth: "100%",
+                            "& .MuiDateCalendar-viewTransitionContainer": {
                               minHeight: 0,
                             },
-                            '& .MuiPickersCalendarHeader-root': {
+                            "& .MuiPickersCalendarHeader-root": {
                               px: 0,
                               mb: 0.5,
-                              justifyContent: 'space-between',
+                              justifyContent: "space-between",
                             },
-                            '& .MuiPickersCalendarHeader-label': {
+                            "& .MuiPickersCalendarHeader-label": {
                               fontWeight: 700,
-                              fontSize: '0.8rem',
-                              letterSpacing: '0.08em',
-                              textTransform: 'uppercase',
+                              fontSize: "0.8rem",
+                              letterSpacing: "0.08em",
+                              textTransform: "uppercase",
                             },
-                            '& .MuiPickersArrowSwitcher-root .MuiIconButton-root': {
-                              border: 'none',
-                              bgcolor: 'transparent',
-                              width: 26,
-                              height: 26,
-                            },
-                            '& .MuiDayCalendar-header': {
+                            "& .MuiPickersArrowSwitcher-root .MuiIconButton-root":
+                              {
+                                border: "none",
+                                bgcolor: "transparent",
+                                width: 26,
+                                height: 26,
+                              },
+                            "& .MuiDayCalendar-header": {
                               mx: 0,
                               mb: 0.2,
-                              justifyContent: 'space-between',
+                              justifyContent: "space-between",
                             },
-                            '& .MuiDayCalendar-root': {
+                            "& .MuiDayCalendar-root": {
                               minHeight: 0,
                             },
-                            '& .MuiDayCalendar-weekContainer': {
+                            "& .MuiDayCalendar-weekContainer": {
                               margin: 0,
-                              justifyContent: 'space-between',
+                              justifyContent: "space-between",
                             },
-                            '& .MuiDayCalendar-monthContainer': {
+                            "& .MuiDayCalendar-monthContainer": {
                               minHeight: 0,
                             },
-                            '& .MuiDayCalendar-slideTransition': {
+                            "& .MuiDayCalendar-slideTransition": {
                               minHeight: 0,
                             },
-                            '& .MuiDayCalendar-weekDayLabel': {
+                            "& .MuiDayCalendar-weekDayLabel": {
                               width: 24,
                               height: 24,
-                              fontSize: '0.66rem',
+                              fontSize: "0.66rem",
                               fontWeight: 700,
                               color: theme.palette.text.secondary,
                             },
-                            '& .MuiPickersDay-root': {
+                            "& .MuiPickersDay-root": {
                               width: 26,
                               height: 26,
                               margin: 0,
-                              fontSize: '0.72rem',
+                              fontSize: "0.72rem",
                               borderRadius: 7,
                             },
-                            '& .MuiPickersSlideTransition-root': {
+                            "& .MuiPickersSlideTransition-root": {
                               minHeight: 132,
                             },
-                            '& .MuiPickersDay-root.Mui-selected': {
-                              backgroundColor: 'primary.main',
+                            "& .MuiPickersDay-root.Mui-selected": {
+                              backgroundColor: "primary.main",
                               color: theme.palette.common.white,
                             },
-                            '& .MuiPickersDay-root.MuiPickersDay-today': {
+                            "& .MuiPickersDay-root.MuiPickersDay-today": {
                               border: `1px solid ${alpha(theme.palette.primary.main, 0.6)}`,
                             },
                           }}
                         />
                       </LocalizationProvider>
                       <Divider />
-                      <Stack
-                        spacing={1.2}
-                        
-                      >
+                      <Stack spacing={1.2}>
                         <Autocomplete
                           options={directProviderOptions}
                           value={directProvider}
-                          onChange={(_, value) => handleDirectProviderChange(value)}
+                          onChange={(_, value) =>
+                            handleDirectProviderChange(value)
+                          }
                           disabled={!directDepartment}
                           fullWidth
                           renderInput={(params) => (
@@ -1994,7 +2263,11 @@ export default function OpdCalendarPage() {
                               {...params}
                               size="small"
                               label="Doctor"
-                              placeholder={directDepartment ? 'Select doctor' : 'Choose department first'}
+                              placeholder={
+                                directDepartment
+                                  ? "Select doctor"
+                                  : "Choose department first"
+                              }
                             />
                           )}
                         />
@@ -2010,26 +2283,40 @@ export default function OpdCalendarPage() {
                         sx={{
                           p: 1.2,
                           borderRadius: 2,
-                          border: '1px solid',
+                          border: "1px solid",
                           borderColor: alpha(theme.palette.primary.main, 0.2),
                           bgcolor: alpha(theme.palette.primary.main, 0.04),
                         }}
                       >
                         <Typography
                           variant="caption"
-                         
-                          sx={{ fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}
+                          sx={{
+                            fontWeight: 700,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                          }}
                         >
                           Availability
                         </Typography>
                         {directProvider ? (
-                          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mt: 1 }}>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                            flexWrap="wrap"
+                            sx={{ mt: 1 }}
+                          >
                             {directAvailability?.location ? (
                               <Chip
                                 label={`Unit: ${directAvailability.location}`}
                                 size="small"
                                 variant="outlined"
-                                sx={{ borderColor: alpha(theme.palette.primary.main, 0.35) }}
+                                sx={{
+                                  borderColor: alpha(
+                                    theme.palette.primary.main,
+                                    0.35,
+                                  ),
+                                }}
                               />
                             ) : null}
                             <Chip
@@ -2054,8 +2341,13 @@ export default function OpdCalendarPage() {
                             />
                           </Stack>
                         ) : (
-                          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: 'block' }}>
-                            Choose a department and doctor to view available slots.
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ mt: 0.75, display: "block" }}
+                          >
+                            Choose a department and doctor to view available
+                            slots.
                           </Typography>
                         )}
                       </Box>
@@ -2068,23 +2360,27 @@ export default function OpdCalendarPage() {
           </Grid>
         </Grid>
 
-        
-
         <Drawer
           anchor="right"
           open={bookingOpen}
           onClose={closeBooking}
           PaperProps={{
             sx: {
-              width: { xs: '100%', sm: 520, md: 600 },
+              width: { xs: "100%", sm: 520, md: 600 },
               p: 2,
             },
           }}
         >
           <Stack spacing={1.3}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+            >
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                {editingAppointment ? 'Reschedule Appointment' : 'Create Booking'}
+                {editingAppointment
+                  ? "Reschedule Appointment"
+                  : "Create Booking"}
               </Typography>
               <IconButton size="small" onClick={closeBooking}>
                 <ChevronRightIcon fontSize="small" />
@@ -2106,7 +2402,11 @@ export default function OpdCalendarPage() {
               )}
             />
 
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+            >
               <Typography variant="caption" color="text.secondary">
                 Can&apos;t find patient in search?
               </Typography>
@@ -2125,7 +2425,7 @@ export default function OpdCalendarPage() {
               sx={{
                 p: 1.5,
                 borderRadius: 2,
-                border: '1px solid',
+                border: "1px solid",
                 borderColor: alpha(theme.palette.primary.main, 0.2),
                 backgroundColor: alpha(theme.palette.primary.main, 0.1),
               }}
@@ -2133,7 +2433,7 @@ export default function OpdCalendarPage() {
               <Typography
                 variant="overline"
                 color="text.secondary"
-                sx={{ fontWeight: 700, letterSpacing: '0.08em' }}
+                sx={{ fontWeight: 700, letterSpacing: "0.08em" }}
               >
                 Patient Details
               </Typography>
@@ -2143,7 +2443,7 @@ export default function OpdCalendarPage() {
                     MRN
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {patientSummary.mrn || '—'}
+                    {patientSummary.mrn || "—"}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -2151,26 +2451,32 @@ export default function OpdCalendarPage() {
                     Name
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {patientSummary.name || '—'}
+                    {patientSummary.name || "—"}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="caption" color="text.secondary">
                     Age / Gender
                   </Typography>
-                  <Typography variant="body2">{patientSummary.ageGender || '—'}</Typography>
+                  <Typography variant="body2">
+                    {patientSummary.ageGender || "—"}
+                  </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="caption" color="text.secondary">
                     Phone
                   </Typography>
-                  <Typography variant="body2">{patientSummary.phone || '—'}</Typography>
+                  <Typography variant="body2">
+                    {patientSummary.phone || "—"}
+                  </Typography>
                 </Grid>
                 <Grid item xs={12}>
                   <Typography variant="caption" color="text.secondary">
                     Department
                   </Typography>
-                  <Typography variant="body2">{patientSummary.department || '—'}</Typography>
+                  <Typography variant="body2">
+                    {patientSummary.department || "—"}
+                  </Typography>
                 </Grid>
               </Grid>
             </Box>
@@ -2182,12 +2488,16 @@ export default function OpdCalendarPage() {
                   label="Date"
                   type="date"
                   value={booking.date}
-                  onChange={(event) => updateBookingField('date', event.target.value)}
+                  onChange={(event) =>
+                    updateBookingField("date", event.target.value)
+                  }
                   disabled={slotLocked && !editingAppointment}
-                  error={Boolean(errors.date) && !(slotLocked && !editingAppointment)}
+                  error={
+                    Boolean(errors.date) && !(slotLocked && !editingAppointment)
+                  }
                   helperText={
                     slotLocked && !editingAppointment
-                      ? 'Choose another slot from the calendar to change.'
+                      ? "Choose another slot from the calendar to change."
                       : errors.date
                   }
                   InputLabelProps={{ shrink: true }}
@@ -2199,12 +2509,16 @@ export default function OpdCalendarPage() {
                   label="Time"
                   type="time"
                   value={booking.time}
-                  onChange={(event) => updateBookingField('time', event.target.value)}
+                  onChange={(event) =>
+                    updateBookingField("time", event.target.value)
+                  }
                   disabled={slotLocked && !editingAppointment}
-                  error={Boolean(errors.time) && !(slotLocked && !editingAppointment)}
+                  error={
+                    Boolean(errors.time) && !(slotLocked && !editingAppointment)
+                  }
                   helperText={
                     slotLocked && !editingAppointment
-                      ? 'Pick a different slot to change time.'
+                      ? "Pick a different slot to change time."
                       : errors.time
                   }
                   InputLabelProps={{ shrink: true }}
@@ -2212,8 +2526,17 @@ export default function OpdCalendarPage() {
               </Grid>
             </Grid>
 
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexWrap="wrap"
+            >
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontWeight: 600 }}
+              >
                 Slot status
               </Typography>
               <Chip
@@ -2221,7 +2544,7 @@ export default function OpdCalendarPage() {
                 size="small"
                 color={slotCheck.tone}
                 variant="outlined"
-                sx={{ textTransform: 'capitalize' }}
+                sx={{ textTransform: "capitalize" }}
               />
               {slotCheck.message ? (
                 <Typography variant="caption" color="text.secondary">
@@ -2234,12 +2557,16 @@ export default function OpdCalendarPage() {
               select
               label="Provider"
               value={booking.provider}
-              onChange={(event) => updateBookingField('provider', event.target.value)}
+              onChange={(event) =>
+                updateBookingField("provider", event.target.value)
+              }
               disabled={slotLocked && !editingAppointment}
-              error={Boolean(errors.provider) && !(slotLocked && !editingAppointment)}
+              error={
+                Boolean(errors.provider) && !(slotLocked && !editingAppointment)
+              }
               helperText={
                 slotLocked && !editingAppointment
-                  ? 'Provider is locked to the selected slot.'
+                  ? "Provider is locked to the selected slot."
                   : errors.provider
               }
             >
@@ -2268,18 +2595,15 @@ export default function OpdCalendarPage() {
 
             <Grid container spacing={1.2}>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  label="MRN"
-                  value={booking.mrn}
-                  disabled
-                  fullWidth
-                />
+                <TextField label="MRN" value={booking.mrn} disabled fullWidth />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   label="Age / Gender"
                   value={booking.ageGender}
-                  onChange={(event) => updateBookingField('ageGender', event.target.value)}
+                  onChange={(event) =>
+                    updateBookingField("ageGender", event.target.value)
+                  }
                   fullWidth
                 />
               </Grid>
@@ -2288,7 +2612,9 @@ export default function OpdCalendarPage() {
             <TextField
               label="Phone"
               value={booking.phone}
-              onChange={(event) => updateBookingField('phone', event.target.value)}
+              onChange={(event) =>
+                updateBookingField("phone", event.target.value)
+              }
               error={Boolean(errors.phone)}
               helperText={errors.phone}
             />
@@ -2300,9 +2626,14 @@ export default function OpdCalendarPage() {
                   fullWidth
                   label="Visit Type"
                   value={booking.visitType}
-                  onChange={(event) => updateBookingField('visitType', event.target.value as VisitType)}
+                  onChange={(event) =>
+                    updateBookingField(
+                      "visitType",
+                      event.target.value as VisitType,
+                    )
+                  }
                 >
-                  {['New', 'Follow-up', 'Review'].map((option) => (
+                  {["New", "Follow-up", "Review"].map((option) => (
                     <MenuItem key={option} value={option}>
                       {option}
                     </MenuItem>
@@ -2317,12 +2648,15 @@ export default function OpdCalendarPage() {
                   value={booking.payerType}
                   onChange={(event) =>
                     updateBookingField(
-                      'payerType',
-                      event.target.value as 'General' | 'Insurance' | 'Corporate'
+                      "payerType",
+                      event.target.value as
+                        | "General"
+                        | "Insurance"
+                        | "Corporate",
                     )
                   }
                 >
-                  {['General', 'Insurance', 'Corporate'].map((option) => (
+                  {["General", "Insurance", "Corporate"].map((option) => (
                     <MenuItem key={option} value={option}>
                       {option}
                     </MenuItem>
@@ -2336,7 +2670,9 @@ export default function OpdCalendarPage() {
               multiline
               minRows={2}
               value={booking.chiefComplaint}
-              onChange={(event) => updateBookingField('chiefComplaint', event.target.value)}
+              onChange={(event) =>
+                updateBookingField("chiefComplaint", event.target.value)
+              }
               error={Boolean(errors.chiefComplaint)}
               helperText={errors.chiefComplaint}
             />
@@ -2346,7 +2682,11 @@ export default function OpdCalendarPage() {
                 <Button variant="outlined" onClick={closeBooking}>
                   Cancel
                 </Button>
-                <Button variant="contained" disabled={!canManageCalendar} onClick={handleUpdateBooking}>
+                <Button
+                  variant="contained"
+                  disabled={!canManageCalendar}
+                  onClick={handleUpdateBooking}
+                >
                   Save Changes
                 </Button>
               </Stack>
@@ -2378,12 +2718,12 @@ export default function OpdCalendarPage() {
           open={snackbar.open}
           autoHideDuration={3500}
           onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
         >
           <Alert
             onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
             severity={snackbar.severity}
-            sx={{ width: '100%' }}
+            sx={{ width: "100%" }}
           >
             {snackbar.message}
           </Alert>
@@ -2396,8 +2736,8 @@ export default function OpdCalendarPage() {
             setSelectedEvent(null);
             setEventAnchor(null);
           }}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "left" }}
           marginThreshold={24}
           PaperProps={{
             sx: {
@@ -2405,22 +2745,22 @@ export default function OpdCalendarPage() {
               borderRadius: 3,
               minWidth: 280,
               maxWidth: 360,
-              width: 'max-content',
-              maxHeight: '70vh',
-              overflowY: 'auto',
-              border: '1px solid',
+              width: "max-content",
+              maxHeight: "70vh",
+              overflowY: "auto",
+              border: "1px solid",
               borderColor: alpha(theme.palette.primary.main, 0.25),
-              boxShadow: '0 18px 40px rgba(15, 23, 42, 0.18)',
-              position: 'relative',
-              overflow: 'hidden',
+              boxShadow: "0 18px 40px rgba(15, 23, 42, 0.18)",
+              position: "relative",
+              overflow: "hidden",
               backgroundColor: theme.palette.common.white,
-              '&:before': {
+              "&:before": {
                 content: '""',
-                position: 'absolute',
+                position: "absolute",
                 top: 0,
                 left: 0,
                 width: 6,
-                height: '100%',
+                height: "100%",
                 background: theme.palette.primary.main,
               },
             },
@@ -2432,7 +2772,8 @@ export default function OpdCalendarPage() {
                 {selectedEvent.patientName}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {selectedEvent.date} · {selectedEvent.time} · {selectedEvent.provider}
+                {selectedEvent.date} · {selectedEvent.time} ·{" "}
+                {selectedEvent.provider}
               </Typography>
               <Divider />
               <Typography variant="body2">
