@@ -10,6 +10,7 @@ import { GlobalPatient, searchPatients, getPatientByMrn } from '@/src/mocks/glob
 interface GlobalPatientSearchProps {
   placeholder?: string;
   fullWidth?: boolean;
+  size?: 'default' | 'compact';
 }
 
 const getInitials = (name: string) =>
@@ -22,11 +23,14 @@ const getInitials = (name: string) =>
 export default function GlobalPatientSearch({
   placeholder = 'Search by MRN, name, phone...',
   fullWidth = true,
+  size = 'default',
 }: GlobalPatientSearchProps) {
   const theme = useTheme();
   const router = useRouter();
   const [value, setValue] = React.useState<GlobalPatient | null>(null);
   const [inputValue, setInputValue] = React.useState('');
+  const isCompact = size === 'compact';
+  const surfaceBorder = '#DDE8F0';
 
   const filteredOptions = React.useMemo(() => {
     if (inputValue.trim().length < 2) {
@@ -118,21 +122,38 @@ export default function GlobalPatientSearch({
           InputProps={{
             ...params.InputProps,
             startAdornment: (
-              <InputAdornment position="start" sx={{ pl: 0.75 }}>
-                <SearchIcon sx={{ fontSize: 20, color: theme.palette.text.secondary }} />
+              <InputAdornment position="start" sx={{ pl: isCompact ? 0.45 : 0.75 }}>
+                <SearchIcon
+                  sx={{
+                    fontSize: isCompact ? 18 : 20,
+                    color: theme.palette.text.secondary,
+                  }}
+                />
               </InputAdornment>
             ),
           }}
           sx={{
             '& .MuiOutlinedInput-root': {
-              minHeight: 50,
-              borderRadius: 2.5,
-              backgroundColor: alpha(theme.palette.primary.main, 0.04),
+              minHeight: isCompact ? 40 : 50,
+              borderRadius: isCompact ? 2.5 : 2.5,
+              backgroundColor: isCompact
+                ? '#F5F8FB'
+                : alpha(theme.palette.primary.main, 0.04),
+              border: isCompact
+                ? `1px solid ${surfaceBorder}`
+                : undefined,
+              '& .MuiInputBase-input': {
+                py: isCompact ? 0.9 : 1.3,
+                fontSize: isCompact ? '0.8rem' : '1rem',
+              },
               '&:hover': {
-                backgroundColor: alpha(theme.palette.primary.main, 0.06),
+                backgroundColor: isCompact
+                  ? '#EEF4FA'
+                  : alpha(theme.palette.primary.main, 0.06),
               },
               '&.Mui-focused': {
                 backgroundColor: theme.palette.background.paper,
+                borderColor: alpha(theme.palette.primary.main, 0.3),
                 '& fieldset': {
                   borderColor: theme.palette.primary.main,
                 },

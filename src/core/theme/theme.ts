@@ -187,6 +187,14 @@ const theme = createTheme(baseTheme, {
           },
         },
         contained: {
+          '&.MuiButton-containedPrimary': {
+            backgroundColor: baseTheme.palette.primary.main,
+            color: baseTheme.palette.primary.contrastText,
+          },
+          '&.MuiButton-containedPrimary:hover': {
+            backgroundColor: baseTheme.palette.primary.main,
+            color: baseTheme.palette.primary.contrastText,
+          },
           '&:hover': {
             boxShadow: baseTheme.shadows[4],
           },

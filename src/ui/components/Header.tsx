@@ -16,7 +16,7 @@ import {
 import Text from "@/src/ui/components/atoms/Text";
 import GlobalPatientSearch from "@/src/ui/components/molecules/GlobalPatientSearch";
 import AvatarWithName from "@/src/ui/components/molecules/AvatarWithName";
-import { useTheme, alpha } from "@mui/material";
+import { useTheme, alpha, Breadcrumbs, Typography } from "@mui/material";
 import {
   Notifications as NotificationsIcon,
   Person as PersonIcon,
@@ -32,9 +32,13 @@ import {
   Apps as AppsIcon,
   Menu as MenuIcon,
   Queue as QueueIcon,
+  NavigateNext as NavNextIcon,
   ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
-import { getMenuItemByRoute } from "@/src/core/navigation/nav-config";
+import {
+  getMenuItemByRoute,
+  getBreadcrumbPath,
+} from "@/src/core/navigation/nav-config";
 import MobileMenuButton from "./MobileMenuButton";
 import { useSidebarState } from "@/src/core/navigation/useSidebarState";
 import { useUser } from "@/src/core/auth/UserContext";
@@ -43,10 +47,26 @@ import { UserRole } from "@/src/core/navigation/types";
 import { useStaffStore } from "@/src/core/staff/staffStore";
 import { PATIENT } from "@/src/screens/patient-portal/patient-portal-mock-data";
 import { getOpdRoleFlowProfile } from "@/src/screens/opd/opd-role-flow";
+import * as MuiIcons from "@mui/icons-material";
 
 interface HeaderProps {
   userName?: string;
   userAvatar?: string;
+}
+
+const ROOT_PATHS = ["/dashboard", "/frontdesk/dashboard", "/"];
+
+function NavIcon({
+  name,
+  fontSize = 13,
+}: {
+  name?: string;
+  fontSize?: number;
+}) {
+  if (!name) return null;
+  const IconComp = (MuiIcons as any)[name] ?? null;
+  if (!IconComp) return null;
+  return <IconComp sx={{ fontSize }} />;
 }
 
 export default function Header({
@@ -54,6 +74,8 @@ export default function Header({
   userAvatar,
 }: HeaderProps) {
   const theme = useTheme();
+  const brandPrimary = "#1172BA";
+  const surfaceBorder = "#DDE8F0";
   const router = useRouter();
   const pathname = usePathname() ?? "";
   const { role, setRole } = useUser();
@@ -71,6 +93,29 @@ export default function Header({
     [pathname],
   );
   const pageTitle = currentItem?.label || "Dashboard";
+  const isRootPage = ROOT_PATHS.includes(pathname);
+  const breadcrumbs = React.useMemo(() => {
+    const navPath = getBreadcrumbPath(pathname);
+    if (navPath.length > 0) {
+      return [
+        { label: "Dashboard", route: "/dashboard", iconName: "Home" },
+        ...navPath.map((b) => ({
+          label: b.label,
+          route: b.route ?? "",
+          iconName: b.iconName,
+        })),
+      ];
+    }
+    const segments = pathname.split("/").filter(Boolean);
+    return [
+      { label: "Dashboard", route: "/dashboard", iconName: "Home" },
+      ...segments.map((seg, i) => ({
+        label: seg.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        route: "/" + segments.slice(0, i + 1).join("/"),
+        iconName: undefined as string | undefined,
+      })),
+    ];
+  }, [pathname]);
 
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserMenuAnchor(event.currentTarget);
@@ -212,15 +257,21 @@ export default function Header({
     [roles, switchRoleIdSet],
   );
 
-  const tileSx = (color: string) => ({
-    width: 38,
-    height: 38,
+  const tileSx = (accentColor: string) => ({
+    width: 36,
+    height: 36,
     borderRadius: 2.5,
-    backgroundColor: alpha(color, 0.12),
-    color,
-    border: `1px solid ${alpha(color, 0.22)}`,
+    backgroundColor: "#FFFFFF",
+    border: `1px solid ${surfaceBorder}`,
+    "& .MuiSvgIcon-root": {
+      color: alpha(theme.palette.text.primary, 0.65),
+    },
     "&:hover": {
-      backgroundColor: alpha(color, 0.18),
+      backgroundColor: "#F5F8FB",
+      borderColor: alpha(accentColor, 0.28),
+      "& .MuiSvgIcon-root": {
+        color: accentColor,
+      },
     },
   });
 
@@ -229,30 +280,38 @@ export default function Header({
       position="sticky"
       elevation={0}
       sx={{
-        backgroundColor: theme.palette.background.paper,
-        borderBottom: `1px solid ${theme.palette.divider}`,
-        boxShadow: "0 8px 18px rgba(15, 23, 42, 0.06)",
+        backgroundColor: "#FFFFFF",
+        border: `1px solid ${surfaceBorder}`,
+        borderRadius: { xs: "14px", md: "22px" },
+        boxShadow: `0 12px 24px ${alpha("#0D1B2A", 0.07)}`,
+        overflow: "hidden",
         zIndex: theme.zIndex.drawer + 1,
         width: "100%",
       }}
     >
       <Toolbar
         sx={{
-          minHeight: { xs: 80, md: 88 },
-          px: { xs: 2, sm: 3 },
+          minHeight: { xs: 58, md: 60 },
+          px: { xs: 1.1, sm: 1.5, md: 2.2 },
           display: "grid",
           gridTemplateColumns: {
             xs: "auto 1fr auto",
-            md: "auto 1fr auto",
+            md: "auto minmax(0, 1fr) auto",
           },
-          columnGap: { xs: 1, md: 2 },
+          columnGap: { xs: 0.55, md: 0.9 },
           alignItems: "center",
           width: "100%",
         }}
       >
         {/* Left */}
         <Box
-          sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+            minWidth: 0,
+            justifyContent: "flex-start",
+          }}
         >
           <Box sx={{ display: { xs: "flex", md: "none" } }}>
             <MobileMenuButton onClick={toggleSidebar} />
@@ -269,16 +328,125 @@ export default function Header({
               </IconButton>
             </Tooltip>
           </Box>
+          <Box
+            sx={{
+              display: { xs: "none", md: "flex" },
+              alignItems: "center",
+              minWidth: 0,
+              gap: 0.55,
+            }}
+          >
+            {!isRootPage && breadcrumbs.length > 1 && (
+              <IconButton
+                size="small"
+                onClick={() => router.back()}
+                sx={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 2,
+                  color: theme.palette.text.secondary,
+                  bgcolor: "#F5F8FB",
+                  border: `1px solid ${surfaceBorder}`,
+                  "&:hover": {
+                    bgcolor: "#ECF4FB",
+                    borderColor: alpha(brandPrimary, 0.28),
+                    color: brandPrimary,
+                  },
+                }}
+                aria-label="Go back"
+              >
+                <ArrowBackIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            )}
+            {!isRootPage && breadcrumbs.length > 1 ? (
+              <Breadcrumbs
+                separator={
+                  <NavNextIcon
+                    sx={{ fontSize: 13, color: theme.palette.text.disabled }}
+                  />
+                }
+                sx={{
+                  minWidth: 0,
+                  "& .MuiBreadcrumbs-ol": {
+                    flexWrap: "nowrap",
+                    alignItems: "center",
+                  },
+                }}
+              >
+                {breadcrumbs.map((crumb, idx) => {
+                  const isLast = idx === breadcrumbs.length - 1;
+                  const color = isLast
+                    ? theme.palette.text.primary
+                    : theme.palette.text.secondary;
+                  return (
+                    <Box
+                      key={crumb.route || idx}
+                      onClick={
+                        !isLast && crumb.route
+                          ? () => router.push(crumb.route)
+                          : undefined
+                      }
+                      sx={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 0.45,
+                        minWidth: 0,
+                        cursor: isLast ? "default" : "pointer",
+                        color,
+                        "&:hover": !isLast
+                          ? { color: theme.palette.primary.main }
+                          : {},
+                        transition: "color 0.15s",
+                      }}
+                    >
+                      {crumb.iconName && (
+                        <NavIcon name={crumb.iconName} fontSize={12} />
+                      )}
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: "0.78rem",
+                          fontWeight: isLast ? 700 : 500,
+                          color: "inherit",
+                          whiteSpace: "nowrap",
+                          lineHeight: 1,
+                          textOverflow: "ellipsis",
+                          overflow: "hidden",
+                          maxWidth: 180,
+                        }}
+                      >
+                        {crumb.label}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Breadcrumbs>
+            ) : (
+              <Text
+                variant="h6"
+                component="div"
+                sx={{
+                  fontWeight: 700,
+                  color: theme.palette.text.primary,
+                  fontSize: "1rem",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {pageTitle}
+              </Text>
+            )}
+          </Box>
           <Text
             variant="h6"
             component="div"
             sx={{
               display: { xs: "block", md: "none" },
-              fontWeight: 600,
+              fontWeight: 700,
               color: theme.palette.text.primary,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              fontSize: "1rem",
             }}
           >
             {pageTitle}
@@ -291,7 +459,7 @@ export default function Header({
             display: "flex",
             alignItems: "center",
             minWidth: 0,
-            justifyContent: "end",
+            justifyContent: { xs: "end", md: "center" },
             justifySelf: { xs: "stretch", md: "stretch" },
           }}
         >
@@ -299,23 +467,23 @@ export default function Header({
             <Box
               sx={{
                 display: { xs: "none", md: "flex" },
-                width: "50%",
+                width: "clamp(240px, 33vw, 320px)",
                 minWidth: 0,
               }}
             >
-              <GlobalPatientSearch fullWidth />
+              <GlobalPatientSearch fullWidth size="compact" />
             </Box>
           )}
         </Box>
 
         {/* Right */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.55 }}>
           <Box
             sx={{
               display: { xs: "none", sm: "grid" },
               alignItems: "center",
               gridAutoFlow: "column",
-              gap: 1.5,
+              gap: 0.55,
             }}
           >
             <Tooltip title="Quick Links">
@@ -333,7 +501,7 @@ export default function Header({
                 <IconButton
                   size="small"
                   onClick={() => handleNavigate(action.route)}
-                  sx={tileSx(theme.palette.primary.main)}
+                  sx={tileSx(action.color)}
                   aria-label={action.label}
                 >
                   {action.icon}
@@ -343,7 +511,7 @@ export default function Header({
             <Tooltip title="Notifications">
               <IconButton
                 size="small"
-                sx={tileSx(theme.palette.primary.main)}
+                sx={tileSx(brandPrimary)}
                 aria-label="Notifications"
               >
                 <Badge
@@ -366,15 +534,18 @@ export default function Header({
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: 1,
-              px: 1,
-              py: 0.5,
-              borderRadius: 2,
+              gap: 0.55,
+              px: 0.65,
+              py: 0.25,
+              borderRadius: 2.5,
+              border: `1px solid ${surfaceBorder}`,
+              backgroundColor: "#F5F8FB",
               cursor: "pointer",
               "&:hover": {
-                backgroundColor: theme.palette.action.hover,
+                backgroundColor: "#ECF4FB",
+                borderColor: alpha(brandPrimary, 0.28),
               },
-              transition: theme.transitions.create("background-color", {
+              transition: theme.transitions.create(["background-color", "border-color"], {
                 duration: theme.transitions.duration.short,
               }),
             }}
@@ -388,12 +559,13 @@ export default function Header({
                   : getRoleLabel(role).toLowerCase()
               }
               avatarSrc={userAvatar}
+              size={28}
               avatarProps={{
                 sx: {
                   bgcolor:
                     role === "PATIENT_PORTAL"
                       ? PATIENT.avatarColor
-                      : theme.palette.primary.main,
+                      : brandPrimary,
                 },
               }}
               detailsSx={{
@@ -402,18 +574,22 @@ export default function Header({
                 alignItems: "flex-start",
               }}
               nameProps={{
-                sx: { color: theme.palette.text.primary, maxWidth: 140 },
+                sx: {
+                  color: theme.palette.text.primary,
+                  maxWidth: 120,
+                  fontSize: "0.84rem",
+                },
               }}
               subtitleProps={{
                 sx: {
-                  fontSize: "0.75rem",
+                  fontSize: "0.61rem",
                   color: theme.palette.text.secondary,
                 },
               }}
               trailing={
                 <ExpandMoreIcon
                   sx={{
-                    fontSize: 20,
+                    fontSize: 14,
                     color: theme.palette.text.secondary,
                     display: { xs: "none", sm: "block" },
                   }}

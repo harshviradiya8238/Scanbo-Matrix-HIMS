@@ -48,6 +48,8 @@ export default function SidebarItem({
   hoveredItemId,
 }: SidebarItemProps) {
   const theme = useTheme();
+  const brandPrimary = theme.palette.primary.main;
+  const sidebarNavy = theme.palette.primary.main;
   const router = useRouter();
   const pathname = usePathname();
   const activeRoute = React.useMemo(() => resolveNavigationRoute(pathname ?? ''), [pathname]);
@@ -194,78 +196,68 @@ export default function SidebarItem({
       onTouchStart={() => prefetchRoute(item.route)}
       selected={isHighlighted}
       sx={{
-        pl: isExpanded ? (level > 0 ? 3.25 : 1.25) : 0,
-        pr: isExpanded ? 1.25 : 0,
+        pl: isExpanded ? (level > 0 ? 2.35 : 1) : 0,
+        pr: isExpanded ? 1 : 0,
         justifyContent: isExpanded ? 'flex-start' : 'center',
         alignItems: 'center',
-        minHeight: isExpanded ? 42 : 48,
-        width: isExpanded ? '100%' : 48,
-        height: isExpanded ? 'auto' : 48,
-        mx: isExpanded ? 0.75 : 'auto',
-        my: isExpanded ? 0.25 : 0.9,
-        p: isExpanded ? '6px 10px' : 0,
-        borderRadius: isExpanded ? 2.2 : 2.6,
+        minHeight: isExpanded ? 40 : 44,
+        width: isExpanded ? '100%' : 44,
+        height: isExpanded ? 'auto' : 44,
+        mx: isExpanded ? 0.45 : 'auto',
+        my: isExpanded ? 0.2 : 0.45,
+        p: isExpanded ? '8px 12px' : 0,
+        borderRadius: isExpanded ? 2 : 2.3,
         border: '1px solid',
-        borderColor: isExpanded ? 'transparent' : alpha(theme.palette.primary.main, 0.18),
-        backgroundColor: isExpanded ? 'transparent' : theme.palette.background.paper,
+        borderColor: isExpanded ? 'transparent' : alpha('#FFFFFF', 0.2),
+        backgroundColor: isExpanded ? 'transparent' : alpha('#FFFFFF', 0.06),
+        color: isExpanded ? alpha('#FFFFFF', 0.74) : alpha('#FFFFFF', 0.86),
         boxShadow: isExpanded
           ? 'none'
-          : `0 6px 14px ${alpha(theme.palette.primary.main, 0.08)}`,
+          : 'none',
         position: 'relative',
         overflow: 'visible',
         zIndex: 1,
         '&.Mui-selected': isExpanded
           ? {
-              background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.16)} 0%, ${alpha(
-                theme.palette.info.main,
-                0.14
-              )} 100%)`,
-              borderColor: alpha(theme.palette.primary.main, 0.24),
-              color: theme.palette.primary.main,
-              fontWeight: 600,
+              backgroundColor: '#FFFFFF',
+              borderColor: alpha('#FFFFFF', 0.95),
+              color: sidebarNavy,
+              fontWeight: 700,
+              boxShadow: `0 8px 16px ${alpha('#000000', 0.18)}`,
               '&:hover': {
-                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.22)} 0%, ${alpha(
-                  theme.palette.info.main,
-                  0.18
-                )} 100%)`,
-              },
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                left: 0,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: 4,
-                height: '60%',
-                backgroundColor: theme.palette.primary.main,
-                borderRadius: '0 2px 2px 0',
+                backgroundColor: '#FFFFFF',
               },
               '& .MuiListItemIcon-root': {
-                color: theme.palette.primary.main,
+                color: brandPrimary,
+              },
+              '& .MuiListItemText-primary': {
+                color: sidebarNavy,
               },
             }
           : {
-              backgroundColor: alpha(theme.palette.primary.main, 0.12),
-              borderColor: alpha(theme.palette.primary.main, 0.38),
-              boxShadow: `0 10px 20px ${alpha(theme.palette.primary.main, 0.16)}`,
+              backgroundColor: '#FFFFFF',
+              borderColor: alpha(brandPrimary, 0.36),
+              boxShadow: `0 8px 16px ${alpha('#000000', 0.2)}`,
+              color: sidebarNavy,
               '& .MuiListItemIcon-root': {
-                color: theme.palette.primary.main,
+                color: brandPrimary,
               },
             },
         '&:hover': {
           backgroundColor: isExpanded
-            ? alpha(theme.palette.primary.main, 0.07)
-            : alpha(theme.palette.primary.main, 0.08),
-          borderColor: alpha(theme.palette.primary.main, 0.28),
+            ? alpha('#FFFFFF', 0.12)
+            : alpha('#FFFFFF', 0.14),
+          borderColor: alpha('#FFFFFF', 0.24),
           boxShadow: isExpanded
             ? 'none'
-            : `0 8px 18px ${alpha(theme.palette.primary.main, 0.14)}`,
+            : `0 6px 14px ${alpha('#000000', 0.2)}`,
+          color: '#FFFFFF',
         },
         '&:focus-visible': {
-          outline: `2px solid ${theme.palette.primary.main}`,
+          outline: `2px solid ${alpha('#FFFFFF', 0.9)}`,
           outlineOffset: '2px',
         },
-        transition: theme.transitions.create(['background-color', 'color'], {
+        transition: theme.transitions.create(['background-color', 'color', 'border-color', 'box-shadow', 'transform'], {
           duration: theme.transitions.duration.short,
         }),
       }}
@@ -276,19 +268,19 @@ export default function SidebarItem({
       {IconComponent && (
         <ListItemIcon
           sx={{
-            minWidth: isExpanded ? 40 : 0,
-            color: theme.palette.primary.main,
+            minWidth: isExpanded ? 30 : 0,
+            color: isExpanded ? alpha('#FFFFFF', 0.72) : alpha('#FFFFFF', 0.84),
             justifyContent: 'center',
             alignItems: 'center',
             alignSelf: 'center',
             display: 'flex',
-            borderRadius: isExpanded ? 1.4 : 2,
+            borderRadius: isExpanded ? 1.2 : 1.7,
             bgcolor: 'transparent',
-            width: isExpanded ? 40 : '100%',
-            height: isExpanded ? 40 : '100%',
+            width: isExpanded ? 30 : '100%',
+            height: isExpanded ? 30 : '100%',
             mr: 0,
             '& svg': {
-              fontSize: isExpanded ? 23 : 22,
+              fontSize: 19,
               display: 'block',
             },
           }}
@@ -303,18 +295,18 @@ export default function SidebarItem({
             primary={item.label}
             primaryTypographyProps={{
               variant: 'body2',
-              fontWeight: isHighlighted ? 600 : 500,
-              fontSize: '0.935rem',
+              fontWeight: isHighlighted ? 700 : 500,
+              fontSize: '0.81rem',
             }}
             sx={{ my: 0 }}
           />
 
           {hasChildren && (
-            <Box sx={{ ml: 1 }}>
+            <Box sx={{ ml: 0.75 }}>
               {isOpen ? (
-                <ExpandLess sx={{ fontSize: 20, color: theme.palette.primary.main }} />
+                <ExpandLess sx={{ fontSize: 18, color: isHighlighted ? brandPrimary : alpha('#FFFFFF', 0.58) }} />
               ) : (
-                <ExpandMore sx={{ fontSize: 20, color: theme.palette.primary.main }} />
+                <ExpandMore sx={{ fontSize: 18, color: isHighlighted ? brandPrimary : alpha('#FFFFFF', 0.58) }} />
               )}
             </Box>
           )}
@@ -325,10 +317,10 @@ export default function SidebarItem({
               size="small"
               color="error"
               sx={{
-                ml: 1,
-                height: 20,
-                minWidth: 20,
-                fontSize: '0.7rem',
+                ml: 0.75,
+                height: 18,
+                minWidth: 18,
+                fontSize: '0.66rem',
                 fontWeight: 600,
               }}
             />
@@ -339,11 +331,11 @@ export default function SidebarItem({
               size="small"
               onClick={handleFavoriteClick}
               sx={{
-                ml: 0.5,
-                p: 0.5,
-                color: isFavorite ? theme.palette.warning.main : theme.palette.text.disabled,
+                ml: 0.35,
+                p: 0.4,
+                color: isFavorite ? '#F5A623' : alpha('#FFFFFF', 0.45),
                 '&:hover': {
-                  color: theme.palette.warning.main,
+                  color: '#F5A623',
                 },
               }}
               aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
@@ -424,7 +416,7 @@ export default function SidebarItem({
       {/* Expanded submenu */}
       {isExpanded && hasChildren && (
         <Collapse in={isOpen} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding sx={{ pl: 1.5, pt: 0.5 }}>
+          <List component="div" disablePadding sx={{ pl: 1.1, pt: 0.25 }}>
             {item.children?.map((child) => (
               <SidebarItem
                 key={child.id}

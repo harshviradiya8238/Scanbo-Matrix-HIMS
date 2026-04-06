@@ -88,7 +88,7 @@ import { useSidebarState } from "@/src/core/navigation/useSidebarState";
 import { useNavigationState } from "@/src/core/navigation/hooks";
 import SidebarItem from "./SidebarItem";
 
-const DRAWER_WIDTH = 260;
+const DRAWER_WIDTH = 230;
 
 const iconMap: Record<string, React.ComponentType> = {
   Dashboard: DashboardIcon,
@@ -180,6 +180,7 @@ export default function ModernSidebar({
   userRole,
 }: ModernSidebarProps) {
   const theme = useTheme();
+  const sidebarNavy = theme.palette.primary.main;
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { isExpanded, toggle } = useSidebarState();
   const { favorites, toggleFavorite, recentItems } = useNavigationState();
@@ -291,7 +292,7 @@ export default function ModernSidebar({
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        backgroundColor: theme.palette.background.paper,
+        backgroundColor: sidebarNavy,
         position: "relative",
         zIndex: theme.zIndex.drawer,
       }}
@@ -299,18 +300,16 @@ export default function ModernSidebar({
       {/* Header with Logo and Toggle */}
       <Box
         sx={{
-          px: isExpanded ? 1.5 : 1,
-          py: isExpanded ? 0 : 1,
+          px: isExpanded ? 1.25 : 0.75,
+          py: 0.35,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           position: "relative",
-          borderBottom: isExpanded
-            ? `1px solid ${theme.palette.divider}`
-            : "none",
-          minHeight: { xs: 80, md: isExpanded ? 88 : 96 },
-          height: { xs: 80, md: isExpanded ? 88 : 96 },
-          backgroundColor: theme.palette.background.paper,
+          borderBottom: `1px solid ${alpha("#FFFFFF", 0.14)}`,
+          minHeight: { xs: 70, md: 74 },
+          height: { xs: 70, md: 74 },
+          backgroundColor: "transparent",
         }}
       >
         <Box
@@ -318,12 +317,12 @@ export default function ModernSidebar({
           src={"/scanbo.svg"}
           alt="Scanbo logo"
           sx={{
-            height: isExpanded ? 60 : 54,
+            height: isExpanded ? 44 : 34,
             width: "auto",
             objectFit: "contain",
             objectPosition: "center",
             display: "block",
-            filter: "drop-shadow(0 2px 6px rgba(17,114,186,0.12))",
+            filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.34))",
           }}
         />
         {!isMobile && null}
@@ -353,21 +352,21 @@ export default function ModernSidebar({
 
           return (
             <>
-              <Box sx={{ px: 2, pb: 1 }}>
+              <Box sx={{ px: 1.5, pb: 0.75 }}>
                 <Typography
                   variant="caption"
                   sx={{
                     fontWeight: 600,
-                    color: theme.palette.primary.main,
+                    color: alpha("#FFFFFF", 0.46),
                     textTransform: "uppercase",
-                    fontSize: "0.7rem",
-                    letterSpacing: "0.5px",
+                    fontSize: "0.66rem",
+                    letterSpacing: "0.42px",
                   }}
                 >
                   Recent
                 </Typography>
               </Box>
-              <List dense sx={{ px: 1, pb: 1 }}>
+              <List dense sx={{ px: 0.6, pb: 0.5 }}>
                 {uniqueRecentItems.map((item) => (
                   <SidebarItem
                     key={item.id}
@@ -406,9 +405,9 @@ export default function ModernSidebar({
             <Box
               sx={{
                 height: 1,
-                backgroundColor: alpha(theme.palette.primary.main, 0.2),
-                my: 1,
-                mx: 2,
+                backgroundColor: alpha("#FFFFFF", 0.12),
+                my: 0.75,
+                mx: 1.6,
               }}
             />
           ) : null;
@@ -421,8 +420,8 @@ export default function ModernSidebar({
         sx={{
           flexGrow: 1,
           overflow: "auto",
-          px: isExpanded ? 0.1 : 0.5,
-          py: isExpanded ? 1 : 2,
+          px: isExpanded ? 0.2 : 0.35,
+          py: isExpanded ? 0.75 : 1.1,
           display: "flex",
           flexDirection: "column",
           alignItems: isExpanded ? "stretch" : "center",
@@ -433,18 +432,18 @@ export default function ModernSidebar({
           if (filteredItems.length === 0) return null;
 
           return (
-            <Box key={group.id} sx={{ mb: isExpanded ? 2 : 1 }}>
+            <Box key={group.id} sx={{ mb: isExpanded ? 1.35 : 0.95 }}>
               {isExpanded && !!group.label && (
                 <Typography
                   variant="caption"
                   sx={{
-                    px: 2,
-                    py: 0.75,
+                    px: 1.5,
+                    py: 0.5,
                     fontWeight: 600,
-                    color: theme.palette.primary.main,
+                    color: alpha("#FFFFFF", 0.42),
                     textTransform: "uppercase",
-                    fontSize: "0.7rem",
-                    letterSpacing: "0.5px",
+                    fontSize: "0.66rem",
+                    letterSpacing: "0.42px",
                     display: "block",
                   }}
                 >
@@ -458,7 +457,7 @@ export default function ModernSidebar({
                   display: "flex",
                   flexDirection: "column",
                   alignItems: isExpanded ? "stretch" : "center",
-                  gap: isExpanded ? 0 : 1.1,
+                  gap: isExpanded ? 0 : 0.5,
                   width: "100%",
                 }}
               >
@@ -482,21 +481,22 @@ export default function ModernSidebar({
       </Box>
 
       {!isExpanded && (
-        <Box sx={{ pt: 1, pb: 2, display: "flex", justifyContent: "center" }}>
+        <Box sx={{ pt: 0.6, pb: 1.1, display: "flex", justifyContent: "center" }}>
           <Box
             sx={{
-              px: 1.4,
-              py: 0.6,
+              px: 1.15,
+              py: 0.4,
               borderRadius: 999,
-              backgroundColor: alpha(theme.palette.warning.main, 0.2),
-              color: theme.palette.warning.dark,
+              backgroundColor: alpha("#FFFFFF", 0.14),
+              color: "#FFFFFF",
               fontWeight: 700,
-              fontSize: "0.75rem",
-              letterSpacing: "0.4px",
-              boxShadow: "0 6px 12px rgba(246, 177, 0, 0.2)",
+              fontSize: "0.68rem",
+              letterSpacing: "0.34px",
+              border: `1px solid ${alpha("#FFFFFF", 0.2)}`,
+              boxShadow: "none",
             }}
           >
-            Pro
+            PRO
           </Box>
         </Box>
       )}
@@ -523,6 +523,8 @@ export default function ModernSidebar({
           "& .MuiDrawer-paper": {
             width: DRAWER_WIDTH,
             boxSizing: "border-box",
+            backgroundColor: "transparent",
+            padding: 8,
           },
         }}
       >
@@ -538,8 +540,10 @@ export default function ModernSidebar({
         width: "100%",
         height: "100%",
         overflowX: "hidden",
-        borderRight: `1px solid ${alpha(theme.palette.primary.main, 0.18)}`,
-        backgroundColor: theme.palette.background.paper,
+        borderRadius: "22px",
+        backgroundColor: sidebarNavy,
+        border: `1px solid ${alpha("#FFFFFF", 0.1)}`,
+        boxShadow: `0 16px 28px ${alpha("#0D1B2A", 0.16)}`,
       }}
     >
       {drawerContent}
