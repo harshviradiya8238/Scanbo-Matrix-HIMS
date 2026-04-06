@@ -1,5 +1,4 @@
 export type AppointmentStatus =
-  | 'Pending'
   | 'Scheduled'
   | 'Checked-In'
   | 'In Triage'

@@ -115,6 +115,7 @@ export default function CommonDataGrid<R extends object>({
   externalSearchValue,
   onSearchChange,
   hideSearch = false,
+  tableHeight,
   disableRowPointer = false,
 }: CommonDataGridProps<R>) {
   const [internalSearch, setInternalSearch] = React.useState("");
@@ -245,8 +246,12 @@ export default function CommonDataGrid<R extends object>({
       )}
 
       {/* ── Table ── */}
-      <TableContainer>
-        <Table sx={{ minWidth: 700 }} size="small">
+      <TableContainer sx={{ maxHeight: tableHeight || "auto" }}>
+        <Table
+          // sx={{ minWidth: 700 }}
+          size="small"
+          stickyHeader={Boolean(tableHeight)}
+        >
           {/* Headers */}
           <TableHead>
             <TableRow
