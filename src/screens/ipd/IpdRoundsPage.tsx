@@ -2959,12 +2959,20 @@ export default function IpdRoundsPage() {
   return (
     <PageTemplate title="Clinical Care" header={topBarHeader}>
       <Stack spacing={1.25}>
-        <Stack spacing={0}>
+        <Stack spacing={0}
+          sx={{
+            position: "sticky",
+            top: IPD_PATIENT_TOP_BAR_STICKY_OFFSET,
+            zIndex: 10,
+            backgroundColor: "#EBF2F8",
+          }}
+        >
           <WorkspaceHeaderCard
             sx={{
               p: { xs: 1.5, md: 2 },
-              borderRadius: "10px 10px 0 0",
+              borderRadius: "16px 16px 0 0",
               borderBottom: "none",
+              backgroundColor: "#FFFFFF",
             }}
           >
             <Stack
@@ -3034,21 +3042,18 @@ export default function IpdRoundsPage() {
 
           <Box
             sx={{
-              position: "sticky",
-              top: IPD_PATIENT_TOP_BAR_STICKY_OFFSET,
-              zIndex: 5,
-              backgroundColor: alpha(theme.palette.background.default, 0.92),
-              backdropFilter: "blur(6px)",
+              backgroundColor: "#FFFFFF",
             }}
           >
             <Card
               elevation={0}
               sx={{
                 p: 0,
-                borderRadius: "0 0 10px 10px",
+                borderRadius: "0 0 16px 16px",
                 border: "1px solid",
                 borderTop: "none",
-                borderColor: alpha(theme.palette.primary.main, 0.16),
+                borderColor: "#DDE8F0",
+                backgroundColor: "#FFFFFF",
               }}
             >
               <Box sx={{ px: 0.75, py: 0.5 }}>
@@ -3091,11 +3096,11 @@ export default function IpdRoundsPage() {
           </Box>
         </Stack>
 
-        <Box sx={{ pt: 0.5 }}>
+        <Box>
           {activeTab === "rounds" ? (
-            <Grid container spacing={2} alignItems="flex-start">
+            <Grid container spacing={1.25} alignItems="flex-start">
               <Grid xs={12} lg={7}>
-                <Stack spacing={2}>
+                <Stack spacing={1.25}>
                   <Card elevation={0} sx={sectionCardSx}>
                     <Box
                       sx={{
@@ -3300,7 +3305,7 @@ export default function IpdRoundsPage() {
               </Grid>
 
               <Grid xs={12} lg={5}>
-                <Stack spacing={2}>
+                <Stack spacing={1.25}>
                   <Card elevation={0} sx={sectionCardSx}>
                     <Box
                       sx={{
@@ -3606,7 +3611,7 @@ export default function IpdRoundsPage() {
               </Grid>
 
               <Grid xs={12} lg={5}>
-                <Stack spacing={2}>
+                <Stack spacing={1.25}>
                   <Card elevation={0} sx={sectionCardSx}>
                     <Box
                       sx={{

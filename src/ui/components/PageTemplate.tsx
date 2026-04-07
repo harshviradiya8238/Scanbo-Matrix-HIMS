@@ -8,11 +8,11 @@ interface PageTemplateProps {
   title: string;
   children?: React.ReactNode;
   fullHeight?: boolean;
+  header?: React.ReactNode;
   // legacy props kept for compatibility — no longer used
   subtitle?: string;
   overline?: string;
   actions?: React.ReactNode;
-  header?: React.ReactNode;
   currentPageTitle?: string;
   noPadding?: boolean;
 }
@@ -20,9 +20,11 @@ interface PageTemplateProps {
 export default function PageTemplate({
   children,
   fullHeight,
+  header,
 }: PageTemplateProps) {
   return (
     <PageLayout fullHeight={fullHeight}>
+      {header ?? null}
       {children || (
         <Section>
           <Text variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>

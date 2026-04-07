@@ -291,11 +291,10 @@ export default function IpdPatientTopBar({
       <Box sx={{
         position: "sticky",
         top: stickyTop,
-        zIndex: 12,
         bgcolor: "#FFFFFF",
         borderBottom: `1.5px solid ${alpha(PRIMARY, 0.12)}`,
         boxShadow: `0 1px 0 ${alpha(PRIMARY, 0.06)}, 0 4px 16px ${alpha(PRIMARY, 0.05)}`,
-        mb: 1.5,
+        zIndex: 20,
       }}>
         {/* Thin accent line at top */}
         <Box sx={{
