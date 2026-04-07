@@ -183,7 +183,7 @@ export default function LabPartitionsPage() {
 
   return (
     <PageTemplate title="Sample Partition" currentPageTitle="Sample Partition">
-      <Stack spacing={3}>
+      <Stack spacing={1.25}>
         <WorkspaceHeaderCard>
           <Stack
             direction="row"

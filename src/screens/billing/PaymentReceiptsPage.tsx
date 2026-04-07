@@ -441,7 +441,7 @@ export default function PaymentReceiptsPage() {
       subtitle="Track and manage all payment transactions"
       currentPageTitle="Payment Receipts"
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {/* Header Card */}
         <WorkspaceHeaderCard>
           <Stack

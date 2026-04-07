@@ -283,7 +283,7 @@ export default function OpdCalendarPage() {
 
   return (
     <PageTemplate title="Appointments Calendar" currentPageTitle="Calendar">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {!opd.canManageCalendar ? (
           <Alert severity="info">
             {opd.roleProfile.label} view is read-only for calendar booking. Use

@@ -562,7 +562,7 @@ export default function PharmacyReturnsPage() {
           fontFamily: '"DM Sans", sans-serif',
           display: "flex",
           flexDirection: "column",
-          gap: 2,
+          gap: 1.25,
         }}
       >
         {!canWrite ? (

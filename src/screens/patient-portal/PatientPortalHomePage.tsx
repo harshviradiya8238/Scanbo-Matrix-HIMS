@@ -73,9 +73,9 @@ export default function PatientPortalHomePage() {
 
   return (
     <PatientPortalWorkspaceCard current="home">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {/* ── Daily Health Tip Banner ── */}
-        
+
 
         {/* ── Health Stat Cards ── */}
         <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', xl: 'repeat(4, 1fr)' } }}>

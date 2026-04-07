@@ -78,7 +78,7 @@ export default function LabDashboardPage() {
       })}
       currentPageTitle="Dashboard"
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {/* ══════════════════════════════════════════════════════════════════
               KPI STRIP — Laboratory Stats
           ══════════════════════════════════════════════════════════════════ */}

@@ -487,7 +487,7 @@ export default function PatientPortalSharePage() {
 
   return (
     <PatientPortalWorkspaceCard current="share">
-      <Stack spacing={2.2}>
+      <Stack spacing={1.25}>
         <Card
           elevation={0}
           sx={{

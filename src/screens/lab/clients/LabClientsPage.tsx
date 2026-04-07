@@ -47,7 +47,7 @@ export default function LabClientsPage() {
       subtitle="Result management and report publishing"
       currentPageTitle="Lab Workbench"
     >
-      <Stack spacing={1}>
+      <Stack spacing={1.25}>
         <WorkspaceHeaderCard>
           <Stack
             direction={{ xs: "column", md: "row" }}

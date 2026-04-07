@@ -191,11 +191,11 @@ export default function WelcomeKioskPage() {
 
   return (
     <PageTemplate title="Welcome Kiosk" subtitle={pageSubtitle} currentPageTitle="Welcome Kiosk">
-      <Stack spacing={1.5}>
+      <Stack spacing={1.25}>
         <WorkspaceHeaderCard
           sx={{
             p: 1.75,
-            borderRadius: 2.5,
+            borderRadius: '22px',
           }}
         >
           <Stack spacing={1.25}>

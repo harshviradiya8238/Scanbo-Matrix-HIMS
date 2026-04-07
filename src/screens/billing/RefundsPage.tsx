@@ -510,7 +510,7 @@ export default function RefundsPage() {
       subtitle="Refund management and reconciliation"
       currentPageTitle="Refunds"
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {/* Header Card */}
         <WorkspaceHeaderCard>
           <Stack

@@ -233,7 +233,7 @@ export default function FlowOverviewPage() {
 
   return (
     <PageTemplate title="Clinical Flow Overview" subtitle={pageSubtitle} currentPageTitle="Flow Overview">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <Card
           elevation={0}
           sx={{

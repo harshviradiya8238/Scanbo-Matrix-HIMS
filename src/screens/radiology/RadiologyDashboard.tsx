@@ -200,9 +200,9 @@ export default function RadiologyDashboard() {
 
   return (
     <PageTemplate title="Radiology Dashboard">
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
         {/* HEADER AREA */}
-        <WorkspaceHeaderCard sx={{ p: 2.5, borderRadius: 2.5 }}>
+        <WorkspaceHeaderCard sx={{ p: 2.5, borderRadius: '22px' }}>
           <Box
             sx={{
               display: "flex",

@@ -405,9 +405,9 @@ export default function DoctorListPage() {
 
   /* ── render ── */
   return (
-    <Box sx={{ px: 3, py: 3 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
       {/* Page Header */}
-      <WorkspaceHeaderCard sx={{ mb: 2 }}>
+      <WorkspaceHeaderCard sx={{ borderRadius: '22px' }}>
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={2}
@@ -488,8 +488,7 @@ export default function DoctorListPage() {
       <Box
         sx={{
           display: "grid",
-          gap: 2,
-          mt: 2,
+          gap: 1.25,
           gridTemplateColumns: {
             xs: "1fr",
             sm: "repeat(2, 1fr)",
@@ -509,7 +508,7 @@ export default function DoctorListPage() {
       </Box>
 
       {/* Doctor Registry Table */}
-      <Box sx={{ mt: 2 }}>
+      <Box>
         <SimpleDataGrid<DoctorRow>
           columns={columns}
           rows={filteredRows}

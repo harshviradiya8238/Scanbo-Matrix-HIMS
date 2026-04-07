@@ -6,38 +6,23 @@ import Text from '@/src/ui/components/atoms/Text';
 
 interface PageTemplateProps {
   title: string;
+  children?: React.ReactNode;
+  fullHeight?: boolean;
+  // legacy props kept for compatibility — no longer used
   subtitle?: string;
   overline?: string;
   actions?: React.ReactNode;
   header?: React.ReactNode;
-  children?: React.ReactNode;
   currentPageTitle?: string;
-  fullHeight?: boolean;
   noPadding?: boolean;
 }
 
 export default function PageTemplate({
-  title,
-  subtitle,
-  overline,
-  actions,
-  header,
   children,
-  currentPageTitle,
   fullHeight,
-  noPadding,
 }: PageTemplateProps) {
   return (
-    <PageLayout
-      title={title}
-      subtitle={subtitle}
-      overline={overline}
-      actions={actions}
-      header={header}
-      currentPageTitle={currentPageTitle ?? title}
-      fullHeight={fullHeight}
-      noPadding={noPadding}
-    >
+    <PageLayout fullHeight={fullHeight}>
       {children || (
         <Section>
           <Text variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>

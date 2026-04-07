@@ -325,7 +325,7 @@ export default function DayBookPage() {
       subtitle="Daily transaction reconciliation and settlement"
       currentPageTitle="Day Book"
     >
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
         {/* Header Section */}
         <WorkspaceHeaderCard>
           <Stack

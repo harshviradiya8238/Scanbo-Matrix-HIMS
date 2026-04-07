@@ -110,7 +110,7 @@ export default function LabReportsPage() {
 
   return (
     <PageTemplate title="Reports" subtitle="Generate and manage lab reports & certificates" currentPageTitle="Reports">
-        <Stack spacing={2}>
+        <Stack spacing={1.25}>
           <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' } }}>
         {REPORT_TYPES.map((r) => (
           <Box

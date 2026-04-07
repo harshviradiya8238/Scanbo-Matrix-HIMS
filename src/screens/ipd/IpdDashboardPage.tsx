@@ -542,7 +542,7 @@ export default function IpdDashboardPage() {
           </Typography>
         </Box>
       </WorkspaceHeaderCard>
-      <Stack spacing={1.8} sx={{ mt: 1.8 }}>
+      <Stack spacing={1.25} sx={{ mt: 1.25 }}>
         <Box
           sx={{
             display: "grid",

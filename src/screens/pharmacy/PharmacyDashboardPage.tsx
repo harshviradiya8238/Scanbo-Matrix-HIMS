@@ -453,11 +453,11 @@ export default function PharmacyDashboardPage() {
       subtitle="Overview of prescriptions, inventory alerts, and operations."
       currentPageTitle="Pharmacy Dashboard"
     >
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
         {/* ══════════════════════════════════════════════════════════════════
             HEADER
         ══════════════════════════════════════════════════════════════════ */}
-        <WorkspaceHeaderCard sx={{ p: 2.5, borderRadius: 2.5 }}>
+        <WorkspaceHeaderCard sx={{ p: 2.5, borderRadius: '22px' }}>
           <Box
             sx={{
               display: "flex",

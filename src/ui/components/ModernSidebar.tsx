@@ -292,7 +292,7 @@ export default function ModernSidebar({
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        backgroundColor: "#0A4472",
+       
       }}
     >
       {/* Header with Logo and Toggle */}
@@ -314,8 +314,8 @@ export default function ModernSidebar({
           sx={{
             backgroundColor: "#FFFFFF",
             borderRadius: "12px",
-            px: isExpanded ? 1.5 : 1,
-            py: 0.75,
+            px: isExpanded ? 1.75 : 1.1,
+            py: 0.9,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -327,7 +327,7 @@ export default function ModernSidebar({
             src={"/scanbo.svg"}
             alt="Scanbo logo"
             sx={{
-              height: isExpanded ? 36 : 28,
+              height: isExpanded ? 44 : 32,
               width: "auto",
               objectFit: "contain",
               objectPosition: "center",
@@ -549,7 +549,8 @@ export default function ModernSidebar({
       sx={{
         width: "100%",
         height: "100%",
-        backgroundColor: "#0A4472",
+        // backgroundColor: "#0A4472",
+       backgroundColor: "#105489"
       }}
     >
       {drawerContent}

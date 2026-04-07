@@ -329,7 +329,7 @@ export default function LabOrdersPage() {
 
   return (
     <PageTemplate title="Lab Orders" subtitle={pageSubtitle} currentPageTitle="Lab Orders">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <ModuleHeaderCard
           title="Laboratory Orders Console"
           description="Capture lab requests, prioritize collection, and route samples to the lab team."

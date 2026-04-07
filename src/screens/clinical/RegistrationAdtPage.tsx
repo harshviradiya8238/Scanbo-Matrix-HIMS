@@ -308,7 +308,7 @@ export default function RegistrationAdtPage() {
 
   return (
     <PageTemplate title="Registration & ADT" subtitle={pageSubtitle} currentPageTitle="Registration & ADT">
-      <Stack spacing={1.5}>
+      <Stack spacing={1.25}>
         <ModuleHeaderCard
           title="Registration & ADT"
           description="Capture registrations, verify coverage, admit patients, and coordinate beds in one workspace."

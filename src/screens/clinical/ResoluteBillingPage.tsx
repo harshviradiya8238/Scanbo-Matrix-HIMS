@@ -560,7 +560,7 @@ export default function ResoluteBillingPage() {
 
   return (
     <PageTemplate title="Resolute Billing" currentPageTitle="Resolute Billing">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {/* Header */}
         <ModuleHeaderCard
           title="Resolute Billing"

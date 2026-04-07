@@ -682,7 +682,7 @@ export default function AllInvoicesPage() {
       subtitle="Comprehensive view of all hospital invoices and billing history"
       currentPageTitle="All Invoices"
     >
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
         {/* Header Card */}
         <WorkspaceHeaderCard>
           <Stack

@@ -53,7 +53,7 @@ export default function NextOfKinStep({ values }: NextOfKinStepProps) {
       sx={{
         border: "1px solid",
         borderColor: "divider",
-        borderRadius: 2,
+        borderRadius: '16px',
         overflow: "hidden",
       }}
     >
@@ -65,7 +65,7 @@ export default function NextOfKinStep({ values }: NextOfKinStepProps) {
         }}
       >
         <Stack spacing={0.8}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '15px', lineHeight: 1.3 }}>
             Next of Kin / Emergency Contact
           </Typography>
           <Stack direction="row" spacing={0.75} flexWrap="wrap">

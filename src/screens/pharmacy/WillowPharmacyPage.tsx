@@ -971,7 +971,7 @@ export default function WillowPharmacyPage() {
       currentPageTitle="Willow"
       fullHeight
     >
-      <Stack spacing={1.2} sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+      <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
         {!canWrite ? (
           <Alert severity="info">
             You are currently in read-only mode for Willow actions.

@@ -1609,7 +1609,7 @@ export default function IpdDischargePage() {
 
   return (
     <PageTemplate title="Discharge & AVS" header={topBarHeader}>
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {!canManageDischarge ? (
           <Alert severity="warning">
             You are in read-only mode for discharge workflow. Contact admin for

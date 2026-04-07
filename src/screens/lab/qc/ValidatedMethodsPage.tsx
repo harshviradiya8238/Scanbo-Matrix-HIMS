@@ -363,7 +363,7 @@ export default function ValidatedMethodsPage() {
       title="Validated Methods"
       subtitle="Manage validated analytical methods and standards"
     >
-      <Stack spacing={3}>
+      <Stack spacing={1.25}>
         <WorkspaceHeaderCard>
           <Stack direction="row" alignItems="center" sx={{justifyContent:"space-between"}} spacing={3}>
             <Stack direction="row" alignItems="center" spacing={1.5}>

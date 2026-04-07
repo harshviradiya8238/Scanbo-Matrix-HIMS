@@ -1949,7 +1949,7 @@ export default function InfectionControlPage() {
       subtitle={pageSubtitle}
       currentPageTitle="Infection Control"
     >
-      <Stack spacing={1.5}>
+      <Stack spacing={1.25}>
         <WorkspaceHeaderCard>
           <Stack spacing={1.25}>
             <Stack

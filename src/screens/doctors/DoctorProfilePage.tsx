@@ -367,7 +367,7 @@ export default function DoctorProfilePage() {
   /* ── full profile ── */
   return (
     <PageTemplate title="Doctor Profile" currentPageTitle="Profile">
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
         {/* ── Hero Header Card ── */}
         <Card
           elevation={0}

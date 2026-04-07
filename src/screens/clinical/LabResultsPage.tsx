@@ -293,7 +293,7 @@ export default function LabResultsPage() {
 
   return (
     <PageTemplate title="Lab Results" subtitle={pageSubtitleResolved} currentPageTitle="Results">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <ModuleHeaderCard
           title="Results Validation"
           description="Review lab values, flag abnormalities, and release verified reports."

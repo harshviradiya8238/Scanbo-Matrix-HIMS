@@ -740,7 +740,7 @@ export default function ResoluteBillingPage() {
       currentPageTitle="Resolute Billing"
       fullHeight
     >
-      <Stack spacing={1.2} sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {!canRead ? (
           <Alert severity="error">You do not have access to Resolute Billing. Request `billing.read`.</Alert>
         ) : null}

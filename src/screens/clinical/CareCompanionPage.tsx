@@ -546,7 +546,7 @@ export default function CareCompanionPage() {
       subtitle="Post-Discharge Patient Management"
       currentPageTitle="Care Companion"
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {/* Header Card */}
         <WorkspaceHeaderCard>
           <Stack

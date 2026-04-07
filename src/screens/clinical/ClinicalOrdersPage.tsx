@@ -295,7 +295,7 @@ export default function ClinicalOrdersPage() {
 
   return (
     <PageTemplate title="Clinical Orders (CPOE)" subtitle={subtitle} currentPageTitle="Clinical Orders">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <IpdSectionCard
           title="IPD Order Management"
           subtitle="Create and track lab, imaging, medication, and procedure orders linked to IPD workflow."

@@ -216,11 +216,11 @@ export default function PatientProfilePage() {
 
   return (
     <PageTemplate title="Patient Profile" currentPageTitle="Profile">
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
         <WorkspaceHeaderCard
           sx={{
             p: 2,
-            borderRadius: 2,
+            borderRadius: '22px',
           }}
         >
           <Stack

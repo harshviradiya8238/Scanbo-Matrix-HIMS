@@ -236,7 +236,7 @@ export default function ClinicalEpicModulesPage() {
       title="Clinical Module Reference"
       currentPageTitle="Clinical Modules"
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <Card
           variant="outlined"
           sx={{

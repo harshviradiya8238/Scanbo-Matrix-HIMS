@@ -142,15 +142,15 @@ export default function DoctorProfessionalStep(_: DoctorProfessionalStepProps) {
   return (
     <Stack spacing={2}>
       {/* Specialization & Role */}
-      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-        <Box sx={{ px: 2.5, py: 1.6, backgroundColor: softSurface }}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '16px', overflow: 'hidden' }}>
+        <Box sx={{ px: 2.5, py: 1.6, color: 'text.primary' }}>
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={{ xs: 0.75, sm: 1.5 }}
             alignItems={{ xs: 'flex-start', sm: 'center' }}
             justifyContent="space-between"
           >
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '15px', lineHeight: 1.3 }}>
               Specialization &amp; Role
             </Typography>
             <Stack direction="row" spacing={0.75} flexWrap="wrap">
@@ -203,9 +203,9 @@ export default function DoctorProfessionalStep(_: DoctorProfessionalStepProps) {
       </Card>
 
       {/* Qualifications */}
-      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-        <Box sx={{ px: 2.5, py: 1.6, backgroundColor: softSurface }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '16px', overflow: 'hidden' }}>
+        <Box sx={{ px: 2.5, py: 1.6, color: 'text.primary' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '15px', lineHeight: 1.3 }}>
             Academic Qualifications
           </Typography>
         </Box>
@@ -233,7 +233,7 @@ export default function DoctorProfessionalStep(_: DoctorProfessionalStepProps) {
       </Card>
 
       {/* Consultation Profile */}
-      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '16px', overflow: 'hidden' }}>
        
 
         <Box sx={{ p: 2.25 }}>

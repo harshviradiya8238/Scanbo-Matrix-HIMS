@@ -215,11 +215,11 @@ export default function DashboardPage() {
 
   return (
     <PageTemplate title="Dashboard" currentPageTitle="Dashboard">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <WorkspaceHeaderCard
           sx={{
             p: 2,
-            borderRadius: 2.5,
+            borderRadius: '22px',
           }}
         >
           <Stack

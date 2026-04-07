@@ -404,7 +404,7 @@ export default function RadiantImagingPage() {
       subtitle={pageSubtitle}
       currentPageTitle="Radiology Imaging Workflow"
     >
-      <Stack spacing={1.5}>
+      <Stack spacing={1.25}>
         <ModuleHeaderCard
           title="Radiology Imaging Workflow"
           description="Simple 3-step flow. Select a row in the table, complete checklist on the right, then move to next step."

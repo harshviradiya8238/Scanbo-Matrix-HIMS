@@ -206,7 +206,7 @@ export default function FacilitySettingsPage() {
 
   return (
     <PageTemplate title="Facility Settings" currentPageTitle="Facility Settings">
-      <Stack spacing={2.5}> {/* Reduced from 4 */}
+      <Stack spacing={1.25}>
 
         {/* ── Banner ─────────────────────────────────────────────── */}
         <Box

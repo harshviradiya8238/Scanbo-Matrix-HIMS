@@ -300,7 +300,7 @@ export default function BillingReportsPage() {
       subtitle="Financial analytics and revenue tracking · Dec 2024"
       currentPageTitle="Reports"
     >
-      <Stack spacing={3}>
+      <Stack spacing={1.25}>
         {/* ── Page Header Card ── */}
         <WorkspaceHeaderCard>
           <Stack

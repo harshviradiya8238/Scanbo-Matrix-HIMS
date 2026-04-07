@@ -79,8 +79,8 @@ export default function RadiologyReports({
 
   return (
     <PageTemplate title="Radiology Reports">
-      <Stack spacing={2}>
-        <WorkspaceHeaderCard sx={{ p: 2, borderRadius: 2.5 }}>
+      <Stack spacing={1.25}>
+        <WorkspaceHeaderCard sx={{ p: 2, borderRadius: '22px' }}>
           <Stack
             direction="row"
             justifyContent="space-between"

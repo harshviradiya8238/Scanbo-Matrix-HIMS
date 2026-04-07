@@ -822,7 +822,7 @@ export default function IpdBedManagementPage() {
       header={topBarHeader}
       currentPageTitle="Bed & Census"
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {!canManageBeds ? (
           <Alert severity="warning">
             You are in read-only mode for bed allocation. Contact admin for

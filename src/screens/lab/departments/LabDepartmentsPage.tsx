@@ -550,7 +550,7 @@ export default function LabDepartmentsPage() {
       title="Laboratory Departments"
       subtitle="Configure and manage diagnostic departments"
     >
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
         {/* ── Toolbar ── */}
         <WorkspaceHeaderCard>
           <Stack

@@ -147,7 +147,7 @@ export default function DoctorVolumeReportPage() {
 
   return (
     <PageTemplate title="OPD Command Center" currentPageTitle="Reports">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {opdStatus === 'loading' ? <Alert severity="info">Loading OPD data…</Alert> : null}
         {opdStatus === 'error' ? (
           <Alert severity="warning">OPD JSON server unreachable. Showing fallback data. {opdError ?? ''}</Alert>

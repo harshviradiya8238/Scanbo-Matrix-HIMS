@@ -166,7 +166,7 @@ export default function LabInvalidationsPage() {
       title="Invalidations"
       subtitle="Track and manage invalidated laboratory samples"
     >
-      <Stack spacing={3}>
+      <Stack spacing={1.25}>
         <Alert
           severity="warning"
           icon={<UndoIcon />}

@@ -257,7 +257,7 @@ export default function LabSamplesPage() {
 
   return (
     <PageTemplate title="Lab Samples" subtitle={pageSubtitle} currentPageTitle="Samples">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <ModuleHeaderCard
           title="Sample Collection & Intake"
           description="Track collection, transport, and lab receipt before results entry."

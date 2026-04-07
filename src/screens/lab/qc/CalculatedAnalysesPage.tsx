@@ -257,7 +257,7 @@ export default function CalculatedAnalysesPage() {
       title="Calculated Analyses"
       subtitle="Define and manage auto-calculated laboratory tests"
     >
-      <Stack spacing={3}>
+      <Stack spacing={1.25}>
         <Alert
           severity="info"
           sx={{

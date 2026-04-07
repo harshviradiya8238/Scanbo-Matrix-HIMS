@@ -96,7 +96,7 @@ export default function PatientPortalBillsPage() {
 
   return (
     <PatientPortalWorkspaceCard current="bills">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
 
         {/* ── Stat Tiles ── */}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', lg: 'repeat(3, 1fr)' }, gap: 2 }}>

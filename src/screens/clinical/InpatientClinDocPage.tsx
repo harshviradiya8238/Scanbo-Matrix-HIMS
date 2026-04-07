@@ -347,7 +347,7 @@ export default function InpatientClinDocPage() {
 
   return (
     <PageTemplate title="Inpatient Documentation (ClinDoc)" subtitle={pageSubtitle} currentPageTitle="IPD Rounds">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <Card
           elevation={0}
           sx={{

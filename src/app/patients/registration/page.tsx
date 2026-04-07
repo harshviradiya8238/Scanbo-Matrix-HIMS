@@ -171,7 +171,6 @@ export default function RegistrationPage() {
       }
       currentPageTitle="Registration"
       fullHeight
-      noPadding
     >
       <Box
         sx={{

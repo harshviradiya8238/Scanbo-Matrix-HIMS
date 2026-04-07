@@ -109,7 +109,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Sidebar */}
       <Box
         component="aside"
-        style={{ backgroundColor: "#0A4472" }}
+      
         sx={{
           display: { xs: "none", md: "flex" },
           position: "sticky",

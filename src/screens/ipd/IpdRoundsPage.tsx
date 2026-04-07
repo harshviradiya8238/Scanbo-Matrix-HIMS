@@ -2958,7 +2958,7 @@ export default function IpdRoundsPage() {
 
   return (
     <PageTemplate title="Clinical Care" header={topBarHeader}>
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <Stack spacing={0}>
           <WorkspaceHeaderCard
             sx={{

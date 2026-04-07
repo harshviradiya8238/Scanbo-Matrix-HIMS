@@ -401,7 +401,7 @@ export default function ClinicalPrescriptionsPage() {
 
   return (
     <PageTemplate title="Medication / eMAR" subtitle={subtitle} currentPageTitle="Prescriptions">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <IpdSectionCard
           title="IPD Medication Management"
           subtitle="Prescribe, dispense, and administer medications linked to IPD encounter workflow."

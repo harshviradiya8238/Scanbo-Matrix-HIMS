@@ -402,7 +402,7 @@ export default function OutstandingDuesPage() {
       subtitle="Management of pending payments and aging invoices"
       currentPageTitle="Outstanding Dues"
     >
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
         {/* Header Section */}
         <WorkspaceHeaderCard>
           <Stack

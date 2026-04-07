@@ -368,7 +368,7 @@ export default function StaffUsersPage() {
       subtitle={undefined}
       currentPageTitle="User Management"
     >
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
         {/* ── Header ── */}
         <WorkspaceHeaderCard>
           <Stack

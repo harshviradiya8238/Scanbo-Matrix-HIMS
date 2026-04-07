@@ -246,7 +246,7 @@ export default function LabReceivePage() {
       title="Sample Reception"
       subtitle="Accept or reject samples arriving at the laboratory"
     >
-      <Stack spacing={3}>
+      <Stack spacing={1.25}>
         <Alert
           severity="warning"
           icon={<AccessTimeIcon />}

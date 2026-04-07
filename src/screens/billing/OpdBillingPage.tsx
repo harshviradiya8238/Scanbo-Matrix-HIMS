@@ -411,7 +411,7 @@ export default function OpdBillingPage() {
       subtitle="Today's OPD Revenue Management"
       currentPageTitle="OPD Billing"
     >
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
         {/* Header Section */}
         <WorkspaceHeaderCard>
           <Stack

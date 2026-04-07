@@ -512,7 +512,7 @@ export default function EpicCareAmbulatoryPage() {
       subtitle={pageSubtitle}
       currentPageTitle="Clinical Encounters"
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <Card
           elevation={0}
           sx={{

@@ -134,7 +134,7 @@ export default function AuditLogsPage() {
 
   return (
     <PageTemplate title="Audit Logs" currentPageTitle="Audit Logs">
-      <Stack spacing={2.5}> {/* Reduced from 4 to 2.5 */}
+      <Stack spacing={1.25}>
 
         {/* Banner with Gradient & Modern Typography */}
         <Box

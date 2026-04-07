@@ -1355,7 +1355,7 @@ export default function IpdChargeDrugPage({ defaultView = 'ipd-charges' }: IpdCh
 
   return (
     <PageTemplate title="Patient Billing Desk" header={topBarHeader}>
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {!canManageClearance ? (
           <Alert severity="info">
             You are in read-only mode for billing/pharmacy clearance. Request `ipd.discharge.write` for updates.

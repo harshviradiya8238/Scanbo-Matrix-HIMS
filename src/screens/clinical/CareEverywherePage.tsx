@@ -977,7 +977,7 @@ export default function CareEverywherePage() {
       title="Care Everywhere"
       subtitle="External Interoperability Workspace"
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <Box
           sx={{
             ...softSurfaceSx,

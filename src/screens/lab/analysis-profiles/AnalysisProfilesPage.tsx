@@ -480,7 +480,7 @@ export default function AnalysisProfilesPage() {
       title="Analysis Profiles"
       subtitle="Define reusable test bundles to speed up sample registration"
     >
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
         {/* ── Summary Stats ── */}
         <Grid container spacing={2}>
           {[

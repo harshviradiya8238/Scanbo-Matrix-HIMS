@@ -214,7 +214,7 @@ export default function PatientCasesPage() {
       title="Patient Cases"
       subtitle="View and manage your patient cases, add notes, and track status."
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {/* Stats */}
         <Box
           sx={{

@@ -141,7 +141,7 @@ export default function DepartmentsPage() {
 
   return (
     <PageTemplate title="Departments" currentPageTitle="Departments">
-      <Stack spacing={2.5}> {/* Reduced from 4 to 2.5 to save space */}
+      <Stack spacing={1.25}>
 
         {/* Banner with Gradient & Modern Typography */}
         <Box

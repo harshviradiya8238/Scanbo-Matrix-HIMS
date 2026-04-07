@@ -170,7 +170,7 @@ export default function PatientDetailsStep({
           alignItems={{ xs: "flex-start", sm: "center" }}
           justifyContent="space-between"
         >
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '15px', lineHeight: 1.3 }}>
             Personal Details
           </Typography>
           <Stack direction="row" spacing={0.75} flexWrap="wrap">

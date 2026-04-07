@@ -290,7 +290,7 @@ export default function IpdLabOrdersPage() {
       subtitle="Inpatient orders arriving from wards & ICU"
       currentPageTitle="IPD Orders"
     >
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
         {/* ── Alert banner for STAT orders ───────────────────────────────── */}
         {statCount > 0 && (
           <Alert

@@ -33,7 +33,7 @@ export default function OpdQueuePage() {
       currentPageTitle="Queue"
       showRoleGuide={false}
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {opdStatus === "loading" && (
           <Alert severity="info">
             Loading OPD data from the local JSON server.

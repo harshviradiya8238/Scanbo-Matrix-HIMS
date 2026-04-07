@@ -499,7 +499,7 @@ export default function IpdBillingPage() {
       subtitle="Inpatient Revenue & Billing Management"
       currentPageTitle="IPD Billing"
     >
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
         {/* Header Section */}
         <WorkspaceHeaderCard>
           <Stack

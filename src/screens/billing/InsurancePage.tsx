@@ -380,7 +380,7 @@ export default function InsurancePage() {
       subtitle="Management and tracking of insurance settlements"
       currentPageTitle="Insurance"
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {/* Header Card */}
         <WorkspaceHeaderCard>
           <Stack

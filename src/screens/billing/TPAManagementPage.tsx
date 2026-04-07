@@ -297,7 +297,7 @@ export default function TPAManagementPage() {
       subtitle="Corporate and TPA partner profile management"
       currentPageTitle="TPAs"
     >
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         {/* Header Card */}
         <WorkspaceHeaderCard>
           <Stack

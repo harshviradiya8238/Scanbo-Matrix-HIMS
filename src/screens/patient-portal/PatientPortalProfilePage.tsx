@@ -72,7 +72,7 @@ export default function PatientPortalProfilePage() {
 
   return (
     <PatientPortalWorkspaceCard current="profile" hidePatientBar>
-      <Stack spacing={2.5}>
+      <Stack spacing={1.25}>
 
         {/* ── Header Card — matches OPD PatientProfilePage card exactly ── */}
         <Card elevation={0} sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper' }}>

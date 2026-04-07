@@ -44,7 +44,7 @@ export default function IpdAdmissionsPageRefactored() {
 
   return (
     <PageTemplate header={header} title="IPD Admissions">
-      <Stack spacing={3}>
+      <Stack spacing={1.25}>
         <IpdAdmissionsMetrics data={data} />
 
         <IpdSectionCard

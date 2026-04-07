@@ -26,7 +26,7 @@ export default function ClinicalModulePlaceholderPage({
   const allowedRoles = getRolesForPermissions(moduleDefinition.requiredPermissions ?? ['clinical.read']);
   return (
     <PageTemplate title={moduleDefinition.name} currentPageTitle="Epic Module">
-      <Stack spacing={2}>
+      <Stack spacing={1.25}>
         <Card
           elevation={0}
           sx={{

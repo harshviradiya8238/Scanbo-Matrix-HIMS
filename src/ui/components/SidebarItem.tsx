@@ -16,8 +16,8 @@ import {
   IconButton,
 } from '@mui/material';
 import {
-  ExpandLess,
-  ExpandMore,
+  AddCircleOutline as AddCircleOutlineIcon,
+  RemoveCircleOutline as RemoveCircleOutlineIcon,
 } from '@mui/icons-material';
 import { MenuItem } from '@/src/core/navigation/types';
 import { resolveNavigationRoute } from '@/src/core/navigation/nav-config';
@@ -200,17 +200,17 @@ export default function SidebarItem({
         pr: isExpanded ? 1 : 0,
         justifyContent: isExpanded ? 'flex-start' : 'center',
         alignItems: 'center',
-        minHeight: isExpanded ? 40 : 44,
-        width: isExpanded ? '100%' : 44,
-        height: isExpanded ? 'auto' : 44,
-        mx: isExpanded ? 0.45 : 'auto',
-        my: isExpanded ? 0.2 : 0.45,
-        p: isExpanded ? '8px 12px' : 0,
-        borderRadius: isExpanded ? 2 : 2.3,
+        minHeight: isExpanded ? 30 : 40,
+        width: isExpanded ? '100%' : 40,
+        height: isExpanded ? 'auto' : 40,
+        mx: isExpanded ? 0.3 : 'auto',
+        my: isExpanded ? 0.05 : 0.4,
+        p: isExpanded ? '4px 10px' : 0,
+        borderRadius: isExpanded ? 2.5 : 2.8,
         border: '1px solid',
         borderColor: isExpanded ? 'transparent' : alpha('#FFFFFF', 0.2),
         backgroundColor: isExpanded ? 'transparent' : alpha('#FFFFFF', 0.06),
-        color: isExpanded ? alpha('#FFFFFF', 0.74) : alpha('#FFFFFF', 0.86),
+        color: isExpanded ? alpha('#FFFFFF', 0.92) : alpha('#FFFFFF', 0.92),
         boxShadow: isExpanded
           ? 'none'
           : 'none',
@@ -269,7 +269,7 @@ export default function SidebarItem({
         <ListItemIcon
           sx={{
             minWidth: isExpanded ? 30 : 0,
-            color: isExpanded ? alpha('#FFFFFF', 0.72) : alpha('#FFFFFF', 0.84),
+            color: isExpanded ? alpha('#FFFFFF', 0.92) : alpha('#FFFFFF', 0.92),
             justifyContent: 'center',
             alignItems: 'center',
             alignSelf: 'center',
@@ -296,17 +296,17 @@ export default function SidebarItem({
             primaryTypographyProps={{
               variant: 'body2',
               fontWeight: isHighlighted ? 700 : 500,
-              fontSize: '0.81rem',
+              fontSize: '0.875rem',
             }}
             sx={{ my: 0 }}
           />
 
           {hasChildren && (
-            <Box sx={{ ml: 0.75 }}>
+            <Box sx={{ ml: 'auto', pl: 0.75, flexShrink: 0 }}>
               {isOpen ? (
-                <ExpandLess sx={{ fontSize: 18, color: isHighlighted ? brandPrimary : alpha('#FFFFFF', 0.58) }} />
+                <RemoveCircleOutlineIcon sx={{ fontSize: 16, color: isHighlighted ? brandPrimary : alpha('#FFFFFF', 0.55), display: 'block' }} />
               ) : (
-                <ExpandMore sx={{ fontSize: 18, color: isHighlighted ? brandPrimary : alpha('#FFFFFF', 0.58) }} />
+                <AddCircleOutlineIcon sx={{ fontSize: 16, color: isHighlighted ? brandPrimary : alpha('#FFFFFF', 0.55), display: 'block' }} />
               )}
             </Box>
           )}
@@ -416,7 +416,14 @@ export default function SidebarItem({
       {/* Expanded submenu */}
       {isExpanded && hasChildren && (
         <Collapse in={isOpen} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding sx={{ pl: 1.1, pt: 0.25 }}>
+          <Box sx={{
+            ml: 2.4,
+            pl: 1.2,
+            borderLeft: `2px solid ${alpha('#FFFFFF', 0.18)}`,
+            mt: 0.25,
+            mb: 0.5,
+          }}>
+          <List component="div" disablePadding>
             {item.children?.map((child) => (
               <SidebarItem
                 key={child.id}
@@ -432,6 +439,7 @@ export default function SidebarItem({
               />
             ))}
           </List>
+          </Box>
         </Collapse>
       )}
     </>

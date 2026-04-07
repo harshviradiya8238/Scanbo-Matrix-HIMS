@@ -185,7 +185,7 @@ export default function AuditTrailPage() {
       title="Audit Trail"
       subtitle="View immutable history of all laboratory actions"
     >
-      <Stack spacing={3}>
+      <Stack spacing={1.25}>
         <WorkspaceHeaderCard>
           <Stack
             direction="row"

@@ -91,7 +91,7 @@ export default function ClinicalInfoStep({ values }: ClinicalInfoStepProps) {
         sx={{
           border: "1px solid",
           borderColor: "divider",
-          borderRadius: 2,
+          borderRadius: '16px',
           overflow: "hidden",
         }}
       >
@@ -103,7 +103,7 @@ export default function ClinicalInfoStep({ values }: ClinicalInfoStepProps) {
           }}
         >
           <Stack spacing={0.8}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '15px', lineHeight: 1.3 }}>
               Clinical Information (Intake)
             </Typography>
             <Stack direction="row" spacing={0.75} flexWrap="wrap">
@@ -188,7 +188,7 @@ export default function ClinicalInfoStep({ values }: ClinicalInfoStepProps) {
         sx={{
           border: "1px solid",
           borderColor: "divider",
-          borderRadius: 2,
+          borderRadius: '16px',
           overflow: "hidden",
         }}
       >
@@ -200,7 +200,7 @@ export default function ClinicalInfoStep({ values }: ClinicalInfoStepProps) {
           }}
         >
           <Stack spacing={0.8}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '15px', lineHeight: 1.3 }}>
               Consent & Administrative Notes
             </Typography>
             <Stack direction="row" spacing={0.75} flexWrap="wrap">

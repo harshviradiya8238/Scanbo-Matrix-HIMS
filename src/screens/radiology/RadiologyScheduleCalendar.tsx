@@ -1221,7 +1221,7 @@ export default function RadiologyScheduleCalendar({
       subtitle="Manage radiology appointments and schedules."
       currentPageTitle="Schedule"
     >
-      <WorkspaceHeaderCard sx={{ p: 2, borderRadius: 2.5 }}>
+      <WorkspaceHeaderCard sx={{ p: 2, borderRadius: '22px' }}>
         <Stack
           direction="row"
           justifyContent="space-between"

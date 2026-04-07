@@ -129,7 +129,7 @@ export default function HyperspacePage() {
       subtitle="Unified Workspace"
       overline="EMR / Workspace"
     >
-      <Stack spacing={3}>
+      <Stack spacing={1.25}>
         {/* ── Premium Header ────────────────────────────────────────── */}
         <EnterpriseGlassCard sx={{ p: 0, overflow: 'hidden', border: 'none' }}>
           <PatientGlobalHeader
