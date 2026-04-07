@@ -17,28 +17,42 @@ import { useTheme } from "@/src/ui/theme";
 import { useUser } from "@/src/core/auth/UserContext";
 import { getRoleLabel } from "@/src/core/navigation/permissions";
 import type { UserRole } from "@/src/core/navigation/types";
-import {
-  getOpdRoleFlowProfile,
-  OPD_LOGIN_ROLES,
-} from "@/src/screens/opd/opd-role-flow";
+import { OPD_LOGIN_ROLES } from "@/src/screens/opd/opd-role-flow";
+import { useRouter } from "next/navigation";
+import { useStaffStore } from "@/src/core/staff/staffStore";
 
 export default function HomePage() {
   const theme = useTheme();
   const { role, setRole } = useUser();
+  const { roles } = useStaffStore();
+  const router = useRouter();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loginRole, setLoginRole] = React.useState<UserRole>("HOSPITAL_ADMIN");
 
+  const loginRoleOptions = React.useMemo<UserRole[]>(() => {
+    const activeRoles = roles
+      .filter((roleOption) => roleOption.isActive)
+      .map((roleOption) => roleOption.id as UserRole);
+    return activeRoles.length > 0 ? activeRoles : OPD_LOGIN_ROLES;
+  }, [roles]);
+
   React.useEffect(() => {
-    if (OPD_LOGIN_ROLES.includes(role)) {
+    if (loginRoleOptions.includes(role)) {
       setLoginRole(role);
     }
-  }, [role]);
+  }, [role, loginRoleOptions]);
+
+  React.useEffect(() => {
+    if (loginRoleOptions.length === 0) return;
+    if (!loginRoleOptions.includes(loginRole)) {
+      setLoginRole(loginRoleOptions[0]);
+    }
+  }, [loginRole, loginRoleOptions]);
 
   const handleSignIn = () => {
     setRole(loginRole);
-    const landingRoute = getOpdRoleFlowProfile(loginRole).landingRoute;
-    window.location.href = landingRoute;
+    router.push("/dashboard");
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
@@ -126,9 +140,9 @@ export default function HomePage() {
                   setLoginRole(event.target.value as UserRole)
                 }
                 fullWidth
-                helperText="Use this to preview role-based OPD workflows."
+                helperText="Use this to choose role-based dashboard access."
               >
-                {OPD_LOGIN_ROLES.map((roleOption) => (
+                {loginRoleOptions.map((roleOption) => (
                   <MenuItem key={roleOption} value={roleOption}>
                     {getRoleLabel(roleOption)}
                   </MenuItem>

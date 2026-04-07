@@ -49,10 +49,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
   // Don't show sidebar on login page
   const isLoginPage = pathname === "/";
 
-  if (isLoginPage) {
-    return <>{children}</>;
-  }
-
   const sidebarWidth = isExpanded
     ? SIDEBAR_WIDTH_EXPANDED
     : SIDEBAR_WIDTH_COLLAPSED;
@@ -82,6 +78,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
       hasPermission(permissions, perm),
     );
   }, [accessInfo, permissions, role]);
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   return (
     <Box

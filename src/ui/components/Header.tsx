@@ -135,7 +135,7 @@ export default function Header({
 
   const handleLogout = () => {
     handleUserMenuClose();
-    router.push("/");
+    router.replace("/");
   };
 
   const handleRoleSelect = (nextRole: UserRole) => {
