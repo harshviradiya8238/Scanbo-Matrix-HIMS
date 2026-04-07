@@ -292,15 +292,13 @@ export default function IpdPatientTopBar({
         position: "sticky",
         top: stickyTop,
         bgcolor: "#FFFFFF",
-        borderBottom: `1.5px solid ${alpha(PRIMARY, 0.12)}`,
-        boxShadow: `0 1px 0 ${alpha(PRIMARY, 0.06)}, 0 4px 16px ${alpha(PRIMARY, 0.05)}`,
+        borderRadius: '16px',
+        border: '1px solid #DDE8F0',
+        boxShadow: `0 4px 12px rgba(10,68,114,0.08)`,
         zIndex: 20,
+        overflow: 'hidden',
+        mb: 0,
       }}>
-        {/* Thin accent line at top */}
-        <Box sx={{
-          height: 3,
-          background: `linear-gradient(90deg, ${PRIMARY} 0%, ${alpha(PRIMARY, 0.4)} 60%, transparent 100%)`,
-        }} />
 
         <Box sx={{ px: { xs: 2, md: 2.5 }, py: { xs: 1.25, md: 1.25 } }}>
           <Stack

@@ -2957,21 +2957,14 @@ export default function IpdRoundsPage() {
   );
 
   return (
-    <PageTemplate title="Clinical Care" header={topBarHeader}>
-      <Stack spacing={1.25}>
-        <Stack spacing={0}
-          sx={{
-            position: "sticky",
-            top: IPD_PATIENT_TOP_BAR_STICKY_OFFSET,
-            zIndex: 10,
-            backgroundColor: "#EBF2F8",
-          }}
-        >
+    <PageTemplate title="Clinical Care" header={topBarHeader} fullHeight>
+      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        {/* Workspace header + tabs — fixed, never scrolls */}
+        <Stack spacing={1.25} sx={{ flexShrink: 0 }}>
           <WorkspaceHeaderCard
             sx={{
               p: { xs: 1.5, md: 2 },
-              borderRadius: "16px 16px 0 0",
-              borderBottom: "none",
+              borderRadius: "16px",
               backgroundColor: "#FFFFFF",
             }}
           >
@@ -3040,19 +3033,13 @@ export default function IpdRoundsPage() {
             </Stack>
           </WorkspaceHeaderCard>
 
-          <Box
-            sx={{
-              backgroundColor: "#FFFFFF",
-            }}
-          >
+          <Box>
             <Card
               elevation={0}
               sx={{
                 p: 0,
-                borderRadius: "0 0 16px 16px",
-                border: "1px solid",
-                borderTop: "none",
-                borderColor: "#DDE8F0",
+                borderRadius: "16px",
+                border: "1px solid #DDE8F0",
                 backgroundColor: "#FFFFFF",
               }}
             >
@@ -3096,7 +3083,8 @@ export default function IpdRoundsPage() {
           </Box>
         </Stack>
 
-        <Box>
+        {/* Scrollable content area only */}
+        <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', pt: 1.25 }}>
           {activeTab === "rounds" ? (
             <Grid container spacing={1.25} alignItems="flex-start">
               <Grid xs={12} lg={7}>
@@ -5327,7 +5315,7 @@ export default function IpdRoundsPage() {
             {snackbar.message}
           </Alert>
         </Snackbar>
-      </Stack>
+      </Box>
     </PageTemplate>
   );
 }

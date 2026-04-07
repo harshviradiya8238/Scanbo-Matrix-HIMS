@@ -43,10 +43,8 @@ export function Sidebar({
   return (
     <Box
       sx={{
-        width: 272,
-        flexShrink: 0,
-        borderRight: "1px solid",
-        borderColor: "divider",
+        width: "100%",
+        height: "100%",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -94,7 +92,7 @@ export function Sidebar({
         </Box>
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: "auto" }}>
+      <Box sx={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
         <Typography
           variant="caption"
           color="text.secondary"
@@ -162,78 +160,78 @@ export function Sidebar({
             </Box>
           ))}
         </Stack>
-      </Box>
 
-      <Box
-        sx={{
-          p: 2,
-          borderTop: "1px solid",
-          borderColor: "divider",
-          bgcolor: alpha(theme.palette.warning.main, 0.02),
-        }}
-      >
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              bgcolor: "warning.main",
-            }}
-          />
-          <Typography
-            variant="caption"
-            fontWeight={800}
-            color="warning.main"
-            sx={{ textTransform: "uppercase" }}
-          >
-            Unscheduled ({UNSCHEDULED.length})
-          </Typography>
-        </Stack>
-        <Stack spacing={1}>
-          {UNSCHEDULED.map((u) => (
+        <Box
+          sx={{
+            p: 2,
+            borderTop: "1px solid",
+            borderColor: "divider",
+            bgcolor: alpha(theme.palette.warning.main, 0.02),
+          }}
+        >
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
             <Box
-              key={u.id}
               sx={{
-                p: 1.25,
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: alpha(theme.palette.warning.main, 0.3),
-                bgcolor: "background.paper",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                bgcolor: "warning.main",
               }}
+            />
+            <Typography
+              variant="caption"
+              fontWeight={800}
+              color="warning.main"
+              sx={{ textTransform: "uppercase" }}
             >
-              <Typography
-                sx={{ fontWeight: 700, fontSize: "0.75rem", mb: 0.25 }}
-              >
-                {u.patientName}
-              </Typography>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: "block", mb: 1 }}
-              >
-                {u.study}
-              </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                color="warning"
-                fullWidth
-                onClick={() => onUnscheduledBook(u)}
+              Unscheduled ({UNSCHEDULED.length})
+            </Typography>
+          </Stack>
+          <Stack spacing={1}>
+            {UNSCHEDULED.map((u) => (
+              <Box
+                key={u.id}
                 sx={{
-                  py: 0.4,
-                  fontSize: "0.65rem",
-                  fontWeight: 700,
-                  textTransform: "none",
-                  borderRadius: 1.5,
+                  p: 1.25,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: alpha(theme.palette.warning.main, 0.3),
+                  bgcolor: "background.paper",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
                 }}
               >
-                Schedule Now
-              </Button>
-            </Box>
-          ))}
-        </Stack>
+                <Typography
+                  sx={{ fontWeight: 700, fontSize: "0.75rem", mb: 0.25 }}
+                >
+                  {u.patientName}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", mb: 1 }}
+                >
+                  {u.study}
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="warning"
+                  fullWidth
+                  onClick={() => onUnscheduledBook(u)}
+                  sx={{
+                    py: 0.4,
+                    fontSize: "0.65rem",
+                    fontWeight: 700,
+                    textTransform: "none",
+                    borderRadius: 1.5,
+                  }}
+                >
+                  Schedule Now
+                </Button>
+              </Box>
+            ))}
+          </Stack>
+        </Box>
       </Box>
     </Box>
   );

@@ -49,6 +49,7 @@ import {
 import { alpha, useTheme } from "@mui/material/styles";
 import { StatTile } from "@/src/ui/components/molecules";
 import { Select } from "@/src/ui/components";
+import { PageTemplate } from "@/src/ui/components";
 
 // ── TYPES ──────────────────────────────────────────────────────────
 type Medication = {
@@ -437,7 +438,7 @@ function MedCard({
 
   const cardStyle = {
     p: 2,
-    borderRadius: 3,
+    borderRadius: '12px',
     border: `1.2px solid ${COLORS.border}`,
     bgcolor: COLORS.surface,
     transition: "all 0.15s",
@@ -956,25 +957,20 @@ export default function PharmacyPrescriptionQueuePage() {
   const total = subtotal + gst;
 
   return (
-    <>
-      <Box
-        sx={{
-          display: "flex",
-          height: "100vh",
-          //   bgcolor: COLORS.bg,
-          overflow: "hidden",
-          fontFamily: "'DM Sans', sans-serif",
-        }}
-      >
-        {/* ══ SIDEBAR ══════════════════════════════════════════════ */}
+    <PageTemplate title="Pharmacy" fullHeight>
+      <Box sx={{ display: "flex", flex: 1, minHeight: 0, gap: 1.25 }}>
+
+        {/* ══ SIDEBAR card ═════════════════════════════════════════ */}
         <Box
           sx={{
-            width: 340,
-            borderRight: `1px solid ${COLORS.border}`,
+            width: 320,
+            flexShrink: 0,
+            borderRadius: '16px',
+            border: '1px solid #DDE8F0',
+            bgcolor: 'background.paper',
             display: "flex",
             flexDirection: "column",
-            bgcolor: COLORS.surface,
-            flexShrink: 0,
+            overflow: "hidden",
           }}
         >
           {/* Sidebar header */}
@@ -1214,64 +1210,41 @@ export default function PharmacyPrescriptionQueuePage() {
         {/* ══ MAIN CONTENT ═════════════════════════════════════════ */}
         <Box
           sx={{
-            flexGrow: 1,
-            overflowY: "auto",
+            flex: 1, minWidth: 0, minHeight: 0,
             display: "flex",
             flexDirection: "column",
+            gap: 1.25,
           }}
         >
           {/* Stat row */}
-          <Grid container spacing={2} sx={{ p: 3, pb: 0 }}>
+          <Box sx={{ display: "flex", gap: 1.25, flexShrink: 0 }}>
             {[
-              {
-                label: "Total",
-                value: stats.total,
-                tone: "primary" as const,
-                icon: <TotalIcon sx={{ fontSize: 24 }} />,
-              },
-              {
-                label: "Pending",
-                value: stats.pending,
-                tone: "warning" as const,
-                icon: <ScheduleIcon sx={{ fontSize: 24 }} />,
-              },
-              {
-                label: "Accepted",
-                value: stats.accepted,
-                tone: "success" as const,
-                icon: <AcceptIcon sx={{ fontSize: 24 }} />,
-              },
-              {
-                label: "Rejected",
-                value: stats.rejected,
-                tone: "error" as const,
-                icon: <RejectIcon sx={{ fontSize: 24 }} />,
-              },
+              { label: "Total",    value: stats.total,    tone: "primary" as const, icon: <TotalIcon sx={{ fontSize: 24 }} /> },
+              { label: "Pending",  value: stats.pending,  tone: "warning" as const, icon: <ScheduleIcon sx={{ fontSize: 24 }} /> },
+              { label: "Accepted", value: stats.accepted, tone: "success" as const, icon: <AcceptIcon sx={{ fontSize: 24 }} /> },
+              { label: "Rejected", value: stats.rejected, tone: "error" as const,   icon: <RejectIcon sx={{ fontSize: 24 }} /> },
             ].map((s) => (
-              <Grid item xs={3} key={s.label}>
-                <StatTile
-                  label={s.label}
-                  value={s.value}
-                  tone={s.tone}
-                  icon={s.icon}
-                  variant="soft"
-                />
-              </Grid>
+              <Box key={s.label} sx={{ flex: 1 }}>
+                <StatTile label={s.label} value={s.value} tone={s.tone} icon={s.icon} variant="soft" />
+              </Box>
             ))}
-          </Grid>
+          </Box>
 
           {/* Detail panel */}
-          <Box sx={{ p: 3, flexGrow: 1 }}>
+          <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
             {selectedRx ? (
-              <Grid container spacing={3}>
-                <Grid item xs={12} lg={8.2}>
+              <Box sx={{ display: "flex", gap: 1.25, alignItems: "stretch", flex: 1, minHeight: 0 }}>
+                <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
                   <Paper
                     elevation={0}
                     sx={{
-                      borderRadius: 4,
-                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: '16px',
+                      border: '1px solid #DDE8F0',
                       bgcolor: COLORS.surface,
+                      flex: 1,
                       overflow: "hidden",
+                      display: "flex",
+                      flexDirection: "column",
                     }}
                   >
                     {/* ── Patient header ─────────────────────── */}
@@ -1504,7 +1477,7 @@ export default function PharmacyPrescriptionQueuePage() {
                     </Grid>
 
                     {/* ── Medications ────────────────────────── */}
-                    <Box sx={{ p: 3 }}>
+                    <Box sx={{ p: 3, flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
                       <Stack
                         direction="row"
                         justifyContent="space-between"
@@ -1628,7 +1601,8 @@ export default function PharmacyPrescriptionQueuePage() {
 
                       <Box
                         sx={{
-                          maxHeight: 400,
+                          flex: 1,
+                          minHeight: 0,
                           overflowY: "auto",
                           pr: 1,
                           overflowX: "hidden",
@@ -1761,19 +1735,19 @@ export default function PharmacyPrescriptionQueuePage() {
                       )}
                     </Box>
                   </Paper>
-                </Grid>
+                </Box>
 
                 {/* ─── DISPENSE SUMMARY ────────────────────────── */}
-                <Grid item xs={12} lg={3.8}>
+                <Box sx={{ width: 280, flexShrink: 0, display: "flex", flexDirection: "column" }}>
                   <Paper
                     elevation={0}
                     sx={{
-                      borderRadius: 4,
-                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: '16px',
+                      border: '1px solid #DDE8F0',
                       overflow: "hidden",
-                      // bgcolor: alpha(COLORS.accent, 0.01),
-                      position: "sticky",
-                      top: 24,
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
                     }}
                   >
                     <Box
@@ -1988,8 +1962,8 @@ export default function PharmacyPrescriptionQueuePage() {
                       </Stack>
                     </Box>
                   </Paper>
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
             ) : (
               <Box
                 sx={{
@@ -1998,7 +1972,7 @@ export default function PharmacyPrescriptionQueuePage() {
                   alignItems: "center",
                   justifyContent: "center",
                   border: `2px dashed ${COLORS.border}`,
-                  borderRadius: 4,
+                  borderRadius: '16px',
                 }}
               >
                 <Typography sx={{ color: COLORS.textMuted, fontSize: 14 }}>
@@ -2028,6 +2002,6 @@ export default function PharmacyPrescriptionQueuePage() {
           </Alert>
         ) : undefined}
       </Snackbar>
-    </>
+    </PageTemplate>
   );
 }

@@ -23,7 +23,7 @@ export default function PageLayout({
         margin: 0,
         padding: 0,
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'column' as const,
         minHeight: 0,
         height: '100%',
       }
@@ -35,7 +35,7 @@ export default function PageLayout({
         flex: 1,
         minHeight: 0,
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'column' as const,
         overflow: 'hidden',
       }
     : { px: 0, pb: 0 };

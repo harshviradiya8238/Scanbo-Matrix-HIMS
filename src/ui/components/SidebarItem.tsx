@@ -312,18 +312,27 @@ export default function SidebarItem({
           )}
 
           {item.badgeCount !== undefined && item.badgeCount > 0 && (
-            <Chip
-              label={item.badgeCount}
-              size="small"
-              color="error"
+            <Box
               sx={{
                 ml: 0.75,
                 height: 18,
                 minWidth: 18,
-                fontSize: '0.66rem',
-                fontWeight: 600,
+                px: '5px',
+                borderRadius: '9px',
+                bgcolor: isHighlighted ? '#1172BA' : '#FFFFFF',
+                border: isHighlighted ? '1.5px solid rgba(255,255,255,0.4)' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                color: isHighlighted ? '#FFFFFF' : '#0A4472',
+                lineHeight: 1,
+                flexShrink: 0,
               }}
-            />
+            >
+              {item.badgeCount}
+            </Box>
           )}
 
           {onFavoriteToggle && (
