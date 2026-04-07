@@ -1,4 +1,4 @@
-import Schedule from "@/src/screens/radiology/RadiologyScheduleCalendar";
+import Schedule from "@/src/screens/clinical/radiology/schedule/RadiologyScheduleCalendar";
 export default function Page() {
-    return <Schedule />
+  return <Schedule />;
 }

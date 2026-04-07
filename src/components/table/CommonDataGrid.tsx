@@ -246,9 +246,8 @@ export default function CommonDataGrid<R extends object>({
       )}
 
       {/* ── Table ── */}
-      <TableContainer sx={{ maxHeight: tableHeight || "auto" }}>
+      <TableContainer>
         <Table
-          // sx={{ minWidth: 700 }}
           size="small"
           stickyHeader={Boolean(tableHeight)}
         >

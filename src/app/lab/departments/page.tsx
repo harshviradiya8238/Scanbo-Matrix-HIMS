@@ -1,4 +1,4 @@
-import LabDepartmentsPage from "@/src/screens/lab/departments/LabDepartmentsPage";
+import LabDepartmentsPage from "@/src/screens/lab/setup/departments/LabDepartmentsPage";
 
 export default function Page() {
   return <LabDepartmentsPage />;

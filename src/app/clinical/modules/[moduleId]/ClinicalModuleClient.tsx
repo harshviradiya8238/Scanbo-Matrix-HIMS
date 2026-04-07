@@ -7,12 +7,12 @@ import CareCompanionPage from "@/src/screens/clinical/clinical-emr/Care-companio
 import InfectionControlPage from "@/src/screens/clinical/clinical-emr/infection-controll/InfectionControlPage";
 import RegistrationAdtPage from "@/src/screens/clinical/RegistrationAdtPage";
 import WelcomeKioskPage from "@/src/screens/clinical/WelcomeKioskPage";
-import OpTimeSurgeryPage from "@/src/screens/clinical/OpTimeSurgeryPage";
-import AnesthesiaPage from "@/src/screens/clinical/AnesthesiaPage";
+import OpTimeSurgeryPage from "@/src/screens/clinical/surgery-ot/op-time/OpTimeSurgeryPage";
+import AnesthesiaPage from "@/src/screens/clinical/surgery-ot/anesthesia/AnesthesiaPage";
 import OpdCalendarPage from "@/src/screens/opd/calendar/OpdCalendarPage";
 import RadiantImagingPage from "@/src/screens/clinical/RadiantImagingPage";
 import IpdRoundsPage from "@/src/screens/ipd/IpdRoundsPage";
-import LabDashboardPage from "@/src/screens/lab/dashboard/LabDashboardPage";
+import LabDashboardPage from "@/src/screens/lab/sample-lifecycle/dashboard/LabDashboardPage";
 import PatientPortalHomePage from "@/src/screens/patient-portal/PatientPortalHomePage";
 import ResoluteBillingPage from "@/src/screens/clinical/ResoluteBillingPage";
 import { ClinicalModuleDefinition } from "@/src/screens/clinical/module-registry";

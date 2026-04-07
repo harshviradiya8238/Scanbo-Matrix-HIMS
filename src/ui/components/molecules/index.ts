@@ -12,3 +12,4 @@ export { default as CommonTabs } from './CommonTabs';
 export { default as PatientGlobalHeader } from './PatientGlobalHeader';
 export { default as WorkspaceHeaderCard } from './WorkspaceHeaderCard';
 export { default as GlobalDoctorSearch } from './GlobalDoctorSearch';
+export { default as CustomCardTabs } from './CustomCardTabs';

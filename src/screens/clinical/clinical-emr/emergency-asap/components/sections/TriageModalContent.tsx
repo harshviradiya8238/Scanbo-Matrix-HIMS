@@ -18,7 +18,7 @@ export function TriageModalContent({
   return (
     <Stack spacing={1.5}>
       <Grid container spacing={1}>
-        <Grid xs={12} md={5}>
+        <Grid item xs={12} md={5}>
           <TextField
             size="small"
             select
@@ -34,7 +34,7 @@ export function TriageModalContent({
             ))}
           </TextField>
         </Grid>
-        <Grid xs={12} md={3}>
+        <Grid item xs={12} md={3}>
           <TextField
             size="small"
             label="Heart Rate"
@@ -43,7 +43,7 @@ export function TriageModalContent({
             fullWidth
           />
         </Grid>
-        <Grid xs={12} md={4}>
+        <Grid item xs={12} md={4}>
           <TextField
             size="small"
             label="Blood Pressure"
@@ -55,7 +55,7 @@ export function TriageModalContent({
       </Grid>
 
       <Grid container spacing={1}>
-        <Grid xs={12} md={4}>
+        <Grid item xs={12} md={4}>
           <TextField
             size="small"
             label="Temperature"
@@ -64,7 +64,7 @@ export function TriageModalContent({
             fullWidth
           />
         </Grid>
-        <Grid xs={12} md={4}>
+        <Grid item xs={12} md={4}>
           <TextField
             size="small"
             label="Respiratory Rate"
@@ -73,7 +73,7 @@ export function TriageModalContent({
             fullWidth
           />
         </Grid>
-        <Grid xs={12} md={4}>
+        <Grid item xs={12} md={4}>
           <TextField
             size="small"
             label="SpO2"

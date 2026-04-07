@@ -82,6 +82,8 @@ const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
           position: sticky ? "sticky" : "relative",
           top: 0,
           zIndex: 10,
+          p:1,
+          borderRadius: 2,
           backgroundColor: showBackground ? "background.paper" : "transparent",
           borderColor: showBackground ? "divider" : "transparent",
           boxShadow: showBackground ? "0 2px 8px rgba(0,0,0,0.06)" : "none",

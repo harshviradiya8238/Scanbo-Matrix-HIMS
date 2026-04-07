@@ -43,7 +43,7 @@ import {
 } from "@/src/screens/ipd/ipd-mock-data";
 import { useOpdData } from "@/src/store/opdHooks";
 import { CLINICAL_MODULES } from "@/src/screens/clinical/module-registry";
-import LabDashboardPage from "../lab/dashboard/LabDashboardPage";
+import LabDashboardPage from "../lab/sample-lifecycle/dashboard/LabDashboardPage";
 
 interface WardSummary {
   ward: string;

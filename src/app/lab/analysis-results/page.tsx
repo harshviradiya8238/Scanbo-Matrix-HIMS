@@ -1,2 +1,4 @@
-import LabClientsPage from '@/src/screens/lab/clients/LabClientsPage';
-export default function Page() { return <LabClientsPage />; }
+import LabClientsPage from "@/src/screens/lab/sample-lifecycle/clients/LabClientsPage";
+export default function Page() {
+  return <LabClientsPage />;
+}

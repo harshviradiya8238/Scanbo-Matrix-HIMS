@@ -26,13 +26,13 @@ import {
   Popover,
   Divider,
   MenuItem,
-  Snackbar,
   Stack,
   TextField,
   Typography,
   SelectChangeEvent,
 } from "@/src/ui/components/atoms";
 import { Card } from "@/src/ui/components/molecules";
+import { useSnackbar } from "@/src/ui/components/molecules/Snackbarcontext";
 import Grid from "@/src/ui/components/layout/AlignedGrid";
 import { alpha, useTheme } from "@/src/ui/theme";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -205,6 +205,7 @@ export default function OpdCalendarPage() {
   const searchParams = useSearchParams();
   const theme = useTheme();
   const { role } = useUser();
+  const { success, error, warning, info } = useSnackbar();
   const calendarRef = React.useRef<FullCalendar | null>(null);
   const calendarContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mrnParam = useMrnParam();
@@ -286,15 +287,6 @@ export default function OpdCalendarPage() {
     start: Date;
     end: Date;
   } | null>(null);
-  const [snackbar, setSnackbar] = React.useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error" | "info" | "warning";
-  }>({
-    open: false,
-    message: "",
-    severity: "success",
-  });
   const [mrnApplied, setMrnApplied] = React.useState(false);
   const [registrationPayloadApplied, setRegistrationPayloadApplied] =
     React.useState(false);
@@ -308,14 +300,12 @@ export default function OpdCalendarPage() {
   const guardCalendarAction = React.useCallback(
     (actionLabel: string): boolean => {
       if (canManageCalendar) return true;
-      setSnackbar({
-        open: true,
-        message: `${roleProfile.label} has read-only calendar access. ${actionLabel} is restricted.`,
-        severity: "warning",
-      });
+      warning(
+        `${roleProfile.label} has read-only calendar access. ${actionLabel} is restricted.`,
+      );
       return false;
     },
-    [canManageCalendar, roleProfile.label],
+    [canManageCalendar, roleProfile.label, warning],
   );
 
   React.useEffect(() => {
@@ -699,19 +689,11 @@ export default function OpdCalendarPage() {
       const selectedDate = overrides?.date ?? directDate;
       const selectedDepartment = overrides?.department ?? directDepartment;
       if (!selectedProvider || !selectedDepartment) {
-        setSnackbar({
-          open: true,
-          message: "Select a department and doctor before choosing a slot.",
-          severity: "info",
-        });
+        info("Select a department and doctor before choosing a slot.");
         return;
       }
       if (hasOverlappingAppointment(selectedDate, slot.time)) {
-        setSnackbar({
-          open: true,
-          message: "This slot overlaps another appointment.",
-          severity: "info",
-        });
+        info("This slot overlaps another appointment.");
         return;
       }
       setDirectProvider(selectedProvider);
@@ -735,6 +717,7 @@ export default function OpdCalendarPage() {
       guardCalendarAction,
       hasOverlappingAppointment,
       updateBookingField,
+      info,
     ],
   );
 
@@ -763,21 +746,13 @@ export default function OpdCalendarPage() {
       const slot = getSlotForSelection(provider, clickedDate, clickedTime);
 
       if (hasOverlappingAppointment(clickedDate, clickedTime)) {
-        setSnackbar({
-          open: true,
-          message: "This time overlaps another appointment.",
-          severity: "info",
-        });
+        info("This time overlaps another appointment.");
         return;
       }
 
       if (availabilityProvider) {
         if (!slot || slot.status !== "Available") {
-          setSnackbar({
-            open: true,
-            message: "Please choose an available slot from the calendar.",
-            severity: "info",
-          });
+          info("Please choose an available slot from the calendar.");
           return;
         }
         handleDirectSlotPick(slot, {
@@ -792,11 +767,9 @@ export default function OpdCalendarPage() {
       }
 
       if (slot && slot.status !== "Available") {
-        setSnackbar({
-          open: true,
-          message: `${slot.time} is ${slot.status.toLowerCase()}. Choose another slot.`,
-          severity: "info",
-        });
+        info(
+          `${slot.time} is ${slot.status.toLowerCase()}. Choose another slot.`,
+        );
         return;
       }
 
@@ -824,6 +797,7 @@ export default function OpdCalendarPage() {
       providerFilter,
       canManageCalendar,
       guardCalendarAction,
+      info,
     ],
   );
 
@@ -1169,13 +1143,11 @@ export default function OpdCalendarPage() {
     setEditingAppointment(null);
     setSlotLocked(false);
     setBookingOpen(true);
-    setSnackbar({
-      open: true,
-      message: returnedPatientName
+    success(
+      returnedPatientName
         ? `${returnedPatientName} registered. Complete appointment booking.`
         : "Patient registered. Complete appointment booking.",
-      severity: "success",
-    });
+    );
     setRegistrationPayloadApplied(true);
   }, [
     booking.date,
@@ -1190,6 +1162,7 @@ export default function OpdCalendarPage() {
     registrationPayloadApplied,
     searchParams,
     slotTimes,
+    success,
   ]);
 
   const validateBooking = (): boolean => {
@@ -1219,11 +1192,7 @@ export default function OpdCalendarPage() {
     if (!guardCalendarAction("Create booking")) return;
     const valid = validateBooking();
     if (!valid) {
-      setSnackbar({
-        open: true,
-        message: "Please complete all required booking fields.",
-        severity: "error",
-      });
+      error("Please complete all required booking fields.");
       return;
     }
 
@@ -1234,11 +1203,7 @@ export default function OpdCalendarPage() {
       null,
     );
     if (!slotCheckResult.available) {
-      setSnackbar({
-        open: true,
-        message: slotCheckResult.message || "Selected slot is not available.",
-        severity: "error",
-      });
+      error(slotCheckResult.message || "Selected slot is not available.");
       return;
     }
 
@@ -1271,13 +1236,11 @@ export default function OpdCalendarPage() {
     markSlotBooked(created.provider, created.date, created.time);
     closeBooking();
 
-    setSnackbar({
-      open: true,
-      message: sendToQueue
+    success(
+      sendToQueue
         ? `Booking created and sent to queue for ${created.patientName}.`
         : `Booking created for ${created.patientName}.`,
-      severity: "success",
-    });
+    );
 
     if (sendToQueue) {
       dispatch(
@@ -1327,11 +1290,7 @@ export default function OpdCalendarPage() {
     if (!editingAppointment) return;
     const valid = validateBooking();
     if (!valid) {
-      setSnackbar({
-        open: true,
-        message: "Please complete all required booking fields.",
-        severity: "error",
-      });
+      error("Please complete all required booking fields.");
       return;
     }
 
@@ -1342,11 +1301,7 @@ export default function OpdCalendarPage() {
       editingAppointment,
     );
     if (!slotCheckResult.available) {
-      setSnackbar({
-        open: true,
-        message: slotCheckResult.message || "Selected slot is not available.",
-        severity: "error",
-      });
+      error(slotCheckResult.message || "Selected slot is not available.");
       return;
     }
 
@@ -1391,11 +1346,7 @@ export default function OpdCalendarPage() {
       }),
     );
 
-    setSnackbar({
-      open: true,
-      message: `Appointment rescheduled for ${booking.patientName}.`,
-      severity: "success",
-    });
+    success(`Appointment rescheduled for ${booking.patientName}.`);
 
     closeBooking();
   };
@@ -2713,21 +2664,6 @@ export default function OpdCalendarPage() {
             )}
           </Stack>
         </Drawer>
-
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={3500}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        >
-          <Alert
-            onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-            severity={snackbar.severity}
-            sx={{ width: "100%" }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
 
         <Popover
           open={Boolean(selectedEvent && eventAnchor)}
