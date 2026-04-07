@@ -51,6 +51,12 @@ const theme = createTheme(baseTheme, {
           WebkitBackdropFilter: 'blur(8px)',
           transition: 'backdrop-filter 180ms ease, -webkit-backdrop-filter 180ms ease',
         },
+        // Select/Menu/Popover use an invisible backdrop — no blur for those
+        invisible: {
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
+          backgroundColor: 'transparent',
+        },
       },
     },
     MuiDialog: {
