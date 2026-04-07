@@ -6,6 +6,7 @@ import { UserProvider } from "@/src/core/auth/UserContext";
 import { ErrorBoundary } from "@/src/ui/components/ErrorBoundary";
 import AppLayout from "@/src/ui/components/AppLayout";
 import { HimsLoaderProvider } from "@/src/ui/components/Himsloadercontext";
+import { SnackbarProvider } from "../ui/components/molecules/Snackbarcontext";
 
 export const metadata: Metadata = {
   title: "Scanbo HIMS - Healthcare Information Management System",
@@ -40,9 +41,11 @@ export default function RootLayout({
           <ReduxProvider>
             <ThemeRegistry>
               <UserProvider defaultRole="DOCTOR">
+                <SnackbarProvider>
                 <HimsLoaderProvider>
                   <AppLayout>{children}</AppLayout>
                 </HimsLoaderProvider>
+                </SnackbarProvider>
               </UserProvider>
             </ThemeRegistry>
           </ReduxProvider>
