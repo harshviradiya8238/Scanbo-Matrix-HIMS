@@ -37,6 +37,7 @@ import {
 import CommonDataGrid from "@/src/components/table/CommonDataGrid";
 import { alpha, useTheme } from "@/src/ui/theme";
 import { patientMetrics, PatientRow } from "@/src/mocks/patientServer";
+import { useHimsLoader } from "@/src/ui/components/Himsloadercontext";
 
 export default function PatientListPage() {
   const theme = useTheme();
@@ -68,6 +69,15 @@ export default function PatientListPage() {
     () => getPatientListColumns(theme, handleMenuOpen),
     [theme, handleMenuOpen],
   );
+  const { showLoader, hideLoader } = useHimsLoader();
+
+React.useEffect(() => {
+  showLoader("Loading Patients...");
+
+  setTimeout(() => {
+    hideLoader();
+  }, 2000);
+}, []);
 
   React.useEffect(() => {
     try {

@@ -41,7 +41,9 @@ export default function CommonTabs<T extends string = string>({
       allowScrollButtonsMobile={allowScrollButtonsMobile}
       sx={[
         {
+          // backgroundColor: "white",
           px: 0.5,
+          py: 0.5,
           '& .MuiTabs-flexContainer': { gap: 0.55 },
           '& .MuiTabs-indicator': { display: 'none' },
         },
@@ -61,7 +63,7 @@ export default function CommonTabs<T extends string = string>({
               textTransform: 'none',
               fontWeight: 600,
               minHeight: 40,
-              px: 2,
+              // px: 2,
               borderRadius: 1.5,
               color: 'text.secondary',
               transition: 'all 0.16s ease',

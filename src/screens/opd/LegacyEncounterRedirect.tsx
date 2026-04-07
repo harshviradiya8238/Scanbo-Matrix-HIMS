@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Alert, Stack } from '@/src/ui/components/atoms';
-import OpdLayout from './common/components/OpdLayout';
+import OpdLayout from './components/OpdLayout';
 import { useOpdData } from '@/src/store/opdHooks';
 import {
   buildEncounterOrdersRoute,
