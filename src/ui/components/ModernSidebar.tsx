@@ -305,8 +305,8 @@ export default function ModernSidebar({
           justifyContent: "center",
           position: "relative",
           borderBottom: `1px solid ${alpha("#FFFFFF", 0.14)}`,
-          minHeight: { xs: 70, md: 74 },
-          height: { xs: 70, md: 74 },
+          minHeight: { xs: 80, md: 95 },
+          height: { xs: 80, md: 95 },
           backgroundColor: "transparent",
         }}
       >
@@ -319,6 +319,7 @@ export default function ModernSidebar({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            // width:"100%",
             boxShadow: "0 4px 12px rgba(0,0,0,0.18)",
           }}
         >
@@ -327,7 +328,7 @@ export default function ModernSidebar({
             src={"/scanbo.svg"}
             alt="Scanbo logo"
             sx={{
-              height: isExpanded ? 44 : 32,
+              height: isExpanded ? 65 : 55,
               width: "auto",
               objectFit: "contain",
               objectPosition: "center",
