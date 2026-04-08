@@ -35,7 +35,7 @@ import { useAppDispatch, useAppSelector } from "@/src/store/hooks";
 import { addPartition } from "@/src/store/slices/limsSlice";
 import { useLabTheme } from "../../lab-theme";
 import type { LabPartition } from "../../lab-types";
-import AddPartitionModal from "../../modals/AddPartitionModal";
+import AddPartitionModal from "../../modals/";
 
 export default function LabPartitionsPage() {
   const theme = useTheme();
