@@ -18,7 +18,9 @@ import {
   Typography,
 } from "@/src/ui/components/atoms";
 import { CommonTabs, StatTile } from "@/src/ui/components/molecules";
-import CommonDataGrid, { type CommonColumn } from "@/src/components/table/CommonDataGrid";
+import CommonDataGrid, {
+  type CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
 import { cardShadow } from "@/src/core/theme/tokens";
 import {
   AccessibilityNew as AccessibilityNewIcon,
@@ -33,41 +35,43 @@ import {
   type EmergencyOrder,
   type ObservationEntry,
   type OrderForm,
+  type VitalsForm,
   type DischargeForm,
   type CaseTrackingTabId,
   type CaseTrackingSidebarFilter,
   type OrderStatus,
   type EmergencyPageId,
 } from "../../types";
-import { CASE_TRACKING_TABS, ORDER_TEMPLATES, TRIAGE_META } from "../../AsapEmergencyData";
+import {
+  getCaseTrackingRows,
+  getSelectedPatientData,
+} from "../EmergencyCalculations";
+import {
+  CASE_TRACKING_TABS,
+  ORDER_TEMPLATES,
+  TRIAGE_META,
+  DEFAULT_DISCHARGE_FORM,
+  DEFAULT_ORDER_FORM,
+} from "../../AsapEmergencyData";
+import { buildDischargeDraft } from "../utils";
 
 interface CaseTrackingSectionProps {
   selectedPatient: EmergencyPatient | null;
-  selectedPatientOrders: EmergencyOrder[];
-  selectedPatientObservations: ObservationEntry[];
+  patients: EmergencyPatient[];
+  orders: EmergencyOrder[];
+  observationLog: ObservationEntry[];
   observationColumns: CommonColumn<ObservationEntry>[];
-  caseTrackingTab: CaseTrackingTabId;
-  setCaseTrackingTab: (tab: CaseTrackingTabId) => void;
-  caseTrackingSearch: string;
-  setCaseTrackingSearch: (value: string) => void;
-  caseTrackingFilter: CaseTrackingSidebarFilter;
-  setCaseTrackingFilter: (value: CaseTrackingSidebarFilter) => void;
-  caseTrackingRows: EmergencyPatient[];
   selectedPatientId: string;
   handleOpenPatientChart: (patientId: string) => void;
   openVitalsDialog: (patientId?: string) => void;
-  clinicalNoteDraft: string;
-  setClinicalNoteDraft: (value: string) => void;
-  handleSaveClinicalNote: () => void;
-  handleSaveVitals: () => void;
-  orderForm: OrderForm;
-  handleOrderField: <K extends keyof OrderForm>(field: K, value: OrderForm[K]) => void;
-  handleApplyOrderTemplate: (template: string) => void;
-  handleAddOrder: () => void;
+  handleSaveClinicalNote: (note: string) => void;
+  handleSaveVitals: (form: VitalsForm) => void;
+  handleAddOrder: (form: OrderForm) => void;
   handleOrderStatusChange: (orderId: string, status: OrderStatus) => void;
-  dischargeForm: DischargeForm;
-  handleDischargeField: <K extends keyof DischargeForm>(field: K, value: DischargeForm[K]) => void;
-  handleDisposition: (action: "discharge" | "admit" | "transfer") => void;
+  handleDisposition: (
+    action: "discharge" | "admit" | "transfer",
+    form: DischargeForm,
+  ) => void;
   dashboardAvgWaitMinutes: number;
   setActivePage: (page: EmergencyPageId) => void;
   openRegistrationModal: () => void;
@@ -75,53 +79,121 @@ interface CaseTrackingSectionProps {
 
 export function CaseTrackingSection({
   selectedPatient,
-  selectedPatientOrders,
-  selectedPatientObservations,
+  patients,
+  orders,
+  observationLog,
   observationColumns,
-  caseTrackingTab,
-  setCaseTrackingTab,
-  caseTrackingSearch,
-  setCaseTrackingSearch,
-  caseTrackingFilter,
-  setCaseTrackingFilter,
-  caseTrackingRows,
   selectedPatientId,
   handleOpenPatientChart,
   openVitalsDialog,
-  clinicalNoteDraft,
-  setClinicalNoteDraft,
   handleSaveClinicalNote,
   handleSaveVitals,
-  orderForm,
-  handleOrderField,
-  handleApplyOrderTemplate,
   handleAddOrder,
   handleOrderStatusChange,
-  dischargeForm,
-  handleDischargeField,
   handleDisposition,
   dashboardAvgWaitMinutes,
   setActivePage,
   openRegistrationModal,
 }: CaseTrackingSectionProps) {
   const theme = useTheme();
+
+  const handleApplyOrderTemplate = (template: string) => {
+    setOrderForm((prev) => ({ ...prev, item: template }));
+  };
+
+  const [caseTrackingTab, setCaseTrackingTab] =
+    React.useState<CaseTrackingTabId>("vitals");
+  const [caseTrackingFilter, setCaseTrackingFilter] =
+    React.useState<CaseTrackingSidebarFilter>("All");
+  const [caseTrackingSearch, setCaseTrackingSearch] = React.useState("");
+  const [clinicalNoteDraft, setClinicalNoteDraft] = React.useState("");
+  const [orderForm, setOrderForm] =
+    React.useState<OrderForm>(DEFAULT_ORDER_FORM);
+  const [dischargeForm, setDischargeForm] = React.useState<DischargeForm>(
+    DEFAULT_DISCHARGE_FORM,
+  );
+
+  React.useEffect(() => {
+    if (!selectedPatient) {
+      setClinicalNoteDraft("");
+      setDischargeForm(DEFAULT_DISCHARGE_FORM);
+      setOrderForm(DEFAULT_ORDER_FORM);
+      return;
+    }
+    setClinicalNoteDraft(selectedPatient.clinicalNotes);
+    setDischargeForm(buildDischargeDraft(selectedPatient));
+    setOrderForm(DEFAULT_ORDER_FORM);
+  }, [selectedPatient]);
+
+  const caseTrackingRows: EmergencyPatient[] = React.useMemo(
+    () => getCaseTrackingRows(patients, caseTrackingSearch, caseTrackingFilter),
+    [caseTrackingFilter, caseTrackingSearch, patients],
+  );
+
+  const {
+    selectedPatientOrders,
+    selectedPatientObservations,
+  }: {
+    selectedPatientOrders: EmergencyOrder[];
+    selectedPatientObservations: ObservationEntry[];
+  } = React.useMemo(
+    () =>
+      getSelectedPatientData(
+        selectedPatient?.id,
+        patients,
+        orders,
+        observationLog,
+      ),
+    [selectedPatient?.id, patients, orders, observationLog],
+  );
+
+  const handleOrderField = <K extends keyof OrderForm>(
+    field: K,
+    value: OrderForm[K],
+  ) => {
+    setOrderForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleDischargeField = <K extends keyof DischargeForm>(
+    field: K,
+    value: DischargeForm[K],
+  ) => {
+    setDischargeForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const onSaveNote = () => {
+    handleSaveClinicalNote(clinicalNoteDraft);
+  };
+
+  const onAddOrder = () => {
+    handleAddOrder(orderForm);
+  };
+
+  const onHandleDisposition = (action: "discharge" | "admit" | "transfer") => {
+    handleDisposition(action, dischargeForm);
+  };
+
   const CASE_TRACKING_PANEL_H = "calc(100vh - 260px)";
 
   const labOrders = React.useMemo(
     () =>
       selectedPatientOrders
-        .filter((order) => order.type === "Lab Tests")
+        .filter((order: EmergencyOrder) => order.type === "Lab Tests")
         .slice()
-        .sort((a, b) => b.orderedAt.localeCompare(a.orderedAt)),
+        .sort((a: EmergencyOrder, b: EmergencyOrder) =>
+          b.orderedAt.localeCompare(a.orderedAt),
+        ),
     [selectedPatientOrders],
   );
 
   const radiologyOrders = React.useMemo(
     () =>
       selectedPatientOrders
-        .filter((order) => order.type === "Radiology")
+        .filter((order: EmergencyOrder) => order.type === "Radiology")
         .slice()
-        .sort((a, b) => b.orderedAt.localeCompare(a.orderedAt)),
+        .sort((a: EmergencyOrder, b: EmergencyOrder) =>
+          b.orderedAt.localeCompare(a.orderedAt),
+        ),
     [selectedPatientOrders],
   );
 
@@ -129,13 +201,16 @@ export function CaseTrackingSection({
     () =>
       selectedPatientOrders
         .slice()
-        .sort((a, b) => b.orderedAt.localeCompare(a.orderedAt))
+        .sort((a: EmergencyOrder, b: EmergencyOrder) =>
+          b.orderedAt.localeCompare(a.orderedAt),
+        )
         .slice(0, 5),
     [selectedPatientOrders],
   );
 
   const latestObservation = selectedPatientObservations[0];
-  const firstObservation = selectedPatientObservations[selectedPatientObservations.length - 1];
+  const firstObservation =
+    selectedPatientObservations[selectedPatientObservations.length - 1];
 
   const createMetricCard = (
     label: string,
@@ -152,10 +227,16 @@ export function CaseTrackingSection({
     } as const;
     const palette = paletteMap[tone];
     const iconMap: Record<string, React.ReactNode> = {
-      "Blood Pressure": <BloodtypeIcon sx={{ fontSize: 20, color: palette.main }} />,
-      "Heart Rate": <FavoriteBorderIcon sx={{ fontSize: 20, color: palette.main }} />,
+      "Blood Pressure": (
+        <BloodtypeIcon sx={{ fontSize: 20, color: palette.main }} />
+      ),
+      "Heart Rate": (
+        <FavoriteBorderIcon sx={{ fontSize: 20, color: palette.main }} />
+      ),
       SpO2: <AirIcon sx={{ fontSize: 20, color: palette.main }} />,
-      "Pain / GCS": <AccessibilityNewIcon sx={{ fontSize: 20, color: palette.main }} />,
+      "Pain / GCS": (
+        <AccessibilityNewIcon sx={{ fontSize: 20, color: palette.main }} />
+      ),
     };
 
     return (
@@ -210,29 +291,49 @@ export function CaseTrackingSection({
             },
             {
               label: "Critical",
-              value: caseTrackingRows.filter((patient) => patient.triageLevel === "Critical").length,
+              value: caseTrackingRows.filter(
+                (patient: EmergencyPatient) =>
+                  patient.triageLevel === "Critical",
+              ).length,
               color: theme.palette.error.main,
             },
             {
               label: "Ready",
-              value: caseTrackingRows.filter((patient) => patient.status === "Ready for Disposition").length,
+              value: caseTrackingRows.filter(
+                (patient: EmergencyPatient) =>
+                  patient.status === "Ready for Disposition",
+              ).length,
               color: theme.palette.success.main,
             },
           ].map((item) => (
             <Card
               key={item.label}
               elevation={0}
-              sx={{ boxShadow: cardShadow, border: "none", p: 1.25, borderRadius: 2 }}
+              sx={{
+                boxShadow: cardShadow,
+                border: "none",
+                p: 1.25,
+                borderRadius: 2,
+              }}
             >
               <Typography
                 variant="h6"
-                sx={{ fontWeight: 800, fontSize: 19, lineHeight: 1.1, color: item.color }}
+                sx={{
+                  fontWeight: 800,
+                  fontSize: 19,
+                  lineHeight: 1.1,
+                  color: item.color,
+                }}
               >
                 {item.value}
               </Typography>
               <Typography
                 variant="caption"
-                sx={{ fontWeight: 600, color: "text.secondary", fontSize: 10.5 }}
+                sx={{
+                  fontWeight: 600,
+                  color: "text.secondary",
+                  fontSize: 10.5,
+                }}
               >
                 {item.label}
               </Typography>
@@ -245,7 +346,9 @@ export function CaseTrackingSection({
           fullWidth
           placeholder="Search patient, MRN, ER no..."
           value={caseTrackingSearch}
-          onChange={(event) => setCaseTrackingSearch(event.target.value)}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            setCaseTrackingSearch(event.target.value)
+          }
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -263,7 +366,14 @@ export function CaseTrackingSection({
         />
 
         <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-          {(["All", "Critical", "In Treatment", "Ready"] as CaseTrackingSidebarFilter[]).map((filter) => (
+          {(
+            [
+              "All",
+              "Critical",
+              "In Treatment",
+              "Ready",
+            ] as CaseTrackingSidebarFilter[]
+          ).map((filter) => (
             <Chip
               key={filter}
               label={filter}
@@ -285,7 +395,10 @@ export function CaseTrackingSection({
           maxHeight: { xs: 320, lg: "none" },
           "&::-webkit-scrollbar": { width: 5 },
           "&::-webkit-scrollbar-track": { bgcolor: "transparent" },
-          "&::-webkit-scrollbar-thumb": { borderRadius: 99, bgcolor: "divider" },
+          "&::-webkit-scrollbar-thumb": {
+            borderRadius: 99,
+            bgcolor: "divider",
+          },
         }}
       >
         {caseTrackingRows.length === 0 ? (
@@ -294,10 +407,16 @@ export function CaseTrackingSection({
           </Box>
         ) : (
           <Stack spacing={0}>
-            {caseTrackingRows.map((patient) => {
+            {caseTrackingRows.map((patient: EmergencyPatient) => {
               const selected = selectedPatientId === patient.id;
-              const highlightColor = patient.triageLevel === "Critical" ? theme.palette.error.main : theme.palette.primary.main;
-              const waitProgress = Math.min(100, Math.max(10, Math.round((patient.waitingMinutes / 45) * 100)));
+              const highlightColor =
+                patient.triageLevel === "Critical"
+                  ? theme.palette.error.main
+                  : theme.palette.primary.main;
+              const waitProgress = Math.min(
+                100,
+                Math.max(10, Math.round((patient.waitingMinutes / 45) * 100)),
+              );
 
               return (
                 <Box
@@ -309,10 +428,16 @@ export function CaseTrackingSection({
                     borderBottom: "1px solid",
                     borderColor: "divider",
                     cursor: "pointer",
-                    bgcolor: selected ? alpha(theme.palette.primary.main, 0.06) : "background.paper",
-                    borderLeft: selected ? `3px solid ${highlightColor}` : "3px solid transparent",
+                    bgcolor: selected
+                      ? alpha(theme.palette.primary.main, 0.06)
+                      : "background.paper",
+                    borderLeft: selected
+                      ? `3px solid ${highlightColor}`
+                      : "3px solid transparent",
                     "&:hover": {
-                      bgcolor: selected ? alpha(theme.palette.primary.main, 0.06) : alpha(theme.palette.primary.main, 0.03),
+                      bgcolor: selected
+                        ? alpha(theme.palette.primary.main, 0.06)
+                        : alpha(theme.palette.primary.main, 0.03),
                     },
                     transition: "background 0.15s ease",
                   }}
@@ -329,8 +454,20 @@ export function CaseTrackingSection({
                       }}
                     />
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 13, lineHeight: 1.3, mr: 0.75 }}>
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="flex-start"
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: 13,
+                            lineHeight: 1.3,
+                            mr: 0.75,
+                          }}
+                        >
                           {patient.name}
                         </Typography>
                         <Chip
@@ -345,7 +482,8 @@ export function CaseTrackingSection({
                             color:
                               patient.triageLevel === "Critical"
                                 ? "error.main"
-                                : patient.triageLevel === "Emergency" || patient.triageLevel === "Urgent"
+                                : patient.triageLevel === "Emergency" ||
+                                    patient.triageLevel === "Urgent"
                                   ? "warning.dark"
                                   : "primary.main",
                           }}
@@ -353,17 +491,36 @@ export function CaseTrackingSection({
                       </Stack>
                       <Typography
                         variant="caption"
-                        sx={{ display: "block", color: "text.secondary", fontFamily: '"JetBrains Mono", monospace' }}
+                        sx={{
+                          display: "block",
+                          color: "text.secondary",
+                          fontFamily: '"JetBrains Mono", monospace',
+                        }}
                       >
                         {patient.id} · {patient.mrn}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.35 }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block", mt: 0.35 }}
+                      >
                         {patient.chiefComplaint}
                       </Typography>
-                      <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.75 }} flexWrap="wrap" useFlexGap>
+                      <Stack
+                        direction="row"
+                        spacing={0.75}
+                        alignItems="center"
+                        sx={{ mt: 0.75 }}
+                        flexWrap="wrap"
+                        useFlexGap
+                      >
                         <Chip
                           size="small"
-                          label={patient.assignedBed ? `Bed ${patient.assignedBed}` : "No bed"}
+                          label={
+                            patient.assignedBed
+                              ? `Bed ${patient.assignedBed}`
+                              : "No bed"
+                          }
                           sx={{
                             fontWeight: 600,
                             fontSize: 10,
@@ -390,19 +547,43 @@ export function CaseTrackingSection({
                       </Stack>
                       <Box sx={{ mt: 1 }}>
                         <Stack direction="row" justifyContent="space-between">
-                          <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
+                          <Typography
+                            variant="caption"
+                            color="text.disabled"
+                            sx={{ fontSize: 10 }}
+                          >
                             Wait {patient.waitingMinutes} min
                           </Typography>
-                          <Typography variant="caption" sx={{ fontSize: 10, color: patient.waitingMinutes >= 30 ? "warning.main" : "text.disabled" }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontSize: 10,
+                              color:
+                                patient.waitingMinutes >= 30
+                                  ? "warning.main"
+                                  : "text.disabled",
+                            }}
+                          >
                             {patient.arrivalMode}
                           </Typography>
                         </Stack>
-                        <Box sx={{ mt: 0.5, height: 4, borderRadius: 99, bgcolor: alpha(theme.palette.warning.main, 0.18), overflow: "hidden" }}>
+                        <Box
+                          sx={{
+                            mt: 0.5,
+                            height: 4,
+                            borderRadius: 99,
+                            bgcolor: alpha(theme.palette.warning.main, 0.18),
+                            overflow: "hidden",
+                          }}
+                        >
                           <Box
                             sx={{
                               width: `${waitProgress}%`,
                               height: "100%",
-                              bgcolor: patient.waitingMinutes >= 30 ? "warning.main" : "success.main",
+                              bgcolor:
+                                patient.waitingMinutes >= 30
+                                  ? "warning.main"
+                                  : "success.main",
                             }}
                           />
                         </Box>
@@ -465,7 +646,10 @@ export function CaseTrackingSection({
               <Typography variant="h5" sx={{ fontWeight: 800 }}>
                 Case Tracking
               </Typography>
-              <Typography variant="body2" sx={{ mt: 1, color: alpha(theme.palette.common.white, 0.82) }}>
+              <Typography
+                variant="body2"
+                sx={{ mt: 1, color: alpha(theme.palette.common.white, 0.82) }}
+              >
                 This screen is only for emergency operations: case monitoring,
                 vitals, safety, timeline, and disposition.
               </Typography>
@@ -477,13 +661,19 @@ export function CaseTrackingSection({
             </Alert>
 
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-              <Button variant="contained" onClick={() => setActivePage("triage")}>
+              <Button
+                variant="contained"
+                onClick={() => setActivePage("triage")}
+              >
                 Open Arrivals & Triage
               </Button>
               <Button variant="outlined" onClick={openRegistrationModal}>
                 Register New Arrival
               </Button>
-              <Button variant="outlined" onClick={() => setActivePage("bed-board")}>
+              <Button
+                variant="outlined"
+                onClick={() => setActivePage("bed-board")}
+              >
                 Open Bed Board
               </Button>
             </Stack>
@@ -497,7 +687,9 @@ export function CaseTrackingSection({
   const systolic = Number(selectedPatient.vitals.bloodPressure.split("/")[0]);
   const diastolic = Number(selectedPatient.vitals.bloodPressure.split("/")[1]);
   const bpTone =
-    Number.isFinite(systolic) && Number.isFinite(diastolic) && (systolic < 90 || diastolic < 60)
+    Number.isFinite(systolic) &&
+    Number.isFinite(diastolic) &&
+    (systolic < 90 || diastolic < 60)
       ? "error"
       : systolic >= 140 || diastolic >= 90
         ? "warning"
@@ -505,7 +697,8 @@ export function CaseTrackingSection({
   const hrTone =
     selectedPatient.vitals.heartRate >= 120
       ? "warning"
-      : selectedPatient.vitals.heartRate >= 60 && selectedPatient.vitals.heartRate <= 100
+      : selectedPatient.vitals.heartRate >= 60 &&
+          selectedPatient.vitals.heartRate <= 100
         ? "success"
         : "info";
   const spo2Tone =
@@ -541,7 +734,7 @@ export function CaseTrackingSection({
     });
   }
 
-  selectedPatientObservations.slice(0, 4).forEach((entry) => {
+  selectedPatientObservations.slice(0, 4).forEach((entry: ObservationEntry) => {
     timelineEntries.push({
       id: entry.id,
       title: "Vitals recorded",
@@ -552,7 +745,7 @@ export function CaseTrackingSection({
     });
   });
 
-  recentOrders.slice(0, 4).forEach((order) => {
+  recentOrders.slice(0, 4).forEach((order: EmergencyOrder) => {
     timelineEntries.push({
       id: `order-${order.id}`,
       title: `${order.type} order`,
@@ -583,7 +776,9 @@ export function CaseTrackingSection({
       items: [
         {
           label: "Oxygen and saturation monitoring",
-          done: selectedPatient.vitals.spo2 <= 94 || selectedPatientObservations.length > 0,
+          done:
+            selectedPatient.vitals.spo2 <= 94 ||
+            selectedPatientObservations.length > 0,
         },
         {
           label: "Respiratory reassessment",
@@ -595,7 +790,9 @@ export function CaseTrackingSection({
         },
         {
           label: "Portable chest support ordered",
-          done: radiologyOrders.some((order) => order.item.toLowerCase().includes("chest")),
+          done: radiologyOrders.some((order: EmergencyOrder) =>
+            order.item.toLowerCase().includes("chest"),
+          ),
         },
       ],
     },
@@ -608,7 +805,9 @@ export function CaseTrackingSection({
         },
         {
           label: "IV medication / fluid order present",
-          done: selectedPatientOrders.some((order) => order.type === "Medication"),
+          done: selectedPatientOrders.some(
+            (order: EmergencyOrder) => order.type === "Medication",
+          ),
         },
         { label: "Bed assigned", done: Boolean(selectedPatient.assignedBed) },
         {
@@ -624,7 +823,9 @@ export function CaseTrackingSection({
         { label: "Imaging order placed", done: radiologyOrders.length > 0 },
         {
           label: "At least one result completed",
-          done: selectedPatientOrders.some((order) => order.status === "Completed"),
+          done: selectedPatientOrders.some(
+            (order: EmergencyOrder) => order.status === "Completed",
+          ),
         },
         {
           label: "Critical flag reviewed",
@@ -704,7 +905,12 @@ export function CaseTrackingSection({
               }}
             >
               <Stack spacing={0.9} sx={{ px: { xs: 1.5, md: 1.75 }, py: 1.15 }}>
-                <Stack direction="row" spacing={1.1} alignItems="center" sx={{ minWidth: 0 }}>
+                <Stack
+                  direction="row"
+                  spacing={1.1}
+                  alignItems="center"
+                  sx={{ minWidth: 0 }}
+                >
                   <Avatar
                     sx={{
                       width: 40,
@@ -723,24 +929,51 @@ export function CaseTrackingSection({
                       .substring(0, 2)
                       .toUpperCase()}
                   </Avatar>
-                  <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center" sx={{ minWidth: 0 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 800, fontSize: 16, lineHeight: 1.2, mr: 0.25 }}>
+                  <Stack
+                    direction="row"
+                    spacing={0.75}
+                    flexWrap="wrap"
+                    useFlexGap
+                    alignItems="center"
+                    sx={{ minWidth: 0 }}
+                  >
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: 16,
+                        lineHeight: 1.2,
+                        mr: 0.25,
+                      }}
+                    >
                       {selectedPatient?.name}
                     </Typography>
                     <Chip
                       size="small"
                       label={selectedPatient?.id}
-                      sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: "primary.main", fontWeight: 700 }}
+                      sx={{
+                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                        color: "primary.main",
+                        fontWeight: 700,
+                      }}
                     />
                     <Chip
                       size="small"
                       label={selectedPatient?.mrn}
-                      sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: "primary.main", fontWeight: 700 }}
+                      sx={{
+                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                        color: "primary.main",
+                        fontWeight: 700,
+                      }}
                     />
                     <Chip
                       size="small"
                       label={`${selectedPatient?.age}y / ${selectedPatient?.gender}`}
-                      sx={{ bgcolor: alpha(theme.palette.text.secondary, 0.08), color: "text.primary", fontWeight: 700 }}
+                      sx={{
+                        bgcolor: alpha(theme.palette.text.secondary, 0.08),
+                        color: "text.primary",
+                        fontWeight: 700,
+                      }}
                     />
                     <Chip
                       size="small"
@@ -780,25 +1013,68 @@ export function CaseTrackingSection({
                   </Stack>
                 </Stack>
 
-                <Stack direction={{ xs: "column", md: "row" }} spacing={0.75} alignItems={{ xs: "flex-start", md: "center" }} justifyContent="space-between">
-                  <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.35, fontWeight: 500 }}>
+                <Stack
+                  direction={{ xs: "column", md: "row" }}
+                  spacing={0.75}
+                  alignItems={{ xs: "flex-start", md: "center" }}
+                  justifyContent="space-between"
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      lineHeight: 1.35,
+                      fontWeight: 500,
+                    }}
+                  >
                     {selectedPatient?.chiefComplaint}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: 0.15, display: "flex", gap: 0.75, flexWrap: "wrap", alignItems: "center" }}>
-                    <Box component="span">Bed {selectedPatient?.assignedBed ?? "Not assigned"}</Box>
-                    <Box component="span" sx={{ color: "divider" }}>•</Box>
-                    <Box component="span">{selectedPatient?.assignedDoctor}</Box>
-                    <Box component="span" sx={{ color: "divider" }}>•</Box>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      fontWeight: 700,
+                      letterSpacing: 0.15,
+                      display: "flex",
+                      gap: 0.75,
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Box component="span">
+                      Bed {selectedPatient?.assignedBed ?? "Not assigned"}
+                    </Box>
+                    <Box component="span" sx={{ color: "divider" }}>
+                      •
+                    </Box>
+                    <Box component="span">
+                      {selectedPatient?.assignedDoctor}
+                    </Box>
+                    <Box component="span" sx={{ color: "divider" }}>
+                      •
+                    </Box>
                     <Box component="span">{selectedPatient?.arrivalMode}</Box>
                   </Typography>
                 </Stack>
               </Stack>
 
-              <Divider sx={{ borderColor: alpha(theme.palette.primary.main, 0.08) }} />
+              <Divider
+                sx={{ borderColor: alpha(theme.palette.primary.main, 0.08) }}
+              />
 
-              <Box sx={{ px: 1, py: 0.45, bgcolor: alpha(theme.palette.primary.main, 0.015) }}>
+              <Box
+                sx={{
+                  px: 1,
+                  py: 0.45,
+                  bgcolor: alpha(theme.palette.primary.main, 0.015),
+                }}
+              >
                 <CommonTabs
-                  tabs={CASE_TRACKING_TABS.map((tab: typeof CASE_TRACKING_TABS[number]) => ({ id: tab.id, label: tab.label, icon: tab.icon }))}
+                  tabs={CASE_TRACKING_TABS.map((tab) => ({
+                    id: tab.id,
+                    label: tab.label,
+                    icon: tab.icon,
+                  }))}
                   value={caseTrackingTab}
                   onChange={setCaseTrackingTab}
                   sx={{ minHeight: 0 }}
@@ -817,14 +1093,39 @@ export function CaseTrackingSection({
             </Card>
           </Box>
 
-          <Box sx={{ flex: 1, minHeight: 0, overflowY: { xs: "visible", lg: "auto" }, p: 2 }}>
+          <Box
+            sx={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: { xs: "visible", lg: "auto" },
+              p: 2,
+            }}
+          >
             {caseTrackingTab === "vitals" ? (
               <Stack spacing={1.5}>
-                <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }} spacing={1}>
-                  <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: "text.secondary" }}>
-                    Latest Vitals · Captured {selectedPatient?.vitals.capturedAt}
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  alignItems={{ xs: "flex-start", sm: "center" }}
+                  spacing={1}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: 800,
+                      letterSpacing: 0.6,
+                      textTransform: "uppercase",
+                      color: "text.secondary",
+                    }}
+                  >
+                    Latest Vitals · Captured{" "}
+                    {selectedPatient?.vitals.capturedAt}
                   </Typography>
-                  <Button size="small" variant="contained" onClick={() => openVitalsDialog(selectedPatient?.id)}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => openVitalsDialog(selectedPatient?.id)}
+                  >
                     Record New
                   </Button>
                 </Stack>
@@ -833,43 +1134,81 @@ export function CaseTrackingSection({
                   <Grid item xs={12} sm={6} lg={3}>
                     {createMetricCard(
                       "Blood Pressure",
-                      selectedPatient ? selectedPatient.vitals.bloodPressure : "--",
+                      selectedPatient
+                        ? selectedPatient.vitals.bloodPressure
+                        : "--",
                       "mmHg",
                       bpTone,
-                      bpTone === "error" ? "Hypotensive" : bpTone === "warning" ? "Watch" : "Stable",
+                      bpTone === "error"
+                        ? "Hypotensive"
+                        : bpTone === "warning"
+                          ? "Watch"
+                          : "Stable",
                     )}
                   </Grid>
                   <Grid item xs={12} sm={6} lg={3}>
                     {createMetricCard(
                       "Heart Rate",
-                      selectedPatient ? String(selectedPatient.vitals.heartRate) : "--",
+                      selectedPatient
+                        ? String(selectedPatient.vitals.heartRate)
+                        : "--",
                       "bpm",
                       hrTone,
-                      hrTone === "warning" ? "Tachycardia" : hrTone === "success" ? "Normal" : "Observe",
+                      hrTone === "warning"
+                        ? "Tachycardia"
+                        : hrTone === "success"
+                          ? "Normal"
+                          : "Observe",
                     )}
                   </Grid>
-                  <Grid  item xs={12} sm={6} lg={3}>
+                  <Grid item xs={12} sm={6} lg={3}>
                     {createMetricCard(
                       "SpO2",
-                      selectedPatient ? `${selectedPatient.vitals.spo2}%` : "--",
+                      selectedPatient
+                        ? `${selectedPatient.vitals.spo2}%`
+                        : "--",
                       "oxygen sat.",
                       spo2Tone,
-                      spo2Tone === "error" ? "Critical" : spo2Tone === "warning" ? "Low" : "Adequate",
+                      spo2Tone === "error"
+                        ? "Critical"
+                        : spo2Tone === "warning"
+                          ? "Low"
+                          : "Adequate",
                     )}
                   </Grid>
-                  <Grid  item xs={12} sm={6} lg={3}>
+                  <Grid item xs={12} sm={6} lg={3}>
                     {createMetricCard(
                       "Pain / GCS",
-                      selectedPatient ? `${selectedPatient.vitals.painScore}/10` : "--",
+                      selectedPatient
+                        ? `${selectedPatient.vitals.painScore}/10`
+                        : "--",
                       `GCS ${selectedPatient?.vitals.gcs ?? "--"}`,
                       painTone,
-                      painTone === "warning" ? "Severe pain" : painTone === "info" ? "Moderate" : "Controlled",
+                      painTone === "warning"
+                        ? "Severe pain"
+                        : painTone === "info"
+                          ? "Moderate"
+                          : "Controlled",
                     )}
                   </Grid>
                 </Grid>
 
-                <Card elevation={0} sx={{ borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                  <Box sx={{ px: 1.75, py: 1.25, borderBottom: "1px solid", borderColor: "divider" }}>
+                <Card
+                  elevation={0}
+                  sx={{
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      px: 1.75,
+                      py: 1.25,
+                      borderBottom: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
                     <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                       Observation Log
                     </Typography>
@@ -887,18 +1226,47 @@ export function CaseTrackingSection({
             {caseTrackingTab === "safety" ? (
               <Grid container spacing={1.5}>
                 <Grid item xs={12} lg={5}>
-                  <Card elevation={0} sx={{ height: "100%", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                    <Box sx={{ px: 1.75, py: 1.25, borderBottom: "1px solid", borderColor: "divider" }}>
+                  <Card
+                    elevation={0}
+                    sx={{
+                      height: "100%",
+                      borderRadius: 2,
+                      border: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        px: 1.75,
+                        py: 1.25,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    >
                       <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                         Allergies and ED Flags
                       </Typography>
                     </Box>
                     <Stack spacing={1.5} sx={{ p: 1.75 }}>
                       <Box>
-                        <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: "text.secondary" }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 800,
+                            letterSpacing: 0.4,
+                            textTransform: "uppercase",
+                            color: "text.secondary",
+                          }}
+                        >
                           Allergies
                         </Typography>
-                        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.9 }}>
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          flexWrap="wrap"
+                          useFlexGap
+                          sx={{ mt: 0.9 }}
+                        >
                           {selectedPatient.allergies.map((allergy: string) => (
                             <Chip
                               key={allergy}
@@ -921,17 +1289,34 @@ export function CaseTrackingSection({
                       </Box>
 
                       <Box>
-                        <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: "text.secondary" }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 800,
+                            letterSpacing: 0.4,
+                            textTransform: "uppercase",
+                            color: "text.secondary",
+                          }}
+                        >
                           ED Flags
                         </Typography>
-                        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.9 }}>
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          flexWrap="wrap"
+                          useFlexGap
+                          sx={{ mt: 0.9 }}
+                        >
                           {selectedPatient.safetyFlags.map((flag: string) => (
                             <Chip
                               key={flag}
                               size="small"
                               label={flag}
                               sx={{
-                                bgcolor: alpha(theme.palette.warning.main, 0.12),
+                                bgcolor: alpha(
+                                  theme.palette.warning.main,
+                                  0.12,
+                                ),
                                 color: "warning.dark",
                                 fontWeight: 700,
                               }}
@@ -941,12 +1326,30 @@ export function CaseTrackingSection({
                       </Box>
 
                       <Box>
-                        <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: "text.secondary" }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 800,
+                            letterSpacing: 0.4,
+                            textTransform: "uppercase",
+                            color: "text.secondary",
+                          }}
+                        >
                           Patient Notes
                         </Typography>
-                        <Box sx={{ mt: 0.9, p: 1.25, borderRadius: 1.5, border: "1px solid", borderColor: "divider", bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+                        <Box
+                          sx={{
+                            mt: 0.9,
+                            p: 1.25,
+                            borderRadius: 1.5,
+                            border: "1px solid",
+                            borderColor: "divider",
+                            bgcolor: alpha(theme.palette.primary.main, 0.02),
+                          }}
+                        >
                           <Typography variant="body2" color="text.secondary">
-                            {selectedPatient.clinicalNotes || "No additional ED notes captured."}
+                            {selectedPatient.clinicalNotes ||
+                              "No additional ED notes captured."}
                           </Typography>
                         </Box>
                       </Box>
@@ -955,8 +1358,22 @@ export function CaseTrackingSection({
                 </Grid>
 
                 <Grid item xs={12} lg={7}>
-                  <Card elevation={0} sx={{ borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                    <Box sx={{ px: 1.75, py: 1.25, borderBottom: "1px solid", borderColor: "divider" }}>
+                  <Card
+                    elevation={0}
+                    sx={{
+                      borderRadius: 2,
+                      border: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        px: 1.75,
+                        py: 1.25,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    >
                       <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                         Lab Orders and Results
                       </Typography>
@@ -969,10 +1386,22 @@ export function CaseTrackingSection({
                             size="small"
                             label="Type"
                             value={orderForm.type}
-                            onChange={(event) => handleOrderField("type", event.target.value as any)}
+                            onChange={(event) =>
+                              handleOrderField(
+                                "type",
+                                event.target.value as any,
+                              )
+                            }
                             fullWidth
                           >
-                            {(["Lab Tests", "Radiology", "Medication", "Procedures"] as const).map((type) => (
+                            {(
+                              [
+                                "Lab Tests",
+                                "Radiology",
+                                "Medication",
+                                "Procedures",
+                              ] as const
+                            ).map((type) => (
                               <MenuItem key={type} value={type}>
                                 {type}
                               </MenuItem>
@@ -985,14 +1414,21 @@ export function CaseTrackingSection({
                             size="small"
                             label="Priority"
                             value={orderForm.priority}
-                            onChange={(event) => handleOrderField("priority", event.target.value as any)}
+                            onChange={(event) =>
+                              handleOrderField(
+                                "priority",
+                                event.target.value as any,
+                              )
+                            }
                             fullWidth
                           >
-                            {(["STAT", "Urgent", "Routine"] as const).map((priority) => (
-                              <MenuItem key={priority} value={priority}>
-                                {priority}
-                              </MenuItem>
-                            ))}
+                            {(["STAT", "Urgent", "Routine"] as const).map(
+                              (priority) => (
+                                <MenuItem key={priority} value={priority}>
+                                  {priority}
+                                </MenuItem>
+                              ),
+                            )}
                           </TextField>
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -1001,60 +1437,115 @@ export function CaseTrackingSection({
                               size="small"
                               label="Order item"
                               value={orderForm.item}
-                              onChange={(event) => handleOrderField("item", event.target.value)}
+                              onChange={(event) =>
+                                handleOrderField("item", event.target.value)
+                              }
                               fullWidth
                             />
-                            <Button variant="contained" onClick={handleAddOrder}>
+                            <Button variant="contained" onClick={onAddOrder}>
                               Add
                             </Button>
                           </Stack>
                         </Grid>
                       </Grid>
 
-                      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                        {ORDER_TEMPLATES[orderForm.type].map((template: string) => (
-                          <Chip
-                            key={template}
-                            size="small"
-                            label={template}
-                            color={orderForm.item === template ? "primary" : "default"}
-                            variant={orderForm.item === template ? "filled" : "outlined"}
-                            onClick={() => handleApplyOrderTemplate(template)}
-                          />
-                        ))}
+                      <Stack
+                        direction="row"
+                        spacing={0.75}
+                        flexWrap="wrap"
+                        useFlexGap
+                      >
+                        {ORDER_TEMPLATES[orderForm.type].map(
+                          (template: string) => (
+                            <Chip
+                              key={template}
+                              size="small"
+                              label={template}
+                              color={
+                                orderForm.item === template
+                                  ? "primary"
+                                  : "default"
+                              }
+                              variant={
+                                orderForm.item === template
+                                  ? "filled"
+                                  : "outlined"
+                              }
+                              onClick={() => handleApplyOrderTemplate(template)}
+                            />
+                          ),
+                        )}
                       </Stack>
 
                       <Divider />
 
                       <Stack spacing={1}>
                         {recentOrders.length === 0 ? (
-                          <Alert severity="info">No active emergency orders for this case.</Alert>
+                          <Alert severity="info">
+                            No active emergency orders for this case.
+                          </Alert>
                         ) : (
-                          recentOrders.map((order) => (
+                          recentOrders.map((order: EmergencyOrder) => (
                             <Card
                               key={order.id}
                               elevation={0}
-                              sx={{ px: 1.25, py: 1, borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}
+                              sx={{
+                                px: 1.25,
+                                py: 1,
+                                borderRadius: 1.5,
+                                border: "1px solid",
+                                borderColor: "divider",
+                              }}
                             >
-                              <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={1}>
+                              <Stack
+                                direction={{ xs: "column", sm: "row" }}
+                                justifyContent="space-between"
+                                spacing={1}
+                              >
                                 <Box>
-                                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 700 }}
+                                  >
                                     {order.item}
                                   </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {order.type} · {order.orderedAt} · {order.priority}
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    {order.type} · {order.orderedAt} ·{" "}
+                                    {order.priority}
                                   </Typography>
                                 </Box>
-                                <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
+                                <Stack
+                                  direction="row"
+                                  spacing={0.75}
+                                  alignItems="center"
+                                  flexWrap="wrap"
+                                  useFlexGap
+                                >
                                   <Chip label={order.status} size="small" />
                                   <TextField
                                     select
                                     size="small"
                                     value={order.status}
-                                    onChange={(event) => handleOrderStatusChange(order.id, event.target.value as OrderStatus)}
+                                    onChange={(
+                                      event: React.ChangeEvent<HTMLInputElement>,
+                                    ) =>
+                                      handleOrderStatusChange(
+                                        order.id,
+                                        event.target.value as OrderStatus,
+                                      )
+                                    }
                                     sx={{ minWidth: 124 }}
                                   >
-                                    {(["Pending", "In Progress", "Completed"] as const).map((status) => (
+                                    {(
+                                      [
+                                        "Pending",
+                                        "In Progress",
+                                        "Completed",
+                                      ] as const
+                                    ).map((status) => (
                                       <MenuItem key={status} value={status}>
                                         {status}
                                       </MenuItem>
@@ -1075,8 +1566,22 @@ export function CaseTrackingSection({
             {caseTrackingTab === "timeline" ? (
               <Grid container spacing={1.5}>
                 <Grid item xs={12} lg={7}>
-                  <Card elevation={0} sx={{ borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                    <Box sx={{ px: 1.75, py: 1.25, borderBottom: "1px solid", borderColor: "divider" }}>
+                  <Card
+                    elevation={0}
+                    sx={{
+                      borderRadius: 2,
+                      border: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        px: 1.75,
+                        py: 1.25,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    >
                       <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                         Care Timeline
                       </Typography>
@@ -1094,7 +1599,10 @@ export function CaseTrackingSection({
 
                         return (
                           <Stack key={entry.id} direction="row" spacing={1.25}>
-                            <Stack alignItems="center" sx={{ width: 28, flexShrink: 0 }}>
+                            <Stack
+                              alignItems="center"
+                              sx={{ width: 28, flexShrink: 0 }}
+                            >
                               <Box
                                 sx={{
                                   width: 28,
@@ -1119,23 +1627,71 @@ export function CaseTrackingSection({
                                       : "i"}
                               </Box>
                               {index < timelineEntries.length - 1 ? (
-                                <Box sx={{ width: 2, flex: 1, bgcolor: "divider", my: 0.5 }} />
+                                <Box
+                                  sx={{
+                                    width: 2,
+                                    flex: 1,
+                                    bgcolor: "divider",
+                                    my: 0.5,
+                                  }}
+                                />
                               ) : null}
                             </Stack>
-                            <Box sx={{ flex: 1, pb: index < timelineEntries.length - 1 ? 1 : 0 }}>
-                              <Stack direction="row" justifyContent="space-between" spacing={1}>
-                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            <Box
+                              sx={{
+                                flex: 1,
+                                pb: index < timelineEntries.length - 1 ? 1 : 0,
+                              }}
+                            >
+                              <Stack
+                                direction="row"
+                                justifyContent="space-between"
+                                spacing={1}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 700 }}
+                                >
                                   {entry.title}
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: '"JetBrains Mono", monospace' }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: "text.secondary",
+                                    fontFamily: '"JetBrains Mono", monospace',
+                                  }}
+                                >
                                   {entry.time}
                                 </Typography>
                               </Stack>
-                              <Typography variant="caption" sx={{ display: "block", mt: 0.25, color: "text.secondary", fontFamily: '"JetBrains Mono", monospace' }}>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  display: "block",
+                                  mt: 0.25,
+                                  color: "text.secondary",
+                                  fontFamily: '"JetBrains Mono", monospace',
+                                }}
+                              >
                                 {entry.actor}
                               </Typography>
-                              <Box sx={{ mt: 0.75, p: 1, borderRadius: 1.5, border: "1px solid", borderColor: "divider", bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
-                                <Typography variant="body2" color="text.secondary">
+                              <Box
+                                sx={{
+                                  mt: 0.75,
+                                  p: 1,
+                                  borderRadius: 1.5,
+                                  border: "1px solid",
+                                  borderColor: "divider",
+                                  bgcolor: alpha(
+                                    theme.palette.primary.main,
+                                    0.02,
+                                  ),
+                                }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
                                   {entry.detail}
                                 </Typography>
                               </Box>
@@ -1148,8 +1704,22 @@ export function CaseTrackingSection({
                 </Grid>
 
                 <Grid item xs={12} lg={5}>
-                  <Card elevation={0} sx={{ borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                    <Box sx={{ px: 1.75, py: 1.25, borderBottom: "1px solid", borderColor: "divider" }}>
+                  <Card
+                    elevation={0}
+                    sx={{
+                      borderRadius: 2,
+                      border: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        px: 1.75,
+                        py: 1.25,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    >
                       <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                         ED Note Composer
                       </Typography>
@@ -1158,12 +1728,14 @@ export function CaseTrackingSection({
                       <TextField
                         size="small"
                         value={clinicalNoteDraft}
-                        onChange={(event) => setClinicalNoteDraft(event.target.value)}
+                        onChange={(
+                          event: React.ChangeEvent<HTMLInputElement>,
+                        ) => setClinicalNoteDraft(event.target.value)}
                         multiline
                         minRows={10}
                         fullWidth
                       />
-                      <Button variant="contained" onClick={handleSaveClinicalNote}>
+                      <Button variant="contained" onClick={onSaveNote}>
                         Save ED Note
                       </Button>
                     </Stack>
@@ -1177,27 +1749,59 @@ export function CaseTrackingSection({
                 <Grid container spacing={0}>
                   {checklistColumns.map((column) => (
                     <Grid item xs={12} sm={6} lg={3} key={column.title}>
-                      <Card elevation={0} sx={{ height: "100%", borderRadius: 0, border: "1px solid", borderColor: "divider", borderRightWidth: { lg: 0 }, "&:last-of-type": { borderRightWidth: { lg: 1 } } }}>
+                      <Card
+                        elevation={0}
+                        sx={{
+                          height: "100%",
+                          borderRadius: 0,
+                          border: "1px solid",
+                          borderColor: "divider",
+                          borderRightWidth: { lg: 0 },
+                          "&:last-of-type": { borderRightWidth: { lg: 1 } },
+                        }}
+                      >
                         <Box sx={{ p: 1.5 }}>
-                          <Typography variant="caption" sx={{ display: "block", mb: 1, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: "text.secondary" }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: "block",
+                              mb: 1,
+                              fontWeight: 800,
+                              letterSpacing: 0.6,
+                              textTransform: "uppercase",
+                              color: "text.secondary",
+                            }}
+                          >
                             {column.title}
                           </Typography>
                           <Stack spacing={0.9}>
-                            {column.items.map((item) => (
-                              <Stack
-                                key={item.label}
-                                direction="row"
-                                spacing={0.8}
-                                alignItems="flex-start"
-                                sx={{
-                                  color: item.done ? "text.secondary" : "text.primary",
-                                  textDecoration: item.done ? "line-through" : "none",
-                                }}
-                              >
-                                <input type="checkbox" checked={item.done} readOnly />
-                                <Typography variant="body2">{item.label}</Typography>
-                              </Stack>
-                            ))}
+                            {column.items.map(
+                              (item: { label: string; done: boolean }) => (
+                                <Stack
+                                  key={item.label}
+                                  direction="row"
+                                  spacing={0.8}
+                                  alignItems="flex-start"
+                                  sx={{
+                                    color: item.done
+                                      ? "text.secondary"
+                                      : "text.primary",
+                                    textDecoration: item.done
+                                      ? "line-through"
+                                      : "none",
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={item.done}
+                                    readOnly
+                                  />
+                                  <Typography variant="body2">
+                                    {item.label}
+                                  </Typography>
+                                </Stack>
+                              ),
+                            )}
                           </Stack>
                         </Box>
                       </Card>
@@ -1205,8 +1809,22 @@ export function CaseTrackingSection({
                   ))}
                 </Grid>
 
-                <Card elevation={0} sx={{ borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                  <Box sx={{ px: 1.75, py: 1.25, borderBottom: "1px solid", borderColor: "divider" }}>
+                <Card
+                  elevation={0}
+                  sx={{
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      px: 1.75,
+                      py: 1.25,
+                      borderBottom: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
                     <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                       Disposition and Handover
                     </Typography>
@@ -1218,7 +1836,12 @@ export function CaseTrackingSection({
                           size="small"
                           label="Disposition Diagnosis"
                           value={dischargeForm.diagnosis}
-                          onChange={(event) => handleDischargeField("diagnosis", event.target.value)}
+                          onChange={(event) =>
+                            handleDischargeField(
+                              "diagnosis",
+                              event.target.value,
+                            )
+                          }
                           fullWidth
                         />
                       </Grid>
@@ -1227,7 +1850,12 @@ export function CaseTrackingSection({
                           size="small"
                           label="Condition on Exit"
                           value={dischargeForm.condition}
-                          onChange={(event) => handleDischargeField("condition", event.target.value)}
+                          onChange={(event) =>
+                            handleDischargeField(
+                              "condition",
+                              event.target.value,
+                            )
+                          }
                           fullWidth
                         />
                       </Grid>
@@ -1236,7 +1864,12 @@ export function CaseTrackingSection({
                           size="small"
                           label="Instructions"
                           value={dischargeForm.instructions}
-                          onChange={(event) => handleDischargeField("instructions", event.target.value)}
+                          onChange={(event) =>
+                            handleDischargeField(
+                              "instructions",
+                              event.target.value,
+                            )
+                          }
                           multiline
                           minRows={3}
                           fullWidth
@@ -1247,7 +1880,9 @@ export function CaseTrackingSection({
                           size="small"
                           label="Follow-up"
                           value={dischargeForm.followUp}
-                          onChange={(event) => handleDischargeField("followUp", event.target.value)}
+                          onChange={(event) =>
+                            handleDischargeField("followUp", event.target.value)
+                          }
                           fullWidth
                         />
                       </Grid>
@@ -1256,7 +1891,12 @@ export function CaseTrackingSection({
                           size="small"
                           label="Medication Advice"
                           value={dischargeForm.medications}
-                          onChange={(event) => handleDischargeField("medications", event.target.value)}
+                          onChange={(event) =>
+                            handleDischargeField(
+                              "medications",
+                              event.target.value,
+                            )
+                          }
                           fullWidth
                         />
                       </Grid>
@@ -1265,17 +1905,45 @@ export function CaseTrackingSection({
                           size="small"
                           label="Destination"
                           value={dischargeForm.destination}
-                          onChange={(event) => handleDischargeField("destination", event.target.value)}
+                          onChange={(event) =>
+                            handleDischargeField(
+                              "destination",
+                              event.target.value,
+                            )
+                          }
                           fullWidth
                         />
                       </Grid>
                     </Grid>
 
                     <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                      <Button variant="outlined" color="success" onClick={() => setActivePage("chart")}>Preview AVS</Button>
-                      <Button variant="contained" onClick={() => handleDisposition("admit")}>Admit to IPD</Button>
-                      <Button variant="outlined" color="success" onClick={() => handleDisposition("discharge")}>Discharge</Button>
-                      <Button variant="outlined" color="warning" onClick={() => handleDisposition("transfer")}>Transfer</Button>
+                      <Button
+                        variant="outlined"
+                        color="success"
+                        onClick={() => setActivePage("chart")}
+                      >
+                        Preview AVS
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={() => onHandleDisposition("admit")}
+                      >
+                        Admit to IPD
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="success"
+                        onClick={() => onHandleDisposition("discharge")}
+                      >
+                        Discharge
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="warning"
+                        onClick={() => onHandleDisposition("transfer")}
+                      >
+                        Transfer
+                      </Button>
                     </Stack>
                   </Stack>
                 </Card>

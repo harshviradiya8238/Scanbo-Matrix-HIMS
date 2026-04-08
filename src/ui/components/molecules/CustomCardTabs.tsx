@@ -55,7 +55,7 @@ const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
   tabsSx,
   orientation = "horizontal",
   sticky = true,
-  showBackground = false,
+  showBackground = true,
   onChange,
   scrollable = false,
 }) => {

@@ -23,24 +23,29 @@ import { IsolationRoom } from "../utils/infection-control-types";
 
 interface IsolateTabContentProps {
   casesTableBlock: React.ReactNode;
-  ppeChecklist: Record<string, boolean>;
-  setPpeChecklist: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   selectedIsolationRoomId: string | null;
   isolations: IsolationRoom[];
-  openIsolateDialog: (targetCase: any) => void; // TODO: type properly
+  openIsolateDialog: (targetCase: any) => void;
   canWrite: boolean;
 }
 
 export default function IsolateTabContent({
   casesTableBlock,
-  ppeChecklist,
-  setPpeChecklist,
   selectedIsolationRoomId,
   isolations,
   openIsolateDialog,
   canWrite,
 }: IsolateTabContentProps) {
   const theme = useTheme();
+
+  const [ppeChecklist, setPpeChecklist] = React.useState<
+    Record<string, boolean>
+  >(
+    PPE_CHECKLIST.reduce(
+      (acc, item) => ({ ...acc, [item.id]: item.checked }),
+      {},
+    ),
+  );
 
   return (
     <Grid container spacing={2}>
@@ -129,13 +134,8 @@ export default function IsolateTabContent({
               spacing={0.75}
             >
               <Stack direction="row" alignItems="center" spacing={0.75}>
-                <HotelIcon
-                  sx={{ fontSize: 18, color: "primary.main" }}
-                />
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 700 }}
-                >
+                <HotelIcon sx={{ fontSize: 18, color: "primary.main" }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                   Room Map
                 </Typography>
               </Stack>
@@ -192,12 +192,7 @@ export default function IsolateTabContent({
                 </Box>
               ))}
             </Box>
-            <Stack
-              direction="row"
-              flexWrap="wrap"
-              gap={1}
-              sx={{ pt: 0.5 }}
-            >
+            <Stack direction="row" flexWrap="wrap" gap={1} sx={{ pt: 0.5 }}>
               <Stack direction="row" alignItems="center" spacing={0.5}>
                 <Box
                   sx={{
@@ -209,11 +204,7 @@ export default function IsolateTabContent({
                 />
                 <Typography variant="caption">
                   Occupied (
-                  {
-                    ROOM_MAP_ITEMS.filter(
-                      (r) => r.status === "occupied",
-                    ).length
-                  }
+                  {ROOM_MAP_ITEMS.filter((r) => r.status === "occupied").length}
                   )
                 </Typography>
               </Stack>
@@ -228,11 +219,7 @@ export default function IsolateTabContent({
                 />
                 <Typography variant="caption">
                   Free (
-                  {
-                    ROOM_MAP_ITEMS.filter((r) => r.status === "free")
-                      .length
-                  }
-                  )
+                  {ROOM_MAP_ITEMS.filter((r) => r.status === "free").length})
                 </Typography>
               </Stack>
               <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -246,11 +233,7 @@ export default function IsolateTabContent({
                 />
                 <Typography variant="caption">
                   Cleaning (
-                  {
-                    ROOM_MAP_ITEMS.filter(
-                      (r) => r.status === "cleaning",
-                    ).length
-                  }
+                  {ROOM_MAP_ITEMS.filter((r) => r.status === "cleaning").length}
                   )
                 </Typography>
               </Stack>
@@ -266,9 +249,8 @@ export default function IsolateTabContent({
                 <Typography variant="caption">
                   Maintenance (
                   {
-                    ROOM_MAP_ITEMS.filter(
-                      (r) => r.status === "maintenance",
-                    ).length
+                    ROOM_MAP_ITEMS.filter((r) => r.status === "maintenance")
+                      .length
                   }
                   )
                 </Typography>

@@ -12,13 +12,22 @@ import {
   Typography,
 } from "@/src/ui/components/atoms";
 import WorkflowSectionCard from "@/src/screens/clinical/components/WorkflowSectionCard";
-import { type EmergencyPatient, type EmergencyBed, type ToastSeverity } from "../../types";
+import {
+  type EmergencyPatient,
+  type EmergencyBed,
+  type ToastSeverity,
+} from "../../types";
 import { BED_STATUS_META } from "../../AsapEmergencyData";
 
+export type BedBoardFilter =
+  | "ALL"
+  | "Free"
+  | "Occupied"
+  | "Cleaning"
+  | "Critical";
+
 interface BedBoardSectionProps {
-  bedFilter: "ALL" | "Free" | "Occupied" | "Cleaning" | "Critical";
-  setBedFilter: (filter: "ALL" | "Free" | "Occupied" | "Cleaning" | "Critical") => void;
-  filteredBedRows: EmergencyBed[];
+  beds: EmergencyBed[];
   patients: EmergencyPatient[];
   selectedPatient: EmergencyPatient | null;
   handleOpenPatientChart: (patientId: string) => void;
@@ -28,9 +37,7 @@ interface BedBoardSectionProps {
 }
 
 export function BedBoardSection({
-  bedFilter,
-  setBedFilter,
-  filteredBedRows,
+  beds,
   patients,
   selectedPatient,
   handleOpenPatientChart,
@@ -39,6 +46,15 @@ export function BedBoardSection({
   notify,
 }: BedBoardSectionProps) {
   const theme = useTheme();
+  const [bedFilter, setBedFilter] = React.useState<BedBoardFilter>("ALL");
+
+  const filteredBedRows = React.useMemo(
+    () =>
+      beds.filter((bed) =>
+        bedFilter === "ALL" ? true : bed.status === bedFilter,
+      ),
+    [bedFilter, beds],
+  );
 
   return (
     <WorkflowSectionCard
@@ -47,16 +63,18 @@ export function BedBoardSection({
     >
       <Stack spacing={1.25}>
         <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-          {(["ALL", "Free", "Occupied", "Cleaning", "Critical"] as const).map((item) => (
-            <Chip
-              key={item}
-              label={item === "ALL" ? "All Beds" : item}
-              clickable
-              color={item === "ALL" ? "primary" : BED_STATUS_META[item].color}
-              variant={bedFilter === item ? "filled" : "outlined"}
-              onClick={() => setBedFilter(item)}
-            />
-          ))}
+          {(["ALL", "Free", "Occupied", "Cleaning", "Critical"] as const).map(
+            (item) => (
+              <Chip
+                key={item}
+                label={item === "ALL" ? "All Beds" : item}
+                clickable
+                color={item === "ALL" ? "primary" : BED_STATUS_META[item].color}
+                variant={bedFilter === item ? "filled" : "outlined"}
+                onClick={() => setBedFilter(item)}
+              />
+            ),
+          )}
         </Stack>
 
         {filteredBedRows.length === 0 ? (
@@ -105,9 +123,19 @@ export function BedBoardSection({
                     },
                   }}
                 >
-                  <Stack spacing={0.75} sx={{ width: "100%", minHeight: 0, height: "100%" }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.main" }}>
+                  <Stack
+                    spacing={0.75}
+                    sx={{ width: "100%", minHeight: 0, height: "100%" }}
+                  >
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 700, color: "primary.main" }}
+                      >
                         {bed.id}
                       </Typography>
                       <Chip
@@ -131,10 +159,18 @@ export function BedBoardSection({
                     <Box sx={{ flex: 1, minHeight: 0 }}>
                       {patient ? (
                         <Stack spacing={0.25}>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 600 }}
+                            noWrap
+                          >
                             {patient.name}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" noWrap>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            noWrap
+                          >
                             {patient.id} · {patient.triageLevel}
                           </Typography>
                         </Stack>
@@ -173,10 +209,15 @@ export function BedBoardSection({
                           onClick={() =>
                             selectedPatient
                               ? openAssignBedModal(selectedPatient.id, bed.id)
-                              : notify("Select a patient first from queue or chart.", "info")
+                              : notify(
+                                  "Select a patient first from queue or chart.",
+                                  "info",
+                                )
                           }
                         >
-                          {selectedPatient ? `Assign ${selectedPatient.id}` : "Select Patient First"}
+                          {selectedPatient
+                            ? `Assign ${selectedPatient.id}`
+                            : "Select Patient First"}
                         </Button>
                       ) : null}
                     </Box>

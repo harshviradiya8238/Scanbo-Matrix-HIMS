@@ -38,36 +38,23 @@ export const createEmergencyHandlers = (context: {
   setObservationLog: React.Dispatch<React.SetStateAction<ObservationEntry[]>>;
   selectedPatientId: string;
   setSelectedPatientId: (id: string) => void;
-  selectedPatient: EmergencyPatient | null;
-  assignBedForm: BedAssignForm;
-  setAssignBedForm: React.Dispatch<React.SetStateAction<BedAssignForm>>;
   setAssignBedModalOpen: (open: boolean) => void;
-  registrationForm: RegistrationForm;
-  setRegistrationForm: React.Dispatch<React.SetStateAction<RegistrationForm>>;
   setRegistrationModalOpen: (open: boolean) => void;
   setRegistrationSearch: (search: string) => void;
   setActivePage: (page: any) => void;
-  triageForm: TriageForm;
-  setTriageForm: React.Dispatch<React.SetStateAction<TriageForm>>;
   setTriageModalOpen: (open: boolean) => void;
-  vitalsForm: VitalsForm;
-  setVitalsForm: React.Dispatch<React.SetStateAction<VitalsForm>>;
   setVitalsDialogOpen: (open: boolean) => void;
-  clinicalNoteDraft: string;
   openRoute: (route: string, query?: Record<string, string>) => void;
   notify: (msg: string, sev: "success" | "warning" | "info" | "error") => void;
-  dischargeForm: DischargeForm;
-  orderForm: OrderForm;
-  setOrderForm: React.Dispatch<React.SetStateAction<OrderForm>>;
 }) => {
   const {
     patients, setPatients, beds, setBeds, orders, setOrders, observationLog, setObservationLog,
-    selectedPatientId, setSelectedPatientId, selectedPatient,
-    assignBedForm, setAssignBedForm, setAssignBedModalOpen,
-    registrationForm, setRegistrationForm, setRegistrationModalOpen, setRegistrationSearch,
-    setActivePage, triageForm, setTriageForm, setTriageModalOpen,
-    vitalsForm, setVitalsForm, setVitalsDialogOpen,
-    clinicalNoteDraft, openRoute, notify, dischargeForm, orderForm, setOrderForm
+    selectedPatientId, setSelectedPatientId,
+    setAssignBedModalOpen,
+    setRegistrationModalOpen, setRegistrationSearch,
+    setActivePage, setTriageModalOpen,
+    setVitalsDialogOpen,
+    openRoute, notify
   } = context;
 
   const handleUseExistingPatient = (patientId: string) => {
@@ -77,72 +64,25 @@ export const createEmergencyHandlers = (context: {
   };
 
   const openTriageAssessment = (patientId: string) => {
-    const triagePatient = patients.find((p) => p.id === patientId);
-    if (!triagePatient) return;
-    setSelectedPatientId(triagePatient.id);
-    setTriageForm({
-      patientId: triagePatient.id,
-      heartRate: String(triagePatient.vitals.heartRate),
-      bloodPressure: triagePatient.vitals.bloodPressure,
-      temperature: String(triagePatient.vitals.temperature),
-      respiratoryRate: String(triagePatient.vitals.respiratoryRate),
-      spo2: String(triagePatient.vitals.spo2),
-      triageLevel: triagePatient.triageLevel,
-    });
+    setSelectedPatientId(patientId);
     setTriageModalOpen(true);
   };
 
   const openVitalsDialog = (patientId?: string) => {
-    const targetPatient = patients.find((p) => p.id === (patientId || selectedPatientId));
-    if (!targetPatient) {
-      notify("Select a patient before recording vitals.", "warning");
-      return;
-    }
-    setSelectedPatientId(targetPatient.id);
-    setVitalsForm({
-      patientId: targetPatient.id,
-      heartRate: String(targetPatient.vitals.heartRate),
-      bloodPressure: targetPatient.vitals.bloodPressure,
-      temperature: String(targetPatient.vitals.temperature),
-      respiratoryRate: String(targetPatient.vitals.respiratoryRate),
-      spo2: String(targetPatient.vitals.spo2),
-      painScore: String(targetPatient.vitals.painScore),
-      gcs: String(targetPatient.vitals.gcs),
-      notes: "",
-    });
+    if (patientId) setSelectedPatientId(patientId);
     setVitalsDialogOpen(true);
   };
 
-  const openAssignBedModal = (patientId: string, preferredBedId = "") => {
-    const queuePatient = patients.find((p) => p.id === patientId);
-    if (!queuePatient) return;
-
-    const suggestedPriority: BedAssignPriority =
-      queuePatient.triageLevel === "Critical"
-        ? "Immediate"
-        : queuePatient.triageLevel === "Emergency"
-          ? "High"
-          : queuePatient.triageLevel === "Urgent"
-            ? "Medium"
-            : "Standard";
-
-    setSelectedPatientId(queuePatient.id);
-    setAssignBedForm({
-      patientId: queuePatient.id,
-      bedId: preferredBedId,
-      physician: queuePatient.assignedDoctor || BED_ASSIGN_PHYSICIANS[0],
-      nurse: BED_ASSIGN_NURSES[0],
-      priority: suggestedPriority,
-      notes: "",
-    });
+  const openAssignBedModal = (patientId: string) => {
+    setSelectedPatientId(patientId);
     setAssignBedModalOpen(true);
   };
 
-  const handleRegisterPatient = () => {
-    const name = registrationForm.name.trim();
-    const complaint = registrationForm.chiefComplaint.trim();
-    const phone = normalizePhone(registrationForm.phone);
-    const age = Number(registrationForm.age);
+  const handleRegisterPatient = (form: RegistrationForm) => {
+    const name = form.name.trim();
+    const complaint = form.chiefComplaint.trim();
+    const phone = normalizePhone(form.phone);
+    const age = Number(form.age);
 
     if (!name || !complaint || !phone || phone.length < 10 || !Number.isFinite(age) || age <= 0) {
       notify("Please enter valid registration details before saving.", "warning");
@@ -164,12 +104,12 @@ export const createEmergencyHandlers = (context: {
       mrn: buildMrn(),
       name,
       age,
-      gender: registrationForm.gender,
+      gender: form.gender,
       phone,
-      arrivalMode: registrationForm.arrivalMode,
-      broughtBy: registrationForm.broughtBy.trim() || "Not specified",
+      arrivalMode: form.arrivalMode,
+      broughtBy: form.broughtBy.trim() || "Not specified",
       chiefComplaint: complaint,
-      triageLevel: registrationForm.triageLevel,
+      triageLevel: form.triageLevel,
       waitingMinutes: 0,
       assignedBed: null,
       assignedDoctor: "ED Duty Team",
@@ -190,43 +130,32 @@ export const createEmergencyHandlers = (context: {
       updatedAt: nowLabel(),
     };
 
-    setPatients((prev) => [nextPatient, ...prev]);
+    setPatients((prev: EmergencyPatient[]) => [nextPatient, ...prev]);
     setSelectedPatientId(nextPatient.id);
     setRegistrationModalOpen(false);
     setRegistrationSearch("");
-    setRegistrationForm(DEFAULT_REGISTRATION);
     setActivePage("triage");
-    setTriageForm({
-      patientId: nextPatient.id,
-      heartRate: String(nextPatient.vitals.heartRate),
-      bloodPressure: nextPatient.vitals.bloodPressure,
-      temperature: String(nextPatient.vitals.temperature),
-      respiratoryRate: String(nextPatient.vitals.respiratoryRate),
-      spo2: String(nextPatient.vitals.spo2),
-      triageLevel: registrationForm.triageLevel,
-    });
-    setTriageModalOpen(true);
     notify(`Emergency registration completed for ${nextPatient.id}.`, "success");
   };
 
-  const handleSaveTriage = () => {
-    const triagePatient = patients.find((p) => p.id === triageForm.patientId);
+  const handleSaveTriage = (form: TriageForm) => {
+    const triagePatient = patients.find((p) => p.id === form.patientId);
     if (!triagePatient) {
       notify("Select a patient for triage assessment.", "warning");
       return;
     }
 
-    const heartRate = Number(triageForm.heartRate);
-    const temperature = Number(triageForm.temperature);
-    const respiratoryRate = Number(triageForm.respiratoryRate);
-    const spo2 = Number(triageForm.spo2);
+    const heartRate = Number(form.heartRate);
+    const temperature = Number(form.temperature);
+    const respiratoryRate = Number(form.respiratoryRate);
+    const spo2 = Number(form.spo2);
 
     if (
       !Number.isFinite(heartRate) ||
       !Number.isFinite(temperature) ||
       !Number.isFinite(respiratoryRate) ||
       !Number.isFinite(spo2) ||
-      !triageForm.bloodPressure.trim()
+      !form.bloodPressure.trim()
     ) {
       notify("Capture complete vitals before submitting triage.", "warning");
       return;
@@ -236,16 +165,15 @@ export const createEmergencyHandlers = (context: {
       patient.id === triagePatient.id
         ? {
             ...patient,
-            triageLevel: triageForm.triageLevel,
+            triageLevel: form.triageLevel,
             status: patient.status === "Waiting" ? "In Treatment" : patient.status,
             vitals: {
+              ...patient.vitals,
               heartRate,
-              bloodPressure: triageForm.bloodPressure.trim(),
+              bloodPressure: form.bloodPressure.trim(),
               temperature,
               respiratoryRate,
               spo2,
-              painScore: patient.vitals.painScore,
-              gcs: patient.vitals.gcs,
               capturedAt: nowLabel(),
             },
             updatedAt: nowLabel(),
@@ -254,7 +182,7 @@ export const createEmergencyHandlers = (context: {
     );
 
     setPatients(nextPatients);
-    setBeds((prev) => applyPatientAcuityToBeds(nextPatients, prev));
+    setBeds((prev: EmergencyBed[]) => applyPatientAcuityToBeds(nextPatients, prev));
 
     setObservationLog((prev) => [
       {
@@ -262,19 +190,18 @@ export const createEmergencyHandlers = (context: {
         patientId: triagePatient.id,
         recordedAt: nowLabel(),
         heartRate,
-        bloodPressure: triageForm.bloodPressure.trim(),
+        bloodPressure: form.bloodPressure.trim(),
         temperature,
         respiratoryRate,
         spo2,
         painScore: triagePatient.vitals.painScore,
         gcs: triagePatient.vitals.gcs,
-        note: `Triage assessment updated (${triageForm.triageLevel})`,
+        note: `Triage assessment updated (${form.triageLevel})`,
       },
       ...prev,
     ]);
 
     setSelectedPatientId(triagePatient.id);
-    setActivePage("triage");
     setTriageModalOpen(false);
     notify(`Triage saved for ${triagePatient.id}.`, "success");
   };
@@ -347,20 +274,20 @@ export const createEmergencyHandlers = (context: {
     setActivePage("chart");
   };
 
-  const handleConfirmAssignBed = () => {
-    if (!assignBedForm.patientId || !assignBedForm.bedId) {
+  const handleConfirmAssignBed = (form: BedAssignForm) => {
+    if (!form.patientId || !form.bedId) {
       notify("Select an available bed before confirming assignment.", "warning");
       return;
     }
 
-    assignBed(assignBedForm.patientId, assignBedForm.bedId, {
-      physician: assignBedForm.physician,
-      nurse: assignBedForm.nurse,
-      priority: assignBedForm.priority,
-      notes: assignBedForm.notes,
+    assignBed(form.patientId, form.bedId, {
+      physician: form.physician,
+      nurse: form.nurse,
+      priority: form.priority,
+      notes: form.notes,
     });
     setAssignBedModalOpen(false);
-    handleOpenPatientChart(assignBedForm.patientId);
+    handleOpenPatientChart(form.patientId);
   };
 
   const handleSetBedFree = (bedId: string) => {
@@ -378,49 +305,44 @@ export const createEmergencyHandlers = (context: {
     notify(`${bedId} is now marked Free.`, "success");
   };
 
-  const handleSaveClinicalNote = () => {
-    if (!selectedPatient) return;
+  const handleSaveClinicalNote = (note: string) => {
+    if (!selectedPatientId) return;
 
     setPatients((prev) =>
       prev.map((patient) =>
-        patient.id === selectedPatient.id
-          ? { ...patient, clinicalNotes: clinicalNoteDraft.trim(), updatedAt: nowLabel() }
+        patient.id === selectedPatientId
+          ? { ...patient, clinicalNotes: note.trim(), updatedAt: nowLabel() }
           : patient
       )
     );
     notify("Clinical note updated.", "success");
   };
 
-  const handleApplyOrderTemplate = (template: string) => {
-    setOrderForm((prev) => ({ ...prev, item: template }));
-  };
-
-  const handleAddOrder = () => {
-    if (!selectedPatient) {
+  const handleAddOrder = (form: OrderForm) => {
+    if (!selectedPatientId) {
       notify("Select a patient before adding an order.", "warning");
       return;
     }
 
-    const item = orderForm.item.trim();
+    const item = form.item.trim();
     if (!item) {
       notify("Order item is required.", "warning");
       return;
     }
 
-    setOrders((prev) => [
+    setOrders((prev: EmergencyOrder[]) => [
       {
         id: `ER-ORD-${Math.floor(10000 + Math.random() * 90000)}`,
-        patientId: selectedPatient.id,
-        type: orderForm.type,
+        patientId: selectedPatientId,
+        type: form.type,
         item,
-        priority: orderForm.priority,
+        priority: form.priority,
         status: "Pending",
         orderedAt: nowLabel(),
       },
       ...prev,
     ]);
 
-    setOrderForm(DEFAULT_ORDER_FORM);
     notify("Emergency order placed.", "success");
   };
 
@@ -428,19 +350,19 @@ export const createEmergencyHandlers = (context: {
     setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status } : order)));
   };
 
-  const handleSaveVitals = () => {
-    const targetPatient = patients.find((p) => p.id === vitalsForm.patientId);
+  const handleSaveVitals = (form: VitalsForm) => {
+    const targetPatient = patients.find((p) => p.id === form.patientId);
     if (!targetPatient) {
       notify("Select a patient before recording vitals.", "warning");
       return;
     }
 
-    const heartRate = Number(vitalsForm.heartRate);
-    const temperature = Number(vitalsForm.temperature);
-    const respiratoryRate = Number(vitalsForm.respiratoryRate);
-    const spo2 = Number(vitalsForm.spo2);
-    const painScore = Number(vitalsForm.painScore);
-    const gcs = Number(vitalsForm.gcs);
+    const heartRate = Number(form.heartRate);
+    const temperature = Number(form.temperature);
+    const respiratoryRate = Number(form.respiratoryRate);
+    const spo2 = Number(form.spo2);
+    const painScore = Number(form.painScore);
+    const gcs = Number(form.gcs);
 
     if (
       !Number.isFinite(heartRate) ||
@@ -449,21 +371,21 @@ export const createEmergencyHandlers = (context: {
       !Number.isFinite(spo2) ||
       !Number.isFinite(painScore) ||
       !Number.isFinite(gcs) ||
-      !vitalsForm.bloodPressure.trim()
+      !form.bloodPressure.trim()
     ) {
       notify("Complete all vital parameters before saving.", "warning");
       return;
     }
 
     const updatedAt = nowLabel();
-    setPatients((prev) =>
-      prev.map((patient) =>
+    setPatients((prev: EmergencyPatient[]) =>
+      prev.map((patient: EmergencyPatient) =>
         patient.id === targetPatient.id
           ? {
               ...patient,
               vitals: {
                 heartRate,
-                bloodPressure: vitalsForm.bloodPressure.trim(),
+                bloodPressure: form.bloodPressure.trim(),
                 temperature,
                 respiratoryRate,
                 spo2,
@@ -477,19 +399,19 @@ export const createEmergencyHandlers = (context: {
       )
     );
 
-    setObservationLog((prev) => [
+    setObservationLog((prev: ObservationEntry[]) => [
       {
         id: `OBS-${Date.now()}`,
         patientId: targetPatient.id,
         recordedAt: updatedAt,
         heartRate,
-        bloodPressure: vitalsForm.bloodPressure.trim(),
+        bloodPressure: form.bloodPressure.trim(),
         temperature,
         respiratoryRate,
         spo2,
         painScore,
         gcs,
-        note: vitalsForm.notes.trim() || "Bedside vital capture",
+        note: form.notes.trim() || "Bedside vital capture",
       },
       ...prev,
     ]);
@@ -498,19 +420,25 @@ export const createEmergencyHandlers = (context: {
     notify(`Vitals recorded for ${targetPatient.id}.`, "success");
   };
 
-  const handleDisposition = (action: "discharge" | "admit" | "transfer") => {
-    if (!selectedPatient) {
+  const handleDisposition = (
+    action: "discharge" | "admit" | "transfer",
+    form: DischargeForm,
+  ) => {
+    if (!selectedPatientId) {
       notify("Select a patient before disposition.", "warning");
       return;
     }
 
-    if (action === "discharge" && (!dischargeForm.diagnosis.trim() || !dischargeForm.instructions.trim())) {
+    if (action === "discharge" && (!form.diagnosis.trim() || !form.instructions.trim())) {
       notify("Add diagnosis and discharge instructions before discharging.", "warning");
       return;
     }
 
-    const patientId = selectedPatient.id;
-    const patientMrn = selectedPatient.mrn;
+    const targetPatient = patients.find(p => p.id === selectedPatientId);
+    if (!targetPatient) return;
+
+    const patientId = targetPatient.id;
+    const patientMrn = targetPatient.mrn;
 
     setPatients((prev) => prev.filter((p) => p.id !== patientId));
     setOrders((prev) => prev.filter((o) => o.patientId !== patientId));
@@ -546,7 +474,6 @@ export const createEmergencyHandlers = (context: {
     handleConfirmAssignBed,
     handleSetBedFree,
     handleSaveClinicalNote,
-    handleApplyOrderTemplate,
     handleAddOrder,
     handleOrderStatusChange,
     handleSaveVitals,

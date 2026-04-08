@@ -37,23 +37,11 @@ import {
 } from "../../types";
 import { TRIAGE_META } from "../../AsapEmergencyData";
 
+import { getSortedQueueRows } from "../EmergencyCalculations";
+
 interface QueueSectionProps {
-  queueFilter: "ALL" | TriageLevel;
-  setQueueFilter: (filter: "ALL" | TriageLevel) => void;
-  sortedQueueRows: EmergencyPatient[];
+  patients: EmergencyPatient[];
   arrivalColumns: CommonColumn<EmergencyPatient>[];
-  queueView: QueueViewMode;
-  setQueueView: (mode: QueueViewMode) => void;
-  queueDoctorOptions: string[];
-  queueDoctorFilter: "ALL" | string;
-  setQueueDoctorFilter: (value: "ALL" | string) => void;
-  queueStatusFilter: "ALL" | PatientStatus;
-  setQueueStatusFilter: (value: "ALL" | PatientStatus) => void;
-  queueArrivalFilter: "ALL" | ArrivalMode;
-  setQueueArrivalFilter: (value: "ALL" | ArrivalMode) => void;
-  queueSearch: string;
-  setQueueSearch: (value: string) => void;
-  queueKanbanColumns: Array<{ level: TriageLevel; rows: EmergencyPatient[] }>;
   activePage: EmergencyPageId;
   openTriageAssessment: (patientId: string) => void;
   openAssignBedModal: (patientId: string) => void;
@@ -63,22 +51,8 @@ interface QueueSectionProps {
 }
 
 export function QueueSection({
-  queueFilter,
-  setQueueFilter,
-  sortedQueueRows,
+  patients,
   arrivalColumns,
-  queueView,
-  setQueueView,
-  queueDoctorOptions,
-  queueDoctorFilter,
-  setQueueDoctorFilter,
-  queueStatusFilter,
-  setQueueStatusFilter,
-  queueArrivalFilter,
-  setQueueArrivalFilter,
-  queueSearch,
-  setQueueSearch,
-  queueKanbanColumns,
   activePage,
   openTriageAssessment,
   openAssignBedModal,
@@ -87,6 +61,60 @@ export function QueueSection({
   openRegistrationModal,
 }: QueueSectionProps) {
   const theme = useTheme();
+
+  const [queueFilter, setQueueFilter] = React.useState<"ALL" | TriageLevel>(
+    "ALL",
+  );
+  const [queueSearch, setQueueSearch] = React.useState("");
+  const [queueView, setQueueView] = React.useState<QueueViewMode>("table");
+  const [queueStatusFilter, setQueueStatusFilter] = React.useState<
+    "ALL" | PatientStatus
+  >("ALL");
+  const [queueArrivalFilter, setQueueArrivalFilter] = React.useState<
+    "ALL" | ArrivalMode
+  >("ALL");
+  const [queueDoctorFilter, setQueueDoctorFilter] = React.useState<
+    "ALL" | string
+  >("ALL");
+
+  const queueDoctorOptions = React.useMemo(
+    () =>
+      Array.from(
+        new Set(patients.map((patient) => patient.assignedDoctor)),
+      ).sort(),
+    [patients],
+  );
+
+  const sortedQueueRows = React.useMemo(
+    () =>
+      getSortedQueueRows(
+        patients,
+        queueSearch,
+        queueFilter,
+        queueStatusFilter,
+        queueArrivalFilter,
+        queueDoctorFilter,
+      ),
+    [
+      patients,
+      queueArrivalFilter,
+      queueDoctorFilter,
+      queueFilter,
+      queueSearch,
+      queueStatusFilter,
+    ],
+  );
+
+  const queueKanbanColumns = React.useMemo(
+    () =>
+      (Object.keys(TRIAGE_META) as TriageLevel[]).map((level) => ({
+        level,
+        rows: sortedQueueRows.filter(
+          (patient: EmergencyPatient) => patient.triageLevel === level,
+        ),
+      })),
+    [sortedQueueRows],
+  );
 
   return (
     <Stack spacing={2}>
@@ -346,7 +374,7 @@ export function QueueSection({
                       </Box>
                     </Stack>
                     <Stack spacing={1.25} sx={{ px: 0.5 }}>
-                      {column.rows.map((row) => (
+                      {column.rows.map((row: EmergencyPatient) => (
                         <Paper
                           key={row.id}
                           elevation={0}

@@ -20,20 +20,26 @@ import {
   Send as SendIcon,
   WarningAmber as WarningAmberIcon,
 } from "@mui/icons-material";
-import { NOTIFICATION_FEED, SEND_TO_OPTIONS } from "../utils/infection-control-data";
+import {
+  NOTIFICATION_FEED,
+  SEND_TO_OPTIONS,
+} from "../utils/infection-control-data";
 
 interface NotifyTabContentProps {
-  sendToChannels: Record<string, boolean>;
-  setSendToChannels: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   canWrite: boolean;
 }
 
-export default function NotifyTabContent({
-  sendToChannels,
-  setSendToChannels,
-  canWrite,
-}: NotifyTabContentProps) {
+export default function NotifyTabContent({ canWrite }: NotifyTabContentProps) {
   const theme = useTheme();
+
+  const [sendToChannels, setSendToChannels] = React.useState<
+    Record<string, boolean>
+  >(
+    SEND_TO_OPTIONS.reduce(
+      (acc, item) => ({ ...acc, [item.id]: item.checked }),
+      {},
+    ),
+  );
 
   return (
     <Grid container spacing={2}>
@@ -137,19 +143,13 @@ export default function NotifyTabContent({
                             width: 14,
                             height: 14,
                             borderRadius: 0.5,
-                            bgcolor: alpha(
-                              theme.palette.warning.main,
-                              0.5,
-                            ),
+                            bgcolor: alpha(theme.palette.warning.main, 0.5),
                           }}
                         />
                       )}
                     </Box>
                     <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 600 }}
-                      >
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {item.title}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -224,9 +224,7 @@ export default function NotifyTabContent({
                     }))
                   }
                   icon={<CheckBoxOutlineBlankIcon />}
-                  checkedIcon={
-                    <CheckBoxIcon sx={{ color: "primary.main" }} />
-                  }
+                  checkedIcon={<CheckBoxIcon sx={{ color: "primary.main" }} />}
                   sx={{ p: 0.25 }}
                 />
                 <Typography variant="body2">{item.label}</Typography>

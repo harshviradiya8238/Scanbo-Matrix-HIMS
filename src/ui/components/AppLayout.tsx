@@ -2,11 +2,7 @@
 
 import * as React from "react";
 import { Box } from "@/src/ui/components/atoms";
-import {
-  useTheme,
-  useMediaQuery,
-  alpha,
-} from "@mui/material";
+import { useTheme, useMediaQuery, alpha } from "@mui/material";
 import { usePathname } from "next/navigation";
 import Sidebar from "./organisms/Sidebar";
 import AppHeader from "./organisms/AppHeader";
@@ -109,7 +105,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Sidebar */}
       <Box
         component="aside"
-      
         sx={{
           display: { xs: "none", md: "flex" },
           position: "sticky",
