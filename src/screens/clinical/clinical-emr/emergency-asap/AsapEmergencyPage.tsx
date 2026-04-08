@@ -6,56 +6,19 @@ import PageTemplate from "@/src/ui/components/PageTemplate";
 import { Alert, Button, Snackbar, Stack } from "@/src/ui/components/atoms";
 
 import CustomCardTabs from "@/src/ui/components/molecules/CustomCardTabs";
-import { alpha, useTheme } from "@/src/ui/theme";
+import { useTheme } from "@/src/ui/theme";
 import { useUser } from "@/src/core/auth/UserContext";
 import { canAccessRoute } from "@/src/core/navigation/route-access";
 import ModuleHeaderCard from "@/src/screens/clinical/components/ModuleHeaderCard";
-import {
-  AccessibilityNew as AccessibilityNewIcon,
-  Air as AirIcon,
-  AssignmentTurnedIn as AssignmentTurnedInIcon,
-  Bed as BedIcon,
-  Bloodtype as BloodtypeIcon,
-  Dashboard as DashboardIcon,
-  Description as DescriptionIcon,
-  FavoriteBorder as FavoriteBorderIcon,
-  MonitorHeart as MonitorHeartIcon,
-  PersonAddAlt1 as PersonAddAlt1Icon,
-  Close as CloseIcon,
-  Search as SearchIcon,
-  Science as ScienceIcon,
-  Timeline as TimelineIcon,
-  ViewList as ViewListIcon,
-} from "@mui/icons-material";
-import CommonDataGrid, {
-  type CommonColumn,
-} from "@/src/components/table/CommonDataGrid";
+import { PersonAddAlt1 as PersonAddAlt1Icon } from "@mui/icons-material";
 import {
   EmergencyPageId,
-  CaseTrackingTabId,
-  CaseTrackingSidebarFilter,
   TriageLevel,
-  Gender,
-  ArrivalMode,
-  PatientStatus,
-  OrderStatus,
-  QueueViewMode,
-  BedBoardFilter,
   ToastSeverity,
-  ChipColor,
-  PatientVitals,
   EmergencyPatient,
   EmergencyBed,
   EmergencyOrder,
   ObservationEntry,
-  RegistrationForm,
-  TriageForm,
-  BedAssignForm,
-  BedAssignPriority,
-  OrderForm,
-  VitalsForm,
-  DischargeForm,
-  buildDischargeDraft,
   QueueSection,
   BedBoardSection,
   CaseTrackingSection,
@@ -69,10 +32,7 @@ import {
   calculateDashboardMetrics,
   calculateBedOccupancy,
   getSortedQueueRows,
-  getCaseTrackingRows,
   getAssignBedZones,
-  getRegistrationMatches,
-  getSelectedPatientData,
   createEmergencyHandlers,
 } from "./components";
 import {
@@ -82,15 +42,11 @@ import {
   INITIAL_BEDS,
   INITIAL_ORDERS,
   INITIAL_OBSERVATION_LOG,
-  DEFAULT_REGISTRATION,
-  DEFAULT_TRIAGE,
   BED_ASSIGN_PHYSICIANS,
   BED_ASSIGN_NURSES,
-  DEFAULT_ORDER_FORM,
-  DEFAULT_VITALS_FORM,
-  DEFAULT_DISCHARGE_FORM,
 } from "./AsapEmergencyData";
 import { DashboardSection } from "./components/sections/DashboardSection";
+import { buildDischargeDraft } from "./components/utils";
 
 const AsapEmergencyPage = () => {
   const router = useRouter();
@@ -100,6 +56,7 @@ const AsapEmergencyPage = () => {
   const searchParams = useSearchParams();
   const activePage =
     (searchParams.get("tab") as EmergencyPageId) || "dashboard";
+
   const setActivePage = React.useCallback(
     (page: EmergencyPageId) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -109,15 +66,6 @@ const AsapEmergencyPage = () => {
     [router, searchParams],
   );
 
-  const [caseTrackingTab, setCaseTrackingTab] =
-    React.useState<CaseTrackingTabId>("vitals");
-  const [caseTrackingFilter, setCaseTrackingFilter] =
-    React.useState<CaseTrackingSidebarFilter>("All");
-  const [caseTrackingSearch, setCaseTrackingSearch] = React.useState("");
-  const [queueDoctorFilter, setQueueDoctorFilter] = React.useState<
-    "ALL" | string
-  >("ALL");
-  const [bedFilter, setBedFilter] = React.useState<BedBoardFilter>("ALL");
   const [patients, setPatients] =
     React.useState<EmergencyPatient[]>(INITIAL_PATIENTS);
   const [beds, setBeds] = React.useState<EmergencyBed[]>(INITIAL_BEDS);
@@ -127,47 +75,23 @@ const AsapEmergencyPage = () => {
   >(INITIAL_OBSERVATION_LOG);
 
   const [selectedPatientId, setSelectedPatientId] = React.useState("");
-  const [queueFilter, setQueueFilter] = React.useState<"ALL" | TriageLevel>(
-    "ALL",
-  );
-  const [queueSearch, setQueueSearch] = React.useState("");
-  const [queueView, setQueueView] = React.useState<QueueViewMode>("table");
-  const [queueStatusFilter, setQueueStatusFilter] = React.useState<
-    "ALL" | PatientStatus
-  >("ALL");
-  const [queueArrivalFilter, setQueueArrivalFilter] = React.useState<
-    "ALL" | ArrivalMode
-  >("ALL");
+
+  const [registrationModalOpen, setRegistrationModalOpen] =
+    React.useState(false);
+  const [registrationSearch, setRegistrationSearch] = React.useState("");
+  const [triageModalOpen, setTriageModalOpen] = React.useState(false);
+  const [vitalsDialogOpen, setVitalsDialogOpen] = React.useState(false);
+  const [dischargePreviewOpen, setDischargePreviewOpen] = React.useState(false);
   const [assignBedModalOpen, setAssignBedModalOpen] = React.useState(false);
-  const [assignBedForm, setAssignBedForm] = React.useState<BedAssignForm>({
+
+  const [assignBedForm, setAssignBedForm] = React.useState({
     patientId: "",
     bedId: "",
     physician: BED_ASSIGN_PHYSICIANS[0],
     nurse: BED_ASSIGN_NURSES[0],
-    priority: "High",
+    priority: "High" as const,
     notes: "",
   });
-
-  const [registrationModalOpen, setRegistrationModalOpen] =
-    React.useState(false);
-  const [triageModalOpen, setTriageModalOpen] = React.useState(false);
-  const [vitalsDialogOpen, setVitalsDialogOpen] = React.useState(false);
-  const [dischargePreviewOpen, setDischargePreviewOpen] = React.useState(false);
-  const [registrationSearch, setRegistrationSearch] = React.useState("");
-  const [registrationForm, setRegistrationForm] =
-    React.useState<RegistrationForm>(DEFAULT_REGISTRATION);
-
-  const [triageForm, setTriageForm] =
-    React.useState<TriageForm>(DEFAULT_TRIAGE);
-  const [vitalsForm, setVitalsForm] =
-    React.useState<VitalsForm>(DEFAULT_VITALS_FORM);
-
-  const [orderForm, setOrderForm] =
-    React.useState<OrderForm>(DEFAULT_ORDER_FORM);
-  const [dischargeForm, setDischargeForm] = React.useState<DischargeForm>(
-    DEFAULT_DISCHARGE_FORM,
-  );
-  const [clinicalNoteDraft, setClinicalNoteDraft] = React.useState("");
 
   const [toast, setToast] = React.useState<{
     open: boolean;
@@ -196,7 +120,6 @@ const AsapEmergencyPage = () => {
       setSelectedPatientId("");
       return;
     }
-
     if (
       selectedPatientId &&
       !patients.some((patient) => patient.id === selectedPatientId)
@@ -204,65 +127,6 @@ const AsapEmergencyPage = () => {
       setSelectedPatientId("");
     }
   }, [patients, selectedPatientId]);
-
-  React.useEffect(() => {
-    if (!selectedPatient) {
-      setClinicalNoteDraft("");
-      setDischargeForm(DEFAULT_DISCHARGE_FORM);
-      setVitalsForm(DEFAULT_VITALS_FORM);
-      return;
-    }
-    setClinicalNoteDraft(selectedPatient.clinicalNotes);
-    setDischargeForm(buildDischargeDraft(selectedPatient));
-    setVitalsForm({
-      patientId: selectedPatient.id,
-      heartRate: String(selectedPatient.vitals.heartRate),
-      bloodPressure: selectedPatient.vitals.bloodPressure,
-      temperature: String(selectedPatient.vitals.temperature),
-      respiratoryRate: String(selectedPatient.vitals.respiratoryRate),
-      spo2: String(selectedPatient.vitals.spo2),
-      painScore: String(selectedPatient.vitals.painScore),
-      gcs: String(selectedPatient.vitals.gcs),
-      notes: "",
-    });
-  }, [selectedPatient]);
-
-  React.useEffect(() => {
-    setCaseTrackingTab("vitals");
-  }, [selectedPatientId]);
-
-  React.useEffect(() => {
-    if (!triageForm.patientId) {
-      const firstPatient = patients[0];
-      if (!firstPatient) return;
-      setTriageForm({
-        patientId: firstPatient.id,
-        heartRate: String(firstPatient.vitals.heartRate),
-        bloodPressure: firstPatient.vitals.bloodPressure,
-        temperature: String(firstPatient.vitals.temperature),
-        respiratoryRate: String(firstPatient.vitals.respiratoryRate),
-        spo2: String(firstPatient.vitals.spo2),
-        triageLevel: firstPatient.triageLevel,
-      });
-      return;
-    }
-
-    const triagePatient = patients.find(
-      (entry) => entry.id === triageForm.patientId,
-    );
-    if (!triagePatient) return;
-
-    setTriageForm((prev) => ({
-      ...prev,
-      heartRate: String(triagePatient.vitals.heartRate),
-      bloodPressure: triagePatient.vitals.bloodPressure,
-      temperature: String(triagePatient.vitals.temperature),
-      respiratoryRate: String(triagePatient.vitals.respiratoryRate),
-      spo2: String(triagePatient.vitals.spo2),
-      triageLevel: triagePatient.triageLevel,
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [triageForm.patientId]);
 
   const canNavigate = React.useCallback(
     (route: string) => canAccessRoute(route, permissions),
@@ -275,14 +139,10 @@ const AsapEmergencyPage = () => {
         notify("You do not have permission to open this module.", "warning");
         return;
       }
-
       const params = new URLSearchParams();
       Object.entries(query ?? {}).forEach(([key, value]) => {
-        if (value) {
-          params.set(key, value);
-        }
+        if (value) params.set(key, value);
       });
-
       const queryString = params.toString();
       router.push(queryString ? `${route}?${queryString}` : route);
     },
@@ -296,59 +156,13 @@ const AsapEmergencyPage = () => {
   const bedOccupancy = React.useMemo(() => calculateBedOccupancy(beds), [beds]);
 
   const sortedQueueRows = React.useMemo(
-    () =>
-      getSortedQueueRows(
-        patients,
-        queueSearch,
-        queueFilter,
-        queueStatusFilter,
-        queueArrivalFilter,
-        queueDoctorFilter,
-      ),
-    [
-      patients,
-      queueArrivalFilter,
-      queueDoctorFilter,
-      queueFilter,
-      queueSearch,
-      queueStatusFilter,
-    ],
+    () => getSortedQueueRows(patients, "", "ALL", "ALL", "ALL", "ALL"),
+    [patients],
   );
-
-  const queueKanbanColumns = React.useMemo(
-    () =>
-      (Object.keys(TRIAGE_META) as TriageLevel[]).map((level) => ({
-        level,
-        rows: sortedQueueRows.filter(
-          (patient) => patient.triageLevel === level,
-        ),
-      })),
-    [sortedQueueRows],
-  );
-
-  const caseTrackingRows = React.useMemo(
-    () => getCaseTrackingRows(patients, caseTrackingSearch, caseTrackingFilter),
-    [caseTrackingFilter, caseTrackingSearch, patients],
-  );
-
-  React.useEffect(() => {
-    if (caseTrackingRows.length === 0) return;
-    if (caseTrackingRows.some((patient) => patient.id === selectedPatientId))
-      return;
-    setSelectedPatientId(caseTrackingRows[0].id);
-  }, [caseTrackingRows, selectedPatientId]);
 
   const availableBeds = React.useMemo(
     () => beds.filter((bed) => bed.status === "Free"),
     [beds],
-  );
-
-  const queueDoctorOptions = React.useMemo(
-    () =>
-      Array.from(
-        new Set(patients.map((patient) => patient.assignedDoctor)),
-      ).sort(),
-    [patients],
   );
   const assignBedPatient = React.useMemo(
     () =>
@@ -357,70 +171,6 @@ const AsapEmergencyPage = () => {
     [assignBedForm.patientId, patients],
   );
   const assignBedZones = React.useMemo(() => getAssignBedZones(beds), [beds]);
-  const filteredBedRows = React.useMemo(
-    () =>
-      beds.filter((bed) =>
-        bedFilter === "ALL" ? true : bed.status === bedFilter,
-      ),
-    [bedFilter, beds],
-  );
-  const registrationMatches = React.useMemo(
-    () => getRegistrationMatches(patients, registrationSearch),
-    [patients, registrationSearch],
-  );
-
-  const { selectedPatientOrders, selectedPatientObservations } = React.useMemo(
-    () =>
-      getSelectedPatientData(
-        selectedPatient?.id,
-        patients,
-        orders,
-        observationLog,
-      ),
-    [selectedPatient?.id, patients, orders, observationLog],
-  );
-
-  const handleRegistrationField = <K extends keyof RegistrationForm>(
-    field: K,
-    value: RegistrationForm[K],
-  ) => {
-    setRegistrationForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleTriageField = <K extends keyof TriageForm>(
-    field: K,
-    value: TriageForm[K],
-  ) => {
-    setTriageForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleOrderField = <K extends keyof OrderForm>(
-    field: K,
-    value: OrderForm[K],
-  ) => {
-    setOrderForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleVitalsField = <K extends keyof VitalsForm>(
-    field: K,
-    value: VitalsForm[K],
-  ) => {
-    setVitalsForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleDischargeField = <K extends keyof DischargeForm>(
-    field: K,
-    value: DischargeForm[K],
-  ) => {
-    setDischargeForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleAssignBedField = <K extends keyof BedAssignForm>(
-    field: K,
-    value: BedAssignForm[K],
-  ) => {
-    setAssignBedForm((prev) => ({ ...prev, [field]: value }));
-  };
 
   const {
     handleUseExistingPatient,
@@ -429,12 +179,10 @@ const AsapEmergencyPage = () => {
     openAssignBedModal,
     handleRegisterPatient,
     handleSaveTriage,
-    assignBed,
     handleOpenPatientChart,
     handleConfirmAssignBed,
     handleSetBedFree,
     handleSaveClinicalNote,
-    handleApplyOrderTemplate,
     handleAddOrder,
     handleOrderStatusChange,
     handleSaveVitals,
@@ -452,27 +200,14 @@ const AsapEmergencyPage = () => {
         setObservationLog,
         selectedPatientId,
         setSelectedPatientId,
-        selectedPatient,
-        assignBedForm,
-        setAssignBedForm,
         setAssignBedModalOpen,
-        registrationForm,
-        setRegistrationForm,
         setRegistrationModalOpen,
         setRegistrationSearch,
         setActivePage,
-        triageForm,
-        setTriageForm,
         setTriageModalOpen,
-        vitalsForm,
-        setVitalsForm,
         setVitalsDialogOpen,
-        clinicalNoteDraft,
         openRoute,
         notify,
-        dischargeForm,
-        orderForm,
-        setOrderForm,
       }),
     [
       patients,
@@ -480,14 +215,6 @@ const AsapEmergencyPage = () => {
       orders,
       observationLog,
       selectedPatientId,
-      selectedPatient,
-      assignBedForm,
-      registrationForm,
-      triageForm,
-      vitalsForm,
-      clinicalNoteDraft,
-      dischargeForm,
-      orderForm,
       openRoute,
       notify,
       setActivePage,
@@ -515,6 +242,7 @@ const AsapEmergencyPage = () => {
       openTriageAssessment,
       setActivePage,
       theme,
+      setSelectedPatientId,
     ],
   );
 
@@ -545,22 +273,8 @@ const AsapEmergencyPage = () => {
         />
       ) : page.id === "triage" ? (
         <QueueSection
-          queueFilter={queueFilter}
-          setQueueFilter={setQueueFilter}
-          sortedQueueRows={sortedQueueRows}
+          patients={patients}
           arrivalColumns={getArrivalColumnsFor("triage")}
-          queueView={queueView}
-          setQueueView={setQueueView}
-          queueDoctorOptions={queueDoctorOptions}
-          queueDoctorFilter={queueDoctorFilter}
-          setQueueDoctorFilter={setQueueDoctorFilter}
-          queueStatusFilter={queueStatusFilter}
-          setQueueStatusFilter={setQueueStatusFilter}
-          queueArrivalFilter={queueArrivalFilter}
-          setQueueArrivalFilter={setQueueArrivalFilter}
-          queueSearch={queueSearch}
-          setQueueSearch={setQueueSearch}
-          queueKanbanColumns={queueKanbanColumns}
           activePage={"triage"}
           openTriageAssessment={openTriageAssessment}
           openAssignBedModal={openAssignBedModal}
@@ -570,43 +284,28 @@ const AsapEmergencyPage = () => {
         />
       ) : page.id === "bed-board" ? (
         <BedBoardSection
-          bedFilter={bedFilter}
-          setBedFilter={setBedFilter}
-          filteredBedRows={filteredBedRows}
+          beds={beds}
           patients={patients}
           selectedPatient={selectedPatient}
-          handleOpenPatientChart={handleOpenPatientChart}
           handleSetBedFree={handleSetBedFree}
           openAssignBedModal={openAssignBedModal}
+          handleOpenPatientChart={handleOpenPatientChart}
           notify={notify}
         />
       ) : (
         <CaseTrackingSection
           selectedPatient={selectedPatient}
-          selectedPatientOrders={selectedPatientOrders}
-          selectedPatientObservations={selectedPatientObservations}
+          patients={patients}
+          orders={orders}
+          observationLog={observationLog}
           observationColumns={observationColumns}
-          caseTrackingTab={caseTrackingTab}
-          setCaseTrackingTab={setCaseTrackingTab}
-          caseTrackingSearch={caseTrackingSearch}
-          setCaseTrackingSearch={setCaseTrackingSearch}
-          caseTrackingFilter={caseTrackingFilter}
-          setCaseTrackingFilter={setCaseTrackingFilter}
-          caseTrackingRows={caseTrackingRows}
           selectedPatientId={selectedPatientId}
           handleOpenPatientChart={handleOpenPatientChart}
           openVitalsDialog={openVitalsDialog}
-          clinicalNoteDraft={clinicalNoteDraft}
-          setClinicalNoteDraft={setClinicalNoteDraft}
           handleSaveClinicalNote={handleSaveClinicalNote}
           handleSaveVitals={handleSaveVitals}
-          orderForm={orderForm}
-          handleOrderField={handleOrderField}
-          handleApplyOrderTemplate={handleApplyOrderTemplate}
           handleAddOrder={handleAddOrder}
           handleOrderStatusChange={handleOrderStatusChange}
-          dischargeForm={dischargeForm}
-          handleDischargeField={handleDischargeField}
           handleDisposition={handleDisposition}
           dashboardAvgWaitMinutes={dashboardMetrics.avgWaitMinutes}
           setActivePage={setActivePage}
@@ -648,7 +347,6 @@ const AsapEmergencyPage = () => {
 
         <CustomCardTabs
           scrollable={false}
-          // sticky={false}
           items={tabItems}
           defaultValue={Math.max(
             EMERGENCY_PAGES.findIndex((p) => p.id === activePage),
@@ -668,7 +366,9 @@ const AsapEmergencyPage = () => {
         assignBedZones={assignBedZones}
         patients={patients}
         beds={beds}
-        handleAssignBedField={handleAssignBedField}
+        handleAssignBedField={(field: string, value: any) =>
+          setAssignBedForm((prev) => ({ ...prev, [field]: value }))
+        }
         handleConfirmAssignBed={handleConfirmAssignBed}
       />
 
@@ -676,29 +376,21 @@ const AsapEmergencyPage = () => {
         open={triageModalOpen}
         onClose={() => setTriageModalOpen(false)}
         patients={patients}
-        triageForm={triageForm}
-        handleTriageField={handleTriageField}
         handleSaveTriage={handleSaveTriage}
       />
 
       <RegistrationDialog
         open={registrationModalOpen}
         onClose={() => setRegistrationModalOpen(false)}
-        registrationSearch={registrationSearch}
-        setRegistrationSearch={setRegistrationSearch}
-        registrationMatches={registrationMatches}
-        handleUseExistingPatient={handleUseExistingPatient}
-        registrationForm={registrationForm}
-        handleRegistrationField={handleRegistrationField}
+        patients={patients}
         handleRegisterPatient={handleRegisterPatient}
+        handleUseExistingPatient={handleUseExistingPatient}
       />
 
       <VitalsDialog
         open={vitalsDialogOpen}
         onClose={() => setVitalsDialogOpen(false)}
-        vitalsForm={vitalsForm}
         patients={patients}
-        handleVitalsField={handleVitalsField}
         handleSaveVitals={handleSaveVitals}
       />
 
@@ -706,7 +398,7 @@ const AsapEmergencyPage = () => {
         open={dischargePreviewOpen}
         onClose={() => setDischargePreviewOpen(false)}
         selectedPatient={selectedPatient}
-        dischargeForm={dischargeForm}
+        dischargeForm={buildDischargeDraft(selectedPatient || patients[0])}
         canNavigate={canNavigate}
         openRoute={openRoute}
       />

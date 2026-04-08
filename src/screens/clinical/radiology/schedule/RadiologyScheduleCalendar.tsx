@@ -41,8 +41,8 @@ import {
 } from "./schedule.types";
 import { INITIAL_EVENTS, isSameDate } from "./schedule.data";
 import { EventContent } from "./components/EventContent";
-import { EventDetailDialog } from "./components/EventDetailDialog";
-import { BookSlotDialog } from "./components/BookSlotDialog";
+import { EventDetailDialog } from "./components/dialogs/EventDetailDialog";
+import { BookSlotDialog } from "./components/dialogs/BookSlotDialog";
 import { Sidebar } from "./components/Sidebar";
 
 // ─── Root Component ───────────────────────────────────────────────────────────

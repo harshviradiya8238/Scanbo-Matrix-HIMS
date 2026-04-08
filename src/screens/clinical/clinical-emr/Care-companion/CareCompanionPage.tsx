@@ -6,14 +6,14 @@ import { Box, Button, Stack } from "@/src/ui/components/atoms";
 import { FilterList as FilterListIcon } from "@mui/icons-material";
 import EnrollPatientDialog, {
   type CareProgramTemplate,
-} from "../../components/EnrollPatientDialog";
-import PatientDetailDrawer from "../../components/PatientDetailDrawer";
+} from "./components/dialogs/EnrollPatientDialog";
+import PatientDetailDrawer from "./components/dialogs/PatientDetailDrawer";
 import { MOCK_PATIENTS } from "./utils/mockDataUtils";
 import Header from "./components/Header";
 import StatsSection from "./components/StatsSection";
 import PatientTable from "./components/PatientTable";
-import FilterDrawer from "./components/FilterDrawer";
-import ClosePlanDialog from "./components/ClosePlanDialog";
+import FilterDrawer from "./components/dialogs/FilterDrawer";
+import ClosePlanDialog from "./components/dialogs/ClosePlanDialog";
 import type { EnrolledPatient, PatientStatus } from "./utils/types";
 
 export default function CareCompanionPage() {
@@ -33,15 +33,16 @@ export default function CareCompanionPage() {
   const [closePlanDialogOpen, setClosePlanDialogOpen] = React.useState(false);
   const [closePlanPatient, setClosePlanPatient] =
     React.useState<EnrolledPatient | null>(null);
-  const [statusFilter, setStatusFilter] = React.useState<PatientStatus | "all">(
-    "all",
-  );
-  const [programFilter, setProgramFilter] = React.useState("All Programs");
+
+  const [activeFilters, setActiveFilters] = React.useState({
+    status: "all" as PatientStatus | "all",
+    program: "All Programs",
+  });
+
   const [filterDrawerOpen, setFilterDrawerOpen] = React.useState(false);
 
   const resetFilters = () => {
-    setStatusFilter("all");
-    setProgramFilter("All Programs");
+    setActiveFilters({ status: "all", program: "All Programs" });
   };
 
   const filteredPatients = React.useMemo(() => {
@@ -55,12 +56,12 @@ export default function CareCompanionPage() {
           p.program.toLowerCase().includes(q),
       );
     }
-    if (statusFilter !== "all")
-      list = list.filter((p) => p.status === statusFilter);
-    if (programFilter !== "All Programs")
-      list = list.filter((p) => p.program === programFilter);
+    if (activeFilters.status !== "all")
+      list = list.filter((p) => p.status === activeFilters.status);
+    if (activeFilters.program !== "All Programs")
+      list = list.filter((p) => p.program === activeFilters.program);
     return list;
-  }, [patients, search, statusFilter, programFilter]);
+  }, [patients, search, activeFilters]);
 
   const handleAddNewCarePlan = () => {
     setEnrollDialogLaunchMode("create-template");
@@ -138,10 +139,8 @@ export default function CareCompanionPage() {
         <FilterDrawer
           open={filterDrawerOpen}
           onClose={() => setFilterDrawerOpen(false)}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          programFilter={programFilter}
-          onProgramFilterChange={setProgramFilter}
+          activeFilters={activeFilters}
+          onApplyFilters={setActiveFilters}
           onResetFilters={resetFilters}
         />
       </Stack>

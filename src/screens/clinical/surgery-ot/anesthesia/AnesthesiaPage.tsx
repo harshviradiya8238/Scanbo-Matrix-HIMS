@@ -16,15 +16,6 @@ import {
   TextField,
   Typography,
 } from "@/src/ui/components/atoms";
-import CommonDialog from "@/src/ui/components/molecules/CommonDialog";
-import { EnterpriseStatusChip } from "@/src/screens/clinical/components/EnterpriseUi";
-import { alpha } from "@/src/ui/theme";
-import {
-  Close as CloseIcon,
-  LocalPharmacy as LocalPharmacyIcon,
-  MonitorHeart as MonitorHeartIcon,
-} from "@mui/icons-material";
-
 import {
   ViewMode,
   WorkspaceTab,
@@ -36,9 +27,16 @@ import {
   WorklistCase,
 } from "./types";
 import { CASES, UI_THEME } from "./constants";
-import { matchesFilter, statusTone, currentTimeStamp } from "./utils";
+import { matchesFilter, currentTimeStamp } from "./utils";
 import { CaseSelectionView } from "./components/CaseSelectionView";
 import { WorkspaceView } from "./components/WorkspaceView";
+import { OrBoardDialog } from "./components/dialogs/OrBoardDialog";
+import { UrgentCaseDialog } from "./components/dialogs/UrgentCaseDialog";
+import { AddDrugDialog } from "./components/dialogs/AddDrugDialog";
+import { AddEventDialog } from "./components/dialogs/AddEventDialog";
+import { SignCloseDialog } from "./components/dialogs/SignCloseDialog";
+import { VentSettingsDialog } from "./components/dialogs/VentSettingsDialog";
+import { FinalSignoffDialog } from "./components/dialogs/FinalSignoffDialog";
 
 export default function AnesthesiaPage() {
   const [mode, setMode] = React.useState<ViewMode>("select");
@@ -378,400 +376,61 @@ export default function AnesthesiaPage() {
         )}
       </Box>
 
-      <CommonDialog
+      <OrBoardDialog
         open={orBoardOpen}
         onClose={() => setOrBoardOpen(false)}
-        maxWidth="md"
-        title="OR Board"
-        icon={<MonitorHeartIcon sx={{ fontSize: 18 }} />}
-        contentDividers
-      >
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Room</TableCell>
-              <TableCell>Time</TableCell>
-              <TableCell>Patient</TableCell>
-              <TableCell>Procedure</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="right">Open</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {allCases.map((item) => (
-              <TableRow key={item.id} hover>
-                <TableCell>{item.room}</TableCell>
-                <TableCell>{item.scheduledAt}</TableCell>
-                <TableCell>{item.patientName}</TableCell>
-                <TableCell>{item.procedure}</TableCell>
-                <TableCell>
-                  <EnterpriseStatusChip
-                    label={item.status}
-                    tone={statusTone(item.status)}
-                  />
-                </TableCell>
-                <TableCell align="right">
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={() => {
-                      setSelectedCaseId(item.id);
-                      setMode("workspace");
-                      setOrBoardOpen(false);
-                    }}
-                  >
-                    Open
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CommonDialog>
+        allCases={allCases}
+        onOpenCase={(caseId) => {
+          setSelectedCaseId(caseId);
+          setMode("workspace");
+        }}
+      />
 
-      <CommonDialog
+      <UrgentCaseDialog
         open={urgentCaseOpen}
         onClose={() => setUrgentCaseOpen(false)}
-        maxWidth="sm"
-        title="Add Urgent Case"
+        urgentCaseForm={urgentCaseForm}
+        setUrgentCaseForm={setUrgentCaseForm}
         onConfirm={handleCreateUrgentCase}
-        confirmLabel="Create Case"
-        contentDividers
-      >
-        <Stack spacing={1}>
-          <TextField
-            label="Patient Name *"
-            size="small"
-            value={urgentCaseForm.patientName}
-            onChange={(event) =>
-              setUrgentCaseForm((prev) => ({
-                ...prev,
-                patientName: event.target.value,
-              }))
-            }
-          />
-          <TextField
-            label="Procedure *"
-            size="small"
-            value={urgentCaseForm.procedure}
-            onChange={(event) =>
-              setUrgentCaseForm((prev) => ({
-                ...prev,
-                procedure: event.target.value,
-              }))
-            }
-          />
-          <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
-            <TextField
-              label="OR Room"
-              size="small"
-              value={urgentCaseForm.room}
-              onChange={(event) =>
-                setUrgentCaseForm((prev) => ({
-                  ...prev,
-                  room: event.target.value,
-                }))
-              }
-            />
-            <TextField
-              select
-              label="ASA Class"
-              size="small"
-              value={urgentCaseForm.asaClass}
-              onChange={(event) =>
-                setUrgentCaseForm((prev) => ({
-                  ...prev,
-                  asaClass: event.target.value,
-                }))
-              }
-            >
-              {["ASA I", "ASA II", "ASA III", "ASA IV"].map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Stack>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
-            <TextField
-              label="Surgeon"
-              size="small"
-              value={urgentCaseForm.surgeon}
-              onChange={(event) =>
-                setUrgentCaseForm((prev) => ({
-                  ...prev,
-                  surgeon: event.target.value,
-                }))
-              }
-            />
-            <TextField
-              label="Anesthetist"
-              size="small"
-              value={urgentCaseForm.anesthetist}
-              onChange={(event) =>
-                setUrgentCaseForm((prev) => ({
-                  ...prev,
-                  anesthetist: event.target.value,
-                }))
-              }
-            />
-          </Stack>
-        </Stack>
-      </CommonDialog>
+      />
 
-      <CommonDialog
+      <AddDrugDialog
         open={addDrugOpen}
         onClose={() => setAddDrugOpen(false)}
-        maxWidth="sm"
-        title="Add Drug / Infusion"
-        icon={<LocalPharmacyIcon sx={{ fontSize: 18 }} />}
+        addDrugForm={addDrugForm}
+        setAddDrugForm={setAddDrugForm}
         onConfirm={handleSubmitAddDrug}
-        confirmLabel="Add Drug"
-        contentDividers
-      >
-        <Stack spacing={1}>
-          <TextField
-            size="small"
-            label="Drug Name *"
-            placeholder="e.g. Propofol, Midazolam..."
-            value={addDrugForm.name}
-            onChange={(event) =>
-              setAddDrugForm((prev) => ({
-                ...prev,
-                name: event.target.value,
-              }))
-            }
-          />
-          <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
-            <TextField
-              select
-              size="small"
-              label="Route"
-              value={addDrugForm.route}
-              onChange={(event) =>
-                setAddDrugForm((prev) => ({
-                  ...prev,
-                  route: event.target.value,
-                }))
-              }
-            >
-              {["IV", "IM", "Oral", "Inhalational"].map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              size="small"
-              label="Type"
-              value={addDrugForm.type}
-              onChange={(event) =>
-                setAddDrugForm((prev) => ({
-                  ...prev,
-                  type: event.target.value,
-                }))
-              }
-            >
-              {["Continuous Infusion", "Bolus", "Intermittent"].map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Stack>
-          <TextField
-            size="small"
-            label="Rate / Dose *"
-            placeholder="e.g. 75 mcg/kg/min or 50 mg bolus"
-            value={addDrugForm.dose}
-            onChange={(event) =>
-              setAddDrugForm((prev) => ({
-                ...prev,
-                dose: event.target.value,
-              }))
-            }
-          />
-          <TextField
-            size="small"
-            label="Notes"
-            placeholder="Additional notes..."
-            value={addDrugForm.notes}
-            onChange={(event) =>
-              setAddDrugForm((prev) => ({
-                ...prev,
-                notes: event.target.value,
-              }))
-            }
-          />
-        </Stack>
-      </CommonDialog>
+      />
 
-      <CommonDialog
+      <AddEventDialog
         open={addEventOpen}
         onClose={() => setAddEventOpen(false)}
-        maxWidth="sm"
-        title="Add Intra-op Event"
+        addEventForm={addEventForm}
+        setAddEventForm={setAddEventForm}
         onConfirm={handleSubmitEvent}
-        confirmLabel="Save Event"
-        contentDividers
-      >
-        <Stack spacing={1}>
-          <TextField
-            label="Event Detail *"
-            size="small"
-            multiline
-            minRows={3}
-            value={addEventForm.note}
-            onChange={(event) =>
-              setAddEventForm((prev) => ({
-                ...prev,
-                note: event.target.value,
-              }))
-            }
-          />
-          <TextField
-            select
-            label="Severity"
-            size="small"
-            value={addEventForm.tone}
-            onChange={(event) =>
-              setAddEventForm((prev) => ({
-                ...prev,
-                tone: event.target.value as typeof addEventForm.tone,
-              }))
-            }
-          >
-            <MenuItem value="info">Info</MenuItem>
-            <MenuItem value="active">Active</MenuItem>
-            <MenuItem value="warning">Warning</MenuItem>
-            <MenuItem value="critical">Critical</MenuItem>
-          </TextField>
-        </Stack>
-      </CommonDialog>
+      />
 
-      <CommonDialog
+      <SignCloseDialog
         open={signCloseOpen}
         onClose={() => setSignCloseOpen(false)}
-        maxWidth="xs"
-        title="Sign & Close Case"
         onConfirm={() => handleSignAndCloseCase("sign-close")}
-        confirmLabel="Confirm Sign & Close"
-        contentDividers
-      >
-        <Typography variant="body2" color="text.secondary">
-          This will mark the case as completed and append an event log entry.
-        </Typography>
-      </CommonDialog>
+      />
 
-      <CommonDialog
+      <VentSettingsDialog
         open={ventSettingsOpen}
         onClose={() => setVentSettingsOpen(false)}
-        maxWidth="sm"
-        title="Vent Settings"
+        ventSettingsForm={ventSettingsForm}
+        setVentSettingsForm={setVentSettingsForm}
         onConfirm={handleSaveVentSettings}
-        confirmLabel="Save Settings"
-        contentDividers
-      >
-        <Stack spacing={1}>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
-            <TextField
-              size="small"
-              label="O2 Flow"
-              value={ventSettingsForm.o2Flow}
-              onChange={(event) =>
-                setVentSettingsForm((prev) => ({
-                  ...prev,
-                  o2Flow: event.target.value,
-                }))
-              }
-            />
-            <TextField
-              size="small"
-              label="FiO2"
-              value={ventSettingsForm.fio2}
-              onChange={(event) =>
-                setVentSettingsForm((prev) => ({
-                  ...prev,
-                  fio2: event.target.value,
-                }))
-              }
-            />
-          </Stack>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
-            <TextField
-              size="small"
-              label="Tidal Volume"
-              value={ventSettingsForm.tidalVolume}
-              onChange={(event) =>
-                setVentSettingsForm((prev) => ({
-                  ...prev,
-                  tidalVolume: event.target.value,
-                }))
-              }
-            />
-            <TextField
-              size="small"
-              label="RR"
-              value={ventSettingsForm.rr}
-              onChange={(event) =>
-                setVentSettingsForm((prev) => ({
-                  ...prev,
-                  rr: event.target.value,
-                }))
-              }
-            />
-          </Stack>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
-            <TextField
-              size="small"
-              label="PEEP"
-              value={ventSettingsForm.peep}
-              onChange={(event) =>
-                setVentSettingsForm((prev) => ({
-                  ...prev,
-                  peep: event.target.value,
-                }))
-              }
-            />
-            <TextField
-              size="small"
-              label="PIP"
-              value={ventSettingsForm.pip}
-              onChange={(event) =>
-                setVentSettingsForm((prev) => ({
-                  ...prev,
-                  pip: event.target.value,
-                }))
-              }
-            />
-          </Stack>
-        </Stack>
-      </CommonDialog>
+      />
 
-      <CommonDialog
+      <FinalSignoffDialog
         open={finalSignoffOpen}
         onClose={() => setFinalSignoffOpen(false)}
-        maxWidth="sm"
-        title="Final Sign-off"
+        finalSignoffNote={finalSignoffNote}
+        setFinalSignoffNote={setFinalSignoffNote}
         onConfirm={() => handleSignAndCloseCase("final-signoff")}
-        confirmLabel="Complete Sign-off"
-        contentDividers
-      >
-        <Stack spacing={1}>
-          <Typography variant="body2" color="text.secondary">
-            Complete final anesthesia handoff and mark the case as completed.
-          </Typography>
-          <TextField
-            size="small"
-            label="Handoff Notes"
-            multiline
-            minRows={3}
-            value={finalSignoffNote}
-            onChange={(event) => setFinalSignoffNote(event.target.value)}
-          />
-        </Stack>
-      </CommonDialog>
+      />
     </PageTemplate>
   );
 }

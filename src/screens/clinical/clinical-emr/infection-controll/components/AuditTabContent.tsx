@@ -21,20 +21,27 @@ import {
   Download as DownloadIcon,
   ShowChart as ShowChartIcon,
 } from "@mui/icons-material";
-import { AUDIT_CHECKLIST, COMPLIANCE_SCORES } from "../utils/infection-control-data";
+import {
+  AUDIT_CHECKLIST,
+  COMPLIANCE_SCORES,
+} from "../utils/infection-control-data";
 
 interface AuditTabContentProps {
   casesTableBlock: React.ReactNode;
-  auditChecklist: Record<string, boolean>;
-  setAuditChecklist: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
 }
 
 export default function AuditTabContent({
   casesTableBlock,
-  auditChecklist,
-  setAuditChecklist,
 }: AuditTabContentProps) {
   const theme = useTheme();
+  const [auditChecklist, setAuditChecklist] = React.useState<
+    Record<string, boolean>
+  >(
+    AUDIT_CHECKLIST.reduce(
+      (acc, item) => ({ ...acc, [item.id]: item.checked }),
+      {},
+    ),
+  );
 
   return (
     <Grid container spacing={2}>
@@ -60,13 +67,8 @@ export default function AuditTabContent({
                 gap={1}
               >
                 <Stack direction="row" alignItems="center" spacing={0.75}>
-                  <CheckBoxIcon
-                    sx={{ fontSize: 18, color: "primary.main" }}
-                  />
-                  <Typography
-                    variant="subtitle1"
-                    sx={{ fontWeight: 700 }}
-                  >
+                  <CheckBoxIcon sx={{ fontSize: 18, color: "primary.main" }} />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                     Audit Checklist — AUD-031
                   </Typography>
                 </Stack>
@@ -148,9 +150,7 @@ export default function AuditTabContent({
         >
           <Stack spacing={1.25}>
             <Stack direction="row" alignItems="center" spacing={0.75}>
-              <ShowChartIcon
-                sx={{ fontSize: 18, color: "primary.main" }}
-              />
+              <ShowChartIcon sx={{ fontSize: 18, color: "primary.main" }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                 Compliance Scores
               </Typography>
@@ -206,10 +206,7 @@ export default function AuditTabContent({
               >
                 92%
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: "success.main" }}
-              >
+              <Typography variant="body2" sx={{ color: "success.main" }}>
                 Last 7 days — On target
               </Typography>
             </Box>

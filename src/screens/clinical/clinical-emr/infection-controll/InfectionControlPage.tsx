@@ -8,17 +8,13 @@ import {
   Box,
   Button,
   Chip,
-
   Stack,
-
   Typography,
 } from "@/src/ui/components/atoms";
 import CommonDataGrid, {
   CommonColumn,
 } from "@/src/components/table/CommonDataGrid";
-import {
-  StatTile,
-} from "@/src/ui/components/molecules";
+import { StatTile } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
 import { useMrnParam } from "@/src/core/patients/useMrnParam";
 import { formatPatientLabel } from "@/src/core/patients/patientDisplay";
@@ -67,11 +63,11 @@ import IsolateTabContent from "./components/IsolateTabContent";
 import NotifyTabContent from "./components/NotifyTabContent";
 import AuditTabContent from "./components/AuditTabContent";
 import CloseTabContent from "./components/CloseTabContent";
-import CaseDialog from "./components/CaseDialog";
-import CaseDetailDialog from "./components/CaseDetailDialog";
-import IsolateDialog from "./components/IsolateDialog";
-import AuditDialog from "./components/AuditDialog";
-import CloseCaseDialog from "./components/CloseCaseDialog";
+import CaseDialog from "./components/dialogs/CaseDialog";
+import CaseDetailDialog from "./components/dialogs/CaseDetailDialog";
+import IsolateDialog from "./components/dialogs/IsolateDialog";
+import AuditDialog from "./components/dialogs/AuditDialog";
+import CloseCaseDialog from "./components/dialogs/CloseCaseDialog";
 import {
   AVAILABLE_ISOLATION_ROOMS,
   AUDIT_CHECKLIST,
@@ -79,14 +75,11 @@ import {
   CASE_DETAIL_EVENTS,
   CASE_EXTRA,
   CASE_TIMELINES,
-
   INITIAL_AUDITS,
   INITIAL_CASES,
   INITIAL_ISOLATIONS,
   IPD_PATIENTS,
-
   PPE_CHECKLIST,
-
   SEND_TO_OPTIONS,
 } from "./utils/infection-control-data";
 import {
@@ -115,34 +108,10 @@ export default function InfectionControlPage() {
   const [cases, setCases] = React.useState<InfectionCase[]>(INITIAL_CASES);
   const [isolations, setIsolations] =
     React.useState<IsolationRoom[]>(INITIAL_ISOLATIONS);
-  const [ppeChecklist, setPpeChecklist] = React.useState<
-    Record<string, boolean>
-  >(
-    PPE_CHECKLIST.reduce(
-      (acc, item) => ({ ...acc, [item.id]: item.checked }),
-      {},
-    ),
-  );
   const [selectedIsolationRoomId, setSelectedIsolationRoomId] = React.useState<
     string | null
   >("iso-1");
-  const [sendToChannels, setSendToChannels] = React.useState<
-    Record<string, boolean>
-  >(
-    SEND_TO_OPTIONS.reduce(
-      (acc, item) => ({ ...acc, [item.id]: item.checked }),
-      {},
-    ),
-  );
 
-  const [auditChecklist, setAuditChecklist] = React.useState<
-    Record<string, boolean>
-  >(
-    AUDIT_CHECKLIST.reduce(
-      (acc, item) => ({ ...acc, [item.id]: item.checked }),
-      {},
-    ),
-  );
   const [audits, setAudits] = React.useState<AuditRecord[]>(INITIAL_AUDITS);
   const [selectedCaseId, setSelectedCaseId] = React.useState<string>(
     INITIAL_CASES[0]?.id ?? "",
@@ -186,81 +155,6 @@ export default function InfectionControlPage() {
 
   const menuOpen = Boolean(menuAnchorEl);
 
-  const [caseForm, setCaseForm] = React.useState<{
-    patientSelect: string | null;
-    wardBed: string;
-    suspectedPathogen: string;
-    isolationLevel: string;
-    detectionSource: string;
-    priority: string;
-    reportingPhysician: string;
-    dateDetected: string;
-    clinicalNotes: string;
-    patientName: string;
-    mrn: string;
-    organism: string;
-    unit: string;
-    bed: string;
-    isolationType: string;
-    ipdStatus: string;
-    risk: string;
-  }>({
-    patientSelect: null,
-    wardBed: "",
-    suspectedPathogen: "",
-    isolationLevel: "Standard",
-    detectionSource: "Lab Auto-Flag (LIS)",
-    priority: "Critical",
-    reportingPhysician: "",
-    dateDetected: "",
-    clinicalNotes: "",
-    patientName: "",
-    mrn: "",
-    organism: "",
-    unit: "",
-    bed: "",
-    isolationType: "Contact",
-    ipdStatus: "Watch",
-    risk: "Moderate",
-  });
-
-  const [isolateForm, setIsolateForm] = React.useState({
-    roomId: "",
-    isolationType: "Droplet Precautions",
-    gloves: true,
-    gown: true,
-    surgicalMask: true,
-    n95: false,
-    faceShield: false,
-    notes: "",
-  });
-
-  const [autoTriggers, setAutoTriggers] = React.useState({
-    assignIsolation: true,
-    notifyIpc: true,
-    notifyHod: true,
-    scheduleAudit: false,
-    outbreakFlag: false,
-  });
-
-  const [auditForm, setAuditForm] = React.useState({
-    linkedPatient: "",
-    wardArea: "",
-    score: "",
-    observations: "",
-    correctiveActions: "",
-    auditType: "Hand Hygiene",
-    leadAuditor: "",
-    auditDate: "",
-  });
-
-  const [closeCaseForm, setCloseCaseForm] = React.useState({
-    closingPhysician: "",
-    closureDate: "11/06/2024",
-    finalSummary: "",
-    confirmCriteria: true,
-  });
-
   const selectedCase =
     cases.find((item) => item.id === selectedCaseId) ?? cases[0];
   const caseTimeline = CASE_TIMELINES[selectedCase?.id ?? ""] ?? [];
@@ -303,18 +197,12 @@ export default function InfectionControlPage() {
 
   const openCloseCaseDialog = (targetCase: InfectionCase) => {
     setCloseCaseId(targetCase.id);
-    setCloseCaseForm({
-      closingPhysician: "",
-      closureDate: "11/06/2024",
-      finalSummary: "",
-      confirmCriteria: true,
-    });
     setCloseCaseDialogOpen(true);
   };
 
-  const handleConfirmCloseCase = () => {
+  const handleConfirmCloseCase = (formData: any) => {
     if (!closeCaseId) return;
-    if (!closeCaseForm.closingPhysician) {
+    if (!formData.closingPhysician) {
       setSnackbar({
         open: true,
         message: "Please enter Closing Physician.",
@@ -322,7 +210,7 @@ export default function InfectionControlPage() {
       });
       return;
     }
-    if (!closeCaseForm.confirmCriteria) {
+    if (!formData.confirmCriteria) {
       setSnackbar({
         open: true,
         message: "Please confirm closure criteria.",
@@ -336,8 +224,8 @@ export default function InfectionControlPage() {
     setCaseDetailOpen(false);
   };
 
- 
-  const handleCreateCase = () => {
+  const handleCreateCase = (data: { caseForm: any; autoTriggers: any }) => {
+    const { caseForm } = data;
     const sel = caseForm.patientSelect
       ? IPD_PATIENTS.find(
           (p) =>
@@ -370,32 +258,6 @@ export default function InfectionControlPage() {
     setCases((prev) => [newCase, ...prev]);
     setSelectedCaseId(newCase.id);
     setCaseDialogOpen(false);
-    setCaseForm({
-      patientSelect: null,
-      wardBed: "",
-      suspectedPathogen: "",
-      isolationLevel: "Standard",
-      detectionSource: "Lab Auto-Flag (LIS)",
-      priority: "Critical",
-      reportingPhysician: "",
-      dateDetected: "",
-      clinicalNotes: "",
-      patientName: "",
-      mrn: "",
-      organism: "",
-      unit: "",
-      bed: "",
-      isolationType: "Contact",
-      ipdStatus: "Watch",
-      risk: "Moderate",
-    });
-    setAutoTriggers({
-      assignIsolation: true,
-      notifyIpc: true,
-      notifyHod: true,
-      scheduleAudit: false,
-      outbreakFlag: false,
-    });
     setSnackbar({
       open: true,
       message: "New case created.",
@@ -405,31 +267,11 @@ export default function InfectionControlPage() {
 
   const openIsolateDialog = (targetCase: InfectionCase) => {
     setIsolateCaseId(targetCase.id);
-    setIsolateForm((prev) => ({
-      ...prev,
-      roomId: "",
-      isolationType:
-        targetCase.isolationType === "Contact"
-          ? "Contact Precautions"
-          : targetCase.isolationType === "Droplet"
-            ? "Droplet Precautions"
-            : targetCase.isolationType === "Airborne"
-              ? "Airborne Precautions"
-              : "Standard Precautions",
-      gloves: true,
-      gown: true,
-      surgicalMask:
-        targetCase.isolationType === "Droplet" ||
-        targetCase.isolationType === "Airborne",
-      n95: targetCase.isolationType === "Airborne",
-      faceShield: false,
-      notes: "",
-    }));
     setIsolateDialogOpen(true);
   };
 
-  const handleConfirmIsolation = () => {
-    if (!isolateCaseId || !isolateForm.roomId) {
+  const handleConfirmIsolation = (formData: any) => {
+    if (!isolateCaseId || !formData.roomId) {
       setSnackbar({
         open: true,
         message: "Please select an isolation room.",
@@ -438,15 +280,15 @@ export default function InfectionControlPage() {
       return;
     }
     const room = AVAILABLE_ISOLATION_ROOMS.find(
-      (r) => r.id === isolateForm.roomId,
+      (r) => r.id === formData.roomId,
     );
     if (room) {
       const isoType =
-        isolateForm.isolationType === "Contact Precautions"
+        formData.isolationType === "Contact Precautions"
           ? "Contact"
-          : isolateForm.isolationType === "Droplet Precautions"
+          : formData.isolationType === "Droplet Precautions"
             ? "Droplet"
-            : isolateForm.isolationType === "Airborne Precautions"
+            : formData.isolationType === "Airborne Precautions"
               ? "Airborne"
               : "Contact"; // Standard Precautions → Contact for IC status
       setCases((prev) =>
@@ -473,26 +315,16 @@ export default function InfectionControlPage() {
     setIsolateCaseId(null);
   };
 
-  const handleLogAudit = () => {
+  const handleLogAudit = (formData: any) => {
     const newAudit: AuditRecord = {
       id: `au-${Date.now()}`,
-      ward: auditForm.wardArea || "General Ward",
-      compliance: Number(auditForm.score) || 90,
-      lead: auditForm.leadAuditor || "Team Lead",
-      lastAudit: auditForm.auditDate || "Just now",
+      ward: formData.wardArea || "General Ward",
+      compliance: Number(formData.score) || 90,
+      lead: formData.leadAuditor || "Team Lead",
+      lastAudit: formData.auditDate || "Just now",
     };
     setAudits((prev) => [newAudit, ...prev]);
     setAuditDialogOpen(false);
-    setAuditForm({
-      linkedPatient: "",
-      wardArea: "",
-      score: "",
-      observations: "",
-      correctiveActions: "",
-      auditType: "Hand Hygiene",
-      leadAuditor: "",
-      auditDate: "",
-    });
     setSnackbar({
       open: true,
       message: "Audit logged successfully.",
@@ -857,160 +689,172 @@ export default function InfectionControlPage() {
     return counts;
   }, [cases]);
 
-  const flowTabs: CommonTabItem<(typeof FLOW_TAB_IDS)[number]>[] = React.useMemo(() => [
-    {
-      id: "detect",
-      label: (
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            Detect
-          </Typography>
-          <Box
-            sx={{
-              px: 0.8,
-              py: 0.15,
-              borderRadius: "6px",
-              bgcolor:
-                activeTab === "detect"
-                  ? alpha("#fff", 0.2)
-                  : alpha(theme.palette.primary.main, 0.08),
-              color:
-                activeTab === "detect" ? "inherit" : theme.palette.primary.main,
-              fontSize: "0.7rem",
-              fontWeight: 800,
-              minWidth: 20,
-              textAlign: "center",
-            }}
-          >
-            {tabCounts.detect}
-          </Box>
-        </Stack>
-      ),
-      icon: <SearchIcon />,
-    },
-    {
-      id: "isolate",
-      label: (
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            Isolate
-          </Typography>
-          <Box
-            sx={{
-              px: 0.8,
-              py: 0.15,
-              borderRadius: "6px",
-              bgcolor:
-                activeTab === "isolate"
-                  ? alpha("#fff", 0.2)
-                  : alpha(theme.palette.primary.main, 0.08),
-              color:
-                activeTab === "isolate"
-                  ? "inherit"
-                  : theme.palette.primary.main,
-              fontSize: "0.7rem",
-              fontWeight: 800,
-              minWidth: 20,
-              textAlign: "center",
-            }}
-          >
-            {tabCounts.isolate}
-          </Box>
-        </Stack>
-      ),
-      icon: <HealthAndSafetyIcon />,
-    },
-    {
-      id: "notify",
-      label: (
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            Notify
-          </Typography>
-          <Box
-            sx={{
-              px: 0.8,
-              py: 0.15,
-              borderRadius: "6px",
-              bgcolor:
-                activeTab === "notify"
-                  ? alpha("#fff", 0.2)
-                  : alpha(theme.palette.primary.main, 0.08),
-              color:
-                activeTab === "notify" ? "inherit" : theme.palette.primary.main,
-              fontSize: "0.7rem",
-              fontWeight: 800,
-              minWidth: 20,
-              textAlign: "center",
-            }}
-          >
-            {tabCounts.notify}
-          </Box>
-        </Stack>
-      ),
-      icon: <NotificationsIcon />,
-    },
-    {
-      id: "audit",
-      label: (
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            Audit
-          </Typography>
-          <Box
-            sx={{
-              px: 0.8,
-              py: 0.15,
-              borderRadius: "6px",
-              bgcolor:
-                activeTab === "audit"
-                  ? alpha("#fff", 0.2)
-                  : alpha(theme.palette.primary.main, 0.08),
-              color:
-                activeTab === "audit" ? "inherit" : theme.palette.primary.main,
-              fontSize: "0.7rem",
-              fontWeight: 800,
-              minWidth: 20,
-              textAlign: "center",
-            }}
-          >
-            {tabCounts.audit}
-          </Box>
-        </Stack>
-      ),
-      icon: <AssignmentTurnedInIcon />,
-    },
-    {
-      id: "close",
-      label: (
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            Close
-          </Typography>
-          <Box
-            sx={{
-              px: 0.8,
-              py: 0.15,
-              borderRadius: "6px",
-              bgcolor:
-                activeTab === "close"
-                  ? alpha("#fff", 0.2)
-                  : alpha(theme.palette.primary.main, 0.08),
-              color:
-                activeTab === "close" ? "inherit" : theme.palette.primary.main,
-              fontSize: "0.7rem",
-              fontWeight: 800,
-              minWidth: 20,
-              textAlign: "center",
-            }}
-          >
-            {tabCounts.close}
-          </Box>
-        </Stack>
-      ),
-      icon: <CheckCircleIcon />,
-    },
-  ]  , [activeTab, theme, tabCounts]);
+  const flowTabs: CommonTabItem<(typeof FLOW_TAB_IDS)[number]>[] =
+    React.useMemo(
+      () => [
+        {
+          id: "detect",
+          label: (
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Detect
+              </Typography>
+              <Box
+                sx={{
+                  px: 0.8,
+                  py: 0.15,
+                  borderRadius: "6px",
+                  bgcolor:
+                    activeTab === "detect"
+                      ? alpha("#fff", 0.2)
+                      : alpha(theme.palette.primary.main, 0.08),
+                  color:
+                    activeTab === "detect"
+                      ? "inherit"
+                      : theme.palette.primary.main,
+                  fontSize: "0.7rem",
+                  fontWeight: 800,
+                  minWidth: 20,
+                  textAlign: "center",
+                }}
+              >
+                {tabCounts.detect}
+              </Box>
+            </Stack>
+          ),
+          icon: <SearchIcon />,
+        },
+        {
+          id: "isolate",
+          label: (
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Isolate
+              </Typography>
+              <Box
+                sx={{
+                  px: 0.8,
+                  py: 0.15,
+                  borderRadius: "6px",
+                  bgcolor:
+                    activeTab === "isolate"
+                      ? alpha("#fff", 0.2)
+                      : alpha(theme.palette.primary.main, 0.08),
+                  color:
+                    activeTab === "isolate"
+                      ? "inherit"
+                      : theme.palette.primary.main,
+                  fontSize: "0.7rem",
+                  fontWeight: 800,
+                  minWidth: 20,
+                  textAlign: "center",
+                }}
+              >
+                {tabCounts.isolate}
+              </Box>
+            </Stack>
+          ),
+          icon: <HealthAndSafetyIcon />,
+        },
+        {
+          id: "notify",
+          label: (
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Notify
+              </Typography>
+              <Box
+                sx={{
+                  px: 0.8,
+                  py: 0.15,
+                  borderRadius: "6px",
+                  bgcolor:
+                    activeTab === "notify"
+                      ? alpha("#fff", 0.2)
+                      : alpha(theme.palette.primary.main, 0.08),
+                  color:
+                    activeTab === "notify"
+                      ? "inherit"
+                      : theme.palette.primary.main,
+                  fontSize: "0.7rem",
+                  fontWeight: 800,
+                  minWidth: 20,
+                  textAlign: "center",
+                }}
+              >
+                {tabCounts.notify}
+              </Box>
+            </Stack>
+          ),
+          icon: <NotificationsIcon />,
+        },
+        {
+          id: "audit",
+          label: (
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Audit
+              </Typography>
+              <Box
+                sx={{
+                  px: 0.8,
+                  py: 0.15,
+                  borderRadius: "6px",
+                  bgcolor:
+                    activeTab === "audit"
+                      ? alpha("#fff", 0.2)
+                      : alpha(theme.palette.primary.main, 0.08),
+                  color:
+                    activeTab === "audit"
+                      ? "inherit"
+                      : theme.palette.primary.main,
+                  fontSize: "0.7rem",
+                  fontWeight: 800,
+                  minWidth: 20,
+                  textAlign: "center",
+                }}
+              >
+                {tabCounts.audit}
+              </Box>
+            </Stack>
+          ),
+          icon: <AssignmentTurnedInIcon />,
+        },
+        {
+          id: "close",
+          label: (
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Close
+              </Typography>
+              <Box
+                sx={{
+                  px: 0.8,
+                  py: 0.15,
+                  borderRadius: "6px",
+                  bgcolor:
+                    activeTab === "close"
+                      ? alpha("#fff", 0.2)
+                      : alpha(theme.palette.primary.main, 0.08),
+                  color:
+                    activeTab === "close"
+                      ? "inherit"
+                      : theme.palette.primary.main,
+                  fontSize: "0.7rem",
+                  fontWeight: 800,
+                  minWidth: 20,
+                  textAlign: "center",
+                }}
+              >
+                {tabCounts.close}
+              </Box>
+            </Stack>
+          ),
+          icon: <CheckCircleIcon />,
+        },
+      ],
+      [activeTab, theme, tabCounts],
+    );
 
   const casesTableBlock = (
     <CommonDataGrid<InfectionCase>
@@ -1051,8 +895,6 @@ export default function InfectionControlPage() {
       child: (
         <IsolateTabContent
           casesTableBlock={casesTableBlock}
-          ppeChecklist={ppeChecklist}
-          setPpeChecklist={setPpeChecklist}
           selectedIsolationRoomId={selectedIsolationRoomId}
           isolations={isolations}
           openIsolateDialog={openIsolateDialog}
@@ -1063,24 +905,12 @@ export default function InfectionControlPage() {
     {
       label: flowTabs[2].label,
       icon: flowTabs[2].icon,
-      child: (
-        <NotifyTabContent
-          sendToChannels={sendToChannels}
-          setSendToChannels={setSendToChannels}
-          canWrite={canWrite}
-        />
-      ),
+      child: <NotifyTabContent canWrite={canWrite} />,
     },
     {
       label: flowTabs[3].label,
       icon: flowTabs[3].icon,
-      child: (
-        <AuditTabContent
-          casesTableBlock={casesTableBlock}
-          auditChecklist={auditChecklist}
-          setAuditChecklist={setAuditChecklist}
-        />
-      ),
+      child: <AuditTabContent casesTableBlock={casesTableBlock} />,
     },
     {
       label: flowTabs[4].label,
@@ -1145,26 +975,22 @@ export default function InfectionControlPage() {
         {/* Tabs and Flow content */}
         <CustomCardTabs
           items={tabItems}
-          showBackground={false}
+          // showBackground={true}
           defaultValue={FLOW_TAB_IDS.indexOf(activeTab)}
           sticky={true}
           onChange={(index) => {
             setActiveTab(FLOW_TAB_IDS[index]);
           }}
-          tabsSx={{
-            mb: 1,
-            "& .MuiTabs-indicator": { height: 3, borderRadius: "3px 3px 0 0" },
-          }}
+          // tabsSx={{
+          //   mb: 1,
+          //   "& .MuiTabs-indicator": { height: 3, borderRadius: "3px 3px 0 0" },
+          // }}
         />
       </Stack>
 
       <CaseDialog
         open={caseDialogOpen}
         onClose={() => setCaseDialogOpen(false)}
-        caseForm={caseForm}
-        setCaseForm={setCaseForm}
-        autoTriggers={autoTriggers}
-        setAutoTriggers={setAutoTriggers}
         handleCreateCase={handleCreateCase}
         canWrite={canWrite}
       />
@@ -1186,11 +1012,8 @@ export default function InfectionControlPage() {
         open={isolateDialogOpen}
         onClose={() => setIsolateDialogOpen(false)}
         isolateCaseId={isolateCaseId}
-        setIsolateCaseId={setIsolateCaseId}
-        isolateForm={isolateForm}
-        setIsolateForm={setIsolateForm}
+        onConfirmIsolation={handleConfirmIsolation}
         cases={cases}
-        handleConfirmIsolation={handleConfirmIsolation}
         canWrite={canWrite}
         AVAILABLE_ISOLATION_ROOMS={AVAILABLE_ISOLATION_ROOMS}
         CASE_EXTRA={CASE_EXTRA}
@@ -1199,10 +1022,8 @@ export default function InfectionControlPage() {
       <AuditDialog
         open={auditDialogOpen}
         onClose={() => setAuditDialogOpen(false)}
-        auditForm={auditForm}
-        setAuditForm={setAuditForm}
         cases={cases}
-        handleLogAudit={handleLogAudit}
+        onLogAudit={handleLogAudit}
         canWrite={canWrite}
       />
 
@@ -1210,11 +1031,8 @@ export default function InfectionControlPage() {
         open={closeCaseDialogOpen}
         onClose={() => setCloseCaseDialogOpen(false)}
         closeCaseId={closeCaseId}
-        setCloseCaseId={setCloseCaseId}
-        closeCaseForm={closeCaseForm}
-        setCloseCaseForm={setCloseCaseForm}
         cases={cases}
-        handleConfirmCloseCase={handleConfirmCloseCase}
+        onConfirmCloseCase={handleConfirmCloseCase}
         canWrite={canWrite}
       />
 
