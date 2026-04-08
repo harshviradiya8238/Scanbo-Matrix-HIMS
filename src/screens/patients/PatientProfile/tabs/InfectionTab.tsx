@@ -113,6 +113,12 @@ export function InfectionTab({ data }: InfectionTabProps) {
     router,
     patient,
   } = data;
+  const activeInfectionCases = infectionCases.filter(
+    (c: any) => c.status === "Active",
+  );
+  const primaryActiveCase = activeInfectionCases[0];
+  const infectionRoute = `/clinical/modules/bugsy-infection-control?mrn=${encodeURIComponent(patient?.mrn ?? "")}`;
+
   return (
     <TabPanel value={activeTab} tab="infection">
       <Stack direction="row" spacing={1} alignItems="center" sx={tabHeaderSx}>
@@ -121,6 +127,65 @@ export function InfectionTab({ data }: InfectionTabProps) {
           Infection Control
         </Typography>
       </Stack>
+
+      {primaryActiveCase ? (
+        <Box
+          sx={{
+            mb: 2,
+            p: 2,
+            borderRadius: 2,
+            border: `1px solid ${alpha(theme.palette.error.main, 0.24)}`,
+            bgcolor: alpha(theme.palette.error.main, 0.05),
+          }}
+        >
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1.5}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", sm: "center" }}
+          >
+            <Box>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Chip
+                  size="small"
+                  color="error"
+                  label={`${activeInfectionCases.length} active case${activeInfectionCases.length === 1 ? "" : "s"}`}
+                />
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  color="warning"
+                  label={`${primaryActiveCase.isolationType} isolation`}
+                />
+              </Stack>
+              <Typography variant="body2" sx={{ mt: 1, fontWeight: 700 }}>
+                {primaryActiveCase.organism} · {primaryActiveCase.icStatus} ·{" "}
+                {primaryActiveCase.unit} Bed {primaryActiveCase.bed}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Updated {primaryActiveCase.lastUpdate}. Open Bugsy before lab,
+                IPD bed, or rounds decisions.
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              variant="contained"
+              color="error"
+              endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
+              onClick={() => router.push(infectionRoute)}
+              sx={{
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 700,
+                boxShadow: "none",
+                color: "common.white",
+              }}
+            >
+              Open Infection Case
+            </Button>
+          </Stack>
+        </Box>
+      ) : null}
 
       {infectionCases.length > 0 ? (
         <Stack spacing={2.5}>
@@ -309,7 +374,9 @@ export function InfectionTab({ data }: InfectionTabProps) {
                     color="error"
                     endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
                     onClick={() =>
-                      router.push("/clinical/modules/bugsy-infection-control")
+                      router.push(
+                        `/clinical/modules/bugsy-infection-control?mrn=${encodeURIComponent(c.mrn ?? patient?.mrn ?? "")}`,
+                      )
                     }
                     sx={{
                       borderRadius: 2,
@@ -358,9 +425,7 @@ export function InfectionTab({ data }: InfectionTabProps) {
             variant="outlined"
             size="small"
             startIcon={<OpenInNewIcon />}
-            onClick={() =>
-              router.push("/clinical/modules/bugsy-infection-control")
-            }
+            onClick={() => router.push(infectionRoute)}
           >
             Open Infection Control
           </Button>

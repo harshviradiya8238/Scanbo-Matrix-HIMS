@@ -45,8 +45,8 @@ Patient को पूरे system में **MRN (Medical Record Number)** स
 | Module | Route | Patient Link | Data Source |
 |--------|-------|--------------|-------------|
 | Lab Orders | `/orders/lab` | Order form | Lab orders (mrn) |
-| Lab Samples | `/diagnostics/lab/samples` | Sample tracking | labSlice (samples) |
-| **Lab Results** | `/diagnostics/lab/results?mrn=XXX` | Results view | labSlice (results) |
+| Lab Samples | `/lab/samples` | Sample tracking | labSlice / IPD sample lifecycle |
+| **Lab Results** | `/lab/analysis-results?mrn=XXX` | Results view | labSlice / lab analysis workspace |
 | Radiology Orders | `/orders/radiology` | Imaging orders | Radiology orders |
 | Radiology Worklist | `/diagnostics/radiology/worklist` | Worklist | radiologySlice |
 | Radiology Reports | `/diagnostics/radiology/reports` | Reports | radiologySlice |
@@ -67,7 +67,8 @@ Patient को पूरे system में **MRN (Medical Record Number)** स
 From Infection Control table rows, Patient Workflows menu opens with links:
 
 - **Patient Profile** → `/patients/profile?mrn=XXX`
-- **Lab Results** → `/diagnostics/lab/results?mrn=XXX`
+- **Infection Control** → `/clinical/modules/bugsy-infection-control?mrn=XXX`
+- **Lab Results** → `/lab/analysis-results?mrn=XXX`
 - **IPD Bed Board** → `/ipd/beds?mrn=XXX`
 - **IPD Rounds** → `/ipd/rounds?mrn=XXX`
 - **Microbiology** → `/ipd/orders-tests/lab?mrn=XXX`
@@ -235,7 +236,8 @@ Patient Profile Page
 |------|-----|-------------|
 | Anywhere | Patient Profile | `/patients/profile?mrn=MRN-XXX` |
 | Profile | Calendar | `/appointments/calendar?mrn=XXX&booking=1` |
-| Profile | Lab Results | `/diagnostics/lab/results?mrn=XXX` |
+| Profile | Infection Control | `/clinical/modules/bugsy-infection-control?mrn=XXX` |
+| Profile | Lab Results | `/lab/analysis-results?mrn=XXX` |
 | Profile | IPD Beds | `/ipd/beds?mrn=XXX` |
 | Profile | IPD Rounds | `/ipd/rounds?mrn=XXX` |
 | Infection Control | Profile / Lab / etc. | Patient Workflows menu → `?mrn=XXX` |

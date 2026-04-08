@@ -41,6 +41,7 @@ import {
   DISCHARGE_CANDIDATES,
   INITIAL_BED_BOARD,
 } from "@/src/screens/ipd/ipd-mock-data";
+import { INFECTION_CONTROL_SUMMARY } from "@/src/mocks/infection-control";
 import { useOpdData } from "@/src/store/opdHooks";
 import { CLINICAL_MODULES } from "@/src/screens/clinical/module-registry";
 import LabDashboardPage from "../lab/sample-lifecycle/dashboard/LabDashboardPage";
@@ -112,6 +113,11 @@ export default function DashboardPage() {
     [],
   );
 
+  const billingHoldCount = React.useMemo(
+    () => patientData.filter((row) => row.status === "Billing Hold").length,
+    [],
+  );
+
   const wardSummary = React.useMemo<WardSummary[]>(() => {
     const map = new Map<string, WardSummary>();
 
@@ -158,11 +164,6 @@ export default function DashboardPage() {
 
   const totalOutstanding = React.useMemo(
     () => patientData.reduce((sum, row) => sum + row.outstandingBalance, 0),
-    [],
-  );
-
-  const billingHoldCount = React.useMemo(
-    () => patientData.filter((row) => row.status === "Billing Hold").length,
     [],
   );
 
@@ -311,6 +312,15 @@ export default function DashboardPage() {
               subtitle={`${urgentAdmissions} urgent/emergency cases`}
               tone="success"
               icon={<LocalHospitalIcon sx={{ fontSize: 30 }} />}
+            />
+          </Box>
+          <Box>
+            <StatTile
+              label="Infection Control"
+              value={INFECTION_CONTROL_SUMMARY.activeCaseCount}
+              subtitle={`${INFECTION_CONTROL_SUMMARY.isolationOccupancy} isolation rooms · ${INFECTION_CONTROL_SUMMARY.auditOpenCount} audits`}
+              tone="error"
+              icon={<WarningAmberIcon sx={{ fontSize: 30 }} />}
             />
           </Box>
         </Box>
@@ -494,6 +504,16 @@ export default function DashboardPage() {
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                     Operational Alerts
                   </Typography>
+
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <WarningAmberIcon color="error" fontSize="small" />
+                    <Typography variant="body2">
+                      {INFECTION_CONTROL_SUMMARY.activeCaseCount} active
+                      infection cases, {INFECTION_CONTROL_SUMMARY.isolationOccupancy}{" "}
+                      isolation rooms, and {INFECTION_CONTROL_SUMMARY.auditOpenCount}{" "}
+                      audits need hospital-wide follow-up.
+                    </Typography>
+                  </Stack>
 
                   <Stack direction="row" spacing={1} alignItems="center">
                     <WarningAmberIcon color="warning" fontSize="small" />

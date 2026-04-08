@@ -91,6 +91,7 @@ export interface IpdAdmissionsData {
   handleOpenAdmissionDialog: (rowId?: string) => void;
   handleSaveAdmission: () => void;
   handleOpenBedBoard: (row: PatientRow | AdmissionQueueRow) => void;
+  handleOpenInfectionCase: (row: PatientRow | AdmissionQueueRow) => void;
   
   // Permissions
   canManageAdmissions: boolean;

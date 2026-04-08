@@ -35,7 +35,7 @@ import { useAppDispatch, useAppSelector } from "@/src/store/hooks";
 import { addPartition } from "@/src/store/slices/limsSlice";
 import { useLabTheme } from "../../lab-theme";
 import type { LabPartition } from "../../lab-types";
-import AddPartitionModal from "../../modals/";
+import AddPartitionModal from "../../modals/AddPartitionModal";
 
 export default function LabPartitionsPage() {
   const theme = useTheme();
@@ -359,9 +359,13 @@ export default function LabPartitionsPage() {
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={() => setModalOpen(true)}
+                  onClick={() =>{ setModalOpen(true)
+                    console.log("clicked");
+                    
+                  }}
                   disabled={!selectedParentId}
                   sx={{
+                    cursor:"pointer",
                     borderRadius: 2,
                     textTransform: "none",
                     px: 3,

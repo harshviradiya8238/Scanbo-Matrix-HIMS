@@ -267,7 +267,7 @@ export default function LabSamplesPage() {
               <Button variant="outlined" startIcon={<ScienceIcon />} onClick={() => router.push(withMrn('/orders/lab'))}>
                 Open Orders
               </Button>
-              <Button variant="contained" startIcon={<LocalHospitalIcon />} onClick={() => router.push(withMrn('/diagnostics/lab/results'))}>
+              <Button variant="contained" startIcon={<LocalHospitalIcon />} onClick={() => router.push(withMrn('/lab/analysis-results'))}>
                 Open Results
               </Button>
             </>

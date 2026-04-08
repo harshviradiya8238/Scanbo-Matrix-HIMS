@@ -10,6 +10,7 @@ import {
   IpdAdmissionsData,
   PatientRow,
 } from "../utils/ipd-admissions-types";
+import { getActiveInfectionCaseByMrn } from "@/src/mocks/infection-control";
 
 interface IpdAdmissionsTableProps {
   data: IpdAdmissionsData;
@@ -20,9 +21,9 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
     historyTab,
     visibleAllPatients,
     visibleQueueRows,
-    handleOpenAdmissionDialog,
     canManageAdmissions,
     handleOpenBedBoard,
+    handleOpenInfectionCase,
     canOpenBedBoard,
   } = data;
 
@@ -91,19 +92,47 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
       ),
     },
     {
+      id: "infection",
+      label: "Infection",
+      minWidth: 170,
+      renderCell: (patient) => {
+        const infectionCase = getActiveInfectionCaseByMrn(patient.mrn);
+        if (!infectionCase) return "--";
+        return (
+          <Chip
+            size="small"
+            color="error"
+            label={`${infectionCase.organism} · ${infectionCase.icStatus}`}
+          />
+        );
+      },
+    },
+    {
       id: "open",
       label: "Action",
       align: "right",
-      minWidth: 160,
+      minWidth: 260,
       renderCell: (patient) => (
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={!canOpenBedBoard}
-          onClick={() => handleOpenBedBoard(patient)}
-        >
-          {patient.bed ? "Bed / Ward" : "Allocate Bed"}
-        </Button>
+        <>
+          {getActiveInfectionCaseByMrn(patient.mrn) ? (
+            <Button
+              size="small"
+              variant="text"
+              color="error"
+              onClick={() => handleOpenInfectionCase(patient)}
+            >
+              Infection
+            </Button>
+          ) : null}
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={!canOpenBedBoard}
+            onClick={() => handleOpenBedBoard(patient)}
+          >
+            {patient.bed ? "Bed / Ward" : "Allocate Bed"}
+          </Button>
+        </>
       ),
     },
   ];
@@ -162,6 +191,22 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
       ),
     },
     {
+      id: "infection",
+      label: "Infection",
+      minWidth: 170,
+      renderCell: (row) => {
+        const infectionCase = getActiveInfectionCaseByMrn(row.mrn);
+        if (!infectionCase) return "--";
+        return (
+          <Chip
+            size="small"
+            color="error"
+            label={`${infectionCase.organism} · ${infectionCase.icStatus}`}
+          />
+        );
+      },
+    },
+    {
       id: "preferredWard",
       label: "Ward Selection",
       minWidth: 180,
@@ -177,17 +222,29 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
       id: "open",
       label: "Action",
       align: "right",
-      minWidth: 180,
+      minWidth: 260,
       renderCell: (row) => {
         return (
-          <Button
-            size="small"
-            variant="outlined"
-            disabled={!canManageAdmissions}
-            onClick={() => handleOpenBedBoard(row)}
-          >
-            Allocate Bed
-          </Button>
+          <>
+            {getActiveInfectionCaseByMrn(row.mrn) ? (
+              <Button
+                size="small"
+                variant="text"
+                color="error"
+                onClick={() => handleOpenInfectionCase(row)}
+              >
+                Infection
+              </Button>
+            ) : null}
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={!canManageAdmissions}
+              onClick={() => handleOpenBedBoard(row)}
+            >
+              Allocate Bed
+            </Button>
+          </>
         );
       },
     },

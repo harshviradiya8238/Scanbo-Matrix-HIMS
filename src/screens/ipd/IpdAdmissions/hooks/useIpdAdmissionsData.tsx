@@ -4,6 +4,7 @@ import * as React from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMrnParam } from "@/src/core/patients/useMrnParam";
 import { getPatientByMrn } from "@/src/mocks/global-patients";
+import { getActiveInfectionCaseByMrn } from "@/src/mocks/infection-control";
 import { usePermission } from "@/src/core/auth/usePermission";
 import {
   ADMISSION_LEADS,
@@ -338,6 +339,8 @@ export function useIpdAdmissionsData(): IpdAdmissionsData {
       const tags = ["Admitted"];
       if (!patient.bed) tags.push("Bed Pending");
       if (dischargeCandidate) tags.push("Discharge Due");
+      const infectionCase = getActiveInfectionCaseByMrn(patient.mrn);
+      if (infectionCase) tags.push("Infection Control");
       if (
         patient.ward.toLowerCase().includes("icu") ||
         patient.bed.toLowerCase().includes("icu")
@@ -354,9 +357,11 @@ export function useIpdAdmissionsData(): IpdAdmissionsData {
         bed: patient.bed || "--",
         consultant: patient.consultant,
         diagnosis: patient.diagnosis,
-        status,
+        status: infectionCase ? "Infection Alert" : status,
         statusTone:
-          status === "Discharge Due"
+          infectionCase
+            ? "error"
+            : status === "Discharge Due"
             ? "warning"
             : status === "Bed Pending"
               ? "warning"
@@ -428,6 +433,9 @@ export function useIpdAdmissionsData(): IpdAdmissionsData {
     const globalPatient = getPatientByMrn(selectedTopBarPatient.mrn);
     const allergies =
       lead?.knownAllergies || globalPatient?.tags?.join(", ") || "No known";
+    const infectionCase = getActiveInfectionCaseByMrn(
+      selectedTopBarPatient.mrn,
+    );
     const status =
       selectedTopBarPatient.status ||
       (activePatient?.bed ? "Admitted" : "Pending Admission");
@@ -441,6 +449,16 @@ export function useIpdAdmissionsData(): IpdAdmissionsData {
       : "--";
 
     return [
+      ...(infectionCase
+        ? [
+            {
+              id: "infection",
+              label: "Infection",
+              value: `${infectionCase.organism} · ${infectionCase.icStatus}`,
+              tone: "error" as const,
+            },
+          ]
+        : []),
       {
         id: "age-sex",
         label: "Age / Sex",
@@ -637,6 +655,12 @@ export function useIpdAdmissionsData(): IpdAdmissionsData {
     router.push(route);
   };
 
+  const handleOpenInfectionCase = (row: PatientRow | AdmissionQueueRow) => {
+    router.push(
+      `/clinical/modules/bugsy-infection-control?mrn=${encodeURIComponent(row.mrn)}`,
+    );
+  };
+
   const filterRow = (rowValue: string, query: string) => {
     return String(rowValue ?? "")
       .toLowerCase()
@@ -713,6 +737,7 @@ export function useIpdAdmissionsData(): IpdAdmissionsData {
     handleOpenAdmissionDialog,
     handleSaveAdmission,
     handleOpenBedBoard,
+    handleOpenInfectionCase,
     canManageAdmissions,
     canOpenBedBoard,
     snackbar,

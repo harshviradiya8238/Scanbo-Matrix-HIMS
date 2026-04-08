@@ -27,7 +27,7 @@ const PATIENT_WORKFLOW_MENU_ITEMS = [
   {
     icon: <ScienceIcon sx={{ fontSize: 18 }} />,
     label: "Lab Results",
-    path: "/diagnostics/lab/results",
+    path: "/lab/analysis-results",
   },
   {
     icon: <HealthAndSafetyIcon sx={{ fontSize: 18 }} />,

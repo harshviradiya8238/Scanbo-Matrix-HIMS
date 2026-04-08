@@ -159,10 +159,22 @@ export default function InfectionControlPage() {
     cases.find((item) => item.id === selectedCaseId) ?? cases[0];
   const caseTimeline = CASE_TIMELINES[selectedCase?.id ?? ""] ?? [];
   const closedCases = cases.filter((item) => item.status === "Closed");
+  const activeCaseCount = cases.filter((item) => item.status === "Active").length;
+  const isolationOccupancy = isolations.filter(
+    (room) => room.status === "Active" || room.status === "Review",
+  ).length;
+  const averageAuditCompliance =
+    audits.length > 0
+      ? Math.round(
+          audits.reduce((total, audit) => total + audit.compliance, 0) /
+            audits.length,
+        )
+      : 0;
   const flowMrn = selectedCase?.mrn ?? mrnParam;
   const pageSubtitle = formatPatientLabel(selectedCase?.patientName, flowMrn);
   const withMrn = React.useCallback(
-    (route: string) => (flowMrn ? `${route}?mrn=${flowMrn}` : route),
+    (route: string) =>
+      flowMrn ? `${route}?mrn=${encodeURIComponent(flowMrn)}` : route,
     [flowMrn],
   );
 
@@ -266,6 +278,7 @@ export default function InfectionControlPage() {
   };
 
   const openIsolateDialog = (targetCase: InfectionCase) => {
+    setSelectedCaseId(targetCase.id);
     setIsolateCaseId(targetCase.id);
     setIsolateDialogOpen(true);
   };
@@ -856,30 +869,120 @@ export default function InfectionControlPage() {
       [activeTab, theme, tabCounts],
     );
 
-  const casesTableBlock = (
-    <CommonDataGrid<InfectionCase>
-      rows={cases.filter((c) => c.icStatus === IC_STATUS_BY_TAB[activeTab])}
-      columns={columns}
-      getRowId={(row) => row.id}
-      showSerialNo={true}
-      searchPlaceholder="Search patient, MRN, organism..."
-      searchFields={["patientName", "mrn", "organism"]}
-      toolbarRight={
+  const activeTabCases = React.useMemo(
+    () => cases.filter((c) => c.icStatus === IC_STATUS_BY_TAB[activeTab]),
+    [activeTab, cases],
+  );
+
+  const tableToolbarAction = React.useMemo(() => {
+    const primaryCase = activeTabCases[0];
+
+    const commonSx = {
+      textTransform: "none",
+      fontWeight: 600,
+      px: 2,
+    };
+
+    if (activeTab === "detect") {
+      return (
         <Button
           variant="contained"
           size="small"
           startIcon={<AddCircleIcon />}
           disabled={!canWrite}
           onClick={() => setCaseDialogOpen(true)}
-          sx={{
-            textTransform: "none",
-            fontWeight: 600,
-            px: 2,
-          }}
+          sx={commonSx}
         >
           New Case
         </Button>
-      }
+      );
+    }
+
+    if (activeTab === "isolate") {
+      return (
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<HealthAndSafetyIcon />}
+          disabled={!canWrite || !primaryCase}
+          onClick={() => primaryCase && openIsolateDialog(primaryCase)}
+          sx={commonSx}
+        >
+          Assign Isolation
+        </Button>
+      );
+    }
+
+    if (activeTab === "notify") {
+      return (
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<SendIcon />}
+          disabled={!canWrite || !primaryCase}
+          onClick={() =>
+            setSnackbar({
+              open: true,
+              message: primaryCase
+                ? `Notification workflow ready for ${primaryCase.patientName}.`
+                : "No notified cases available.",
+              severity: "info",
+            })
+          }
+          sx={{
+            ...commonSx,
+            bgcolor: "warning.main",
+            "&:hover": { bgcolor: "warning.dark" },
+          }}
+        >
+          Send Notification
+        </Button>
+      );
+    }
+
+    if (activeTab === "audit") {
+      return (
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<AssignmentTurnedInIcon />}
+          disabled={!canWrite}
+          onClick={() => setAuditDialogOpen(true)}
+          sx={commonSx}
+        >
+          Log Audit
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        variant="contained"
+        size="small"
+        color="success"
+        startIcon={<CheckCircleIcon />}
+        disabled={!primaryCase}
+        onClick={() => {
+          if (!primaryCase) return;
+          setSelectedCaseId(primaryCase.id);
+          setCaseDetailOpen(true);
+        }}
+        sx={commonSx}
+      >
+        Closure Review
+      </Button>
+    );
+  }, [activeTab, activeTabCases, canWrite]);
+
+  const casesTableBlock = (
+    <CommonDataGrid<InfectionCase>
+      rows={activeTabCases}
+      columns={columns}
+      getRowId={(row) => row.id}
+      showSerialNo={true}
+      searchPlaceholder="Search patient, MRN, organism..."
+      searchFields={["patientName", "mrn", "organism"]}
+      toolbarRight={tableToolbarAction}
     />
   );
 
@@ -895,6 +998,7 @@ export default function InfectionControlPage() {
       child: (
         <IsolateTabContent
           casesTableBlock={casesTableBlock}
+          selectedCase={selectedCase}
           selectedIsolationRoomId={selectedIsolationRoomId}
           isolations={isolations}
           openIsolateDialog={openIsolateDialog}
@@ -905,7 +1009,12 @@ export default function InfectionControlPage() {
     {
       label: flowTabs[2].label,
       icon: flowTabs[2].icon,
-      child: <NotifyTabContent canWrite={canWrite} />,
+      child: (
+        <NotifyTabContent
+          casesTableBlock={casesTableBlock}
+          canWrite={canWrite}
+        />
+      ),
     },
     {
       label: flowTabs[3].label,
@@ -940,18 +1049,14 @@ export default function InfectionControlPage() {
         >
           <StatTile
             label="Active Cases"
-            value={cases.filter((item) => item.status === "Active").length}
+            value={activeCaseCount}
             subtitle="Under investigation"
             icon={<BugReportIcon sx={{ fontSize: 24 }} />}
             tone="primary"
           />
           <StatTile
             label="Isolation Rooms"
-            value={
-              isolations.filter(
-                (room) => room.status === "Active" || room.status === "Review",
-              ).length
-            }
+            value={isolationOccupancy}
             subtitle="Currently active"
             icon={<HealthAndSafetyIcon sx={{ fontSize: 24 }} />}
             tone="primary"
@@ -965,11 +1070,43 @@ export default function InfectionControlPage() {
           />
           <StatTile
             label="Compliance"
-            value="92%"
-            subtitle="Last 7 days"
+            value={`${averageAuditCompliance}%`}
+            subtitle={`${tabCounts.audit} open audits`}
             icon={<CheckCircleIcon sx={{ fontSize: 24 }} />}
             tone="primary"
           />
+        </Box>
+
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 2,
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
+            bgcolor: alpha(theme.palette.primary.main, 0.03),
+          }}
+        >
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={1.5}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", md: "center" }}
+          >
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                Global Infection Control Summary
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Active cases, isolation occupancy, and audit status are visible
+                for hospital-wide clinical safety follow-up.
+              </Typography>
+            </Box>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Chip size="small" color="error" label={`${activeCaseCount} active cases`} />
+              <Chip size="small" color="warning" label={`${isolationOccupancy} isolation rooms`} />
+              <Chip size="small" color="info" label={`${tabCounts.audit} audits in progress`} />
+              <Chip size="small" color="success" label={`${averageAuditCompliance}% audit score`} />
+            </Stack>
+          </Stack>
         </Box>
 
         {/* Tabs and Flow content */}

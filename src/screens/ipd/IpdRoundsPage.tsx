@@ -35,6 +35,7 @@ import { alpha, useTheme } from "@/src/ui/theme";
 import { useMrnParam } from "@/src/core/patients/useMrnParam";
 import { INPATIENT_STAYS } from "./ipd-mock-data";
 import { getPatientByMrn } from "@/src/mocks/global-patients";
+import { getActiveInfectionCaseByMrn } from "@/src/mocks/infection-control";
 import { useUser } from "@/src/core/auth/UserContext";
 import { canAccessRoute } from "@/src/core/navigation/route-access";
 import { ipdFormStylesSx } from "./components/ipd-ui";
@@ -1833,6 +1834,10 @@ export default function IpdRoundsPage() {
   const patientNotes = notesByPatient[selectedPatient.id] ?? [];
   const patientProcedures = proceduresByPatient[selectedPatient.id] ?? [];
   const patientChecklist = checklistsByPatient[selectedPatient.id] ?? [];
+  const activeInfectionCase = React.useMemo(
+    () => getActiveInfectionCaseByMrn(selectedPatient.mrn),
+    [selectedPatient.mrn],
+  );
   const latestVitals = patientVitals[0];
   const pendingOrders = patientOrders.filter(
     (order) => order.status !== "Completed" && order.status !== "Cancelled",
@@ -1968,6 +1973,8 @@ export default function IpdRoundsPage() {
       const tags = ["Admitted"];
       if (patient.status === "Needs Review") tags.push("Discharge Due");
       if (patient.status === "Critical") tags.push("Critical");
+      const infectionCase = getActiveInfectionCaseByMrn(patient.mrn);
+      if (infectionCase) tags.push("Infection Control");
       if (
         patient.ward.toLowerCase().includes("icu") ||
         patient.bed.toLowerCase().includes("icu")
@@ -1983,9 +1990,11 @@ export default function IpdRoundsPage() {
         bed: patient.bed,
         consultant: patient.consultant,
         diagnosis: patient.diagnosis,
-        status,
+        status: infectionCase ? "Infection Alert" : status,
         statusTone:
-          status === "Critical"
+          infectionCase
+            ? "error"
+            : status === "Critical"
             ? "error"
             : status === "Discharge Due"
               ? "warning"
@@ -2018,6 +2027,16 @@ export default function IpdRoundsPage() {
             : "Admitted";
 
     return [
+      ...(activeInfectionCase
+        ? [
+            {
+              id: "infection",
+              label: "Infection",
+              value: `${activeInfectionCase.organism} · ${activeInfectionCase.icStatus}`,
+              tone: "error" as const,
+            },
+          ]
+        : []),
       {
         id: "age-sex",
         label: "Age / Sex",
@@ -2084,7 +2103,7 @@ export default function IpdRoundsPage() {
         tone: "info",
       },
     ];
-  }, [selectedPatient]);
+  }, [activeInfectionCase, selectedPatient]);
 
   const topBarHeader = (
     <IpdPatientTopBar
@@ -3032,6 +3051,31 @@ export default function IpdRoundsPage() {
               </Stack>
             </Stack>
           </WorkspaceHeaderCard>
+
+          {activeInfectionCase ? (
+            <Alert
+              severity="warning"
+              action={
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() =>
+                    openRoute(
+                      "/clinical/modules/bugsy-infection-control",
+                      "/clinical/modules/bugsy-infection-control",
+                    )
+                  }
+                >
+                  Open Case
+                </Button>
+              }
+            >
+              Active infection case: {activeInfectionCase.organism} ·{" "}
+              {activeInfectionCase.icStatus} ·{" "}
+              {activeInfectionCase.isolationType} isolation. Keep precautions
+              visible during rounds and transfer decisions.
+            </Alert>
+          ) : null}
 
           <Box>
             <Card
@@ -4381,11 +4425,11 @@ export default function IpdRoundsPage() {
                     <Stack spacing={1}>
                       <Button
                         variant="outlined"
-                        disabled={!canNavigate("/diagnostics/lab/samples")}
+                        disabled={!canNavigate("/lab/samples")}
                         onClick={() =>
                           openRoute(
-                            "/diagnostics/lab/samples",
-                            "/diagnostics/lab/samples",
+                            "/lab/samples",
+                            "/lab/samples",
                           )
                         }
                       >

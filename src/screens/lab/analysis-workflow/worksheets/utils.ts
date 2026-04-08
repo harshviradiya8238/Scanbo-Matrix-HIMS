@@ -1,4 +1,4 @@
-import type { LabWorksheet } from "../lab-types";
+import type { LabWorksheet } from "../../lab-types";
 
 export function worksheetProgress(
   w: LabWorksheet,

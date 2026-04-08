@@ -110,6 +110,212 @@ export const PPE_CHECKLIST: PpeChecklistItem[] = [
   },
 ];
 
+export const PPE_CHECKLIST_BY_MRN: Record<string, PpeChecklistItem[]> = {
+  "MRN-245990": [
+    {
+      id: "ppe-1",
+      label: "Gloves — contact precautions for MRSA wound culture",
+      checked: true,
+      role: "Nurse Staff",
+    },
+    {
+      id: "ppe-2",
+      label: "Gown — disposable isolation gown before room entry",
+      checked: true,
+      role: "Ward Staff",
+    },
+    {
+      id: "ppe-3",
+      label: "Dedicated wound dressing trolley assigned",
+      checked: true,
+      role: "Nurse Staff",
+    },
+    {
+      id: "ppe-4",
+      label: "Contact isolation sign posted at B-12",
+      checked: true,
+      role: "Housekeeping",
+    },
+    {
+      id: "ppe-5",
+      label: "Dedicated BP cuff and stethoscope at bedside",
+      checked: false,
+      role: "Ward Staff",
+    },
+    {
+      id: "ppe-6",
+      label: "Alcohol hand rub station stocked at entrance",
+      checked: true,
+      role: "Housekeeping",
+    },
+  ],
+  "MRN-245799": [
+    {
+      id: "ppe-1",
+      label: "Gloves — VRE contact handling for ICU care",
+      checked: true,
+      role: "Nurse Staff",
+    },
+    {
+      id: "ppe-2",
+      label: "Gown — ICU disposable isolation gown",
+      checked: true,
+      role: "Ward Staff",
+    },
+    {
+      id: "ppe-3",
+      label: "Surgical mask and eye protection for splash risk",
+      checked: true,
+      role: "Nurse Staff",
+    },
+    {
+      id: "ppe-4",
+      label: "Droplet/contact sign posted at ICU-03",
+      checked: true,
+      role: "Housekeeping",
+    },
+    {
+      id: "ppe-5",
+      label: "Dedicated urine collection equipment assigned",
+      checked: false,
+      role: "Ward Staff",
+    },
+    {
+      id: "ppe-6",
+      label: "ICU terminal cleaning checklist started",
+      checked: false,
+      role: "Housekeeping",
+    },
+  ],
+  "MRN-245781": [
+    {
+      id: "ppe-1",
+      label: "Gloves — respiratory specimen handling",
+      checked: true,
+      role: "Nurse Staff",
+    },
+    {
+      id: "ppe-2",
+      label: "Gown — disposable isolation gown",
+      checked: true,
+      role: "Ward Staff",
+    },
+    {
+      id: "ppe-3",
+      label: "N95 / FFP2 respirator for airborne precautions",
+      checked: true,
+      role: "Nurse Staff",
+    },
+    {
+      id: "ppe-4",
+      label: "Airborne isolation sign posted at B-08",
+      checked: true,
+      role: "Housekeeping",
+    },
+    {
+      id: "ppe-5",
+      label: "Portable HEPA / negative-pressure review completed",
+      checked: false,
+      role: "Maintenance",
+    },
+    {
+      id: "ppe-6",
+      label: "Fit-check reminder briefed to visiting staff",
+      checked: false,
+      role: "Infection Control",
+    },
+  ],
+};
+
+export const PPE_CHECKLIST_BY_ISOLATION_TYPE: Record<string, PpeChecklistItem[]> = {
+  Contact: PPE_CHECKLIST,
+  Droplet: [
+    {
+      id: "ppe-1",
+      label: "Gloves — patient contact and specimen handling",
+      checked: true,
+      role: "Nurse Staff",
+    },
+    {
+      id: "ppe-2",
+      label: "Surgical mask before entering patient zone",
+      checked: true,
+      role: "All Staff",
+    },
+    {
+      id: "ppe-3",
+      label: "Eye protection / face shield for splash risk",
+      checked: false,
+      role: "Nurse Staff",
+    },
+    {
+      id: "ppe-4",
+      label: "Droplet precautions sign posted at room door",
+      checked: true,
+      role: "Housekeeping",
+    },
+    {
+      id: "ppe-5",
+      label: "Dedicated patient equipment assigned",
+      checked: false,
+      role: "Ward Staff",
+    },
+    {
+      id: "ppe-6",
+      label: "Hand sanitizer station at room entrance",
+      checked: true,
+      role: "Housekeeping",
+    },
+  ],
+  Airborne: [
+    {
+      id: "ppe-1",
+      label: "N95 / FFP2 respirator available before entry",
+      checked: true,
+      role: "All Staff",
+    },
+    {
+      id: "ppe-2",
+      label: "Fit-check completed for assigned care team",
+      checked: false,
+      role: "Nurse Staff",
+    },
+    {
+      id: "ppe-3",
+      label: "Gown and gloves for direct patient care",
+      checked: true,
+      role: "Ward Staff",
+    },
+    {
+      id: "ppe-4",
+      label: "Airborne isolation sign posted at room door",
+      checked: true,
+      role: "Housekeeping",
+    },
+    {
+      id: "ppe-5",
+      label: "Negative-pressure / ventilation check requested",
+      checked: false,
+      role: "Maintenance",
+    },
+    {
+      id: "ppe-6",
+      label: "Dedicated equipment assigned at bedside",
+      checked: false,
+      role: "Ward Staff",
+    },
+  ],
+  Standard: PPE_CHECKLIST,
+};
+
+export const getPpeChecklistForPatient = (
+  mrn?: string,
+  isolationType?: string,
+) =>
+  (mrn ? PPE_CHECKLIST_BY_MRN[mrn] : undefined) ??
+  (isolationType ? PPE_CHECKLIST_BY_ISOLATION_TYPE[isolationType] : undefined) ??
+  PPE_CHECKLIST;
+
 export const ROOM_MAP_ITEMS: RoomMapItem[] = [
   { id: "rm-1", label: "B MRSA CONTACT", status: "occupied" },
   { id: "rm-2", label: "ICU VRE AIRBORNE", status: "occupied" },
