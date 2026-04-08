@@ -12,8 +12,6 @@ import {
   Snackbar,
   Stack,
   Switch,
-  Tab,
-  Tabs,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -45,7 +43,6 @@ import {
 } from '@mui/icons-material';
 import PatientPortalWorkspaceCard from './components/PatientPortalWorkspaceCard';
 import { FAMILY_MEMBERS, PATIENT } from './patient-portal-mock-data';
-import { ppSectionCard, ppSectionHeader } from './patient-portal-styles';
 
 type ShareTab = 'share' | 'shared-with-me' | 'shared-by-me';
 type ShareWindowMode = 'period' | 'continuous';
@@ -281,10 +278,14 @@ const SHARED_BY_ME_INITIAL: SharedByMeEntry[] = [
   },
 ];
 
+const scrollbar = {
+  '&::-webkit-scrollbar': { width: 3 },
+  '&::-webkit-scrollbar-thumb': { borderRadius: 3, bgcolor: 'divider' },
+};
+
 export default function PatientPortalSharePage() {
   const theme = useTheme();
-  const sectionCard = ppSectionCard(theme);
-  const sectionHeader = ppSectionHeader(theme);
+  const pr = theme.palette.primary;
 
   const today = React.useMemo(() => formatDateInput(new Date()), []);
   const defaultStart = React.useMemo(() => {
@@ -377,9 +378,7 @@ export default function PatientPortalSharePage() {
 
   const toggleVital = (vitalId: VitalMetricId) => {
     setSelectedVitals((prev) => {
-      if (prev.includes(vitalId)) {
-        return prev.filter((id) => id !== vitalId);
-      }
+      if (prev.includes(vitalId)) return prev.filter((id) => id !== vitalId);
       return [...prev, vitalId];
     });
   };
@@ -485,102 +484,116 @@ export default function PatientPortalSharePage() {
     });
   };
 
+  /* ── Tab config ── */
+  const TABS: { value: ShareTab; label: string; count?: number }[] = [
+    { value: 'share', label: 'Share Vitals' },
+    { value: 'shared-with-me', label: 'Shared With Me', count: sharedWithMe.length },
+    { value: 'shared-by-me', label: 'Shared By Me', count: sharedByMe.length },
+  ];
+
   return (
     <PatientPortalWorkspaceCard current="share">
-      <Stack spacing={1.25}>
-        <Card
-          elevation={0}
-          sx={{
-            ...sectionCard,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <Box sx={sectionHeader}>
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={1}
-              justifyContent="space-between"
-              alignItems={{ xs: 'flex-start', sm: 'center' }}
-            >
-              <Stack direction="row" spacing={1} alignItems="center">
-                <ShareIcon fontSize="small" color="primary" />
-                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                  Vital Sharing Workspace
-                </Typography>
-              </Stack>
-              <Chip
-                size="small"
-                icon={<ShieldOutlinedIcon sx={{ fontSize: 13 }} />}
-                label="Role-based and revocable access"
-                sx={{
-                  height: 22,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  bgcolor: alpha(theme.palette.success.main, 0.1),
-                  color: 'success.dark',
-                  '& .MuiChip-icon': { color: 'success.main' },
-                }}
-              />
+      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, gap: '10px', overflow: 'hidden' }}>
+
+        {/* ── Header card with pill tabs ── */}
+        <Box sx={{
+          bgcolor: 'background.paper', borderRadius: '22px',
+          border: '1px solid', borderColor: 'divider',
+          p: '16px 20px 14px', flexShrink: 0,
+        }}>
+          {/* Title row */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 1.5 }}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <ShareIcon fontSize="small" color="primary" />
+              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                Vital Sharing Workspace
+              </Typography>
             </Stack>
+            <Chip
+              size="small"
+              icon={<ShieldOutlinedIcon sx={{ fontSize: 13 }} />}
+              label="Role-based and revocable access"
+              sx={{
+                height: 22, fontSize: 11, fontWeight: 700,
+                bgcolor: alpha(theme.palette.success.main, 0.1),
+                color: 'success.dark',
+                '& .MuiChip-icon': { color: 'success.main' },
+              }}
+            />
+          </Stack>
+
+          {/* Pill tab switcher */}
+          <Box sx={{
+            bgcolor: alpha(theme.palette.grey[100], 0.9),
+            borderRadius: '14px', border: '1px solid', borderColor: 'divider',
+            p: '5px', display: 'flex', gap: '3px',
+          }}>
+            {TABS.map(({ value, label, count }) => (
+              <Box key={value} onClick={() => setActiveTab(value)} sx={{
+                flex: 1, py: '9px', px: 1.25, borderRadius: '11px',
+                fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
+                textAlign: 'center',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                bgcolor: activeTab === value ? 'primary.main' : 'transparent',
+                color: activeTab === value ? '#fff' : 'text.secondary',
+                transition: 'all 0.15s',
+                '&:hover': { bgcolor: activeTab === value ? 'primary.main' : alpha(pr.main, 0.06) },
+              }}>
+                {label}
+                {count !== undefined && (
+                  <Box sx={{
+                    width: 18, height: 18, borderRadius: '50%',
+                    fontSize: 10, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    bgcolor: activeTab === value ? 'rgba(255,255,255,0.25)' : alpha(theme.palette.text.secondary, 0.1),
+                    color: activeTab === value ? '#fff' : 'text.disabled',
+                  }}>
+                    {count}
+                  </Box>
+                )}
+              </Box>
+            ))}
           </Box>
+        </Box>
 
-          <Tabs
-            value={activeTab}
-            onChange={(_event, value) => setActiveTab(value)}
-            variant="standard"
-            sx={{
-              px: 2,
-              pt: 1.2,
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                minHeight: 42,
-                fontWeight: 700,
-              },
-            }}
-          >
-            <Tab value="share" label="Share Vitals" />
-            <Tab value="shared-with-me" label="Shared With Me" />
-            <Tab value="shared-by-me" label="Shared By Me" />
-          </Tabs>
-          <Divider />
+        {/* ── Tab content area ── */}
+        <Box sx={{
+          flex: 1, minHeight: 0, overflowY: 'auto',
+          bgcolor: 'background.paper', borderRadius: '22px',
+          border: '1px solid', borderColor: 'divider',
+          p: { xs: 1.5, sm: 2 },
+          ...scrollbar,
+        }}>
 
-          <Box
-            sx={{
-              p: { xs: 1.2, sm: 1.4 },
-              flex: 1,
-              minHeight: 0,
-              overflow: 'auto',
-            }}
-          >
-            {activeTab === 'share' && (
-              <Stack spacing={1.1}>
-                <Stack direction="row" spacing={0.9} alignItems="center" flexWrap="wrap">
-                  <Chip
-                    size="small"
-                    label="1. Select Patient"
-                    color={selectedProfile ? 'success' : 'primary'}
-                    variant={selectedProfile ? 'filled' : 'outlined'}
-                    sx={{ fontWeight: 700 }}
-                  />
-                  <ArrowForwardRoundedIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
-                  <Chip
-                    size="small"
-                    label="2. Configure and Share"
-                    color={selectedProfile ? 'primary' : 'default'}
-                    variant={selectedProfile ? 'filled' : 'outlined'}
-                    sx={{ fontWeight: 700 }}
-                  />
-                </Stack>
+          {/* ══ Share Vitals tab ══ */}
+          {activeTab === 'share' && (
+            <Stack spacing={1.1}>
+              <Stack direction="row" spacing={0.9} alignItems="center" flexWrap="wrap">
+                <Chip
+                  size="small"
+                  label="1. Select Patient"
+                  color={selectedProfile ? 'success' : 'primary'}
+                  variant={selectedProfile ? 'filled' : 'outlined'}
+                  sx={{ fontWeight: 700 }}
+                />
+                <ArrowForwardRoundedIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
+                <Chip
+                  size="small"
+                  label="2. Configure and Share"
+                  color={selectedProfile ? 'primary' : 'default'}
+                  variant={selectedProfile ? 'filled' : 'outlined'}
+                  sx={{ fontWeight: 700 }}
+                />
+              </Stack>
 
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gap: 1.2,
-                    gridTemplateColumns: { xs: '1fr', lg: '320px minmax(0, 1fr)' },
-                    minHeight: 0,
-                  }}
-                >
+              <Box
+                sx={{
+                  display: 'grid',
+                  gap: 1.2,
+                  gridTemplateColumns: { xs: '1fr', lg: '320px minmax(0, 1fr)' },
+                  minHeight: 0,
+                }}
+              >
                 <Card
                   elevation={0}
                   sx={{
@@ -642,9 +655,7 @@ export default function PatientPortalSharePage() {
                                   size="small"
                                   label={profile.relation}
                                   sx={{
-                                    height: 17,
-                                    fontSize: 10,
-                                    fontWeight: 700,
+                                    height: 17, fontSize: 10, fontWeight: 700,
                                     bgcolor: alpha(theme.palette.primary.main, 0.1),
                                     color: 'primary.dark',
                                   }}
@@ -757,9 +768,7 @@ export default function PatientPortalSharePage() {
                           size="small"
                           label={`${selectedVitals.length}/${VITAL_METRICS.length} selected`}
                           sx={{
-                            height: 19,
-                            fontSize: 10,
-                            fontWeight: 700,
+                            height: 19, fontSize: 10, fontWeight: 700,
                             bgcolor: alpha(theme.palette.primary.main, 0.1),
                             color: 'primary.dark',
                           }}
@@ -799,11 +808,8 @@ export default function PatientPortalSharePage() {
                               <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
                                 <Box
                                   sx={{
-                                    width: 24,
-                                    height: 24,
-                                    borderRadius: 1,
-                                    display: 'grid',
-                                    placeItems: 'center',
+                                    width: 24, height: 24, borderRadius: 1,
+                                    display: 'grid', placeItems: 'center',
                                     color: metric.color,
                                     backgroundColor: alpha(metric.color, 0.12),
                                     flexShrink: 0,
@@ -816,7 +822,7 @@ export default function PatientPortalSharePage() {
                                     {metric.label}
                                   </Typography>
                                   <Typography variant="caption" color="text.secondary" noWrap>
-                                    {metric.short}
+                                    {VITAL_DESCRIPTION[metric.id]}
                                   </Typography>
                                 </Box>
                               </Stack>
@@ -859,9 +865,7 @@ export default function PatientPortalSharePage() {
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                       <Box
                         sx={{
-                          flex: 1,
-                          p: 0.8,
-                          borderRadius: 1.4,
+                          flex: 1, p: 0.8, borderRadius: 1.4,
                           border: '1px solid',
                           borderColor: alpha(theme.palette.primary.main, 0.18),
                           backgroundColor: alpha(theme.palette.primary.main, 0.02),
@@ -889,9 +893,7 @@ export default function PatientPortalSharePage() {
 
                       <Box
                         sx={{
-                          flex: 1,
-                          p: 0.8,
-                          borderRadius: 1.4,
+                          flex: 1, p: 0.8, borderRadius: 1.4,
                           border: '1px solid',
                           borderColor: alpha(theme.palette.primary.main, 0.18),
                           backgroundColor: alpha(theme.palette.primary.main, 0.02),
@@ -952,294 +954,285 @@ export default function PatientPortalSharePage() {
                     </Stack>
                   </Stack>
                 </Card>
-                </Box>
-              </Stack>
-            )}
+              </Box>
+            </Stack>
+          )}
 
-            {activeTab === 'shared-with-me' && (
-              <Stack spacing={1}>
-                {sharedWithMe.map((entry) => (
-                  <Box
-                    key={entry.id}
-                    sx={{
-                      p: 1.4,
-                      borderRadius: 2,
-                      border: '1px solid',
-                      borderColor:
-                        entry.status === 'Active'
-                          ? alpha(theme.palette.success.main, 0.26)
-                          : alpha(theme.palette.warning.main, 0.3),
-                      backgroundColor:
-                        entry.status === 'Active'
-                          ? alpha(theme.palette.success.main, 0.03)
-                          : alpha(theme.palette.warning.main, 0.06),
-                    }}
-                  >
-                    <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1}>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap">
-                          <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                            {entry.sharedBy}
-                          </Typography>
-                          <Chip
-                            size="small"
-                            label={entry.role}
-                            sx={{
-                              height: 18,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              bgcolor: alpha(theme.palette.primary.main, 0.1),
-                              color: 'primary.dark',
-                            }}
-                          />
-                          <Chip
-                            size="small"
-                            label={entry.status}
-                            sx={{
-                              height: 18,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              bgcolor:
-                                entry.status === 'Active'
-                                  ? alpha(theme.palette.success.main, 0.1)
-                                  : alpha(theme.palette.warning.main, 0.12),
-                              color: entry.status === 'Active' ? 'success.dark' : 'warning.dark',
-                            }}
-                          />
-                        </Stack>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.4 }}>
-                          Source: {entry.source} - Granted: {formatDisplayDate(entry.grantedOn)} -{' '}
-                          {entry.expiresOn ? `Expires: ${formatDisplayDate(entry.expiresOn)}` : 'No expiry'}
+          {/* ══ Shared With Me tab ══ */}
+          {activeTab === 'shared-with-me' && (
+            <Stack spacing={1}>
+              {sharedWithMe.map((entry) => (
+                <Box
+                  key={entry.id}
+                  sx={{
+                    p: 1.4, borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: entry.status === 'Active'
+                      ? alpha(theme.palette.success.main, 0.26)
+                      : alpha(theme.palette.warning.main, 0.3),
+                    backgroundColor: entry.status === 'Active'
+                      ? alpha(theme.palette.success.main, 0.03)
+                      : alpha(theme.palette.warning.main, 0.06),
+                  }}
+                >
+                  <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1}>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap">
+                        <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                          {entry.sharedBy}
                         </Typography>
-                        <Stack direction="row" spacing={0.6} flexWrap="wrap" sx={{ mt: 0.8 }}>
-                          {entry.vitals.map((id) => (
-                            <Chip
-                              key={`${entry.id}-${id}`}
-                              size="small"
-                              label={VITAL_LABEL[id]}
-                              variant="outlined"
-                              sx={{ height: 18, fontSize: 10, fontWeight: 700 }}
-                            />
-                          ))}
-                        </Stack>
-                      </Box>
-                      <Stack direction="row" spacing={0.8} alignItems="flex-start">
-                        <Button
+                        <Chip
                           size="small"
-                          variant="outlined"
-                          onClick={() =>
-                            setSnackbar({
-                              open: true,
-                              message: `Opening shared vitals from ${entry.sharedBy}.`,
-                              severity: 'info',
-                            })
-                          }
-                          sx={{ textTransform: 'none', fontWeight: 700 }}
-                        >
-                          View Data
-                        </Button>
+                          label={entry.role}
+                          sx={{
+                            height: 18, fontSize: 10, fontWeight: 700,
+                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            color: 'primary.dark',
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label={entry.status}
+                          sx={{
+                            height: 18, fontSize: 10, fontWeight: 700,
+                            bgcolor: entry.status === 'Active'
+                              ? alpha(theme.palette.success.main, 0.1)
+                              : alpha(theme.palette.warning.main, 0.12),
+                            color: entry.status === 'Active' ? 'success.dark' : 'warning.dark',
+                          }}
+                        />
                       </Stack>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.4 }}>
+                        Source: {entry.source} - Granted: {formatDisplayDate(entry.grantedOn)} -{' '}
+                        {entry.expiresOn ? `Expires: ${formatDisplayDate(entry.expiresOn)}` : 'No expiry'}
+                      </Typography>
+                      <Stack direction="row" spacing={0.6} flexWrap="wrap" sx={{ mt: 0.8 }}>
+                        {entry.vitals.map((id) => (
+                          <Chip
+                            key={`${entry.id}-${id}`}
+                            size="small"
+                            label={VITAL_LABEL[id]}
+                            variant="outlined"
+                            sx={{ height: 18, fontSize: 10, fontWeight: 700 }}
+                          />
+                        ))}
+                      </Stack>
+                    </Box>
+                    <Stack direction="row" spacing={0.8} alignItems="flex-start">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() =>
+                          setSnackbar({
+                            open: true,
+                            message: `Opening shared vitals from ${entry.sharedBy}.`,
+                            severity: 'info',
+                          })
+                        }
+                        sx={{ textTransform: 'none', fontWeight: 700 }}
+                      >
+                        View Data
+                      </Button>
                     </Stack>
-                  </Box>
-                ))}
-              </Stack>
-            )}
+                  </Stack>
+                </Box>
+              ))}
+            </Stack>
+          )}
 
-            {activeTab === 'shared-by-me' && (
-              <Stack spacing={1.2}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  value={historySearch}
-                  onChange={(event) => setHistorySearch(event.target.value)}
+          {/* ══ Shared By Me tab ══ */}
+          {activeTab === 'shared-by-me' && (
+            <Stack spacing={1.2}>
+              {/* Search bar */}
+              <Box sx={{
+                bgcolor: 'background.paper', borderRadius: '14px',
+                border: '1px solid', borderColor: 'divider',
+                px: '14px', py: '8px',
+                display: 'flex', alignItems: 'center', gap: 1,
+              }}>
+                <SearchIcon sx={{ fontSize: 15, color: 'text.disabled', flexShrink: 0 }} />
+                <Box
+                  component="input"
                   placeholder="Search by profile, recipient, channel or metric"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
-                      </InputAdornment>
-                    ),
+                  value={historySearch}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHistorySearch(e.target.value)}
+                  sx={{
+                    border: 'none', background: 'transparent', outline: 'none',
+                    fontFamily: 'inherit', fontSize: '12.5px', color: 'text.primary', width: '100%',
+                    '&::placeholder': { color: '#9AAFBF' },
                   }}
                 />
+              </Box>
 
-                <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: '32px minmax(120px,1.1fr) minmax(120px,1.2fr) minmax(100px,1fr) minmax(80px,0.9fr) 68px',
-                      gap: 0.8,
-                      px: 1.2,
-                      py: 1,
-                      backgroundColor: alpha(theme.palette.primary.main, 0.05),
-                      borderBottom: '1px solid',
-                      borderColor: alpha(theme.palette.primary.main, 0.15),
-                    }}
-                  >
-                    {['', 'Profile', 'Shared To', 'Period', 'Vitals', 'Active'].map((head) => (
-                      <Typography key={head || 'toggle'} variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>
-                        {head}
-                      </Typography>
-                    ))}
-                  </Box>
+              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: '32px minmax(120px,1.1fr) minmax(120px,1.2fr) minmax(100px,1fr) minmax(80px,0.9fr) 68px',
+                    gap: 0.8,
+                    px: 1.2, py: 1,
+                    backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                    borderBottom: '1px solid',
+                    borderColor: alpha(theme.palette.primary.main, 0.15),
+                  }}
+                >
+                  {['', 'Profile', 'Shared To', 'Period', 'Vitals', 'Active'].map((head) => (
+                    <Typography key={head || 'toggle'} variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>
+                      {head}
+                    </Typography>
+                  ))}
+                </Box>
 
-                  {filteredSharedByMe.map((entry) => {
-                    const expanded = expandedShareId === entry.id;
-                    const enabledVitals = getEnabledVitals(entry.vitalAccess);
-                    const canToggle = entry.status !== 'Revoked' && entry.status !== 'Expired';
-                    return (
-                      <React.Fragment key={entry.id}>
-                        <Box
-                          sx={{
-                            display: 'grid',
-                            gridTemplateColumns: '32px minmax(120px,1.1fr) minmax(120px,1.2fr) minmax(100px,1fr) minmax(80px,0.9fr) 68px',
-                            gap: 0.8,
-                            px: 1.2,
-                            py: 1,
-                            alignItems: 'center',
-                            borderBottom: expanded ? 'none' : '1px solid',
-                            borderColor: 'divider',
-                          }}
+                {filteredSharedByMe.map((entry) => {
+                  const expanded = expandedShareId === entry.id;
+                  const enabledVitals = getEnabledVitals(entry.vitalAccess);
+                  const canToggle = entry.status !== 'Revoked' && entry.status !== 'Expired';
+                  return (
+                    <React.Fragment key={entry.id}>
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: '32px minmax(120px,1.1fr) minmax(120px,1.2fr) minmax(100px,1fr) minmax(80px,0.9fr) 68px',
+                          gap: 0.8,
+                          px: 1.2, py: 1,
+                          alignItems: 'center',
+                          borderBottom: expanded ? 'none' : '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={() => setExpandedShareId(expanded ? null : entry.id)}
+                          sx={{ minWidth: 0, p: 0.2 }}
                         >
-                          <Button
-                            size="small"
-                            variant="text"
-                            onClick={() => setExpandedShareId(expanded ? null : entry.id)}
-                            sx={{ minWidth: 0, p: 0.2 }}
-                          >
-                            {expanded ? <ExpandLessIcon sx={{ fontSize: 18 }} /> : <ExpandMoreIcon sx={{ fontSize: 18 }} />}
-                          </Button>
+                          {expanded ? <ExpandLessIcon sx={{ fontSize: 18 }} /> : <ExpandMoreIcon sx={{ fontSize: 18 }} />}
+                        </Button>
 
-                          <Box sx={{ minWidth: 0 }}>
-                            <Typography variant="caption" sx={{ fontWeight: 700 }} noWrap>
-                              {entry.profileName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }} noWrap>
-                              {formatDisplayDate(entry.sharedOn)}
-                            </Typography>
-                          </Box>
-
-                          <Box sx={{ minWidth: 0 }}>
-                            <Typography variant="caption" sx={{ fontWeight: 700 }} noWrap>
-                              {entry.recipientName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }} noWrap>
-                              {entry.channel}
-                            </Typography>
-                          </Box>
-
-                          <Typography variant="caption" color="text.secondary" noWrap>
-                            {entry.periodLabel}
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700 }} noWrap>
+                            {entry.profileName}
                           </Typography>
-
-                          <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                            {enabledVitals.length}
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }} noWrap>
+                            {formatDisplayDate(entry.sharedOn)}
                           </Typography>
-
-                          <Tooltip title={entry.status}>
-                            <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-                              <Switch
-                                size="small"
-                                checked={entry.status === 'Active'}
-                                disabled={!canToggle}
-                                onChange={(event) => handleToggleShareStatus(entry.id, event.target.checked)}
-                              />
-                            </Box>
-                          </Tooltip>
                         </Box>
 
-                        {expanded && (
-                          <Box
-                            sx={{
-                              px: 1.2,
-                              pb: 1.2,
-                              borderBottom: '1px solid',
-                              borderColor: 'divider',
-                              backgroundColor: alpha(theme.palette.primary.main, 0.02),
-                            }}
-                          >
-                            <Stack spacing={1}>
-                              <Stack direction="row" spacing={0.8} alignItems="center" justifyContent="space-between">
-                                <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap">
-                                  <Chip
-                                    size="small"
-                                    label={entry.status}
-                                    sx={{
-                                      height: 20,
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      bgcolor: statusBackground(theme, entry.status),
-                                      color: statusColor(entry.status),
-                                    }}
-                                  />
-                                  <Typography variant="caption" color="text.secondary">
-                                    {entry.recipientType} - {entry.recipientMobile || 'No mobile'} -{' '}
-                                    {entry.recipientEmail || 'No email'}
-                                  </Typography>
-                                </Stack>
-                                {entry.status !== 'Revoked' && (
-                                  <Button
-                                    size="small"
-                                    color="error"
-                                    variant="outlined"
-                                    onClick={() => handleRevoke(entry.id)}
-                                    sx={{ textTransform: 'none', fontWeight: 700 }}
-                                    startIcon={<DeleteOutlineIcon sx={{ fontSize: 14 }} />}
-                                  >
-                                    Revoke
-                                  </Button>
-                                )}
-                              </Stack>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700 }} noWrap>
+                            {entry.recipientName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }} noWrap>
+                            {entry.channel}
+                          </Typography>
+                        </Box>
 
-                              <Box sx={{ display: 'grid', gap: 0.7, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
-                                {VITAL_METRICS.map((metric) => (
-                                  <Box
-                                    key={`${entry.id}-${metric.id}`}
-                                    sx={{
-                                      p: 0.8,
-                                      borderRadius: 1.4,
-                                      border: '1px solid',
-                                      borderColor: alpha(metric.color, 0.24),
-                                      backgroundColor: alpha(metric.color, 0.05),
-                                    }}
-                                  >
-                                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                      <Stack direction="row" spacing={0.8} alignItems="center">
-                                        <Box sx={{ color: metric.color }}>{metric.icon}</Box>
-                                        <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                          {metric.label}
-                                        </Typography>
-                                      </Stack>
-                                      <Switch
-                                        size="small"
-                                        checked={entry.vitalAccess[metric.id]}
-                                        disabled={entry.status !== 'Active'}
-                                        onChange={() => handleToggleShareVital(entry.id, metric.id)}
-                                      />
-                                    </Stack>
-                                  </Box>
-                                ))}
-                              </Box>
-                            </Stack>
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                          {entry.periodLabel}
+                        </Typography>
+
+                        <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                          {enabledVitals.length}
+                        </Typography>
+
+                        <Tooltip title={entry.status}>
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                            <Switch
+                              size="small"
+                              checked={entry.status === 'Active'}
+                              disabled={!canToggle}
+                              onChange={(event) => handleToggleShareStatus(entry.id, event.target.checked)}
+                            />
                           </Box>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
+                        </Tooltip>
+                      </Box>
 
-                  {filteredSharedByMe.length === 0 && (
-                    <Box sx={{ p: 2.2, textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No shared records found for this search.
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-              </Stack>
-            )}
-          </Box>
-        </Card>
+                      {expanded && (
+                        <Box
+                          sx={{
+                            px: 1.2, pb: 1.2,
+                            borderBottom: '1px solid', borderColor: 'divider',
+                            backgroundColor: alpha(theme.palette.primary.main, 0.02),
+                          }}
+                        >
+                          <Stack spacing={1}>
+                            <Stack direction="row" spacing={0.8} alignItems="center" justifyContent="space-between">
+                              <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap">
+                                <Chip
+                                  size="small"
+                                  label={entry.status}
+                                  sx={{
+                                    height: 20, fontSize: 10, fontWeight: 700,
+                                    bgcolor: statusBackground(theme, entry.status),
+                                    color: statusColor(entry.status),
+                                  }}
+                                />
+                                <Typography variant="caption" color="text.secondary">
+                                  {entry.recipientType} - {entry.recipientMobile || 'No mobile'} -{' '}
+                                  {entry.recipientEmail || 'No email'}
+                                </Typography>
+                              </Stack>
+                              {entry.status !== 'Revoked' && (
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  variant="outlined"
+                                  onClick={() => handleRevoke(entry.id)}
+                                  sx={{ textTransform: 'none', fontWeight: 700 }}
+                                  startIcon={<DeleteOutlineIcon sx={{ fontSize: 14 }} />}
+                                >
+                                  Revoke
+                                </Button>
+                              )}
+                            </Stack>
 
-      </Stack>
+                            <Box sx={{ display: 'grid', gap: 0.7, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
+                              {VITAL_METRICS.map((metric) => (
+                                <Box
+                                  key={`${entry.id}-${metric.id}`}
+                                  sx={{
+                                    p: 0.8, borderRadius: 1.4,
+                                    border: '1px solid',
+                                    borderColor: alpha(metric.color, 0.24),
+                                    backgroundColor: alpha(metric.color, 0.05),
+                                  }}
+                                >
+                                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                    <Stack direction="row" spacing={0.8} alignItems="center">
+                                      <Box sx={{ color: metric.color }}>{metric.icon}</Box>
+                                      <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                        {metric.label}
+                                      </Typography>
+                                    </Stack>
+                                    <Switch
+                                      size="small"
+                                      checked={entry.vitalAccess[metric.id]}
+                                      disabled={entry.status !== 'Active'}
+                                      onChange={() => handleToggleShareVital(entry.id, metric.id)}
+                                    />
+                                  </Stack>
+                                </Box>
+                              ))}
+                            </Box>
+                          </Stack>
+                        </Box>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+
+                {filteredSharedByMe.length === 0 && (
+                  <Box sx={{ p: 2.2, textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No shared records found for this search.
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </Stack>
+          )}
+        </Box>
+      </Box>
 
       <Snackbar
         open={snackbar.open}

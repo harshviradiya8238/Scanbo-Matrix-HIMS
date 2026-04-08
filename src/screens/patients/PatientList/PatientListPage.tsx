@@ -38,6 +38,7 @@ import CommonDataGrid from "@/src/components/table/CommonDataGrid";
 import { alpha, useTheme } from "@/src/ui/theme";
 import { patientMetrics, PatientRow } from "@/src/mocks/patientServer";
 import { useHimsLoader } from "@/src/ui/components/Himsloadercontext";
+import PageTemplate from "@/src/ui/components/PageTemplate";
 
 export default function PatientListPage() {
   const theme = useTheme();
@@ -138,125 +139,110 @@ React.useEffect(() => {
   ] as const;
 
   return (
-    <Box sx={{ px: 3, py: 3 }}>
-      <WorkspaceHeaderCard sx={{ mb: 2 }}>
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={2}
-          justifyContent="space-between"
-          alignItems={{ xs: "flex-start", md: "center" }}
-        >
-          <Box>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={{ xs: 0.8, sm: 1.25 }}
-              alignItems={{ xs: "flex-start", sm: "center" }}
-              sx={{ mb: 0.6 }}
-            >
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                Patients
-              </Typography>
-              {!isDoctor && (
-                <Stack direction="row" spacing={1} flexWrap="wrap">
-                  <Chip size="small" color="primary" label="Patient Registry" />
-                  <Chip
-                    size="small"
-                    color="info"
-                    variant="outlined"
-                    label="OPD + IPD Linked"
-                  />
-                </Stack>
-              )}
-            </Stack>
-            {!isDoctor && (
-              <Typography variant="body2" color="text.secondary">
-                Manage patient demographics, visits, admissions, and billing
-                status in one place.
-              </Typography>
-            )}
-          </Box>
+    <PageTemplate title="Patients" currentPageTitle="Patient List" fullHeight>
+      <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+
+        {/* ── Header ── */}
+        <WorkspaceHeaderCard>
           <Stack
-            direction="row"
+            direction={{ xs: "column", md: "row" }}
             spacing={1.25}
-            flexWrap="wrap"
-            alignItems="center"
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", md: "center" }}
           >
+            <Box>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                sx={{ mb: 0.5 }}
+              >
+                <Typography variant="h5" sx={{ fontWeight: 800, color: "primary.main" }}>
+                  Patients
+                </Typography>
+                {!isDoctor && (
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Chip size="small" color="primary" label="Patient Registry" />
+                    <Chip size="small" color="info" variant="outlined" label="OPD + IPD Linked" />
+                  </Stack>
+                )}
+              </Stack>
+              {!isDoctor && (
+                <Typography variant="body2" color="text.secondary">
+                  Manage patient demographics, visits, admissions, and billing status in one place.
+                </Typography>
+              )}
+            </Box>
             {!isDoctor && (
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => router.push("/patients/registration")}
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 700,
-                  boxShadow:
-                    "0 4px 12px " + alpha(theme.palette.primary.main, 0.25),
-                }}
+                sx={{ fontWeight: 700, px: 3, whiteSpace: "nowrap" }}
               >
                 Register Patient
               </Button>
             )}
           </Stack>
-        </Stack>
-      </WorkspaceHeaderCard>
+        </WorkspaceHeaderCard>
 
-      <Box
-        sx={{
-          display: "grid",
-          gap: 2,
-          mt: 2,
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, minmax(0, 1fr))",
-            lg: "repeat(4, minmax(0, 1fr))",
-          },
-        }}
-      >
-        {statCards.map((stat) => (
-          <StatTile
-            key={stat.label}
-            label={stat.label}
-            value={stat.value}
-            tone={stat.tone}
-            icon={<stat.Icon sx={{ fontSize: 28 }} />}
-          />
-        ))}
-      </Box>
-
-      <Card sx={{ mt: 2 }}>
-        <CommonDataGrid<PatientRow>
-          columns={columns}
-          rows={filteredRows}
-          getRowId={(row) => row.mrn}
-          searchPlaceholder="Search..."
-          searchFields={["mrn", "name", "phone", "city", "department"]}
-          showSerialNo={true}
-          disableRowPointer={true}
-          onRowClick={(row) => {
-            if (isDoctor) {
-              setSelectedPatient(row);
-              setDetailsOpen(true);
-            }
+        {/* ── Stats ── */}
+        <Box
+          sx={{
+            display: "grid",
+            gap: 1.25,
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+              lg: "repeat(4, minmax(0, 1fr))",
+            },
           }}
-          toolbarRight={
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<FilterListIcon />}
-                onClick={() => setFilterDrawerOpen(true)}
-              >
-                Filters
-              </Button>
-              <Button variant="text" size="small" onClick={resetFilters}>
-                Clear
-              </Button>
-            </Stack>
-          }
-        />
+        >
+          {statCards.map((stat) => (
+            <StatTile
+              key={stat.label}
+              label={stat.label}
+              value={stat.value}
+              tone={stat.tone}
+              icon={<stat.Icon sx={{ fontSize: 28 }} />}
+            />
+          ))}
+        </Box>
 
-        <ColumnVisibilityDialog data={data} columns={columns} />
-      </Card>
+        {/* ── Table card — fills remaining height ── */}
+        <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}>
+          <CommonDataGrid<PatientRow>
+            columns={columns}
+            rows={filteredRows}
+            getRowId={(row) => row.mrn}
+            searchPlaceholder="Search..."
+            searchFields={["mrn", "name", "phone", "city", "department"]}
+            showSerialNo={true}
+            disableRowPointer={true}
+            onRowClick={(row) => {
+              if (isDoctor) {
+                setSelectedPatient(row);
+                setDetailsOpen(true);
+              }
+            }}
+            toolbarRight={
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<FilterListIcon />}
+                  onClick={() => setFilterDrawerOpen(true)}
+                >
+                  Filters
+                </Button>
+                <Button variant="text" size="small" onClick={resetFilters}>
+                  Clear
+                </Button>
+              </Stack>
+            }
+          />
+          <ColumnVisibilityDialog data={data} columns={columns} />
+        </Card>
 
       <Drawer
         anchor="right"
@@ -327,6 +313,7 @@ React.useEffect(() => {
       >
         <ActionMenuItems data={data} handleMenuNavigate={handleMenuNavigate} />
       </Menu>
-    </Box>
+      </Stack>
+    </PageTemplate>
   );
 }

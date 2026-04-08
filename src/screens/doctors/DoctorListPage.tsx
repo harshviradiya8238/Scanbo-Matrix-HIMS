@@ -54,6 +54,7 @@ import SimpleDataGrid, {
   CommonColumn,
   FilterDropdown,
 } from "@/src/components/table/CommonDataGrid";
+import PageTemplate from "@/src/ui/components/PageTemplate";
 import { doctorData, doctorMetrics, DoctorRow } from "@/src/mocks/doctorServer";
 import { CARE_COMPANION_ENROLLED } from "@/src/mocks/care-companion";
 import { useRouter } from "next/navigation";
@@ -405,7 +406,8 @@ export default function DoctorListPage() {
 
   /* ── render ── */
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+    <PageTemplate title="Doctors" currentPageTitle="Doctor List" fullHeight>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, flex: 1, minHeight: 0 }}>
       {/* Page Header */}
       <WorkspaceHeaderCard sx={{ borderRadius: '22px' }}>
         <Stack
@@ -508,7 +510,7 @@ export default function DoctorListPage() {
       </Box>
 
       {/* Doctor Registry Table */}
-      <Box>
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         <SimpleDataGrid<DoctorRow>
           columns={columns}
           rows={filteredRows}
@@ -1232,5 +1234,6 @@ export default function DoctorListPage() {
         }}
       />
     </Box>
+    </PageTemplate>
   );
 }

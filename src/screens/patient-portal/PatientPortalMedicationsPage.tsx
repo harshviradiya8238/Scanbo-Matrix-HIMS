@@ -2,30 +2,18 @@
 
 import * as React from 'react';
 import { Box, Button, Chip, Stack, Typography } from '@/src/ui/components/atoms';
-import { Card } from '@/src/ui/components/molecules';
 import { alpha, useTheme } from '@/src/ui/theme';
-import { cardShadow } from '@/src/core/theme/tokens';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import LinearProgress from '@mui/material/LinearProgress';
-import TextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
-import Tooltip from '@mui/material/Tooltip';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
-import type { Theme } from '@mui/material/styles';
 import {
-  AccessTime as AccessTimeIcon,
   AutorenewOutlined as RefillIcon,
   CheckCircle as CheckCircleIcon,
   LocalPharmacy as LocalPharmacyIcon,
-  Medication as MedicationIcon,
-  NoteAlt as NoteAltIcon,
-  Person as PersonIcon,
   Search as SearchIcon,
   Send as SendIcon,
   TaskAlt as TaskAltIcon,
@@ -152,22 +140,29 @@ const RX_DATA: RxRecord[] = [
 ];
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
-const rxStatusColor = (s: RxRecord['status'], t: Theme) =>
+const rxStatusCfg = (s: RxRecord['status']) =>
   s === 'Active'
-    ? { bg: alpha(t.palette.success.main, 0.12), color: t.palette.success.dark }
+    ? { bg: '#DCFCE7', color: '#166534', border: '#86EFAC' }
     : s === 'Expired'
-    ? { bg: alpha(t.palette.error.main, 0.1), color: t.palette.error.main }
-    : { bg: alpha(t.palette.text.secondary, 0.1), color: t.palette.text.secondary };
+    ? { bg: '#FEE2E2', color: '#991B1B', border: '#FCA5A5' }
+    : { bg: 'rgba(100,116,139,0.1)', color: '#64748b', border: 'transparent' };
+
+const CAT_COLOR: Record<string, { bg: string; color: string }> = {
+  Cardiac:    { bg: '#FEE2E2', color: '#991B1B' },
+  Diabetes:   { bg: '#DCFCE7', color: '#166534' },
+  Cholesterol:{ bg: '#EDE9FE', color: '#5B21B6' },
+  Supplement: { bg: '#FEF3C7', color: '#92400E' },
+};
 
 const scrollbar = {
-  '&::-webkit-scrollbar': { width: 5 },
-  '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
-  '&::-webkit-scrollbar-thumb': { borderRadius: 99, bgcolor: 'divider' },
+  '&::-webkit-scrollbar': { width: 3 },
+  '&::-webkit-scrollbar-thumb': { borderRadius: 3, bgcolor: 'divider' },
 };
 
 /* ════════════════════════════════════════════════════════════════════════════ */
 export default function PatientPortalMedicationsPage() {
   const theme = useTheme();
+  const pr = theme.palette.primary;
 
   /* shared state */
   const [tab, setTab] = React.useState(0);
@@ -204,9 +199,7 @@ export default function PatientPortalMedicationsPage() {
   /* ── Stat counts ── */
   const activeMeds = MED_DATA.filter((m) => m.status === 'Active').length;
   const takenToday = Object.values(taken).filter(Boolean).length;
-  const adherence = activeMeds > 0 ? Math.round((takenToday / activeMeds) * 100) : 0;
   const refillDue = MED_DATA.filter((m) => m.daysUntilRefill <= 15).length;
-
   const activeRx = RX_DATA.filter((r) => r.status === 'Active').length;
   const expiredRx = RX_DATA.filter((r) => r.status === 'Expired').length;
 
@@ -236,526 +229,525 @@ export default function PatientPortalMedicationsPage() {
     setSnack({ open: true, msg: 'Refill request sent to prescribing doctor!', severity: 'success' });
   };
 
-  /* ── Colours ── */
-  const pr = theme.palette.primary;
-
-  /* ── Panel heights: app header + patient bar (~138px) + tab bar (46px) + pb:3 (24px) + buffer ── */
-  const PANEL_H = 'calc(100vh - 240px)';
+  /* ── Stats config ── */
+  const medStats = [
+    { value: activeMeds,                    label: 'Active',      color: pr.main },
+    { value: `${takenToday}/${activeMeds}`, label: 'Taken Today', color: theme.palette.text.secondary },
+    { value: refillDue,                     label: 'Refill Due',  color: theme.palette.warning.main },
+  ];
+  const rxStats = [
+    { value: RX_DATA.length, label: 'Total',   color: pr.main },
+    { value: activeRx,       label: 'Active',  color: theme.palette.success.main },
+    { value: expiredRx,      label: 'Expired', color: theme.palette.error.main },
+  ];
+  const currentStats = tab === 0 ? medStats : rxStats;
 
   return (
     <PatientPortalWorkspaceCard current="medications" hidePatientBar>
-      {/* ── Tab Bar — negative mx so it bleeds to card edges despite WorkspaceCard padding ── */}
-      <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 0, bgcolor: 'background.paper', mx: { xs: -2, sm: -3 }, px: { xs: 0, sm: 0 } }}>
-        <Tabs
-          value={tab}
-          onChange={(_, v) => setTab(v)}
-          sx={{
-            px: 2,
-            '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: 13.5, minHeight: 44 },
-            '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' },
-          }}
-        >
-          <Tab label="My Medications" icon={<MedicationIcon sx={{ fontSize: 17 }} />} iconPosition="start" />
-          <Tab label="Prescriptions (℞)" icon={<NoteAltIcon sx={{ fontSize: 17 }} />} iconPosition="start" />
-        </Tabs>
-      </Box>
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, gap: '10px', overflow: 'hidden' }}>
 
-      {/* ════════════════ TAB 0 — MY MEDICATIONS ════════════════ */}
-      {tab === 0 && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '340px 1fr' }, height: PANEL_H, overflow: 'hidden', gap: 0, mx: { xs: -2, sm: -3 } }}>
+        {/* ════ LEFT PANEL (280px) ════ */}
+        <Box sx={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '10px', overflow: 'hidden' }}>
 
-          {/* ── Left panel ── */}
-          <Box sx={{ borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-            {/* Fixed top: stat tiles + search + filter */}
-            <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
-              {/* Stat tiles */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1.25, mb: 1.5 }}>
-                {[
-                  { label: 'Active', value: activeMeds, color: pr.main },
-                  { label: 'Taken Today', value: `${takenToday}/${activeMeds}`, color: theme.palette.success.main },
-                  { label: 'Refill Due', value: refillDue, color: theme.palette.warning.main },
-                ].map((s) => (
-                  <Card key={s.label} elevation={0} sx={{ boxShadow: cardShadow, border: 'none', p: 1.25, borderRadius: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 19, color: s.color, lineHeight: 1.1 }}>{s.value}</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 10.5 }}>{s.label}</Typography>
-                  </Card>
-                ))}
+          {/* 1 ── Pill tab switcher */}
+          <Box sx={{
+            bgcolor: 'background.paper', borderRadius: '16px',
+            border: '1px solid', borderColor: 'divider',
+            p: '6px', display: 'flex', gap: '3px', flexShrink: 0,
+          }}>
+            {[
+              { idx: 0, label: 'My Medications' },
+              { idx: 1, label: 'Prescriptions', count: RX_DATA.length },
+            ].map(({ idx, label, count }) => (
+              <Box key={idx} onClick={() => setTab(idx)} sx={{
+                flex: 1, py: '9px', px: 1.25, borderRadius: '12px',
+                fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
+                textAlign: 'center', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: '6px',
+                bgcolor: tab === idx ? 'primary.main' : 'transparent',
+                color: tab === idx ? '#fff' : 'text.secondary',
+                transition: 'all 0.15s',
+                '&:hover': { bgcolor: tab === idx ? 'primary.main' : alpha(pr.main, 0.06) },
+              }}>
+                {label}
+                {count !== undefined && (
+                  <Box sx={{
+                    width: 18, height: 18, borderRadius: '50%',
+                    fontSize: 10, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    bgcolor: tab === idx ? 'rgba(255,255,255,0.25)' : alpha(theme.palette.text.secondary, 0.1),
+                    color: tab === idx ? '#fff' : 'text.disabled',
+                  }}>
+                    {count}
+                  </Box>
+                )}
               </Box>
-              {/* Search */}
-              <TextField
-                size="small" placeholder="Search medications…" fullWidth
-                value={medSearch} onChange={(e) => setMedSearch(e.target.value)}
-                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 17, color: 'text.disabled' }} /></InputAdornment> }}
-                sx={{ mb: 1.25, '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: 13 } }}
-              />
-              {/* Filter chips */}
-              <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                {(['All', 'Active', 'Completed'] as const).map((f) => (
-                  <Chip key={f} label={f} size="small" onClick={() => setMedFilter(f)}
-                    variant={medFilter === f ? 'filled' : 'outlined'}
-                    color={medFilter === f ? 'primary' : 'default'}
-                    sx={{ fontWeight: 600, fontSize: 11.5, cursor: 'pointer' }}
-                  />
-                ))}
-              </Stack>
-            </Box>
+            ))}
+          </Box>
 
-            {/* Scrollable list */}
-            <Box sx={{ flex: 1, overflowY: 'auto', ...scrollbar }}>
-              {filteredMeds.length === 0 ? (
-                <Box sx={{ p: 3, textAlign: 'center' }}>
+          {/* 2 ── Stats mini bar */}
+          <Box sx={{
+            bgcolor: 'background.paper', borderRadius: '16px',
+            border: '1px solid', borderColor: 'divider',
+            p: '14px 16px', display: 'flex', flexShrink: 0,
+          }}>
+            {currentStats.map((s, i) => (
+              <Box key={s.label} sx={{
+                flex: 1, textAlign: 'center',
+                borderLeft: i > 0 ? '1px solid' : 'none',
+                borderColor: 'divider',
+              }}>
+                <Typography sx={{ fontSize: 22, fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.value}</Typography>
+                <Typography sx={{ fontSize: 10.5, color: 'text.disabled', mt: '3px', fontWeight: 500 }}>{s.label}</Typography>
+              </Box>
+            ))}
+          </Box>
+
+          {/* 3 ── Search bar */}
+          <Box sx={{
+            bgcolor: 'background.paper', borderRadius: '16px',
+            border: '1px solid', borderColor: 'divider',
+            px: '14px', py: '8px',
+            display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0,
+          }}>
+            <SearchIcon sx={{ fontSize: 13, color: 'text.disabled', flexShrink: 0 }} />
+            <Box
+              component="input"
+              placeholder={tab === 0 ? 'Search medications...' : 'Search prescriptions...'}
+              value={tab === 0 ? medSearch : rxSearch}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                tab === 0 ? setMedSearch(e.target.value) : setRxSearch(e.target.value)
+              }
+              sx={{
+                border: 'none', background: 'transparent', outline: 'none',
+                fontFamily: 'inherit', fontSize: '12.5px', color: 'text.primary', width: '100%',
+                '&::placeholder': { color: '#9AAFBF' },
+              }}
+            />
+          </Box>
+
+          {/* 4 ── Filter pills */}
+          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ flexShrink: 0 }}>
+            {(tab === 0
+              ? (['All', 'Active', 'Completed'] as const)
+              : (['All', 'Active', 'Completed', 'Expired'] as const)
+            ).map((f) => {
+              const isOn = (tab === 0 ? medFilter : rxFilter) === f;
+              return (
+                <Box key={f}
+                  onClick={() => tab === 0 ? setMedFilter(f as 'All' | 'Active' | 'Completed') : setRxFilter(f as 'All' | 'Active' | 'Completed' | 'Expired')}
+                  sx={{
+                    px: '14px', py: '5px', borderRadius: '20px',
+                    fontSize: '11.5px', fontWeight: 600, cursor: 'pointer',
+                    border: '1.5px solid',
+                    borderColor: isOn ? pr.dark : 'divider',
+                    bgcolor: isOn ? pr.dark : alpha(theme.palette.grey[100], 0.8),
+                    color: isOn ? '#fff' : 'text.secondary',
+                    transition: 'all 0.15s',
+                    '&:hover': { borderColor: isOn ? pr.dark : pr.main, color: isOn ? '#fff' : pr.main },
+                  }}>
+                  {f}
+                </Box>
+              );
+            })}
+          </Stack>
+
+          {/* 5 ── Scrollable item list */}
+          <Box sx={{
+            flex: 1, overflowY: 'auto',
+            bgcolor: 'background.paper', borderRadius: '22px',
+            border: '1px solid', borderColor: 'divider',
+            display: 'flex', flexDirection: 'column',
+            ...scrollbar,
+          }}>
+            {tab === 0 ? (
+              filteredMeds.length === 0 ? (
+                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
                   <Typography variant="body2" color="text.secondary">No medications found.</Typography>
                 </Box>
-              ) : (
-                <Stack spacing={0}>
-                  {filteredMeds.map((med) => {
-                    const isSelected = selectedMed.id === med.id;
-                    const isTaken = taken[med.id] ?? false;
-                    return (
-                      <Box
-                        key={med.id}
-                        onClick={() => setSelectedMed(med)}
-                        sx={{
-                          px: 2, py: 1.75,
-                          borderBottom: '1px solid', borderColor: 'divider',
-                          cursor: 'pointer',
-                          bgcolor: isSelected ? alpha(pr.main, 0.06) : 'background.paper',
-                          borderLeft: isSelected ? `3px solid ${pr.main}` : '3px solid transparent',
-                          '&:hover': { bgcolor: isSelected ? alpha(pr.main, 0.06) : alpha(pr.main, 0.03) },
-                          transition: 'background 0.15s',
-                        }}
-                      >
-                        <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                          {/* Color dot */}
-                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: med.dotColor, mt: 0.7, flexShrink: 0 }} />
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 13, lineHeight: 1.3 }}>{med.name}</Typography>
-                              <Chip size="small" label={med.status}
-                                sx={{ fontWeight: 700, fontSize: 10, ml: 0.5, flexShrink: 0,
-                                  bgcolor: med.status === 'Active' ? alpha(theme.palette.success.main, 0.12) : alpha(theme.palette.text.secondary, 0.1),
-                                  color: med.status === 'Active' ? 'success.main' : 'text.secondary' }}
-                              />
-                            </Stack>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{med.dose} · {med.frequency}</Typography>
-                            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.75 }}>
-                              <Chip size="small" label={med.category}
-                                sx={{ fontWeight: 600, fontSize: 10, bgcolor: alpha(pr.main, 0.08), color: pr.main }} />
-                              {isTaken && <Chip size="small" label="Taken ✓"
-                                sx={{ fontWeight: 600, fontSize: 10, bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.main' }} />}
-                            </Stack>
-                            {/* Refill progress */}
-                            {med.status === 'Active' && (
-                              <Box sx={{ mt: 1 }}>
-                                <Stack direction="row" justifyContent="space-between">
-                                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>Refill in {med.daysUntilRefill}d</Typography>
-                                  <Typography variant="caption" sx={{ fontSize: 10, color: med.daysUntilRefill <= 15 ? 'warning.main' : 'text.disabled' }}>
-                                    {med.refillDate}
-                                  </Typography>
-                                </Stack>
-                                <LinearProgress
-                                  variant="determinate"
-                                  value={Math.max(0, 100 - (med.daysUntilRefill / 90) * 100)}
-                                  color={med.daysUntilRefill <= 15 ? 'warning' : 'success'}
-                                  sx={{ height: 4, borderRadius: 99, mt: 0.5 }}
-                                />
-                              </Box>
-                            )}
-                          </Box>
-                        </Stack>
-                      </Box>
-                    );
-                  })}
-                </Stack>
-              )}
-            </Box>
-
-            {/* Today's adherence footer */}
-            <Box sx={{ px: 2, py: 1.5, borderTop: '1px solid', borderColor: 'divider', bgcolor: alpha(pr.main, 0.02), flexShrink: 0 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>Today's Adherence</Typography>
-                <Typography variant="caption" sx={{ fontWeight: 800, color: adherence >= 75 ? 'success.main' : 'warning.main' }}>{adherence}%</Typography>
-              </Stack>
-              <LinearProgress variant="determinate" value={adherence} color={adherence >= 75 ? 'success' : 'warning'} sx={{ borderRadius: 99, height: 5 }} />
-            </Box>
-          </Box>
-
-          {/* ── Right panel — detail ── */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: alpha(pr.main, 0.01) }}>
-            {/* Fixed header */}
-            <Box sx={{
-              px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider',
-              bgcolor: 'background.paper', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
-            }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, fontSize: 10.5 }}>
-                  {selectedMed.category}
-                </Typography>
-                <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.25, fontSize: 16 }}>{selectedMed.name} {selectedMed.dose}</Typography>
-                <Typography variant="caption" color="text.secondary">{selectedMed.brand} · {selectedMed.prescriber}</Typography>
-              </Box>
-              <Chip size="small" label={selectedMed.status}
-                sx={{ fontWeight: 700, fontSize: 11,
-                  bgcolor: selectedMed.status === 'Active' ? alpha(theme.palette.success.main, 0.12) : alpha(theme.palette.text.secondary, 0.1),
-                  color: selectedMed.status === 'Active' ? 'success.main' : 'text.secondary' }}
-              />
-            </Box>
-
-            {/* Scrollable content */}
-            <Box sx={{ flex: 1, overflowY: 'auto', p: 2.5, ...scrollbar }}>
-
-              {/* Overview row */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 1.5, mb: 2.5 }}>
-                {[
-                  { icon: <RefillIcon sx={{ fontSize: 16 }} />, label: 'Frequency', value: selectedMed.frequency },
-                  { icon: <AccessTimeIcon sx={{ fontSize: 16 }} />, label: 'Time(s)', value: selectedMed.times.join(', ') },
-                  { icon: <PersonIcon sx={{ fontSize: 16 }} />, label: 'Prescriber', value: selectedMed.prescriber },
-                  { icon: <LocalPharmacyIcon sx={{ fontSize: 16 }} />, label: 'Refill Date', value: selectedMed.refillDate },
-                ].map((item) => (
-                  <Card key={item.label} elevation={0} sx={{ boxShadow: cardShadow, border: 'none', p: 1.75, borderRadius: 2 }}>
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                      <Box sx={{ color: pr.main }}>{item.icon}</Box>
-                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{item.label}</Typography>
+              ) : filteredMeds.map((med) => {
+                const isSelected = selectedMed.id === med.id;
+                const isTaken = taken[med.id] ?? false;
+                const catColor = CAT_COLOR[med.category] ?? { bg: alpha(pr.main, 0.1), color: pr.main };
+                return (
+                  <Box key={med.id} onClick={() => setSelectedMed(med)} sx={{
+                    px: 2, py: '14px',
+                    borderBottom: '1px solid #F3F7FB',
+                    cursor: 'pointer',
+                    bgcolor: isSelected ? alpha(pr.main, 0.06) : 'background.paper',
+                    borderLeft: isSelected ? `3px solid ${pr.main}` : '3px solid transparent',
+                    transition: 'background 0.12s',
+                    '&:hover': { bgcolor: isSelected ? alpha(pr.main, 0.06) : '#F8FBFF' },
+                    '&:last-child': { borderBottom: 'none' },
+                  }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: '4px' }}>
+                      <Typography sx={{ fontSize: 13, fontWeight: 700, color: isSelected ? pr.main : 'text.primary' }}>
+                        {med.name}
+                      </Typography>
+                      <Chip size="small" label={med.status} sx={{
+                        fontWeight: 700, fontSize: 10.5, flexShrink: 0,
+                        bgcolor: med.status === 'Active' ? '#DCFCE7' : alpha(theme.palette.text.secondary, 0.1),
+                        color: med.status === 'Active' ? '#166534' : 'text.secondary',
+                        border: med.status === 'Active' ? '1.5px solid #86EFAC' : '1.5px solid transparent',
+                      }} />
                     </Stack>
-                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 13 }}>{item.value}</Typography>
-                  </Card>
-                ))}
-              </Box>
-
-              {/* Instructions */}
-              <Card elevation={0} sx={{ boxShadow: cardShadow, border: 'none', borderRadius: 2, p: 2, mb: 2 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: 'text.secondary', fontSize: 10.5, display: 'block', mb: 1 }}>
-                  Instructions
-                </Typography>
-                <Typography variant="body2" sx={{ lineHeight: 1.75, color: 'text.primary', fontSize: 13.5 }}>
-                  {selectedMed.instructions}
-                </Typography>
-              </Card>
-
-              {/* Side effects */}
-              <Card elevation={0} sx={{ boxShadow: cardShadow, border: 'none', borderRadius: 2, p: 2, mb: 2 }}>
-                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1 }}>
-                  <WarningIcon sx={{ fontSize: 15, color: 'warning.main' }} />
-                  <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: 'text.secondary', fontSize: 10.5 }}>
-                    Possible Side Effects
-                  </Typography>
-                </Stack>
-                <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                  {selectedMed.sideEffects.map((se) => (
-                    <Chip key={se} label={se} size="small"
-                      sx={{ fontWeight: 600, fontSize: 11, bgcolor: alpha(theme.palette.warning.main, 0.08), color: theme.palette.warning.dark }}
-                    />
-                  ))}
-                </Stack>
-              </Card>
-
-              {/* Mark taken status */}
-              {taken[selectedMed.id] && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.08), border: '1px solid', borderColor: alpha(theme.palette.success.main, 0.2) }}>
-                  <CheckCircleIcon sx={{ fontSize: 18, color: 'success.main' }} />
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main', fontSize: 13 }}>Marked as taken today</Typography>
-                </Box>
-              )}
-            </Box>
-
-            {/* Fixed footer — actions */}
-            <Box sx={{
-              px: 2.5, py: 1.75, borderTop: '1px solid', borderColor: 'divider',
-              bgcolor: 'background.paper', display: 'flex', gap: 1, flexWrap: 'wrap', flexShrink: 0,
-            }}>
-              <Button variant="contained" disableElevation size="small"
-                disabled={taken[selectedMed.id]}
-                onClick={() => handleMarkTaken(selectedMed.id)}
-                startIcon={<TaskAltIcon sx={{ fontSize: 15 }} />}
-                sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12.5, borderRadius: 2 }}>
-                {taken[selectedMed.id] ? 'Taken Today ✓' : 'Mark as Taken'}
-              </Button>
-              <Button variant="outlined" size="small"
-                disabled={refillDone[selectedMed.id]}
-                onClick={() => setRefillDialog(selectedMed)}
-                startIcon={<RefillIcon sx={{ fontSize: 15 }} />}
-                sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12.5, borderRadius: 2,
-                  color: refillDone[selectedMed.id] ? 'success.main' : undefined,
-                  borderColor: refillDone[selectedMed.id] ? 'success.main' : undefined }}>
-                {refillDone[selectedMed.id] ? 'Refill Requested' : 'Request Refill'}
-              </Button>
-            </Box>
-          </Box>
-        </Box>
-      )}
-
-      {/* ════════════════ TAB 1 — PRESCRIPTIONS ════════════════ */}
-      {tab === 1 && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '340px 1fr' }, height: PANEL_H, overflow: 'hidden', gap: 0, mx: { xs: -2, sm: -3 } }}>
-
-          {/* ── Left panel ── */}
-          <Box sx={{ borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-            {/* Fixed top */}
-            <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1.25, mb: 1.5 }}>
-                {[
-                  { label: 'Total', value: RX_DATA.length, color: pr.main },
-                  { label: 'Active', value: activeRx, color: theme.palette.success.main },
-                  { label: 'Expired', value: expiredRx, color: theme.palette.error.main },
-                ].map((s) => (
-                  <Card key={s.label} elevation={0} sx={{ boxShadow: cardShadow, border: 'none', p: 1.25, borderRadius: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 19, color: s.color, lineHeight: 1.1 }}>{s.value}</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 10.5 }}>{s.label}</Typography>
-                  </Card>
-                ))}
-              </Box>
-              <TextField
-                size="small" placeholder="Search prescriptions…" fullWidth
-                value={rxSearch} onChange={(e) => setRxSearch(e.target.value)}
-                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 17, color: 'text.disabled' }} /></InputAdornment> }}
-                sx={{ mb: 1.25, '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: 13 } }}
-              />
-              <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                {(['All', 'Active', 'Completed', 'Expired'] as const).map((f) => (
-                  <Chip key={f} label={f} size="small" onClick={() => setRxFilter(f)}
-                    variant={rxFilter === f ? 'filled' : 'outlined'}
-                    color={rxFilter === f ? 'primary' : 'default'}
-                    sx={{ fontWeight: 600, fontSize: 11.5, cursor: 'pointer' }}
-                  />
-                ))}
-              </Stack>
-            </Box>
-
-            {/* Scrollable list */}
-            <Box sx={{ flex: 1, overflowY: 'auto', ...scrollbar }}>
-              {filteredRx.length === 0 ? (
-                <Box sx={{ p: 3, textAlign: 'center' }}>
+                    <Typography sx={{ fontSize: '11.5px', color: 'text.secondary', mb: '6px' }}>
+                      {med.dose} · {med.frequency}
+                    </Typography>
+                    <Box sx={{
+                      display: 'inline-block', px: '9px', py: '2px',
+                      borderRadius: '5px', fontSize: '10.5px', fontWeight: 600, mb: '8px',
+                      bgcolor: catColor.bg, color: catColor.color,
+                    }}>
+                      {med.category}
+                    </Box>
+                    {med.status === 'Active' && (
+                      <>
+                        <Stack direction="row" justifyContent="space-between" sx={{ mb: '6px' }}>
+                          <Typography sx={{ fontSize: '10.5px', color: 'text.disabled' }}>Refill in {med.daysUntilRefill}d</Typography>
+                          <Typography sx={{ fontSize: '10.5px', color: pr.main, fontWeight: 600 }}>{med.refillDate}</Typography>
+                        </Stack>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.max(0, 100 - (med.daysUntilRefill / 90) * 100)}
+                          color={med.daysUntilRefill <= 15 ? 'warning' : 'success'}
+                          sx={{ height: 4, borderRadius: 99 }}
+                        />
+                      </>
+                    )}
+                    {isTaken && (
+                      <Chip size="small" label="Taken ✓" sx={{ mt: 0.75, fontWeight: 600, fontSize: 10, bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.main' }} />
+                    )}
+                  </Box>
+                );
+              })
+            ) : (
+              filteredRx.length === 0 ? (
+                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
                   <Typography variant="body2" color="text.secondary">No prescriptions found.</Typography>
                 </Box>
-              ) : (
-                <Stack spacing={0}>
-                  {filteredRx.map((rx) => {
-                    const isSelected = selectedRx.id === rx.id;
-                    const sc = rxStatusColor(rx.status, theme);
-                    return (
-                      <Box
-                        key={rx.id}
-                        onClick={() => setSelectedRx(rx)}
-                        sx={{
-                          px: 2, py: 1.75,
-                          borderBottom: '1px solid', borderColor: 'divider',
-                          cursor: 'pointer',
-                          bgcolor: isSelected ? alpha(pr.main, 0.06) : 'background.paper',
-                          borderLeft: isSelected ? `3px solid ${pr.main}` : '3px solid transparent',
-                          '&:hover': { bgcolor: isSelected ? alpha(pr.main, 0.06) : alpha(pr.main, 0.03) },
-                          transition: 'background 0.15s',
-                        }}
-                      >
-                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 13, lineHeight: 1.3, flex: 1, mr: 1 }}>{rx.med}</Typography>
-                          <Chip size="small" label={rx.status}
-                            sx={{ fontWeight: 700, fontSize: 10, bgcolor: sc.bg, color: sc.color, flexShrink: 0 }} />
-                        </Stack>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>{rx.doctor} · {rx.department}</Typography>
-                        <Stack direction="row" spacing={1.5} sx={{ mt: 0.75 }}>
-                          <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10.5 }}>📅 {rx.date}</Typography>
-                          <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10.5 }}>Qty: {rx.qty}</Typography>
-                          <Typography variant="caption" sx={{ fontSize: 10.5, color: rx.refills > 0 ? 'success.main' : 'text.disabled', fontWeight: 600 }}>
-                            Refills: {rx.refills}
-                          </Typography>
-                        </Stack>
-                      </Box>
-                    );
-                  })}
-                </Stack>
-              )}
-            </Box>
+              ) : filteredRx.map((rx) => {
+                const isSelected = selectedRx.id === rx.id;
+                const sc = rxStatusCfg(rx.status);
+                return (
+                  <Box key={rx.id} onClick={() => setSelectedRx(rx)} sx={{
+                    px: 2, py: '14px',
+                    borderBottom: '1px solid #F3F7FB',
+                    cursor: 'pointer',
+                    bgcolor: isSelected ? alpha(pr.main, 0.06) : 'background.paper',
+                    borderLeft: isSelected ? `3px solid ${pr.main}` : '3px solid transparent',
+                    transition: 'background 0.12s',
+                    '&:hover': { bgcolor: isSelected ? alpha(pr.main, 0.06) : '#F8FBFF' },
+                    '&:last-child': { borderBottom: 'none' },
+                  }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: '4px' }}>
+                      <Typography sx={{ fontSize: 13, fontWeight: 700, color: isSelected ? pr.main : 'text.primary', flex: 1, mr: 1 }} noWrap>
+                        {rx.med}
+                      </Typography>
+                      <Chip size="small" label={rx.status} sx={{
+                        fontWeight: 700, fontSize: 10.5, flexShrink: 0,
+                        bgcolor: sc.bg, color: sc.color,
+                        border: `1.5px solid ${sc.border}`,
+                      }} />
+                    </Stack>
+                    <Typography sx={{ fontSize: '11px', color: 'text.disabled', mb: '4px' }}>
+                      {rx.doctor} · {rx.department}
+                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                      <Typography sx={{ fontSize: '10.5px', color: 'text.disabled' }}>📅 {rx.date}</Typography>
+                      <Typography sx={{ fontSize: '10.5px', color: 'text.disabled' }}>Qty: {rx.qty}</Typography>
+                      <Typography sx={{ fontSize: '10.5px', fontWeight: 600, color: rx.refills > 0 ? 'success.main' : 'text.disabled' }}>
+                        Refills: {rx.refills}
+                      </Typography>
+                    </Stack>
+                  </Box>
+                );
+              })
+            )}
           </Box>
+        </Box>
 
-          {/* ── Right panel — ℞ detail ── */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: alpha(theme.palette.grey[100], 0.5) }}>
+        {/* ════ RIGHT PANEL ════ */}
+        <Box sx={{
+          flex: 1, minWidth: 0,
+          bgcolor: 'background.paper', borderRadius: '22px',
+          border: '1px solid', borderColor: 'divider',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}>
 
-            {/* Fixed header */}
-            <Box sx={{
-              px: 2.5, py: 1.5, borderBottom: '1px solid', borderColor: 'divider',
-              bgcolor: 'background.paper', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
-            }}>
-              <Stack direction="row" spacing={1.5} alignItems="center">
-                <Box sx={{
-                  width: 34, height: 34, borderRadius: 2, flexShrink: 0,
-                  background: `linear-gradient(135deg, ${pr.dark}, ${pr.main})`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: 14, lineHeight: 1 }}>℞</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: 14, lineHeight: 1.2 }}>{selectedRx.med}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11.5 }}>{selectedRx.id} · {selectedRx.department}</Typography>
-                </Box>
-              </Stack>
-              <Chip size="small" label={selectedRx.status}
-                sx={{ fontWeight: 700, fontSize: 10.5, bgcolor: rxStatusColor(selectedRx.status, theme).bg, color: rxStatusColor(selectedRx.status, theme).color }}
-              />
-            </Box>
-
-            {/* Scrollable content */}
-            <Box sx={{ flex: 1, overflowY: 'auto', px: 2, py: 2, gap: 1.5, display: 'flex', flexDirection: 'column', ...scrollbar }}>
-
-              {/* ── ℞ Prescription Card ── */}
+          {tab === 0 ? (
+            /* ── Medication Detail ── */
+            <>
+              {/* Header */}
               <Box sx={{
-                borderRadius: 2.5,
-                background: `linear-gradient(135deg, ${pr.dark} 0%, ${pr.main} 55%, ${theme.palette.secondary.main} 100%)`,
-                color: '#fff', position: 'relative', overflow: 'hidden',
+                px: 3, py: 2.5,
+                borderBottom: '1px solid', borderColor: 'divider',
+                display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+                flexShrink: 0,
               }}>
-                {/* Watermark ℞ */}
-                <Typography sx={{
-                  position: 'absolute', right: -4, bottom: -20, fontSize: 130,
-                  fontWeight: 900, opacity: 0.06, color: '#fff', lineHeight: 1, userSelect: 'none', pointerEvents: 'none',
-                }}>
-                  ℞
-                </Typography>
+                <Box>
+                  <Typography sx={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: 'text.disabled', mb: '6px' }}>
+                    {selectedMed.category}
+                  </Typography>
+                  <Typography sx={{ fontSize: 20, fontWeight: 700, color: 'text.primary' }}>
+                    {selectedMed.name} {selectedMed.dose}
+                  </Typography>
+                  <Typography sx={{ fontSize: '12.5px', color: 'text.disabled', mt: '4px' }}>
+                    {selectedMed.brand} · {selectedMed.prescriber}
+                  </Typography>
+                </Box>
+                <Chip size="small" label={selectedMed.status} sx={{
+                  fontWeight: 700, fontSize: 11,
+                  bgcolor: selectedMed.status === 'Active' ? '#DCFCE7' : alpha(theme.palette.text.secondary, 0.1),
+                  color: selectedMed.status === 'Active' ? '#166534' : 'text.secondary',
+                  border: selectedMed.status === 'Active' ? '1.5px solid #86EFAC' : '1.5px solid transparent',
+                }} />
+              </Box>
 
-                {/* Header row */}
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start"
-                  sx={{ px: 2.5, pt: 2, pb: 1.5, borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
-                  <Box>
-                    <Typography sx={{ fontSize: 9.5, fontWeight: 700, opacity: 0.65, letterSpacing: 1, textTransform: 'uppercase' }}>Patient</Typography>
-                    <Typography sx={{ fontWeight: 800, fontSize: 14.5, lineHeight: 1.2 }}>{PATIENT.name}</Typography>
-                    <Typography sx={{ fontSize: 11, opacity: 0.75 }}>ID: {PATIENT.pid} · {PATIENT.age} yrs · {PATIENT.gender}</Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'right' }}>
-                    <Typography sx={{ fontSize: 9.5, fontWeight: 700, opacity: 0.65, letterSpacing: 1, textTransform: 'uppercase' }}>Rx ID</Typography>
-                    <Typography sx={{ fontWeight: 800, fontSize: 14, lineHeight: 1.2 }}>{selectedRx.id}</Typography>
-                    <Typography sx={{ fontSize: 11, opacity: 0.75 }}>{selectedRx.date}</Typography>
-                  </Box>
-                </Stack>
+              {/* Body */}
+              <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 2.5, display: 'flex', flexDirection: 'column', gap: '14px', ...scrollbar }}>
+                {/* 4-col info grid */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '10px' }}>
+                  {[
+                    { label: 'Frequency', value: selectedMed.frequency },
+                    { label: 'Time(s)',    value: selectedMed.times.join(', ') },
+                    { label: 'Prescriber', value: selectedMed.prescriber },
+                    { label: 'Refill Date', value: selectedMed.refillDate },
+                  ].map((item) => (
+                    <Box key={item.label} sx={{
+                      bgcolor: alpha(theme.palette.grey[100], 0.7),
+                      borderRadius: '10px', border: '1px solid', borderColor: 'divider',
+                      p: '14px 16px',
+                    }}>
+                      <Typography sx={{ fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: 'text.disabled', mb: '6px' }}>
+                        {item.label}
+                      </Typography>
+                      <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'text.primary' }}>{item.value}</Typography>
+                    </Box>
+                  ))}
+                </Box>
 
-                {/* Medication body */}
-                <Box sx={{ px: 2.5, pt: 1.75, pb: 2 }}>
-                  <Typography sx={{ fontSize: 9.5, fontWeight: 700, opacity: 0.65, letterSpacing: 1, textTransform: 'uppercase', mb: 0.4 }}>Medication</Typography>
-                  <Typography sx={{ fontWeight: 800, fontSize: 18, lineHeight: 1.25, mb: 0.5 }}>{selectedRx.med}</Typography>
-                  <Typography sx={{ fontSize: 12.5, opacity: 0.88, lineHeight: 1.65, mb: 2 }}>{selectedRx.instructions}</Typography>
+                {/* Instructions */}
+                <Box sx={{ bgcolor: alpha(theme.palette.grey[100], 0.7), borderRadius: '10px', border: '1px solid', borderColor: 'divider', p: 2 }}>
+                  <Typography sx={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase', color: 'text.disabled', mb: '8px' }}>
+                    📋 Instructions
+                  </Typography>
+                  <Typography sx={{ fontSize: 13, color: 'text.primary', lineHeight: 1.6 }}>
+                    {selectedMed.instructions}
+                  </Typography>
+                </Box>
 
-                  {/* Stats row */}
-                  <Stack direction="row" spacing={0} sx={{ borderTop: '1px solid rgba(255,255,255,0.15)', pt: 1.5 }}>
-                    {[
-                      { label: 'Quantity', value: selectedRx.qty },
-                      { label: 'Refills Left', value: `${selectedRx.refills}` },
-                      { label: 'Valid Until', value: selectedRx.expiry },
-                    ].map((item, i) => (
-                      <Box key={item.label} sx={{
-                        flex: 1, pl: i === 0 ? 0 : 2,
-                        borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.15)' : 'none',
+                {/* Side effects */}
+                <Box sx={{ bgcolor: alpha(theme.palette.grey[100], 0.7), borderRadius: '10px', border: '1px solid', borderColor: 'divider', p: 2 }}>
+                  <Typography sx={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase', color: 'text.disabled', mb: '8px' }}>
+                    ⚠️ Possible Side Effects
+                  </Typography>
+                  <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                    {selectedMed.sideEffects.map((se) => (
+                      <Box key={se} sx={{
+                        px: '13px', py: '5px', borderRadius: '20px',
+                        fontSize: 12, fontWeight: 600,
+                        border: '1.5px solid', borderColor: 'divider',
+                        color: 'text.secondary', bgcolor: 'background.paper',
                       }}>
-                        <Typography sx={{ fontSize: 9.5, opacity: 0.65, letterSpacing: 0.5, textTransform: 'uppercase', mb: 0.2 }}>{item.label}</Typography>
-                        <Typography sx={{ fontWeight: 800, fontSize: 13.5 }}>{item.value}</Typography>
+                        {se}
                       </Box>
                     ))}
                   </Stack>
                 </Box>
+
+                {/* Taken banner */}
+                {taken[selectedMed.id] && (
+                  <Box sx={{
+                    display: 'flex', alignItems: 'center', gap: 1,
+                    p: 1.5, borderRadius: 2,
+                    bgcolor: alpha(theme.palette.success.main, 0.08),
+                    border: '1px solid', borderColor: alpha(theme.palette.success.main, 0.2),
+                  }}>
+                    <CheckCircleIcon sx={{ fontSize: 18, color: 'success.main' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main', fontSize: 13 }}>
+                      Marked as taken today
+                    </Typography>
+                  </Box>
+                )}
               </Box>
 
-              {/* ── Expired / Inactive warning ── */}
-              {selectedRx.status !== 'Active' && (
-                <Box sx={{
-                  display: 'flex', alignItems: 'center', gap: 1.25, px: 2, py: 1.25, borderRadius: 2,
-                  bgcolor: selectedRx.status === 'Expired'
-                    ? alpha(theme.palette.error.main, 0.07)
-                    : alpha(theme.palette.text.secondary, 0.06),
-                  border: '1px solid',
-                  borderColor: selectedRx.status === 'Expired'
-                    ? alpha(theme.palette.error.main, 0.2)
-                    : alpha(theme.palette.text.secondary, 0.15),
-                }}>
-                  <WarningIcon sx={{ fontSize: 17, color: selectedRx.status === 'Expired' ? 'error.main' : 'text.secondary', flexShrink: 0 }} />
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12.5, color: selectedRx.status === 'Expired' ? 'error.main' : 'text.secondary' }}>
-                    {selectedRx.status === 'Expired'
-                      ? `This prescription expired on ${selectedRx.expiry}. Please consult your doctor for a renewal.`
-                      : 'This prescription has been completed.'}
+              {/* Footer */}
+              <Box sx={{
+                px: 3, py: 2,
+                borderTop: '1px solid', borderColor: 'divider',
+                display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0,
+              }}>
+                <Button variant="contained" disableElevation size="small"
+                  disabled={taken[selectedMed.id]}
+                  onClick={() => handleMarkTaken(selectedMed.id)}
+                  startIcon={<TaskAltIcon sx={{ fontSize: 15 }} />}
+                  sx={{ textTransform: 'none', fontWeight: 700, fontSize: 13, py: '11px', px: '22px', borderRadius: '12px' }}>
+                  {taken[selectedMed.id] ? 'Taken Today ✓' : 'Mark as Taken'}
+                </Button>
+                <Button variant="outlined" size="small"
+                  disabled={refillDone[selectedMed.id]}
+                  onClick={() => setRefillDialog(selectedMed)}
+                  startIcon={<RefillIcon sx={{ fontSize: 15 }} />}
+                  sx={{
+                    textTransform: 'none', fontWeight: 700, fontSize: 13, py: '11px', px: '22px', borderRadius: '12px',
+                    color: refillDone[selectedMed.id] ? 'success.main' : undefined,
+                    borderColor: refillDone[selectedMed.id] ? 'success.main' : undefined,
+                  }}>
+                  {refillDone[selectedMed.id] ? 'Refill Requested' : 'Request Refill'}
+                </Button>
+              </Box>
+            </>
+          ) : (
+            /* ── Prescription Detail ── */
+            <>
+              {/* Dark hero header */}
+              <Box sx={{ background: pr.dark, px: 3, py: 2.5, flexShrink: 0 }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
+                  <Box>
+                    <Typography sx={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)', mb: '4px' }}>
+                      Patient
+                    </Typography>
+                    <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{PATIENT.name}</Typography>
+                    <Typography sx={{ fontSize: '11.5px', color: 'rgba(255,255,255,0.5)', mt: '2px' }}>
+                      ID: {PATIENT.pid} · {PATIENT.age} yrs · {PATIENT.gender}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography sx={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)', mb: '3px' }}>
+                      RX ID
+                    </Typography>
+                    <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>{selectedRx.id}</Typography>
+                    <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', mt: '2px' }}>{selectedRx.date}</Typography>
+                  </Box>
+                </Stack>
+                <Box>
+                  <Typography sx={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)', mb: '4px' }}>
+                    Medication
+                  </Typography>
+                  <Typography sx={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>{selectedRx.med}</Typography>
+                  <Typography sx={{ fontSize: '12.5px', color: 'rgba(255,255,255,0.6)', mt: '5px', lineHeight: 1.5 }}>
+                    {selectedRx.instructions}
                   </Typography>
                 </Box>
-              )}
-
-              {/* ── Info grid ── */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.25 }}>
-                {[
-                  { icon: <NoteAltIcon sx={{ fontSize: 15 }} />, label: 'Diagnosis', value: selectedRx.dx, fullWidth: true },
-                  { icon: <PersonIcon sx={{ fontSize: 15 }} />, label: 'Prescriber', value: selectedRx.doctor },
-                  { icon: <MedicationIcon sx={{ fontSize: 15 }} />, label: 'Department', value: selectedRx.department },
-                  { icon: <AccessTimeIcon sx={{ fontSize: 15 }} />, label: 'Issued', value: selectedRx.date },
-                  { icon: <AccessTimeIcon sx={{ fontSize: 15 }} />, label: 'Valid Until', value: selectedRx.expiry },
-                ].map((item) => (
-                  <Card key={item.label} elevation={0} sx={{
-                    boxShadow: cardShadow, border: 'none', borderRadius: 2, p: 1.5,
-                    gridColumn: item.fullWidth ? '1 / -1' : undefined,
-                  }}>
-                    <Stack direction="row" spacing={1} alignItems="flex-start">
-                      <Box sx={{
-                        width: 28, height: 28, borderRadius: 1.5, flexShrink: 0,
-                        bgcolor: alpha(pr.main, 0.08), color: pr.main,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        {item.icon}
-                      </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: 0.4, display: 'block' }}>
-                          {item.label}
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 12.5, lineHeight: 1.4 }}>{item.value}</Typography>
-                      </Box>
-                    </Stack>
-                  </Card>
-                ))}
+                {/* Stats row */}
+                <Box sx={{
+                  display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))',
+                  gap: '1px', bgcolor: 'rgba(255,255,255,0.1)',
+                  borderRadius: '10px', overflow: 'hidden', mt: 2,
+                }}>
+                  {[
+                    { label: 'Quantity',    value: selectedRx.qty },
+                    { label: 'Refills Left', value: `${selectedRx.refills}` },
+                    { label: 'Valid Until', value: selectedRx.expiry },
+                  ].map((item) => (
+                    <Box key={item.label} sx={{ bgcolor: 'rgba(255,255,255,0.07)', p: '12px 16px' }}>
+                      <Typography sx={{ fontSize: '9.5px', fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', mb: '4px' }}>
+                        {item.label}
+                      </Typography>
+                      <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{item.value}</Typography>
+                    </Box>
+                  ))}
+                </Box>
               </Box>
 
-              {/* ── Pharmacy card ── */}
-              <Card elevation={0} sx={{ boxShadow: cardShadow, border: 'none', borderRadius: 2, p: 1.75 }}>
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{
-                    width: 36, height: 36, borderRadius: 2, flexShrink: 0,
-                    bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.main',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <LocalPharmacyIcon sx={{ fontSize: 19 }} />
-                  </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: 0.4, display: 'block' }}>
-                      Preferred Pharmacy
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 13 }}>{selectedRx.pharmacy}</Typography>
-                  </Box>
-                  <Chip size="small" label="Preferred"
-                    sx={{ fontWeight: 700, fontSize: 10, bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.main', flexShrink: 0 }} />
-                </Stack>
-              </Card>
+              {/* Body */}
+              <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 2.5, display: 'flex', flexDirection: 'column', gap: '12px', ...scrollbar }}>
+                {/* Diagnosis */}
+                <Box sx={{ bgcolor: alpha(theme.palette.grey[100], 0.7), borderRadius: '10px', border: '1px solid', borderColor: 'divider', p: '14px 16px' }}>
+                  <Typography sx={{ fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: 'text.disabled', mb: '5px' }}>
+                    Diagnosis
+                  </Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'text.primary' }}>{selectedRx.dx}</Typography>
+                </Box>
 
-            </Box>
+                {/* 2-col info grid */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  {[
+                    { label: 'Prescriber',  value: selectedRx.doctor },
+                    { label: 'Department',  value: selectedRx.department },
+                    { label: 'Issued',      value: selectedRx.date },
+                    { label: 'Valid Until', value: selectedRx.expiry },
+                  ].map((item) => (
+                    <Box key={item.label} sx={{ bgcolor: alpha(theme.palette.grey[100], 0.7), borderRadius: '10px', border: '1px solid', borderColor: 'divider', p: '14px 16px' }}>
+                      <Typography sx={{ fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: 'text.disabled', mb: '5px' }}>
+                        {item.label}
+                      </Typography>
+                      <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'text.primary' }}>{item.value}</Typography>
+                    </Box>
+                  ))}
+                </Box>
 
-            {/* Fixed footer */}
-            <Box sx={{
-              px: 2, py: 1.25, borderTop: '1px solid', borderColor: 'divider',
-              bgcolor: 'background.paper', display: 'flex', gap: 1, flexWrap: 'wrap', flexShrink: 0, alignItems: 'center',
-            }}>
-              <Button variant="contained" disableElevation size="small"
-                disabled={sendingPharmacy || selectedRx.status !== 'Active'}
-                onClick={handleSendPharmacy}
-                startIcon={<SendIcon sx={{ fontSize: 14 }} />}
-                sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12, borderRadius: 2, px: 1.75 }}>
-                {sendingPharmacy ? 'Sending…' : 'Send to Pharmacy'}
-              </Button>
-              <Box sx={{ flex: 1 }} />
-              <Button variant="outlined" size="small"
-                disabled={rxRefillDone[selectedRx.id] || selectedRx.status !== 'Active'}
-                onClick={handleRxRefill}
-                startIcon={<RefillIcon sx={{ fontSize: 14 }} />}
-                sx={{
-                  textTransform: 'none', fontWeight: 700, fontSize: 12, borderRadius: 2, px: 1.75,
-                  color: rxRefillDone[selectedRx.id] ? 'success.main' : undefined,
-                  borderColor: rxRefillDone[selectedRx.id] ? 'success.main' : undefined,
+                {/* Pharmacy card */}
+                <Box sx={{
+                  bgcolor: alpha(theme.palette.grey[100], 0.7),
+                  borderRadius: '10px', border: '1px solid', borderColor: 'divider',
+                  p: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 }}>
-                {rxRefillDone[selectedRx.id] ? 'Requested ✓' : 'Refill Request'}
-              </Button>
-            </Box>
-          </Box>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Box sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <LocalPharmacyIcon sx={{ fontSize: 18, color: '#16A34A' }} />
+                    </Box>
+                    <Box>
+                      <Typography sx={{ fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: 'text.disabled', mb: '3px' }}>
+                        Preferred Pharmacy
+                      </Typography>
+                      <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'text.primary' }}>{selectedRx.pharmacy}</Typography>
+                    </Box>
+                  </Stack>
+                  <Chip size="small" label="Preferred" sx={{ fontWeight: 700, fontSize: 11, bgcolor: '#DCFCE7', border: '1.5px solid #86EFAC', color: '#166534' }} />
+                </Box>
+
+                {/* Expired / completed warning */}
+                {selectedRx.status !== 'Active' && (
+                  <Box sx={{
+                    display: 'flex', alignItems: 'center', gap: 1.25,
+                    px: 2, py: 1.25, borderRadius: 2,
+                    bgcolor: selectedRx.status === 'Expired' ? alpha(theme.palette.error.main, 0.07) : alpha(theme.palette.text.secondary, 0.06),
+                    border: '1px solid',
+                    borderColor: selectedRx.status === 'Expired' ? alpha(theme.palette.error.main, 0.2) : alpha(theme.palette.text.secondary, 0.15),
+                  }}>
+                    <WarningIcon sx={{ fontSize: 17, color: selectedRx.status === 'Expired' ? 'error.main' : 'text.secondary', flexShrink: 0 }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12.5, color: selectedRx.status === 'Expired' ? 'error.main' : 'text.secondary' }}>
+                      {selectedRx.status === 'Expired'
+                        ? `This prescription expired on ${selectedRx.expiry}. Please consult your doctor for a renewal.`
+                        : 'This prescription has been completed.'}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Footer */}
+              <Box sx={{
+                px: 3, py: 2,
+                borderTop: '1px solid', borderColor: 'divider',
+                bgcolor: 'background.paper',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                flexShrink: 0,
+              }}>
+                <Button variant="contained" disableElevation size="small"
+                  disabled={sendingPharmacy || selectedRx.status !== 'Active'}
+                  onClick={handleSendPharmacy}
+                  startIcon={<SendIcon sx={{ fontSize: 14 }} />}
+                  sx={{ textTransform: 'none', fontWeight: 700, fontSize: 13, py: '11px', px: '22px', borderRadius: '12px' }}>
+                  {sendingPharmacy ? 'Sending…' : 'Send to Pharmacy'}
+                </Button>
+                <Button variant="outlined" size="small"
+                  disabled={rxRefillDone[selectedRx.id] || selectedRx.status !== 'Active'}
+                  onClick={handleRxRefill}
+                  startIcon={<RefillIcon sx={{ fontSize: 14 }} />}
+                  sx={{
+                    textTransform: 'none', fontWeight: 700, fontSize: 13, py: '11px', px: '22px', borderRadius: '12px',
+                    color: rxRefillDone[selectedRx.id] ? 'success.main' : undefined,
+                    borderColor: rxRefillDone[selectedRx.id] ? 'success.main' : undefined,
+                  }}>
+                  {rxRefillDone[selectedRx.id] ? 'Requested ✓' : 'Refill Request'}
+                </Button>
+              </Box>
+            </>
+          )}
         </Box>
-      )}
+      </Box>
 
       {/* ── Refill Dialog ── */}
       <Dialog open={!!refillDialog} onClose={() => setRefillDialog(null)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>

@@ -54,8 +54,8 @@ import { Grid } from "@/src/ui/components/layout";
 
 const Card = styled(Paper)({
   backgroundColor: "#FFFFFF",
-  border: "1px solid #E3EAF3",
-  borderRadius: 12,
+  border: "1px solid #DDE8F0",
+  borderRadius: 16,
   boxShadow: cardShadow,
   overflow: "hidden",
 });
@@ -367,8 +367,9 @@ export default function StaffUsersPage() {
       title="User Management"
       subtitle={undefined}
       currentPageTitle="User Management"
+      fullHeight
     >
-      <Stack spacing={1.25}>
+      <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         {/* ── Header ── */}
         <WorkspaceHeaderCard>
           <Stack
@@ -435,7 +436,7 @@ export default function StaffUsersPage() {
         </WorkspaceHeaderCard>
 
         {/* ── Stat Cards ── */}
-        <Grid container spacing={2}>
+        <Grid container spacing={1.25}>
           <Grid xs={12} md={4}>
             <StatTile
               label="Active Users"
@@ -471,11 +472,13 @@ export default function StaffUsersPage() {
           sx={{
             display: "grid",
             gridTemplateColumns: { xs: "1fr", md: "7fr 5fr" },
-            gap: 2,
+            gap: 1.25,
+            flex: 1,
+            minHeight: 0,
           }}
         >
           {/* Left: User List */}
-          <Card>
+          <Card sx={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
             {/* List header */}
             <Box
               sx={{
@@ -557,7 +560,7 @@ export default function StaffUsersPage() {
             </Box>
 
             {/* User rows */}
-            <Box sx={{ p: 2, maxHeight: 520, overflowY: "auto" }}>
+            <Box sx={{ p: 2, flex: 1, minHeight: 0, overflowY: "auto" }}>
               <Stack spacing={1.25}>
                 {filteredUsers.map((user) => {
                   const roleLabel =
@@ -690,7 +693,7 @@ export default function StaffUsersPage() {
           </Card>
 
           {/* Right: Profile + Access */}
-          <Stack spacing={2}>
+          <Stack spacing={1.25} sx={{ minHeight: 0, overflow: "hidden" }}>
             {/* User Profile Card */}
             <Card>
               {/* Profile header bar */}
@@ -750,62 +753,40 @@ export default function StaffUsersPage() {
                 </Stack>
               </Box>
 
-              <Box sx={{ px: 2.5, py: 2 }}>
+              <Box sx={{ px: 2, py: 1.5 }}>
                 {selectedUser ? (
-                  <Stack spacing={2}>
-                    {/* Avatar + name */}
-                    <Stack direction="row" spacing={2} alignItems="center">
+                  <Stack spacing={1.25}>
+                    {/* Avatar + name row */}
+                    <Stack direction="row" spacing={1.5} alignItems="center">
                       <Avatar
                         sx={{
-                          width: 56,
-                          height: 56,
+                          width: 44,
+                          height: 44,
                           bgcolor: getAvatarColor(selectedUser.name),
                           fontWeight: 800,
-                          fontSize: 20,
+                          fontSize: 16,
+                          flexShrink: 0,
                         }}
                       >
                         {getInitials(selectedUser.name)}
                       </Avatar>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          variant="subtitle1"
-                          sx={{ fontWeight: 800 }}
-                        >
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, lineHeight: 1.3 }} noWrap>
                           {selectedUser.name}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" noWrap>
                           {selectedUser.title || "No title provided"}
                         </Typography>
-                        <Stack
-                          direction="row"
-                          spacing={0.75}
-                          sx={{ mt: 0.75 }}
-                          flexWrap="wrap"
-                        >
+                        <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }} flexWrap="wrap">
                           <Chip
                             size="small"
-                            label={
-                              roleMap.get(selectedUser.roleId)?.label ??
-                              selectedUser.roleId
-                            }
-                            sx={{
-                              height: 20,
-                              fontSize: 11,
-                              bgcolor: alpha("#3B6FE8", 0.1),
-                              color: "primary.main",
-                              fontWeight: 700,
-                            }}
+                            label={roleMap.get(selectedUser.roleId)?.label ?? selectedUser.roleId}
+                            sx={{ height: 18, fontSize: 10, bgcolor: alpha("#3B6FE8", 0.1), color: "primary.main", fontWeight: 700 }}
                           />
                           <Chip
                             size="small"
                             label={STATUS_STYLE[selectedUser.status].label}
-                            sx={{
-                              height: 20,
-                              fontSize: 11,
-                              bgcolor: STATUS_STYLE[selectedUser.status].bg,
-                              color: STATUS_STYLE[selectedUser.status].color,
-                              fontWeight: 700,
-                            }}
+                            sx={{ height: 18, fontSize: 10, bgcolor: STATUS_STYLE[selectedUser.status].bg, color: STATUS_STYLE[selectedUser.status].color, fontWeight: 700 }}
                           />
                         </Stack>
                       </Box>
@@ -813,29 +794,37 @@ export default function StaffUsersPage() {
 
                     <Divider />
 
-                    {/* Info rows */}
-                    <Stack spacing={1.5}>
-                      <InfoRow
-                        icon={<MailOutlineIcon sx={{ fontSize: 16 }} />}
-                        label="Email"
-                        value={selectedUser.email}
-                      />
-                      <InfoRow
-                        icon={<PhoneIcon sx={{ fontSize: 16 }} />}
-                        label="Phone"
-                        value={selectedUser.phone ?? ""}
-                      />
-                      <InfoRow
-                        icon={<BadgeOutlinedIcon sx={{ fontSize: 16 }} />}
-                        label="Department"
-                        value={selectedUser.department ?? ""}
-                      />
-                      <InfoRow
-                        icon={<AccessTimeIcon sx={{ fontSize: 16 }} />}
-                        label="Last Login"
-                        value={selectedUser.lastLogin ?? "Not available"}
-                      />
-                    </Stack>
+                    {/* Info — 2 columns grid */}
+                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.25 }}>
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <MailOutlineIcon sx={{ fontSize: 14, mt: 0.3, color: "text.secondary", flexShrink: 0 }} />
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 9, color: "text.secondary" }}>Email</Typography>
+                          <Typography variant="caption" sx={{ display: "block", fontWeight: 500, wordBreak: "break-all", fontSize: 11 }}>{selectedUser.email || "—"}</Typography>
+                        </Box>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <PhoneIcon sx={{ fontSize: 14, mt: 0.3, color: "text.secondary", flexShrink: 0 }} />
+                        <Box>
+                          <Typography variant="caption" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 9, color: "text.secondary" }}>Phone</Typography>
+                          <Typography variant="caption" sx={{ display: "block", fontWeight: 500, fontSize: 11 }}>{selectedUser.phone || "—"}</Typography>
+                        </Box>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <BadgeOutlinedIcon sx={{ fontSize: 14, mt: 0.3, color: "text.secondary", flexShrink: 0 }} />
+                        <Box>
+                          <Typography variant="caption" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 9, color: "text.secondary" }}>Department</Typography>
+                          <Typography variant="caption" sx={{ display: "block", fontWeight: 500, fontSize: 11 }}>{selectedUser.department || "—"}</Typography>
+                        </Box>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <AccessTimeIcon sx={{ fontSize: 14, mt: 0.3, color: "text.secondary", flexShrink: 0 }} />
+                        <Box>
+                          <Typography variant="caption" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 9, color: "text.secondary" }}>Last Login</Typography>
+                          <Typography variant="caption" sx={{ display: "block", fontWeight: 500, fontSize: 11 }}>{selectedUser.lastLogin ?? "N/A"}</Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
 
                     <Divider />
 
@@ -843,52 +832,27 @@ export default function StaffUsersPage() {
                     <Button
                       fullWidth
                       variant="outlined"
+                      size="small"
                       onClick={handleToggleStatus}
                       disabled={!canManageUsers}
-                      startIcon={
-                        selectedUser.status === "suspended" ? (
-                          <CheckCircleOutlined />
-                        ) : (
-                          <PauseCircleIcon />
-                        )
-                      }
+                      startIcon={selectedUser.status === "suspended" ? <CheckCircleOutlined /> : <PauseCircleIcon />}
                       sx={{
                         fontWeight: 700,
                         borderRadius: 2.5,
-                        py: 1,
-                        borderColor:
-                          selectedUser.status === "suspended"
-                            ? "#22C55E"
-                            : "#EF4444",
-                        color:
-                          selectedUser.status === "suspended"
-                            ? "#16A34A"
-                            : "#DC2626",
+                        py: 0.75,
+                        borderColor: selectedUser.status === "suspended" ? "#22C55E" : "#EF4444",
+                        color: selectedUser.status === "suspended" ? "#16A34A" : "#DC2626",
                         "&:hover": {
-                          bgcolor:
-                            selectedUser.status === "suspended"
-                              ? alpha("#22C55E", 0.08)
-                              : alpha("#EF4444", 0.08),
+                          bgcolor: selectedUser.status === "suspended" ? alpha("#22C55E", 0.08) : alpha("#EF4444", 0.08),
                         },
                       }}
                     >
-                      {selectedUser.status === "suspended"
-                        ? "Re-activate User"
-                        : selectedUser.status === "invited"
-                          ? "Activate User"
-                          : "Suspend User"}
+                      {selectedUser.status === "suspended" ? "Re-activate User" : selectedUser.status === "invited" ? "Activate User" : "Suspend User"}
                     </Button>
                   </Stack>
                 ) : (
                   <Box sx={{ py: 3, textAlign: "center" }}>
-                    <PersonIcon
-                      sx={{
-                        fontSize: 40,
-                        color: "text.secondary",
-                        opacity: 0.3,
-                        mb: 1,
-                      }}
-                    />
+                    <PersonIcon sx={{ fontSize: 40, color: "text.secondary", opacity: 0.3, mb: 1 }} />
                     <Typography variant="body2" color="text.secondary">
                       Select a user to see profile details.
                     </Typography>
@@ -901,8 +865,8 @@ export default function StaffUsersPage() {
             <Card>
               <Box
                 sx={{
-                  px: 2.5,
-                  py: 2,
+                  px: 2,
+                  py: 1.25,
                   borderBottom: "1px solid",
                   borderColor: "divider",
                   display: "flex",
@@ -910,9 +874,9 @@ export default function StaffUsersPage() {
                   gap: 1,
                 }}
               >
-                <ShieldIcon sx={{ color: "primary.main", fontSize: 20 }} />
+                <ShieldIcon sx={{ color: "primary.main", fontSize: 18 }} />
                 <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: 13 }}>
                     Access Snapshot
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
@@ -920,12 +884,12 @@ export default function StaffUsersPage() {
                   </Typography>
                 </Box>
               </Box>
-              <Box sx={{ px: 2.5, py: 2 }}>
+              <Box sx={{ px: 2, py: 1.25 }}>
                 {selectedUser ? (
-                  <Stack spacing={1.5}>
+                  <Stack spacing={1}>
                     <Stack
                       direction="row"
-                      spacing={0.75}
+                      spacing={0.5}
                       flexWrap="wrap"
                       useFlexGap
                     >
@@ -938,8 +902,8 @@ export default function StaffUsersPage() {
                             <LockIcon sx={{ fontSize: "14px !important" }} />
                           }
                           sx={{
-                            height: 26,
-                            fontSize: 12,
+                            height: 22,
+                            fontSize: 11,
                             bgcolor: alpha(theme.palette.primary.main, 0.07),
                             color: "primary.main",
                             border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,

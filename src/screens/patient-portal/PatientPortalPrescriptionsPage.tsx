@@ -123,7 +123,7 @@ export default function PatientPortalPrescriptionsPage() {
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', lg: '360px 1fr' },
         gap: 2,
-        height: 'calc(100vh - 162px)',
+        flex: 1, minHeight: 0,
         overflow: 'hidden',
       }}>
 

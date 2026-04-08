@@ -249,10 +249,10 @@ export default function CommonDataGrid<R extends object>({
       )}
 
       {/* ── Table ── */}
-      <TableContainer>
+      <TableContainer sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
         <Table
           size="small"
-          stickyHeader={Boolean(tableHeight)}
+          stickyHeader
         >
           {/* Headers */}
           <TableHead>

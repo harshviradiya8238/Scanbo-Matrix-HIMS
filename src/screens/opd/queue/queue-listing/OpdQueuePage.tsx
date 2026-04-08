@@ -7,7 +7,6 @@ import {
   Box,
   Button,
   Chip,
-  Divider,
   Drawer,
   FormControl,
   IconButton,
@@ -50,12 +49,7 @@ import { updateEncounter } from "@/src/store/slices/opdSlice";
 import { useOpdData } from "@/src/store/opdHooks";
 import { usePermission } from "@/src/core/auth/usePermission";
 import OpdLayout from "../../components/OpdLayout";
-import ActionBar from "../../components/ActionBar";
-import {
-  IpdMetricCard,
-  IpdSectionCard,
-  ipdFormStylesSx,
-} from "@/src/screens/ipd/components/ipd-ui";
+import { StatTile } from "@/src/ui/components/molecules";
 import { useIpdEncounters } from "@/src/screens/ipd/ipd-encounter-context";
 import { getOpdRoleFlowProfile } from "../../opd-role-flow";
 import {
@@ -494,30 +488,23 @@ export default function OpdQueuePage() {
       {
         field: "status",
         headerName: "Status",
-        width: 230,
-        renderCell: (row) => (
-          <Stack direction="row" spacing={0.6} flexWrap="wrap">
-            <Chip
-              label={row.stage}
-              color={row.stage === "In Progress" ? "info" : "warning"}
-              size="small"
-            />
-            <Chip
-              label={ENCOUNTER_STATUS_LABEL[row.status]}
-              color={queueStatusColor[row.status]}
-              variant="outlined"
-              size="small"
-            />
-            {row.queuePriority === "Urgent" ? (
+        width: 160,
+        renderCell: (row) => {
+          if (row.queuePriority === "Urgent") {
+            return (
               <Chip
                 size="small"
                 color="error"
                 label="Emergency"
                 icon={<WarningAmberIcon fontSize="small" />}
               />
-            ) : null}
-          </Stack>
-        ),
+            );
+          }
+          if (row.stage === "In Progress") {
+            return <Chip label="In Progress" color="info" size="small" />;
+          }
+          return <Chip label="Waiting" color="warning" size="small" />;
+        },
       },
       {
         field: "waitMinutes",
@@ -545,15 +532,7 @@ export default function OpdQueuePage() {
             >
               {row.stage === "In Progress" ? "Open Consult" : "Start Consult"}
             </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<HistoryIcon />}
-              disabled={!canViewHistory}
-              onClick={() => handleViewHistory(row)}
-            >
-              View History
-            </Button>
+           
             <Button
               size="small"
               variant="outlined"
@@ -584,6 +563,7 @@ export default function OpdQueuePage() {
         title="OPD Dashboard"
         currentPageTitle="Queue"
         showRoleGuide={false}
+        fullHeight
       >
         <Stack spacing={2}>
           <Alert severity="info">Loading OPD queue...</Alert>
@@ -597,8 +577,9 @@ export default function OpdQueuePage() {
       title="OPD Dashboard"
       currentPageTitle="Queue"
       showRoleGuide={false}
+      fullHeight
     >
-      <Stack spacing={2}>
+      <Stack spacing={2} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         {opdStatus === "loading" ? (
           <Alert severity="info">
             Loading OPD data from the local JSON server.
@@ -613,37 +594,37 @@ export default function OpdQueuePage() {
 
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} lg={3}>
-            <IpdMetricCard
+            <StatTile
               label="Patients Today"
               value={appointments.length}
-              trend={`${averageWaitMinutes} min avg wait`}
+              subtitle={`${averageWaitMinutes} min avg wait`}
               tone="info"
               icon={<AssignmentIndIcon sx={{ fontSize: 28 }} />}
             />
           </Grid>
           <Grid item xs={12} sm={6} lg={3}>
-            <IpdMetricCard
+            <StatTile
               label="In Queue"
               value={waitingCount}
-              trend={`${emergencyCount} emergency cases`}
+              subtitle={`${emergencyCount} emergency cases`}
               tone="warning"
               icon={<BoltIcon sx={{ fontSize: 28 }} />}
             />
           </Grid>
           <Grid item xs={12} sm={6} lg={3}>
-            <IpdMetricCard
+            <StatTile
               label="In Consultation"
               value={inProgressCount}
-              trend={`${queue.length} active encounter(s)`}
+              subtitle={`${queue.length} active encounter(s)`}
               tone="primary"
               icon={<LocalHospitalIcon sx={{ fontSize: 28 }} />}
             />
           </Grid>
           <Grid item xs={12} sm={6} lg={3}>
-            <IpdMetricCard
+            <StatTile
               label="Completed"
               value={completedCount}
-              trend="Visits closed today"
+              subtitle="Visits closed today"
               tone="success"
               icon={<HistoryIcon sx={{ fontSize: 28 }} />}
             />
@@ -715,102 +696,117 @@ export default function OpdQueuePage() {
           anchor="right"
           open={filterDrawerOpen}
           onClose={() => setFilterDrawerOpen(false)}
+          PaperProps={{
+            sx: { width: 360, borderLeft: "1px solid #DDE8F0" },
+          }}
         >
-          <Box sx={{ width: 360, p: 3 }}>
+          <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+            {/* Header */}
             <Stack
               direction="row"
               justifyContent="space-between"
               alignItems="center"
-              sx={{ mb: 2 }}
+              sx={{
+                px: 3,
+                py: 2,
+                borderBottom: "1px solid #DDE8F0",
+                background: "linear-gradient(135deg, #EBF4FF 0%, #F5F8FB 100%)",
+              }}
             >
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: "#1172BA" }}>
                   Queue Filters
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Narrow down the OPD queue
                 </Typography>
               </Box>
-              <IconButton onClick={() => setFilterDrawerOpen(false)}>
-                <CloseIcon />
+              <IconButton
+                size="small"
+                onClick={() => setFilterDrawerOpen(false)}
+                sx={{ color: "text.secondary" }}
+              >
+                <CloseIcon fontSize="small" />
               </IconButton>
             </Stack>
 
-            <Divider sx={{ mb: 3 }} />
+            {/* Body */}
+            <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
+              <Stack spacing={3}>
+                {/* Stage Filter */}
+                <FormControl fullWidth size="small">
+                  <InputLabel>Stage</InputLabel>
+                  <Select
+                    label="Stage"
+                    value={stageFilter}
+                    onChange={(e: SelectChangeEvent<unknown>) =>
+                      setStageFilter(e.target.value as string)
+                    }
+                  >
+                    {["All Stage", "Waiting", "In Progress"].map((v) => (
+                      <MenuItem key={v} value={v}>
+                        {v}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-            <Stack spacing={3}>
-              {/* Stage Filter */}
-              <FormControl fullWidth size="small">
-                <InputLabel>Stage</InputLabel>
-                <Select
-                  label="Stage"
-                  value={stageFilter}
-                  onChange={(e: SelectChangeEvent<unknown>) =>
-                    setStageFilter(e.target.value as string)
-                  }
-                >
-                  {["All Stage", "Waiting", "In Progress"].map((v) => (
-                    <MenuItem key={v} value={v}>
-                      {v}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                {/* Priority Filter */}
+                <FormControl fullWidth size="small">
+                  <InputLabel>Priority</InputLabel>
+                  <Select
+                    label="Priority"
+                    value={priorityFilter}
+                    onChange={(e: SelectChangeEvent<unknown>) =>
+                      setPriorityFilter(e.target.value as string)
+                    }
+                  >
+                    {["All Priorities", "Routine", "Urgent"].map((v) => (
+                      <MenuItem key={v} value={v}>
+                        {v}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-              {/* Priority Filter */}
-              <FormControl fullWidth size="small">
-                <InputLabel>Priority</InputLabel>
-                <Select
-                  label="Priority"
-                  value={priorityFilter}
-                  onChange={(e: SelectChangeEvent<unknown>) =>
-                    setPriorityFilter(e.target.value as string)
-                  }
-                >
-                  {["All Priorities", "Routine", "Urgent"].map((v) => (
-                    <MenuItem key={v} value={v}>
-                      {v}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                {/* Department Filter */}
+                <FormControl fullWidth size="small">
+                  <InputLabel>Department</InputLabel>
+                  <Select
+                    label="Department"
+                    value={departmentFilter}
+                    onChange={(e: SelectChangeEvent<unknown>) =>
+                      setDepartmentFilter(e.target.value as string)
+                    }
+                  >
+                    {[
+                      "All Departments",
+                      ...Array.from(
+                        new Set(queue.map((item) => item.department)),
+                      ),
+                    ].map((v) => (
+                      <MenuItem key={v} value={v}>
+                        {v}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
+            </Box>
 
-              {/* Department Filter */}
-              <FormControl fullWidth size="small">
-                <InputLabel>Department</InputLabel>
-                <Select
-                  label="Department"
-                  value={departmentFilter}
-                  onChange={(e: SelectChangeEvent<unknown>) =>
-                    setDepartmentFilter(e.target.value as string)
-                  }
-                >
-                  {[
-                    "All Departments",
-                    ...Array.from(
-                      new Set(queue.map((item) => item.department)),
-                    ),
-                  ].map((v) => (
-                    <MenuItem key={v} value={v}>
-                      {v}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Stack>
-
-            <Box sx={{ mt: 4 }}>
+            {/* Footer */}
+            <Box sx={{ p: 3, borderTop: "1px solid #DDE8F0" }}>
               <Button
                 variant="contained"
                 fullWidth
                 onClick={() => setFilterDrawerOpen(false)}
+                sx={{ mb: 1 }}
               >
                 Apply Filters
               </Button>
               <Button
-                variant="text"
+                variant="outlined"
                 fullWidth
-                sx={{ mt: 1 }}
                 onClick={resetFilters}
               >
                 Reset All
