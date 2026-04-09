@@ -292,6 +292,8 @@ export default function OpdCalendarPage() {
     React.useState(false);
   const roleProfile = React.useMemo(() => getOpdRoleFlowProfile(role), [role]);
   const canManageCalendar = roleProfile.capabilities.canManageCalendar;
+  const isDoctorRole = role === "DOCTOR";
+  const canBookCalendar = canManageCalendar || isDoctorRole;
   const slotDurationMinutes = React.useMemo(
     () => getSlotDurationMinutes(slotTimes),
     [slotTimes],
@@ -299,13 +301,13 @@ export default function OpdCalendarPage() {
 
   const guardCalendarAction = React.useCallback(
     (actionLabel: string): boolean => {
-      if (canManageCalendar) return true;
+      if (canBookCalendar) return true;
       warning(
         `${roleProfile.label} has read-only calendar access. ${actionLabel} is restricted.`,
       );
       return false;
     },
-    [canManageCalendar, roleProfile.label, warning],
+    [canBookCalendar, roleProfile.label, warning],
   );
 
   React.useEffect(() => {
@@ -409,6 +411,40 @@ export default function OpdCalendarPage() {
     const list = providersByDepartment.get(directDepartment) ?? [];
     return list.length ? list : providers;
   }, [directDepartment, providers, providersByDepartment]);
+
+  React.useEffect(() => {
+    if (!isDoctorRole || !providers.length) return;
+    const nextProvider = directProvider || booking.provider || providers[0];
+    if (!nextProvider) return;
+
+    if (directProvider !== nextProvider) {
+      setDirectProvider(nextProvider);
+    }
+    if (providerFilter !== nextProvider) {
+      setProviderFilter(nextProvider);
+    }
+    if (booking.provider !== nextProvider) {
+      setBooking((prev) => ({ ...prev, provider: nextProvider }));
+    }
+
+    const mappedDepartment =
+      providerDepartmentMap.get(nextProvider) || defaultDepartment;
+    if (directDepartment !== mappedDepartment) {
+      setDirectDepartment(mappedDepartment);
+    }
+    if (booking.department !== mappedDepartment) {
+      setBooking((prev) => ({ ...prev, department: mappedDepartment }));
+    }
+  }, [
+    booking.department,
+    booking.provider,
+    directDepartment,
+    directProvider,
+    isDoctorRole,
+    providerDepartmentMap,
+    providerFilter,
+    providers,
+  ]);
 
   const directAvailability = React.useMemo(() => {
     if (!directProvider) return null;
@@ -734,7 +770,7 @@ export default function OpdCalendarPage() {
         return;
       }
 
-      if (!canManageCalendar) {
+      if (!canBookCalendar) {
         guardCalendarAction("Slot selection");
         return;
       }
@@ -795,7 +831,7 @@ export default function OpdCalendarPage() {
       hasOverlappingAppointment,
       providerDepartmentMap,
       providerFilter,
-      canManageCalendar,
+      canBookCalendar,
       guardCalendarAction,
       info,
     ],
@@ -1559,7 +1595,7 @@ export default function OpdCalendarPage() {
   return (
     <PageTemplate title="Appointments Calendar" currentPageTitle="Calendar">
       <Stack spacing={2}>
-        {!canManageCalendar ? (
+        {!canBookCalendar ? (
           <Alert severity="info">
             {roleProfile.label} view is read-only for calendar booking. Use
             queue for consultation actions.
@@ -1756,7 +1792,7 @@ export default function OpdCalendarPage() {
                       <Button
                         size="small"
                         variant="contained"
-                        disabled={!canManageCalendar}
+                        disabled={!canBookCalendar}
                         onClick={handleNewBooking}
                       >
                         New Booking
@@ -2099,25 +2135,27 @@ export default function OpdCalendarPage() {
                         </Box>
                       ) : null}
                       {patientName ? <Divider /> : null}
-                      <Stack spacing={1.2}>
-                        <TextField
-                          size="small"
-                          select
-                          label="Department"
-                          value={directDepartment}
-                          onChange={(event) =>
-                            handleDirectDepartmentChange(event.target.value)
-                          }
-                          fullWidth
-                        >
-                          <MenuItem value="">Select department</MenuItem>
-                          {departmentOptions.map((department) => (
-                            <MenuItem key={department} value={department}>
-                              {department}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Stack>
+                      {!isDoctorRole ? (
+                        <Stack spacing={1.2}>
+                          <TextField
+                            size="small"
+                            select
+                            label="Department"
+                            value={directDepartment}
+                            onChange={(event) =>
+                              handleDirectDepartmentChange(event.target.value)
+                            }
+                            fullWidth
+                          >
+                            <MenuItem value="">Select department</MenuItem>
+                            {departmentOptions.map((department) => (
+                              <MenuItem key={department} value={department}>
+                                {department}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        </Stack>
+                      ) : null}
                       <LocalizationProvider dateAdapter={AdapterDayjs}>
                         <DateCalendar
                           value={directDate ? dayjs(directDate) : null}
@@ -2201,27 +2239,29 @@ export default function OpdCalendarPage() {
                       </LocalizationProvider>
                       <Divider />
                       <Stack spacing={1.2}>
-                        <Autocomplete
-                          options={directProviderOptions}
-                          value={directProvider}
-                          onChange={(_, value) =>
-                            handleDirectProviderChange(value)
-                          }
-                          disabled={!directDepartment}
-                          fullWidth
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              size="small"
-                              label="Doctor"
-                              placeholder={
-                                directDepartment
-                                  ? "Select doctor"
-                                  : "Choose department first"
-                              }
-                            />
-                          )}
-                        />
+                        {!isDoctorRole ? (
+                          <Autocomplete
+                            options={directProviderOptions}
+                            value={directProvider}
+                            onChange={(_, value) =>
+                              handleDirectProviderChange(value)
+                            }
+                            disabled={!directDepartment}
+                            fullWidth
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                size="small"
+                                label="Doctor"
+                                placeholder={
+                                  directDepartment
+                                    ? "Select doctor"
+                                    : "Choose department first"
+                                }
+                              />
+                            )}
+                          />
+                        ) : null}
                         <TextField
                           size="small"
                           label="Appointment Date"
@@ -2358,18 +2398,17 @@ export default function OpdCalendarPage() {
               justifyContent="space-between"
               alignItems="center"
             >
-              <Typography variant="caption" color="text.secondary">
-                Can&apos;t find patient in search?
-              </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<PersonAddIcon />}
-                disabled={Boolean(editingAppointment) || !canManageCalendar}
-                onClick={openPatientRegistrationFromCalendar}
-              >
-                Register Patient
-              </Button>
+              {!isDoctorRole ? (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<PersonAddIcon />}
+                  disabled={Boolean(editingAppointment) || !canBookCalendar}
+                  onClick={openPatientRegistrationFromCalendar}
+                >
+                  Register Patient
+                </Button>
+              ) : null}
             </Stack>
 
             <Box
@@ -2504,29 +2543,32 @@ export default function OpdCalendarPage() {
               ) : null}
             </Stack>
 
-            <TextField
-              select
-              label="Provider"
-              value={booking.provider}
-              onChange={(event) =>
-                updateBookingField("provider", event.target.value)
-              }
-              disabled={slotLocked && !editingAppointment}
-              error={
-                Boolean(errors.provider) && !(slotLocked && !editingAppointment)
-              }
-              helperText={
-                slotLocked && !editingAppointment
-                  ? "Provider is locked to the selected slot."
-                  : errors.provider
-              }
-            >
-              {providers.map((provider) => (
-                <MenuItem key={provider} value={provider}>
-                  {provider}
-                </MenuItem>
-              ))}
-            </TextField>
+            {!isDoctorRole ? (
+              <TextField
+                select
+                label="Provider"
+                value={booking.provider}
+                onChange={(event) =>
+                  updateBookingField("provider", event.target.value)
+                }
+                disabled={slotLocked && !editingAppointment}
+                error={
+                  Boolean(errors.provider) &&
+                  !(slotLocked && !editingAppointment)
+                }
+                helperText={
+                  slotLocked && !editingAppointment
+                    ? "Provider is locked to the selected slot."
+                    : errors.provider
+                }
+              >
+                {providers.map((provider) => (
+                  <MenuItem key={provider} value={provider}>
+                    {provider}
+                  </MenuItem>
+                ))}
+              </TextField>
+            ) : null}
 
             <TextField
               label="Department"
@@ -2635,7 +2677,7 @@ export default function OpdCalendarPage() {
                 </Button>
                 <Button
                   variant="contained"
-                  disabled={!canManageCalendar}
+                  disabled={!canBookCalendar}
                   onClick={handleUpdateBooking}
                 >
                   Save Changes
@@ -2646,7 +2688,7 @@ export default function OpdCalendarPage() {
                 <Button
                   variant="outlined"
                   startIcon={<PersonAddIcon />}
-                  disabled={!canManageCalendar}
+                  disabled={!canBookCalendar}
                   onClick={() => handleCreateBooking(false)}
                 >
                   Create Booking
@@ -2655,7 +2697,7 @@ export default function OpdCalendarPage() {
                   variant="contained"
                   color="success"
                   startIcon={<GroupIcon />}
-                  disabled={!canManageCalendar}
+                  disabled={!canBookCalendar}
                   onClick={() => handleCreateBooking(true)}
                 >
                   Create + Check-In
@@ -2732,7 +2774,7 @@ export default function OpdCalendarPage() {
                 <Button
                   size="small"
                   variant="outlined"
-                  disabled={!canManageCalendar}
+                  disabled={!canBookCalendar}
                   onClick={() => openEditBooking(selectedEvent)}
                 >
                   Reschedule

@@ -14,14 +14,12 @@ import {
   MenuItem,
   Snackbar,
   Stack,
-  Tab,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Tabs,
   TextField,
   Typography,
 } from "@/src/ui/components/atoms";
@@ -29,6 +27,7 @@ import Grid from "@/src/ui/components/layout/AlignedGrid";
 import {
   Card,
   CommonDialog,
+  CustomCardTabs,
   WorkspaceHeaderCard,
 } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
@@ -65,6 +64,11 @@ import {
 import CommonDataGrid, {
   type CommonColumn,
 } from "@/src/components/table/CommonDataGrid";
+import {
+  CommonOrderDialog,
+  type DraftOrderLine,
+  type OrderCatalogItem,
+} from "../clinical/components/CommonOrderDialog";
 
 type ClinicalTab =
   | "rounds"
@@ -429,6 +433,25 @@ const INDIAN_CURRENCY = new Intl.NumberFormat("en-IN", {
   currency: "INR",
   maximumFractionDigits: 0,
 });
+
+const IPD_ORDER_CATALOG: OrderCatalogItem[] = SERVICE_PRICE_MASTER.map(
+  (item) => ({
+    id: item.code,
+    name: item.label,
+    category: item.category,
+    defaultPriority: "Routine",
+  }),
+);
+
+const IPD_ORDER_CATEGORIES = [
+  "All",
+  "Lab",
+  "Imaging",
+  "Procedure",
+  "Consultation",
+  "Medication",
+  "Nursing",
+];
 
 const STAY_BY_ID = INPATIENT_STAYS.reduce<
   Record<string, (typeof INPATIENT_STAYS)[number]>
@@ -1577,15 +1600,6 @@ export default function IpdRoundsPage() {
     notes: "",
   });
   const [orderDialogOpen, setOrderDialogOpen] = React.useState(false);
-  const [orderDialogError, setOrderDialogError] = React.useState("");
-  const [orderDraft, setOrderDraft] = React.useState({
-    type: "Lab",
-    priority: "Routine" as OrderPriority,
-    description: "",
-    frequency: "Once",
-    duration: "",
-    notes: "",
-  });
   const [noteDialogOpen, setNoteDialogOpen] = React.useState(false);
   const [noteDialogError, setNoteDialogError] = React.useState("");
   const [noteDraft, setNoteDraft] = React.useState({
@@ -1934,6 +1948,25 @@ export default function IpdRoundsPage() {
           ? pendingBillingEntries.length
           : undefined,
   }));
+  const activeTabIndex = React.useMemo(
+    () =>
+      Math.max(
+        0,
+        visibleTabs.findIndex((tab) => tab.id === activeTab),
+      ),
+    [activeTab, visibleTabs],
+  );
+  const customTabItems = React.useMemo(
+    () =>
+      tabItems.map((tab) => ({
+        label:
+          tab.count && tab.count > 0
+            ? `${tab.label} (${tab.count})`
+            : tab.label,
+        child: <Box />,
+      })),
+    [tabItems],
+  );
 
   const openRoute = (route: string, permissionRoute: string) => {
     if (!canNavigate(permissionRoute)) return;
@@ -1947,11 +1980,6 @@ export default function IpdRoundsPage() {
     },
     [replaceWorkspaceQuery, selectedPatient.mrn],
   );
-
-  const onTabChange = (_: React.SyntheticEvent, nextTab: string) => {
-    if (!isClinicalTab(nextTab)) return;
-    switchTab(nextTab);
-  };
 
   const onSelectPatient = (patientId: string) => {
     const patient = clinicalPatients.find((item) => item.id === patientId);
@@ -1991,10 +2019,9 @@ export default function IpdRoundsPage() {
         consultant: patient.consultant,
         diagnosis: patient.diagnosis,
         status: infectionCase ? "Infection Alert" : status,
-        statusTone:
-          infectionCase
-            ? "error"
-            : status === "Critical"
+        statusTone: infectionCase
+          ? "error"
+          : status === "Critical"
             ? "error"
             : status === "Discharge Due"
               ? "warning"
@@ -2279,44 +2306,27 @@ export default function IpdRoundsPage() {
   };
 
   const openOrderDialog = () => {
-    setOrderDialogError("");
-    setOrderDraft({
-      type: "Lab",
-      priority: "Routine",
-      description: "",
-      frequency: "Once",
-      duration: "",
-      notes: "",
-    });
     setOrderDialogOpen(true);
   };
 
-  const submitOrderFromDialog = () => {
-    if (!orderDraft.description.trim()) {
-      setOrderDialogError("Order description is required.");
-      return;
-    }
+  const submitOrderFromDialog = (draft: DraftOrderLine) => {
+    const description = draft.instructions.trim()
+      ? `${draft.orderName.trim()} | Note: ${draft.instructions.trim()}`
+      : draft.orderName.trim();
+    const frequency = draft.duration.trim()
+      ? `${draft.frequency.trim() || "Once"} | ${draft.duration.trim()}`
+      : draft.frequency.trim() || "Once";
 
-    const description = orderDraft.notes.trim()
-      ? `${orderDraft.description.trim()} | Note: ${orderDraft.notes.trim()}`
-      : orderDraft.description.trim();
-    const frequency = orderDraft.duration.trim()
-      ? `${orderDraft.frequency.trim() || "Once"} | ${orderDraft.duration.trim()}`
-      : orderDraft.frequency.trim() || "Once";
-
-    const { newOrder, newBillingEntry } = appendOrderWithAutoBilling({
-      type: orderDraft.type,
+    appendOrderWithAutoBilling({
+      type: draft.category,
       description,
       frequency,
-      priority: orderDraft.priority,
+      priority: draft.priority as OrderPriority,
       orderedBy: selectedPatient.consultant,
     });
 
     setOrderDialogOpen(false);
-    showSnack(
-      `Order placed (${newOrder.id}). Billing ${newBillingEntry.id} generated for ${formatBillingAmount(newBillingEntry.amount)}.`,
-      "success",
-    );
+    showSnack(`Order placed: ${draft.orderName}`, "success");
     switchTab("orders");
   };
 
@@ -2977,7 +2987,9 @@ export default function IpdRoundsPage() {
 
   return (
     <PageTemplate title="Clinical Care" header={topBarHeader} fullHeight>
-      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <Box
+        sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
+      >
         {/* Workspace header + tabs — fixed, never scrolls */}
         <Stack spacing={1.25} sx={{ flexShrink: 0 }}>
           <WorkspaceHeaderCard
@@ -3078,57 +3090,29 @@ export default function IpdRoundsPage() {
           ) : null}
 
           <Box>
-            <Card
-              elevation={0}
-              sx={{
-                p: 0,
-                borderRadius: "16px",
-                border: "1px solid #DDE8F0",
-                backgroundColor: "#FFFFFF",
+            <CustomCardTabs
+              items={customTabItems}
+              defaultValue={activeTabIndex}
+              onChange={(index) => {
+                const nextTab = visibleTabs[index]?.id;
+                if (!nextTab || !isClinicalTab(nextTab)) return;
+                switchTab(nextTab);
               }}
-            >
-              <Box sx={{ px: 0.75, py: 0.5 }}>
-                <Tabs
-                  value={activeTab}
-                  onChange={onTabChange}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                  sx={{
-                    "& .MuiTabs-flexContainer": { gap: 0.5 },
-                    "& .MuiTabs-indicator": { display: "none" },
-                    "& .MuiTab-root": {
-                      textTransform: "none",
-                      fontWeight: 600,
-                      minHeight: 40,
-                      px: 2,
-                      borderRadius: 1.5,
-                      color: "text.secondary",
-                    },
-                    "& .MuiTab-root.Mui-selected": {
-                      color: "common.white",
-                      backgroundColor: "primary.main",
-                    },
-                  }}
-                >
-                  {tabItems.map((tab) => (
-                    <Tab
-                      key={tab.id}
-                      value={tab.id}
-                      label={
-                        tab.count && tab.count > 0
-                          ? `${tab.label} (${tab.count})`
-                          : tab.label
-                      }
-                    />
-                  ))}
-                </Tabs>
-              </Box>
-            </Card>
+              sticky={false}
+            />
           </Box>
         </Stack>
 
         {/* Scrollable content area only */}
-        <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', pt: 1.25 }}>
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            overflowX: "hidden",
+            pt: 1.25,
+          }}
+        >
           {activeTab === "rounds" ? (
             <Grid container spacing={1.25} alignItems="flex-start">
               <Grid xs={12} lg={7}>
@@ -4427,10 +4411,7 @@ export default function IpdRoundsPage() {
                         variant="outlined"
                         disabled={!canNavigate("/lab/samples")}
                         onClick={() =>
-                          openRoute(
-                            "/lab/samples",
-                            "/lab/samples",
-                          )
+                          openRoute("/lab/samples", "/lab/samples")
                         }
                       >
                         Open Lab Samples
@@ -4684,176 +4665,14 @@ export default function IpdRoundsPage() {
           }
         />
 
-        <CommonDialog
+        <CommonOrderDialog
           open={orderDialogOpen}
           onClose={() => setOrderDialogOpen(false)}
-          title={renderClinicalDialogTitle(
-            "Write New Order",
-            <ScienceIcon sx={{ fontSize: 14 }} />,
-            () => setOrderDialogOpen(false),
-            "warning",
-          )}
-          maxWidth="sm"
-          fullWidth
-          titleSx={clinicalDialogTitleSx}
-          contentSx={clinicalDialogContentSx}
-          actionsSx={clinicalDialogActionsSx}
-          actions={
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ width: "100%", justifyContent: "flex-end" }}
-            >
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() => setOrderDialogOpen(false)}
-                sx={clinicalDialogButtonSx}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="small"
-                variant="contained"
-                onClick={submitOrderFromDialog}
-                startIcon={<ScienceIcon sx={{ fontSize: 14 }} />}
-                sx={clinicalPrimaryButtonSx}
-              >
-                Submit Order
-              </Button>
-            </Stack>
-          }
-          content={
-            <Stack spacing={1.1}>
-              <Grid container spacing={1.1} sx={{ mt: 0.15 }}>
-                <Grid xs={12} sm={6}>
-                  <Typography variant="caption" sx={clinicalLabelSx}>
-                    Order Type
-                  </Typography>
-                  <TextField
-                    select
-                    size="small"
-                    value={orderDraft.type}
-                    onChange={(event) =>
-                      setOrderDraft((previous) => ({
-                        ...previous,
-                        type: event.target.value,
-                      }))
-                    }
-                    fullWidth
-                  >
-                    {ORDER_TYPE_OPTIONS.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid xs={12} sm={6}>
-                  <Typography variant="caption" sx={clinicalLabelSx}>
-                    Priority
-                  </Typography>
-                  <TextField
-                    select
-                    size="small"
-                    value={orderDraft.priority}
-                    onChange={(event) =>
-                      setOrderDraft((previous) => ({
-                        ...previous,
-                        priority: event.target.value as OrderPriority,
-                      }))
-                    }
-                    fullWidth
-                  >
-                    {(["Routine", "Urgent", "STAT"] as OrderPriority[]).map(
-                      (priority) => (
-                        <MenuItem key={priority} value={priority}>
-                          {priority}
-                        </MenuItem>
-                      ),
-                    )}
-                  </TextField>
-                </Grid>
-              </Grid>
-              <Box>
-                <Typography variant="caption" sx={clinicalLabelSx}>
-                  Order Description
-                </Typography>
-                <TextField
-                  size="small"
-                  placeholder="e.g. Repeat CBC + CMP, 12-lead ECG..."
-                  value={orderDraft.description}
-                  onChange={(event) =>
-                    setOrderDraft((previous) => ({
-                      ...previous,
-                      description: event.target.value,
-                    }))
-                  }
-                  fullWidth
-                />
-              </Box>
-              <Grid container spacing={1.1}>
-                <Grid xs={12} sm={6}>
-                  <Typography variant="caption" sx={clinicalLabelSx}>
-                    Frequency
-                  </Typography>
-                  <TextField
-                    size="small"
-                    placeholder="e.g. Once, Q8H, Daily"
-                    value={orderDraft.frequency}
-                    onChange={(event) =>
-                      setOrderDraft((previous) => ({
-                        ...previous,
-                        frequency: event.target.value,
-                      }))
-                    }
-                    fullWidth
-                  />
-                </Grid>
-                <Grid xs={12} sm={6}>
-                  <Typography variant="caption" sx={clinicalLabelSx}>
-                    Duration
-                  </Typography>
-                  <TextField
-                    size="small"
-                    placeholder="e.g. 3 days, Ongoing, PRN"
-                    value={orderDraft.duration}
-                    onChange={(event) =>
-                      setOrderDraft((previous) => ({
-                        ...previous,
-                        duration: event.target.value,
-                      }))
-                    }
-                    fullWidth
-                  />
-                </Grid>
-              </Grid>
-              <Box>
-                <Typography variant="caption" sx={clinicalLabelSx}>
-                  Clinical Notes
-                </Typography>
-                <TextField
-                  size="small"
-                  multiline
-                  minRows={2}
-                  placeholder="Clinical justification..."
-                  value={orderDraft.notes}
-                  onChange={(event) =>
-                    setOrderDraft((previous) => ({
-                      ...previous,
-                      notes: event.target.value,
-                    }))
-                  }
-                  fullWidth
-                />
-              </Box>
-              {orderDialogError ? (
-                <Typography variant="caption" color="error.main">
-                  {orderDialogError}
-                </Typography>
-              ) : null}
-            </Stack>
-          }
+          onSave={(draft) => submitOrderFromDialog(draft)}
+          catalog={IPD_ORDER_CATALOG}
+          categories={IPD_ORDER_CATEGORIES}
+          showFrequency={true}
+          showDuration={true}
         />
 
         <CommonDialog

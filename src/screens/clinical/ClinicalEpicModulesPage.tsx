@@ -5,6 +5,7 @@ import Link from 'next/link';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 import { Box, Stack, Typography, TextField, InputAdornment, Chip, Button } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
+import { useUser } from '@/src/core/auth/UserContext';
 import { useTheme } from '@/src/ui/theme';
 import { getSubtleSurface } from '@/src/core/theme/surfaces';
 import {
@@ -25,6 +26,7 @@ import {
 
 export default function ClinicalEpicModulesPage() {
   const theme = useTheme();
+  const { role } = useUser();
   const subtleSurface = getSubtleSurface(theme);
   const [query, setQuery] = React.useState('');
   const [audienceFilter, setAudienceFilter] = React.useState<'All' | string>('All');
@@ -50,6 +52,9 @@ export default function ClinicalEpicModulesPage() {
   const rows = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     return CLINICAL_MODULES.filter((moduleDefinition) => {
+      const isExcluded =
+        moduleDefinition.excludedRoles?.includes(role) ?? false;
+      if (isExcluded) return false;
       const matchesQuery =
         q.length === 0 ||
         [
@@ -69,7 +74,7 @@ export default function ClinicalEpicModulesPage() {
         statusFilter === 'All' || moduleDefinition.status === statusFilter;
       return matchesQuery && matchesAudience && matchesCategory && matchesStatus;
     });
-  }, [query, audienceFilter, categoryFilter, statusFilter]);
+  }, [query, audienceFilter, categoryFilter, role, statusFilter]);
 
   const columns = React.useMemo<GridColDef<ClinicalModuleDefinition>[]>(
     () => [

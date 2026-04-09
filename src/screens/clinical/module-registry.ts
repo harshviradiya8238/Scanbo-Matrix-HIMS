@@ -31,6 +31,7 @@ export interface ClinicalModuleDefinition {
   videoUrl?: string;
   referenceUrl?: string;
   requiredPermissions?: string[];
+  excludedRoles?: string[];
 }
 
 const CORE_ACTIONS = ['create', 'read', 'write'] as const;
@@ -335,6 +336,7 @@ export const CLINICAL_MODULES: ClinicalModuleDefinition[] = [
     appRoute: '/clinical/modules/willow',
     status: 'Implemented',
     requiredPermissions: buildPermissions('pharmacy', 'willow'),
+    excludedRoles: ['DOCTOR'],
     videoUrl: 'https://www.youtube.com/watch?v=JqmbaJ4QKlk',
     referenceUrl: 'https://www.epic.com/software/specialties/',
   },

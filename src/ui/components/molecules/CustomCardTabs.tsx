@@ -75,8 +75,15 @@ const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
   }));
 
   return (
-    // ✅ FIX: removed height/overflow ternary — let the page scroll naturally
-    <Box sx={{ ...sx }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        flex: 1,
+        minHeight: 0,
+        ...sx,
+      }}
+    >
       <Box
         sx={{
           position: sticky ? "sticky" : "relative",
@@ -104,6 +111,10 @@ const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
 
       <Box
         sx={{
+          flex: scrollable ? 1 : "unset",
+          minHeight: 0,
+          overflowY: scrollable ? "auto" : "visible",
+          overflowX: "hidden",
           pt: orientation === "horizontal" ? 2 : 0,
         }}
       >

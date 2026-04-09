@@ -7,7 +7,7 @@ import {
   ActionMenuItems,
 } from "./components/PatientDataTable";
 import { FilterDrawer } from "./components/FilterDrawer";
-import { PatientDetailsDrawer } from "./components/PatientDetailsDrawer";
+// import { PatientDetailsDrawer } from "./components/PatientDetailsDrawer";
 import { ColumnVisibilityDialog } from "./components/ColumnVisibilityDialog";
 import {
   Box,
@@ -235,7 +235,6 @@ React.useEffect(() => {
           onRowClick={(row) => {
             if (isDoctor) {
               setSelectedPatient(row);
-              setDetailsOpen(true);
             }
           }}
           toolbarRight={
@@ -266,24 +265,14 @@ React.useEffect(() => {
         <FilterDrawer data={data} />
       </Drawer>
 
-      <Drawer
+      {/* <Drawer
         anchor="right"
         open={detailsOpen}
         onClose={() => setDetailsOpen(false)}
       >
         <PatientDetailsDrawer data={data} />
-      </Drawer>
+      </Drawer> */}
 
-      <Snackbar
-        open={Boolean(snackbar)}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert severity="info" onClose={() => setSnackbar(null)}>
-          {snackbar}
-        </Alert>
-      </Snackbar>
 
       <CommonDialog
         open={Boolean(confirmAction)}
