@@ -24,7 +24,7 @@ export default function IpdModuleTabs({ tabs, value, onChange }: IpdModuleTabsPr
        
         '& .MuiTab-root': {
           minHeight: 44,
-          // px: 1,
+          px: 1,
           borderRadius: 1.25,
         },
       }}

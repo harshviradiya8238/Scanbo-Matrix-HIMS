@@ -14,7 +14,6 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -158,12 +157,15 @@ function buildQueue(
   });
 }
 
+import { useSnackbar } from "@/src/ui/components/molecules/Snackbarcontext";
+
 export default function OpdQueuePage() {
   const router = useRouter();
   const { role } = useUser();
   const permissionGate = usePermission();
   const ipdEncounters = useIpdEncounters();
   const dispatch = useAppDispatch();
+  const snackbar = useSnackbar();
   const {
     appointments,
     encounters,
@@ -203,15 +205,6 @@ export default function OpdQueuePage() {
     requestNote: "",
   });
   const [filterDrawerOpen, setFilterDrawerOpen] = React.useState(false);
-  const [snackbar, setSnackbar] = React.useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error" | "info" | "warning";
-  }>({
-    open: false,
-    message: "",
-    severity: "success",
-  });
   const [isHydrated, setIsHydrated] = React.useState(false);
 
   React.useEffect(() => {
@@ -307,11 +300,7 @@ export default function OpdQueuePage() {
   const handleStartConsult = React.useCallback(
     (item: QueueItem) => {
       if (!canStartConsult) {
-        setSnackbar({
-          open: true,
-          message: `${roleProfile.label} cannot start consultation. Please assign to a doctor.`,
-          severity: "warning",
-        });
+        snackbar.warning(`${roleProfile.label} cannot start consultation. Please assign to a doctor.`);
         return;
       }
       dispatch(
@@ -328,11 +317,7 @@ export default function OpdQueuePage() {
   const handleViewHistory = React.useCallback(
     (item: QueueItem) => {
       if (!canViewHistory) {
-        setSnackbar({
-          open: true,
-          message: `${roleProfile.label} cannot open clinical history.`,
-          severity: "warning",
-        });
+        snackbar.warning(`${roleProfile.label} cannot open clinical history.`);
         return;
       }
       const base = buildEncounterRoute(item.id);
@@ -344,11 +329,7 @@ export default function OpdQueuePage() {
   const handleOpenTransferDialog = React.useCallback(
     (item: QueueItem) => {
       if (!canTransferToIpd) {
-        setSnackbar({
-          open: true,
-          message: `${roleProfile.label} does not have permission to move patient to IPD.`,
-          severity: "warning",
-        });
+        snackbar.warning(`${roleProfile.label} does not have permission to move patient to IPD.`);
         return;
       }
 
@@ -378,29 +359,17 @@ export default function OpdQueuePage() {
   const handleSubmitTransfer = React.useCallback(() => {
     if (!selectedTransferItem) return;
     if (!canTransferToIpd) {
-      setSnackbar({
-        open: true,
-        message: `${roleProfile.label} does not have permission to move patient to IPD.`,
-        severity: "warning",
-      });
+      snackbar.warning(`${roleProfile.label} does not have permission to move patient to IPD.`);
       return;
     }
 
     if (!transferDraft.preferredWard.trim()) {
-      setSnackbar({
-        open: true,
-        message: "Preferred ward is required for IPD transfer.",
-        severity: "error",
-      });
+      snackbar.error("Preferred ward is required for IPD transfer.");
       return;
     }
 
     if (!transferDraft.admissionReason.trim()) {
-      setSnackbar({
-        open: true,
-        message: "Admission reason is required for IPD transfer.",
-        severity: "error",
-      });
+      snackbar.error("Admission reason is required for IPD transfer.");
       return;
     }
 
@@ -434,15 +403,11 @@ export default function OpdQueuePage() {
 
     setTransferDialogOpen(false);
     setSelectedTransferItem(null);
-    setSnackbar({
-      open: true,
-      message:
-        result.status === "created"
-          ? `IPD transfer created for ${result.lead.patientName}.`
-          : `IPD transfer updated for ${result.lead.patientName}.`,
-      severity: "success",
-    });
-    router.push(`/ipd/admissions?mrn=${encodeURIComponent(result.lead.mrn)}`);
+    snackbar.success(
+      result.status === "created"
+        ? `IPD transfer created for ${result.lead.patientName}.`
+        : `IPD transfer updated for ${result.lead.patientName}.`
+    );
   }, [
     appointments,
     canTransferToIpd,
@@ -554,16 +519,18 @@ export default function OpdQueuePage() {
             >
               View History
             </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              color="secondary"
-              startIcon={<SwapHorizIcon />}
-              disabled={!canTransferToIpd}
-              onClick={() => handleOpenTransferDialog(row)}
-            >
-              Move to IPD
-            </Button>
+            {role === "DOCTOR" && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                startIcon={<SwapHorizIcon />}
+                disabled={!canTransferToIpd}
+                onClick={() => handleOpenTransferDialog(row)}
+              >
+                Move to IPD
+              </Button>
+            )}
           </Stack>
         ),
       },
@@ -684,13 +651,7 @@ export default function OpdQueuePage() {
                     variant="outlined"
                     size="small"
                     startIcon={<FileDownloadIcon />}
-                    onClick={() =>
-                      setSnackbar({
-                        open: true,
-                        message: "Report export started.",
-                        severity: "info",
-                      })
-                    }
+                    onClick={() => snackbar.info("Report export started.")}
                   >
                     Export Reports
                   </Button>
@@ -931,32 +892,20 @@ export default function OpdQueuePage() {
             >
               Cancel
             </Button>
-            <Button
-              variant="contained"
-              startIcon={<SwapHorizIcon />}
-              onClick={handleSubmitTransfer}
-              disabled={!canTransferToIpd || !selectedTransferItem}
-            >
-              Move to IPD
-            </Button>
+            {role === "DOCTOR" && (
+              <Button
+                variant="contained"
+                startIcon={<SwapHorizIcon />}
+                onClick={handleSubmitTransfer}
+                disabled={!canTransferToIpd || !selectedTransferItem}
+              >
+                Move to IPD
+              </Button>
+            )}
           </>
         }
       />
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3200}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </OpdLayout>
   );
 }

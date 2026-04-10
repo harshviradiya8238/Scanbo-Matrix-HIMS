@@ -7,7 +7,6 @@ import {
   Box,
   Button,
   Chip,
-  Snackbar,
   Stack,
   Typography,
 } from "@/src/ui/components/atoms";
@@ -46,7 +45,6 @@ import {
   ViewMode,
   OtCase,
   ScheduleForm,
-  ToastState,
   InstrumentCountRow,
   MedicationRow,
   DischargeMedicationRow,
@@ -55,11 +53,18 @@ import {
   ROOM_OPTIONS,
   PREOP_CHECKLIST_ITEMS,
   INITIAL_CASES,
-  defaultScheduleForm,
   mapStatusToWorkspaceTab,
   buildChecklistStateForCase,
   formatChecklistTimeNow,
+  INTRAOP_TIMELINE,
+  defaultScheduleForm,
 } from "./OpTimeData";
+
+import AddDischargeMedicationModal, { MedicationForm } from "./components/dialogs/AddDischargeMedicationModal";
+import AddIntraOpEventModal, { IntraOpEventForm } from "./components/dialogs/AddIntraOpEventModal";
+import AddIntraOpMedicationModal, { IntraOpMedicationForm } from "./components/dialogs/AddIntraOpMedicationModal";
+import VerifyInstrumentCountModal from "./components/dialogs/VerifyInstrumentCountModal";
+import { useSnackbar } from "@/src/ui/components/molecules/Snackbarcontext";
 
 export default function OpTimeSurgeryPage() {
   const theme = useTheme();
@@ -84,11 +89,7 @@ export default function OpTimeSurgeryPage() {
     });
     return initial;
   });
-  const [toast, setToast] = React.useState<ToastState>({
-    open: false,
-    message: "",
-    severity: "info",
-  });
+  const snackbar = useSnackbar();
 
   React.useEffect(() => {
     if (selectedCaseId && cases.some((item) => item.id === selectedCaseId))
@@ -203,21 +204,13 @@ export default function OpTimeSurgeryPage() {
       !scheduleForm.procedure.trim() ||
       !scheduleForm.surgeon.trim()
     ) {
-      setToast({
-        open: true,
-        message: "Patient, MRN, Procedure, and Surgeon are required.",
-        severity: "warning",
-      });
+      snackbar.warning("Patient, MRN, Procedure, and Surgeon are required.");
       return;
     }
 
     const scheduledDate = new Date(scheduleForm.scheduledAt);
     if (Number.isNaN(scheduledDate.getTime())) {
-      setToast({
-        open: true,
-        message: "Please select a valid schedule date and time.",
-        severity: "warning",
-      });
+      snackbar.warning("Please select a valid schedule date and time.");
       return;
     }
 
@@ -249,11 +242,7 @@ export default function OpTimeSurgeryPage() {
     setViewMode("workspace");
     setScheduleDialogOpen(false);
     setScheduleForm(defaultScheduleForm(scheduleForm.roomId));
-    setToast({
-      open: true,
-      message: `${newCase.caseNo} scheduled and opened in workspace.`,
-      severity: "success",
-    });
+    snackbar.success(`${newCase.caseNo} scheduled and opened in workspace.`);
   }, [cases.length, scheduleForm]);
 
   const caseBoardColumns = React.useMemo(
@@ -329,103 +318,137 @@ export default function OpTimeSurgeryPage() {
     [],
   );
 
-  const instrumentRows = React.useMemo<InstrumentCountRow[]>(
-    () => [
-      {
-        id: "count-swabs",
-        item: "Swabs",
-        initial: "20",
-        final: "20",
-        status: "OK",
-      },
-      {
-        id: "count-needles",
-        item: "Needles",
-        initial: "8",
-        final: "8",
-        status: "OK",
-      },
-      {
-        id: "count-instruments",
-        item: "Instruments",
-        initial: "32",
-        final: selectedCase?.status === "Closing" ? "32" : "--",
-        status: selectedCase?.status === "Closing" ? "OK" : "Pending",
-      },
-      {
-        id: "count-retractors",
-        item: "Retractors",
-        initial: "4",
-        final: "4",
-        status: "OK",
-      },
-    ],
-    [selectedCase?.status],
-  );
+  const [intraOpEvents, setIntraOpEvents] = React.useState(INTRAOP_TIMELINE);
 
-  const intraOpMedicationRows = React.useMemo<MedicationRow[]>(
-    () => [
-      {
-        id: "med-propofol",
-        drug: "Propofol 2%",
-        dose: "200 mg",
-        route: "IV Bolus",
-        time: "08:05",
-      },
-      {
-        id: "med-cef",
-        drug: "Ceftriaxone",
-        dose: "1 g",
-        route: "IV",
-        time: "08:10",
-      },
-      {
-        id: "med-fentanyl",
-        drug: "Fentanyl",
-        dose: "100 mcg",
-        route: "IV Push",
-        time: "08:15",
-      },
-      {
-        id: "med-rocuronium",
-        drug: "Rocuronium",
-        dose: "50 mg",
-        route: "IV",
-        time: "08:18",
-      },
-    ],
-    [],
-  );
+  const [instrumentRows, setInstrumentRows] = React.useState<InstrumentCountRow[]>([
+    {
+      id: "count-swabs",
+      item: "Swabs",
+      initial: "20",
+      final: "20",
+      status: "OK",
+    },
+    {
+      id: "count-needles",
+      item: "Needles",
+      initial: "8",
+      final: "8",
+      status: "OK",
+    },
+    {
+      id: "count-instruments",
+      item: "Instruments",
+      initial: "32",
+      final: "--",
+      status: "Pending",
+    },
+    {
+      id: "count-retractors",
+      item: "Retractors",
+      initial: "4",
+      final: "4",
+      status: "OK",
+    },
+  ]);
 
-  const dischargeMedicationRows = React.useMemo<DischargeMedicationRow[]>(
-    () => [
-      {
-        id: "dmed-1",
-        drug: "Paracetamol",
-        dose: "500 mg",
-        frequency: "TDS",
-        duration: "5 days",
-        instructions: "After food",
-      },
-      {
-        id: "dmed-2",
-        drug: "Pantoprazole",
-        dose: "40 mg",
-        frequency: "OD",
-        duration: "7 days",
-        instructions: "Before breakfast",
-      },
-      {
-        id: "dmed-3",
-        drug: "Amox-Clav",
-        dose: "625 mg",
-        frequency: "BD",
-        duration: "5 days",
-        instructions: "After meals",
-      },
-    ],
-    [],
-  );
+  const [intraOpMedicationRows, setIntraOpMedicationRows] = React.useState<MedicationRow[]>([
+    {
+      id: "med-propofol",
+      drug: "Propofol 2%",
+      dose: "200 mg",
+      route: "IV Bolus",
+      time: "08:05",
+    },
+    {
+      id: "med-cef",
+      drug: "Ceftriaxone",
+      dose: "1 g",
+      route: "IV",
+      time: "08:10",
+    },
+    {
+      id: "med-fentanyl",
+      drug: "Fentanyl",
+      dose: "100 mcg",
+      route: "IV Push",
+      time: "08:15",
+    },
+    {
+      id: "med-rocuronium",
+      drug: "Rocuronium",
+      dose: "50 mg",
+      route: "IV",
+      time: "08:18",
+    },
+  ]);
+
+  const [addEventDialogOpen, setAddEventDialogOpen] = React.useState(false);
+  const [verifyCountDialogOpen, setVerifyCountDialogOpen] = React.useState(false);
+  const [addIntraOpMedDialogOpen, setAddIntraOpMedDialogOpen] = React.useState(false);
+
+  const handleAddIntraOpEvent = (form: IntraOpEventForm) => {
+    setIntraOpEvents((prev) => [...prev, form]);
+    snackbar.success("Event added to timeline.");
+  };
+
+  const handleUpdateInstrumentCount = (updatedRows: InstrumentCountRow[]) => {
+    setInstrumentRows(updatedRows);
+    snackbar.success("Instrument counts verified.");
+  };
+
+  const handleAddIntraOpMedication = (form: IntraOpMedicationForm) => {
+    const newMed: MedicationRow = {
+      id: `med-${Date.now()}`,
+      drug: form.drug,
+      dose: form.dose,
+      route: form.route,
+      time: form.time,
+    };
+    setIntraOpMedicationRows((prev) => [...prev, newMed]);
+    snackbar.success("Medication recorded.");
+  };
+
+  const [dischargeMedicationRows, setDischargeMedicationRows] = React.useState<DischargeMedicationRow[]>([
+    {
+      id: "dmed-1",
+      drug: "Paracetamol",
+      dose: "500 mg",
+      frequency: "TDS",
+      duration: "5 days",
+      instructions: "After food",
+    },
+    {
+      id: "dmed-2",
+      drug: "Pantoprazole",
+      dose: "40 mg",
+      frequency: "OD",
+      duration: "7 days",
+      instructions: "Before breakfast",
+    },
+    {
+      id: "dmed-3",
+      drug: "Amox-Clav",
+      dose: "625 mg",
+      frequency: "BD",
+      duration: "5 days",
+      instructions: "After meals",
+    },
+  ]);
+
+  const [addDischargeMedicationDialogOpen, setAddDischargeMedicationDialogOpen] = React.useState(false);
+
+  const handleAddDischargeMedication = (form: MedicationForm) => {
+    const newMedication: DischargeMedicationRow = {
+      id: `dmed-${Date.now()}`,
+      drug: form.drugName,
+      dose: `${form.dose} ${form.doseUnit}`,
+      frequency: form.frequency,
+      duration: `${form.duration} ${form.durationUnit}`,
+      instructions: form.instructions || form.notes || "--",
+    };
+    setDischargeMedicationRows((prev) => [...prev, newMedication]);
+  };
+
 
   const tabMeta = React.useMemo(() => {
     const preOpDone = preOpChecklistRows.filter(
@@ -504,6 +527,11 @@ export default function OpTimeSurgeryPage() {
       countColumns,
       medicationColumns,
       dischargeMedicationColumns,
+      onAddDischargeClick: () => setAddDischargeMedicationDialogOpen(true),
+      onAddEventClick: () => setAddEventDialogOpen(true),
+      onVerifyCountClick: () => setVerifyCountDialogOpen(true),
+      onAddIntraOpMedClick: () => setAddIntraOpMedDialogOpen(true),
+      intraOpEvents,
     };
 
     const preOpDone = preOpChecklistRows.filter(
@@ -625,24 +653,40 @@ export default function OpTimeSurgeryPage() {
         handleScheduleCase={handleScheduleCase}
       />
 
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={3200}
-        onClose={() =>
-          setToast((prev: ToastState) => ({ ...prev, open: false }))
-        }
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <Alert
-          onClose={() =>
-            setToast((prev: ToastState) => ({ ...prev, open: false }))
-          }
-          severity={toast.severity}
-          sx={{ width: "100%" }}
-        >
-          {toast.message}
-        </Alert>
-      </Snackbar>
+      <AddDischargeMedicationModal
+        isOpen={addDischargeMedicationDialogOpen}
+        onClose={() => setAddDischargeMedicationDialogOpen(false)}
+        onSave={(med) => {
+          const newMed: DischargeMedicationRow = {
+            id: `dmed-${Date.now()}`,
+            drug: med.drugName,
+            dose: `${med.dose} ${med.doseUnit}`,
+            frequency: med.frequency,
+            duration: `${med.duration} ${med.durationUnit}`,
+            instructions: med.instructions || med.notes || "--",
+          };
+          setDischargeMedicationRows((prev) => [...prev, newMed]);
+        }}
+      />
+
+      <AddIntraOpEventModal
+        isOpen={addEventDialogOpen}
+        onClose={() => setAddEventDialogOpen(false)}
+        onSave={handleAddIntraOpEvent}
+      />
+
+      <AddIntraOpMedicationModal
+        isOpen={addIntraOpMedDialogOpen}
+        onClose={() => setAddIntraOpMedDialogOpen(false)}
+        onSave={handleAddIntraOpMedication}
+      />
+
+      <VerifyInstrumentCountModal
+        isOpen={verifyCountDialogOpen}
+        onClose={() => setVerifyCountDialogOpen(false)}
+        instrumentRows={instrumentRows}
+        onSave={handleUpdateInstrumentCount}
+      />
     </PageTemplate>
   );
 }

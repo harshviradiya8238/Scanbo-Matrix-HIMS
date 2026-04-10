@@ -28,6 +28,7 @@ import { CommonColumn } from "@/src/components/table/CommonDataGrid";
 import { maskPhoneNumber, statusColors } from "../utils/patient-list-utils";
 import { PatientListData } from "../hooks/usePatientListData";
 import { MenuItem } from "@mui/material";
+import { useUser } from "@/src/core/auth/UserContext";
 
 export const getPatientListColumns = (
   theme: any,
@@ -185,7 +186,10 @@ export function ActionMenuItems({
   handleMenuNavigate: (route: string, extras?: Record<string, string>) => void;
 }) {
   const theme = useTheme();
+  const { role } = useUser();
   const { setConfirmAction, setSnackbar, handleMenuClose, actionMenu } = data;
+
+  const isDoctor = role === "DOCTOR";
 
   return (
     <>
@@ -195,19 +199,21 @@ export function ActionMenuItems({
         </ListItemIcon>
         <ListItemText primary="View Profile" />
       </MenuItem>
-      <MenuItem
-        onClick={() =>
-          handleMenuNavigate("/patients/registration", {
-            mode: "edit",
-            source: "patient-list",
-          })
-        }
-      >
-        <ListItemIcon sx={{ minWidth: 24 }}>
-          <EditIcon sx={{ fontSize: 18 }} />
-        </ListItemIcon>
-        <ListItemText primary="Edit Demographics" />
-      </MenuItem>
+      {!isDoctor && (
+        <MenuItem
+          onClick={() =>
+            handleMenuNavigate("/patients/registration", {
+              mode: "edit",
+              source: "patient-list",
+            })
+          }
+        >
+          <ListItemIcon sx={{ minWidth: 24 }}>
+            <EditIcon sx={{ fontSize: 18 }} />
+          </ListItemIcon>
+          <ListItemText primary="Edit Demographics" />
+        </MenuItem>
+      )}
       <Divider sx={{ my: 1, opacity: 0.6 }} />
       <MenuItem
         onClick={() =>
@@ -234,19 +240,23 @@ export function ActionMenuItems({
         </ListItemIcon>
         <ListItemText primary="Start Encounter" />
       </MenuItem>
-      <MenuItem onClick={() => handleMenuNavigate("/ipd/admissions")}>
-        <ListItemIcon sx={{ minWidth: 24 }}>
-          <AdmitIcon sx={{ fontSize: 18 }} />
-        </ListItemIcon>
-        <ListItemText primary="Admit Patient" />
-      </MenuItem>
-      <Divider sx={{ my: 1, opacity: 0.6 }} />
-      <MenuItem onClick={() => handleMenuNavigate("/billing/invoices")}>
-        <ListItemIcon sx={{ minWidth: 24 }}>
-          <InvoiceIcon sx={{ fontSize: 18 }} />
-        </ListItemIcon>
-        <ListItemText primary="Billing / Invoices" />
-      </MenuItem>
+      {!isDoctor && (
+        <>
+          <MenuItem onClick={() => handleMenuNavigate("/ipd/admissions")}>
+            <ListItemIcon sx={{ minWidth: 24 }}>
+              <AdmitIcon sx={{ fontSize: 18 }} />
+            </ListItemIcon>
+            <ListItemText primary="Admit Patient" />
+          </MenuItem>
+          <Divider sx={{ my: 1, opacity: 0.6 }} />
+          <MenuItem onClick={() => handleMenuNavigate("/billing/invoices")}>
+            <ListItemIcon sx={{ minWidth: 24 }}>
+              <InvoiceIcon sx={{ fontSize: 18 }} />
+            </ListItemIcon>
+            <ListItemText primary="Billing / Invoices" />
+          </MenuItem>
+        </>
+      )}
       <MenuItem
         onClick={(e) => {
           e.stopPropagation();

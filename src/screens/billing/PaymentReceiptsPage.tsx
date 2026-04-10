@@ -206,7 +206,7 @@ export default function PaymentReceiptsPage() {
                 date: pay.dateTime,
                 invoiceNo: pay.invoiceId,
                 patientName: `Patient (${patientId})`,
-                amount: pay.amount,
+                amount: pay.amount ?? 0,
                 mode: pay.mode as any,
                 cashier: "Front Desk",
                 action: "Print",
@@ -359,7 +359,7 @@ export default function PaymentReceiptsPage() {
               letterSpacing: "-0.01em",
             }}
           >
-            ₹{row.amount.toLocaleString()}
+            ₹{(row.amount ?? 0).toLocaleString()}
           </Typography>
         ),
       },

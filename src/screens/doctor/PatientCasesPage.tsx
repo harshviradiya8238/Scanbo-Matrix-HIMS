@@ -50,9 +50,9 @@ const statusColors: Record<CaseStatus, "success" | "info" | "default"> = {
 export const MOCK_CASES: PatientCaseRow[] = [
   {
     id: "case-1",
-    patientId: "P-001",
-    patientName: "Rajesh Kumar",
-    mrn: "MRN-2024-001",
+    patientId: "MRN-245781",
+    patientName: "Aarav Nair",
+    mrn: "MRN-245781",
     caseType: "Follow-up",
     openedAt: "2025-03-01",
     status: "Active",
@@ -60,43 +60,43 @@ export const MOCK_CASES: PatientCaseRow[] = [
   },
   {
     id: "case-2",
-    patientId: "P-002",
-    patientName: "Priya Sharma",
-    mrn: "MRN-2024-002",
+    patientId: "MRN-245799",
+    patientName: "Meera Joshi",
+    mrn: "MRN-245799",
     caseType: "New consultation",
     openedAt: "2025-03-05",
     status: "Under Review",
-    department: "Cardiology",
+    department: "General Medicine",
   },
   {
     id: "case-3",
-    patientId: "P-003",
-    patientName: "Amit Patel",
-    mrn: "MRN-2024-003",
+    patientId: "MRN-245802",
+    patientName: "Ravi Iyer",
+    mrn: "MRN-245802",
     caseType: "Post-op",
     openedAt: "2025-02-28",
     status: "Closed",
-    department: "Orthopedics",
+    department: "Cardiology",
   },
   {
     id: "case-4",
-    patientId: "P-004",
-    patientName: "Sneha Reddy",
-    mrn: "MRN-2024-004",
+    patientId: "MRN-245811",
+    patientName: "Fatima Khan",
+    mrn: "MRN-245811",
     caseType: "Routine check",
     openedAt: "2025-03-07",
     status: "Active",
-    department: "Pediatrics",
+    department: "ENT",
   },
   {
     id: "case-5",
-    patientId: "P-005",
-    patientName: "Vikram Singh",
-    mrn: "MRN-2024-005",
+    patientId: "MRN-245990",
+    patientName: "Rahul Menon",
+    mrn: "MRN-245990",
     caseType: "Referral",
     openedAt: "2025-03-06",
     status: "Under Review",
-    department: "Dermatology",
+    department: "Internal Medicine",
   },
 ];
 
@@ -137,14 +137,12 @@ export default function PatientCasesPage() {
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 {row.patientName}
               </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {row.mrn}
+              </Typography>
             </Box>
           </Stack>
         ),
-      },
-      {
-        field: "mrn",
-        headerName: "MRN",
-        width: 140,
       },
       {
         field: "caseType",

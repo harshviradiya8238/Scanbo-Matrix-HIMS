@@ -173,6 +173,7 @@ const CommonDialog = ({
           sx={{
             px: 3,
             pb: 2,
+            mt: 2,
             pt: description || bodyContent ? 0 : 1,
             ...actionsSx,
           }}

@@ -414,36 +414,35 @@ export default function OpdCalendarPage() {
 
   React.useEffect(() => {
     if (!isDoctorRole || !providers.length) return;
-    const nextProvider = directProvider || booking.provider || providers[0];
-    if (!nextProvider) return;
+    
+    // For doctors, we prioritize their identity but allow them to use their own state
+    const doctorProvider = providers[0]; // Assuming first provider is current doctor in this mock
+    const currentProvider = directProvider || booking.provider || doctorProvider;
+    const mappedDepartment = providerDepartmentMap.get(currentProvider) || defaultDepartment;
 
-    if (directProvider !== nextProvider) {
-      setDirectProvider(nextProvider);
-    }
-    if (providerFilter !== nextProvider) {
-      setProviderFilter(nextProvider);
-    }
-    if (booking.provider !== nextProvider) {
-      setBooking((prev) => ({ ...prev, provider: nextProvider }));
+    // Batch updates to avoid multiple re-renders
+    if (directProvider !== currentProvider) setDirectProvider(currentProvider);
+    if (providerFilter !== currentProvider) setProviderFilter(currentProvider);
+    
+    if (booking.provider !== currentProvider || booking.department !== mappedDepartment) {
+      setBooking(prev => {
+        if (prev.provider === currentProvider && prev.department === mappedDepartment) return prev;
+        return { ...prev, provider: currentProvider, department: mappedDepartment };
+      });
     }
 
-    const mappedDepartment =
-      providerDepartmentMap.get(nextProvider) || defaultDepartment;
-    if (directDepartment !== mappedDepartment) {
-      setDirectDepartment(mappedDepartment);
-    }
-    if (booking.department !== mappedDepartment) {
-      setBooking((prev) => ({ ...prev, department: mappedDepartment }));
-    }
+    if (directDepartment !== mappedDepartment) setDirectDepartment(mappedDepartment);
   }, [
-    booking.department,
-    booking.provider,
-    directDepartment,
-    directProvider,
     isDoctorRole,
-    providerDepartmentMap,
-    providerFilter,
     providers,
+    providerDepartmentMap,
+    // We only listen to change-triggering values, but avoid those we set ourselves if possible
+    // or ensure state updates are truly idempotent.
+    directProvider,
+    booking.provider,
+    booking.department,
+    directDepartment,
+    providerFilter
   ]);
 
   const directAvailability = React.useMemo(() => {
@@ -904,31 +903,32 @@ export default function OpdCalendarPage() {
   }, [providerFilter]);
 
   React.useEffect(() => {
-    if (!directDepartment) return;
-    setBooking((prev) => ({
-      ...prev,
-      department: directDepartment,
-    }));
-  }, [directDepartment]);
+    if (!directProvider && !directDepartment) return;
+    
+    setBooking((prev) => {
+      const needsUpdate = (directProvider && prev.provider !== directProvider) || 
+                         (directDepartment && prev.department !== directDepartment);
+      if (!needsUpdate) return prev;
+      
+      return {
+        ...prev,
+        provider: directProvider || prev.provider,
+        department: directDepartment || prev.department,
+      };
+    });
+  }, [directProvider, directDepartment]);
 
   React.useEffect(() => {
-    if (!directProvider) return;
-    setBooking((prev) => ({
-      ...prev,
-      provider: directProvider,
-    }));
-  }, [directProvider]);
-
-  React.useEffect(() => {
+    if (isDoctorRole) return; // Doctors are fixed to themselves
     if (!directDepartment) return;
     const options = directProviderOptions;
     if (directProvider && options.includes(directProvider)) return;
-    if (options.length === 1) {
-      setDirectProvider(options[0]);
-    } else {
-      setDirectProvider(null);
+
+    const nextProvider = options.length === 1 ? options[0] : null;
+    if (directProvider !== nextProvider) {
+      setDirectProvider(nextProvider);
     }
-  }, [directDepartment, directProvider, directProviderOptions]);
+  }, [directDepartment, directProvider, directProviderOptions, isDoctorRole]);
 
   const handleDirectDepartmentChange = (value: string) => {
     setDirectDepartment(value);

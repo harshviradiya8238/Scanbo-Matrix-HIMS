@@ -43,6 +43,7 @@ import {
 } from './opd-encounter';
 import OpdLayout from './components/OpdLayout';
 import OpdTable from './components/OpdTable';
+import CommonMedicationForm from '../../ui/components/forms/CommonMedicationForm';
 
 interface OpdPrescriptionsPageProps {
   encounterId?: string;
@@ -370,61 +371,57 @@ export default function OpdPrescriptionsPage({ encounterId }: OpdPrescriptionsPa
 
             <Card elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
               <Stack spacing={1.2}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>
                   Medication Details
                 </Typography>
 
-                <TextField
-                  select
-                  label="Medication"
-                  value={draftLine.medicationId}
-                  onChange={(event) => handleMedicationChange(event.target.value)}
-                >
-                  {medicationCatalog.map((item) => (
-                    <MenuItem key={item.id} value={item.id}>
-                      {item.genericName} {item.strength}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <CommonMedicationForm
+                  onSave={(data) => {
+                    const issuedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                <Grid container spacing={1.2}>
-                  <Grid item xs={12} sm={6}><TextField fullWidth label="Dose" value={draftLine.dose} onChange={(event) => updateDraftField('dose', event.target.value)} /></Grid>
-                  <Grid item xs={12} sm={6}><TextField fullWidth label="Frequency" value={draftLine.frequency} onChange={(event) => updateDraftField('frequency', event.target.value)} /></Grid>
-                </Grid>
+                    if (editingPrescriptionId) {
+                      dispatch(
+                        updateEncounterPrescription({
+                          id: editingPrescriptionId,
+                          changes: {
+                            medicationName: data.drugName,
+                            dose: data.dose + (data.doseUnit ? ` ${data.doseUnit}` : ""),
+                            frequency: data.frequency,
+                            durationDays: data.duration,
+                            route: data.route as any,
+                            instructions: data.instructions,
+                            issuedAt,
+                          },
+                        })
+                      );
+                      setEditingPrescriptionId(null);
+                    } else {
+                      dispatch(
+                        addEncounterPrescription({
+                          id: `rx-issued-${Date.now()}`,
+                          encounterId: encounter.id,
+                          patientId: encounter.patientId,
+                          medicationName: data.drugName,
+                          dose: data.dose + (data.doseUnit ? ` ${data.doseUnit}` : ""),
+                          frequency: data.frequency,
+                          durationDays: data.duration,
+                          route: data.route as any,
+                          instructions: data.instructions,
+                          issuedAt,
+                        })
+                      );
 
-                <Grid container spacing={1.2}>
-                  <Grid item xs={12} sm={6}><TextField fullWidth label="Duration (days)" value={draftLine.durationDays} onChange={(event) => updateDraftField('durationDays', event.target.value)} /></Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      select
-                      label="Route"
-                      value={draftLine.route}
-                      onChange={(event) => updateDraftField('route', event.target.value as 'Oral' | 'IV' | 'IM' | 'Topical')}
-                    >
-                      {['Oral', 'IV', 'IM', 'Topical'].map((route) => (
-                        <MenuItem key={route} value={route}>{route}</MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                </Grid>
-
-                <TextField
-                  label="Instructions"
-                  multiline
-                  minRows={2}
-                  value={draftLine.instructions}
-                  onChange={(event) => updateDraftField('instructions', event.target.value)}
+                      dispatch(
+                        updateEncounter({
+                          id: encounter.id,
+                          changes: { status: 'IN_PROGRESS' },
+                        })
+                      );
+                    }
+                    setSnackbar({ open: true, message: 'Medication saved successfully.', severity: 'success' });
+                  }}
+                  showActions={true}
                 />
-
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                  <Button variant="outlined" onClick={resetDraft}>
-                    Cancel
-                  </Button>
-                  <Button variant="contained" startIcon={<MedicationIcon />} onClick={handleSaveMedication}>
-                    {editingPrescriptionId ? 'Update Medicine' : 'Add Medicine'}
-                  </Button>
-                </Stack>
               </Stack>
             </Card>
           </Stack>

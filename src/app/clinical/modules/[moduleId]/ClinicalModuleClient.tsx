@@ -11,7 +11,7 @@ import OpTimeSurgeryPage from "@/src/screens/clinical/surgery-ot/op-time/OpTimeS
 import AnesthesiaPage from "@/src/screens/clinical/surgery-ot/anesthesia/AnesthesiaPage";
 import OpdCalendarPage from "@/src/screens/opd/calendar/OpdCalendarPage";
 import RadiantImagingPage from "@/src/screens/clinical/RadiantImagingPage";
-import IpdRoundsPage from "@/src/screens/ipd/IpdRoundsPage";
+import IpdRoundsPage from "@/src/screens/ipd/ipd-rounds/IpdRoundsPage";
 import LabDashboardPage from "@/src/screens/lab/sample-lifecycle/dashboard/LabDashboardPage";
 import PatientPortalHomePage from "@/src/screens/patient-portal/PatientPortalHomePage";
 import ResoluteBillingPage from "@/src/screens/clinical/ResoluteBillingPage";
