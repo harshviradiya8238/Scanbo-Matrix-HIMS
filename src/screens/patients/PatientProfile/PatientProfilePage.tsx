@@ -53,6 +53,7 @@ import {
 } from "@/src/ui/components/molecules";
 import Grid from "@/src/ui/components/layout/AlignedGrid";
 import { alpha, useTheme } from "@/src/ui/theme";
+import { maskMobileNumber } from "@/src/core/utils/phone";
 import Tooltip from "@mui/material/Tooltip";
 import {
   CalendarMonth as CalendarMonthIcon,
@@ -480,7 +481,7 @@ export default function PatientProfilePage() {
               </Stack>
               <Divider sx={dividerSx} />
               <Stack spacing={0}>
-                <InfoRow label="Phone" value={patient.phone} />
+                <InfoRow label="Phone" value={maskMobileNumber(patient.phone)} />
                 <InfoRow label="City" value={patient.city} />
                 <InfoRow label="Primary Doctor" value={patient.primaryDoctor} />
                 <InfoRow label="Department" value={patient.department} />

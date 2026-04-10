@@ -25,6 +25,7 @@ import {
   SwapHorizRounded as SwapHorizRoundedIcon,
 } from "@mui/icons-material";
 import { getPatientByMrn } from "@/src/mocks/global-patients";
+import { maskMobileNumber } from "@/src/core/utils/phone";
 
 type FieldTone = "default" | "success" | "warning" | "error" | "info";
 
@@ -240,8 +241,8 @@ export default function IpdPatientTopBar({
   }, [filterOptions, statusFilter]);
 
   const patientPhone = React.useMemo(() => {
-    if (patient?.phone?.trim()) return patient.phone.trim();
-    return getPatientByMrn(patient?.mrn)?.phone ?? "";
+    if (patient?.phone?.trim()) return maskMobileNumber(patient.phone.trim(), "");
+    return maskMobileNumber(getPatientByMrn(patient?.mrn)?.phone, "");
   }, [patient?.mrn, patient?.phone]);
 
   const demographicItems = React.useMemo(() => {

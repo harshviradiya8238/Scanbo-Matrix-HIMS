@@ -46,6 +46,7 @@ import {
 } from "@mui/icons-material";
 import { getSoftSurface } from "@/src/core/theme/surfaces";
 import { doctorData, DoctorRow } from "@/src/mocks/doctorServer";
+import { maskMobileNumber } from "@/src/core/utils/phone";
 
 /* ─────────────────── helpers ─────────────────── */
 
@@ -666,7 +667,7 @@ export default function DoctorProfilePage() {
                       <PhoneIcon
                         sx={{ fontSize: 13, color: "text.secondary" }}
                       />
-                      <span>{doctor.mobile}</span>
+                      <span>{maskMobileNumber(doctor.mobile)}</span>
                     </Stack>
                   }
                 />

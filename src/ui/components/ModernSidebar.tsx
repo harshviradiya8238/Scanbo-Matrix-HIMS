@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Box, Drawer, List, Typography } from "@/src/ui/components/atoms";
 import { useTheme, useMediaQuery, alpha } from "@mui/material";
+import { useRouter } from "next/navigation";
 import {
   Dashboard as DashboardIcon,
   People as PeopleIcon,
@@ -180,11 +181,10 @@ export default function ModernSidebar({
   userRole,
 }: ModernSidebarProps) {
   const theme = useTheme();
-  const sidebarNavy = "#0A4472";
+  const router = useRouter();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { isExpanded, toggle } = useSidebarState();
   const { favorites, toggleFavorite, recentItems } = useNavigationState();
-  const [hoveredItemId, setHoveredItemId] = React.useState<string | null>(null);
   const mainNavRef = React.useRef<HTMLDivElement | null>(null);
   const [isMounted, setIsMounted] = React.useState(false);
 
@@ -192,99 +192,153 @@ export default function ModernSidebar({
     setIsMounted(true);
   }, []);
 
-  // Filter menu items by permissions and roles
-  const filterItems = (items: MenuItem[]): MenuItem[] => {
-    if (!isMounted) return items; // Return raw items during SSR to match server
-    return items
-      .filter((item) => {
-        // Check permissions
+  const filteredNavGroups = React.useMemo(() => {
+    const filterItems = (items: MenuItem[]): MenuItem[] => {
+      if (!isMounted) return items;
+
+      return items.flatMap((item) => {
         const hasPerm =
           !item.requiredPermissions ||
           item.requiredPermissions.length === 0 ||
           item.requiredPermissions.some((perm) =>
             hasPermission(userPermissions, perm),
           );
+        if (!hasPerm) return [];
 
-        if (!hasPerm) return false;
-
-        // Check roles
         const hasRole =
           !item.requiredRoles ||
           item.requiredRoles.length === 0 ||
           item.requiredRoles.includes(userRole);
+        if (!hasRole) return [];
 
-        if (!hasRole) return false;
-
-        // Hide for excluded roles (e.g. doctor should not see Admission/Bed/Discharge menus)
         const isExcluded =
           item.excludedRoles?.some(
             (r) =>
               String(r).toUpperCase() === String(userRole ?? "").toUpperCase(),
           ) ?? false;
-        if (isExcluded) return false;
+        if (isExcluded) return [];
 
-        return true;
-      })
-      .map((item) => {
         if (item.id === "doctors" && userRole === "DOCTOR") {
-          return {
-            id: "doctors-schedule",
-            label: "My Schedule",
-            iconName: "CalendarToday",
-            route: "/doctors/schedule",
-            type: "item" as const,
-            requiredPermissions: ["doctors.read"],
-            order: 4,
-          };
+          return [
+            {
+              id: "doctors-schedule",
+              label: "My Schedule",
+              iconName: "CalendarToday",
+              route: "/doctors/schedule",
+              type: "item" as const,
+              requiredPermissions: ["doctors.read"],
+              order: 4,
+            },
+          ];
         }
+
         const label =
           item.id === "doctors-schedule" && userRole === "DOCTOR"
             ? "My Schedule"
             : item.label;
-        if (item.children) {
-          const filteredChildren = filterItems(item.children);
-          return { ...item, label, children: filteredChildren };
+
+        if (!item.children || item.children.length === 0) {
+          if (label === item.label) return [item];
+          return [{ ...item, label }];
         }
-        return { ...item, label };
-      })
-      .filter((item) => {
-        if (item.children) {
-          return item.children.length > 0;
-        }
-        return true;
-      });
-  };
 
-  // Note: Prefetching is handled on user intent (hover/focus) inside SidebarItem/Popover.
+        const children = filterItems(item.children);
+        if (children.length === 0) return [];
 
-  const handleSubmenuHover = (item: MenuItem, anchorEl: HTMLElement | null) => {
-    setHoveredItemId(item.id);
-  };
-
-  // Get recent menu items - only show leaf items (items with routes) that the user is allowed to see.
-  const recentMenuItems = React.useMemo(() => {
-    // 1. First, compute all allowed leaf items based on the robust filterItems function
-    const allowedLeafItems = new Map<string, MenuItem>();
-    const collectAllowedLeafs = (items: MenuItem[]) => {
-      items.forEach((item) => {
-        if (item.route) allowedLeafItems.set(item.id, item);
-        if (item.children) collectAllowedLeafs(item.children);
+        return [{ ...item, label, children }];
       });
     };
-    NAV_GROUPS.forEach((group) => {
-      collectAllowedLeafs(filterItems(group.items));
-    });
 
-    // 2. Pick only those from the recentItems list
+    return NAV_GROUPS.map((group) => ({
+      ...group,
+      items: filterItems(group.items),
+    })).filter((group) => group.items.length > 0);
+  }, [isMounted, userPermissions, userRole]);
+
+  const { allowedLeafItemsById, mainMenuLeafIds } = React.useMemo(() => {
+    const byId = new Map<string, MenuItem>();
+    const mainIds = new Set<string>();
+
+    const collectLeafs = (items: MenuItem[]) => {
+      items.forEach((item) => {
+        if (item.route) {
+          byId.set(item.id, item);
+          mainIds.add(item.id);
+        }
+        if (item.children) collectLeafs(item.children);
+      });
+    };
+
+    filteredNavGroups.forEach((group) => collectLeafs(group.items));
+
+    return { allowedLeafItemsById: byId, mainMenuLeafIds: mainIds };
+  }, [filteredNavGroups]);
+
+  const recentMenuItems = React.useMemo(() => {
     const items: MenuItem[] = [];
     recentItems.forEach((id) => {
-      const allowedItem = allowedLeafItems.get(id);
-      if (allowedItem) {
-        items.push(allowedItem);
-      }
+      const item = allowedLeafItemsById.get(id);
+      if (item) items.push(item);
     });
     return items.slice(0, 5);
-  }, [recentItems, userPermissions, userRole]);
+  }, [recentItems, allowedLeafItemsById]);
+
+  const uniqueRecentMenuItems = React.useMemo(
+    () => recentMenuItems.filter((item) => !mainMenuLeafIds.has(item.id)),
+    [recentMenuItems, mainMenuLeafIds],
+  );
+
+  const prefetchRoutes = React.useMemo(() => {
+    const routes = new Set<string>();
+    const collectRoutes = (items: MenuItem[]) => {
+      items.forEach((item) => {
+        if (item.route) routes.add(item.route);
+        if (item.children) collectRoutes(item.children);
+      });
+    };
+
+    filteredNavGroups.forEach((group) => collectRoutes(group.items));
+    uniqueRecentMenuItems.forEach((item) => {
+      if (item.route) routes.add(item.route);
+    });
+
+    return Array.from(routes).slice(0, 24);
+  }, [filteredNavGroups, uniqueRecentMenuItems]);
+
+  React.useEffect(() => {
+    if (!isMounted || prefetchRoutes.length === 0) return;
+    if (typeof window === "undefined") return;
+
+    let canceled = false;
+    const runPrefetch = () => {
+      if (canceled) return;
+      prefetchRoutes.forEach((route) => router.prefetch(route));
+    };
+
+    const win = window as Window & {
+      requestIdleCallback?: (
+        callback: IdleRequestCallback,
+        options?: IdleRequestOptions,
+      ) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    if (win.requestIdleCallback) {
+      const idleHandle = win.requestIdleCallback(() => runPrefetch(), {
+        timeout: 1200,
+      });
+      return () => {
+        canceled = true;
+        win.cancelIdleCallback?.(idleHandle);
+      };
+    }
+
+    const timeoutHandle = window.setTimeout(runPrefetch, 120);
+    return () => {
+      canceled = true;
+      window.clearTimeout(timeoutHandle);
+    };
+  }, [isMounted, prefetchRoutes, router]);
 
   const drawerContent = (
     <Box
@@ -340,89 +394,48 @@ export default function ModernSidebar({
       </Box>
 
       {/* Recent Items - Only show if not already visible in main menu */}
-      {isExpanded &&
-        recentMenuItems.length > 0 &&
-        (() => {
-          // Filter out items that are already visible in main menu
-          const allMainMenuIds = new Set<string>();
-          NAV_GROUPS.forEach((group) => {
-            const collectIds = (items: MenuItem[]) => {
-              items.forEach((item) => {
-                if (item.route) allMainMenuIds.add(item.id);
-                if (item.children) collectIds(item.children);
-              });
-            };
-            collectIds(filterItems(group.items));
-          });
-
-          const uniqueRecentItems = recentMenuItems.filter(
-            (item) => !allMainMenuIds.has(item.id),
-          );
-
-          if (uniqueRecentItems.length === 0) return null;
-
-          return (
-            <>
-              <Box sx={{ px: 1.5, pb: 0.75 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 600,
-                    color: alpha("#FFFFFF", 0.46),
-                    textTransform: "uppercase",
-                    fontSize: "0.66rem",
-                    letterSpacing: "0.42px",
-                  }}
-                >
-                  Recent
-                </Typography>
-              </Box>
-              <List dense sx={{ px: 0.6, pb: 0.5 }}>
-                {uniqueRecentItems.map((item) => (
-                  <SidebarItem
-                    key={item.id}
-                    item={item}
-                    userPermissions={userPermissions}
-                    isExpanded={isExpanded}
-                    iconMap={iconMap}
-                    favorites={favorites}
-                    onFavoriteToggle={toggleFavorite}
-                    onSubmenuHover={handleSubmenuHover}
-                    hoveredItemId={hoveredItemId}
-                  />
-                ))}
-              </List>
-            </>
-          );
-        })()}
-
-      {isExpanded &&
-        (() => {
-          // Check if we have unique recent items to show
-          const allMainMenuIds = new Set<string>();
-          NAV_GROUPS.forEach((group) => {
-            const collectIds = (items: MenuItem[]) => {
-              items.forEach((item) => {
-                if (item.route) allMainMenuIds.add(item.id);
-                if (item.children) collectIds(item.children);
-              });
-            };
-            collectIds(filterItems(group.items));
-          });
-          const uniqueRecentItems = recentMenuItems.filter(
-            (item) => !allMainMenuIds.has(item.id),
-          );
-          return uniqueRecentItems.length > 0 ? (
-            <Box
+      {isExpanded && uniqueRecentMenuItems.length > 0 && (
+        <>
+          <Box sx={{ px: 1.5, pb: 0.75 }}>
+            <Typography
+              variant="caption"
               sx={{
-                height: 1,
-                backgroundColor: alpha("#FFFFFF", 0.12),
-                my: 0.75,
-                mx: 1.6,
+                fontWeight: 600,
+                color: alpha("#FFFFFF", 0.46),
+                textTransform: "uppercase",
+                fontSize: "0.66rem",
+                letterSpacing: "0.42px",
               }}
-            />
-          ) : null;
-        })()}
+            >
+              Recent
+            </Typography>
+          </Box>
+          <List dense sx={{ px: 0.6, pb: 0.5 }}>
+            {uniqueRecentMenuItems.map((item) => (
+              <SidebarItem
+                key={item.id}
+                item={item}
+                userPermissions={userPermissions}
+                isExpanded={isExpanded}
+                iconMap={iconMap}
+                favorites={favorites}
+                onFavoriteToggle={toggleFavorite}
+              />
+            ))}
+          </List>
+        </>
+      )}
+
+      {isExpanded && uniqueRecentMenuItems.length > 0 && (
+        <Box
+          sx={{
+            height: 1,
+            backgroundColor: alpha("#FFFFFF", 0.12),
+            my: 0.75,
+            mx: 1.6,
+          }}
+        />
+      )}
 
       {/* Main Navigation Groups */}
       <Box
@@ -438,10 +451,7 @@ export default function ModernSidebar({
           alignItems: isExpanded ? "stretch" : "center",
         }}
       >
-        {NAV_GROUPS.map((group) => {
-          const filteredItems = filterItems(group.items);
-          if (filteredItems.length === 0) return null;
-
+        {filteredNavGroups.map((group) => {
           return (
             <Box key={group.id} sx={{ mb: isExpanded ? 1.35 : 0.95 }}>
               {isExpanded && !!group.label && (
@@ -472,7 +482,7 @@ export default function ModernSidebar({
                   width: "100%",
                 }}
               >
-                {filteredItems.map((item) => (
+                {group.items.map((item) => (
                   <SidebarItem
                     key={item.id}
                     item={item}
@@ -481,8 +491,6 @@ export default function ModernSidebar({
                     iconMap={iconMap}
                     favorites={favorites}
                     onFavoriteToggle={toggleFavorite}
-                    onSubmenuHover={handleSubmenuHover}
-                    hoveredItemId={hoveredItemId}
                   />
                 ))}
               </List>

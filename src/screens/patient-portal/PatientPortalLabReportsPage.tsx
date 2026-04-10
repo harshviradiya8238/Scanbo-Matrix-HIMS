@@ -63,6 +63,7 @@ interface LabReport {
   sharedWith: string[];
   ocrExtracted?: boolean;
 }
+type LabShareType = 'Doctor' | 'Lab' | 'Family' | 'Insurance';
 
 const LAB_DATA: LabReport[] = [
   {
@@ -149,6 +150,7 @@ const STATUS_CFG = {
   Review:   { color: '#F3C44E', bg: 'rgba(243,196,78,0.1)',  border: 'rgba(243,196,78,0.25)',  label: 'Some values need attention' },
   Abnormal: { color: '#E77B7B', bg: 'rgba(231,123,123,0.1)', border: 'rgba(231,123,123,0.25)', label: 'Abnormal values — consult your doctor' },
 };
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const RESULT_CFG = {
   normal: { color: 'text.primary',    badge: '',  barColor: '#2FA77A' },
@@ -324,6 +326,17 @@ const VITAL_STATUS_CFG = {
   low:      { color: '#2C8AD3', bg: 'rgba(44,138,211,0.08)',  label: 'Low',      border: 'rgba(44,138,211,0.2)'  },
 };
 
+const VITAL_ICON_BG: Record<string, string> = {
+  hr: '#FEE2E2',
+  temp: '#FEF3C7',
+  oxygen: '#DCFCE7',
+  bp: '#DBEAFE',
+  glucose: '#EDE9FE',
+  ecg: '#F5F3FF',
+  hrv: '#ECFDF5',
+  breath: '#F0FFF4',
+};
+
 /* ─── SVG Sparkline ─────────────────────────────────────────────────────── */
 function Sparkline({ values, color, width = 280, height = 60 }: { values: number[]; color: string; width?: number; height?: number }) {
   if (values.length < 2) return null;
@@ -340,7 +353,7 @@ function Sparkline({ values, color, width = 280, height = 60 }: { values: number
   const fillPts = [...pts, [pts[pts.length - 1][0], height], [pts[0][0], height]];
   const fill = fillPts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ') + 'Z';
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block', overflow: 'visible' }}>
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block', overflow: 'visible', width: '100%', height: '100%' }}>
       <defs>
         <linearGradient id={`grad-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity={0.18} />
@@ -384,7 +397,14 @@ export default function PatientPortalLabReportsPage({
   const [expandedRow, setExpandedRow] = React.useState<string | null>(null);
   const [labUploadOpen, setLabUploadOpen] = React.useState(false);
   const [labShareOpen, setLabShareOpen] = React.useState(false);
+  const [labShareType, setLabShareType] = React.useState<LabShareType>('Doctor');
   const [labShareTarget, setLabShareTarget] = React.useState('');
+  const [labShareViaApp, setLabShareViaApp] = React.useState(true);
+  const [labShareViaEmail, setLabShareViaEmail] = React.useState(true);
+  const [labShareMobile, setLabShareMobile] = React.useState('');
+  const [labShareEmail, setLabShareEmail] = React.useState('');
+  const [labShareNote, setLabShareNote] = React.useState('');
+  const [labShareError, setLabShareError] = React.useState<string | null>(null);
   const [ocrRunning, setOcrRunning] = React.useState(false);
   const [labData, setLabData] = React.useState<LabReport[]>(LAB_DATA);
 
@@ -397,11 +417,58 @@ export default function PatientPortalLabReportsPage({
     }, 2000);
   };
 
-  const handleLabShare = () => {
-    if (!labShareTarget.trim()) return;
-    setLabShareOpen(false);
+  const openLabShareDialog = React.useCallback(() => {
+    setLabShareType('Doctor');
     setLabShareTarget('');
-    setSnack({ open: true, msg: `Report shared with ${labShareTarget}`, severity: 'success' });
+    setLabShareViaApp(true);
+    setLabShareViaEmail(true);
+    setLabShareMobile('');
+    setLabShareEmail('');
+    setLabShareNote('');
+    setLabShareError(null);
+    setLabShareOpen(true);
+  }, []);
+
+  const handleLabShare = () => {
+    const target = labShareTarget.trim();
+    const mobileDigits = labShareMobile.replace(/\D/g, '');
+    const email = labShareEmail.trim();
+
+    if (!target) {
+      setLabShareError('Recipient is required.');
+      return;
+    }
+    if (!labShareViaApp && !labShareViaEmail) {
+      setLabShareError('Choose at least one channel: App/Mobile or Email.');
+      return;
+    }
+    if (labShareViaApp && (mobileDigits.length < 10 || mobileDigits.length > 15)) {
+      setLabShareError('Enter a valid mobile number for app sharing.');
+      return;
+    }
+    if (labShareViaEmail && !EMAIL_REGEX.test(email)) {
+      setLabShareError('Enter a valid email address for email sharing.');
+      return;
+    }
+
+    if (selected) {
+      setLabData((prev) =>
+        prev.map((report) => {
+          if (report.id !== selected) return report;
+          const nextSharedWith = Array.from(new Set([...report.sharedWith, target]));
+          return { ...report, sharedWith: nextSharedWith };
+        })
+      );
+    }
+
+    setLabShareOpen(false);
+    setLabShareError(null);
+    setLabShareTarget('');
+    setSnack({
+      open: true,
+      msg: `Report shared to ${labShareType}: ${target}`,
+      severity: 'success',
+    });
   };
 
   /* vitals state */
@@ -446,7 +513,7 @@ export default function PatientPortalLabReportsPage({
     }
   }, [forcedTab]);
 
-  const PANEL_H = embedded ? 'min(76vh, 760px)' : 'calc(100vh - 240px)';
+  const PANEL_H = embedded ? '100%' : 'calc(100vh - 240px)';
 
   const filteredVitals = VITALS_DATA.filter((v) =>
     v.name.toLowerCase().includes(vitalSearch.toLowerCase()) || v.category.toLowerCase().includes(vitalSearch.toLowerCase())
@@ -487,7 +554,7 @@ export default function PatientPortalLabReportsPage({
       {showTopTabs && (
         <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', ...(embedded ? {} : { mx: { xs: -2, sm: -3 } }), bgcolor: 'background.paper' }}>
           <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}
-            sx={{ px: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: 13.5, minHeight: 44 }, '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' } }}>
+            sx={{ px: 2, '& .MuiTab-root': { textTransform: 'none',fontWeight: 600, fontSize: 13.5, minHeight: 44 }, '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' } }}>
             <Tab label="Lab Reports" icon={<ScienceIcon sx={{ fontSize: 17 }} />} iconPosition="start" />
             <Tab label="Vitals" icon={<MonitorHeartIcon sx={{ fontSize: 17 }} />} iconPosition="start" />
             <Tab label="Smart Scale" icon={<HeartIcon sx={{ fontSize: 17 }} />} iconPosition="start" />
@@ -497,71 +564,74 @@ export default function PatientPortalLabReportsPage({
 
       {/* ══════════════ TAB 0 — LAB REPORTS ══════════════ */}
       {activeTab === 0 && (
+        <>
       <Box sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', lg: '360px 1fr' },
-        gap: 2,
+        gap: 1.25,
         height: PANEL_H,
         overflow: 'hidden',
-        ...(embedded ? {} : { mx: { xs: -2, sm: -3 }, px: { xs: 2, sm: 3 } }),
+        ...(embedded ? {} : { mx: { xs: -2, sm: -3 }}),
       }}>
 
         {/* ══ LEFT PANEL ══ */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', gap: 0 }}>
+        <Box sx={{ ...sectionCard, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
           {/* ── Fixed top: stats + search + filters ── */}
-          <Stack spacing={1.5} sx={{ flexShrink: 0, pb: 1.5 }}>
+          <Box sx={{ px: 2, pt: 2, pb: 1.6, flexShrink: 0, borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Stack spacing={1.4}>
 
-            {/* Stat tiles */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.25 }}>
-              {[
-                { label: 'Total Reports', value: totalReports, icon: <ScienceIcon sx={{ fontSize: 16 }} />,             color: theme.palette.primary.main },
-                { label: 'Needs Review',  value: needsReview,  icon: <WarningAmberIcon sx={{ fontSize: 16 }} />,        color: theme.palette.warning.dark  },
-                { label: 'Normal',        value: normalCount,  icon: <CheckCircleOutlineIcon sx={{ fontSize: 16 }} />,  color: theme.palette.success.main  },
-              ].map((s) => (
-                <Card key={s.label} elevation={0} sx={{ p: 1.75, borderRadius: 2, boxShadow: cardShadow, border: 'none', bgcolor: 'background.paper' }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                    <Box>
-                      <Typography variant="h5" sx={{ fontWeight: 800, color: s.color, lineHeight: 1.1, mb: 0.3 }}>{s.value}</Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: 11 }}>{s.label}</Typography>
-                    </Box>
-                    <Box sx={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(s.color, 0.12), color: s.color, flexShrink: 0 }}>
-                      {s.icon}
-                    </Box>
-                  </Stack>
-                </Card>
-              ))}
-            </Box>
+              {/* Stat tiles */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.25 }}>
+                {[
+                  { label: 'Total Reports', value: totalReports, icon: <ScienceIcon sx={{ fontSize: 16 }} />,             color: theme.palette.primary.main },
+                  { label: 'Needs Review',  value: needsReview,  icon: <WarningAmberIcon sx={{ fontSize: 16 }} />,        color: theme.palette.warning.dark  },
+                  { label: 'Normal',        value: normalCount,  icon: <CheckCircleOutlineIcon sx={{ fontSize: 16 }} />,  color: theme.palette.success.main  },
+                ].map((s) => (
+                  <Box key={s.label} sx={{ p: 1.35, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'transparent' }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                      <Box>
+                        <Typography variant="h5" sx={{ fontWeight: 800, color: s.color, lineHeight: 1.1, mb: 0.28 }}>{s.value}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: 10.8 }}>{s.label}</Typography>
+                      </Box>
+                      <Box sx={{ width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(s.color, 0.12), color: s.color, flexShrink: 0 }}>
+                        {s.icon}
+                      </Box>
+                    </Stack>
+                  </Box>
+                ))}
+              </Box>
 
-            {/* Search */}
-            <TextField
-              size="small" fullWidth placeholder="Search reports, doctors, IDs…"
-              value={search} onChange={(e) => setSearch(e.target.value)}
-              InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 16, color: 'text.disabled', mr: 0.75 }} /> }}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'background.paper' } }}
-            />
+              {/* Search */}
+              <TextField
+                size="small" fullWidth placeholder="Search reports, doctors, IDs…"
+                value={search} onChange={(e) => setSearch(e.target.value)}
+                InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 16, color: 'text.disabled', mr: 0.75 }} /> }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'transparent' } }}
+              />
 
-            {/* Category chips */}
-            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
-              {CATEGORIES.map((cat) => {
-                const active = filter === cat;
-                return (
-                  <Chip key={cat} label={cat} size="small" onClick={() => setFilter(cat)}
-                    sx={{
-                      fontWeight: 700, fontSize: 12, cursor: 'pointer',
-                      bgcolor: active ? alpha(theme.palette.primary.main, 0.14) : 'background.paper',
-                      color: active ? 'primary.main' : 'text.secondary',
-                      border: '1px solid',
-                      borderColor: active ? alpha(theme.palette.primary.main, 0.35) : 'divider',
-                    }} />
-                );
-              })}
-            </Box>
-          </Stack>
+              {/* Category chips */}
+              <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                {CATEGORIES.map((cat) => {
+                  const active = filter === cat;
+                  return (
+                    <Chip key={cat} label={cat} size="small" onClick={() => setFilter(cat)}
+                      sx={{
+                        fontWeight: 700, fontSize: 12, cursor: 'pointer',
+                        bgcolor: active ? alpha(theme.palette.primary.main, 0.14) : 'transparent',
+                        color: active ? 'primary.main' : 'text.secondary',
+                        border: '1px solid',
+                        borderColor: active ? alpha(theme.palette.primary.main, 0.35) : 'divider',
+                      }} />
+                  );
+                })}
+              </Box>
+            </Stack>
+          </Box>
 
           {/* ── Scrollable report list ── */}
-          <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.5, ...scrollbar }}>
-            <Stack spacing={1}>
+          <Box sx={{ flex: 1, overflowY: 'auto', p: 1.5, ...scrollbar }}>
+            <Stack spacing={1.1}>
               {filtered.length === 0 && (
                 <Box sx={{ py: 5, textAlign: 'center' }}>
                   <ScienceIcon sx={{ fontSize: 36, color: 'text.disabled', mb: 1 }} />
@@ -575,9 +645,9 @@ export default function PatientPortalLabReportsPage({
                   <Box key={report.id}
                     onClick={() => setSelected(isActive ? null : report.id)}
                     sx={{
-                      p: 2, borderRadius: 2.5, border: '1px solid', cursor: 'pointer',
+                      p: 2, borderRadius: 2.2, border: '1px solid', cursor: 'pointer',
                       borderColor: isActive ? 'primary.main' : 'divider',
-                      bgcolor: isActive ? alpha(theme.palette.primary.main, 0.04) : 'background.paper',
+                      bgcolor: isActive ? alpha(theme.palette.primary.main, 0.04) : 'transparent',
                       transition: 'all 0.15s',
                       '&:hover': { borderColor: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.03), transform: 'translateX(2px)' },
                     }}>
@@ -645,7 +715,7 @@ export default function PatientPortalLabReportsPage({
                 </Box>
                 <Stack direction="row" spacing={0.75} sx={{ flexShrink: 0, mt: 0.5 }} flexWrap="wrap">
                   <Button size="small" variant="outlined" startIcon={<CloudUploadIcon sx={{ fontSize: 13 }} />} onClick={() => setLabUploadOpen(true)} sx={{ textTransform: 'none', fontWeight: 600, fontSize: 11 }}>Upload / Scan</Button>
-                  <Button size="small" variant="outlined" startIcon={<ShareIcon sx={{ fontSize: 13 }} />} onClick={() => setLabShareOpen(true)} sx={{ textTransform: 'none', fontWeight: 600, fontSize: 11 }}>Share</Button>
+                  <Button size="small" variant="outlined" startIcon={<ShareIcon sx={{ fontSize: 13 }} />} onClick={openLabShareDialog} sx={{ textTransform: 'none', fontWeight: 600, fontSize: 11 }}>Share</Button>
                   {!selectedReport.ocrExtracted && <Button size="small" variant="outlined" startIcon={<PsychologyIcon sx={{ fontSize: 13 }} />} onClick={handleRunOCR} disabled={ocrRunning} sx={{ textTransform: 'none', fontWeight: 600, fontSize: 11 }}>{ocrRunning ? 'OCR…' : 'Run OCR'}</Button>}
                 </Stack>
               </Stack>
@@ -737,7 +807,7 @@ export default function PatientPortalLabReportsPage({
             </Box>
 
             {/* ── Fixed footer actions (always visible) ── */}
-            <Box sx={{ px: 2.5, py: 1.75, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+            <Box sx={{ px: 2.5, py: 1.75, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'transparent' }}>
               <Stack direction="row" spacing={1} flexWrap="wrap">
                 <Button variant="contained" disableElevation size="small"
                   startIcon={<CalendarMonthIcon sx={{ fontSize: 14 }} />}
@@ -752,6 +822,7 @@ export default function PatientPortalLabReportsPage({
         )}
 
       </Box>
+        </>
       )}
 
       {/* ── Upload / Scan Dialog ── */}
@@ -784,13 +855,146 @@ export default function PatientPortalLabReportsPage({
       <Dialog open={labShareOpen} onClose={() => setLabShareOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogTitle sx={{ fontWeight: 800, borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>Share Lab Report</DialogTitle>
         <DialogContent sx={{ pt: '16px !important' }}>
-          <Stack spacing={2}>
-            <TextField size="small" fullWidth label="Share with (Doctor / Lab)" placeholder="e.g. Dr. Priya Sharma" value={labShareTarget} onChange={e => setLabShareTarget(e.target.value)} />
+          <Stack spacing={1.6}>
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+                Share Type
+              </Typography>
+              <Stack direction="row" spacing={0.7} useFlexGap flexWrap="wrap" sx={{ mt: 0.65 }}>
+                {(['Doctor', 'Lab', 'Family', 'Insurance'] as const).map((type) => {
+                  const selectedType = labShareType === type;
+                  return (
+                    <Chip
+                      key={type}
+                      size="small"
+                      clickable
+                      label={type}
+                      onClick={() => {
+                        setLabShareType(type);
+                        setLabShareError(null);
+                      }}
+                      color={selectedType ? 'primary' : 'default'}
+                      variant={selectedType ? 'filled' : 'outlined'}
+                      sx={{ fontWeight: 700 }}
+                    />
+                  );
+                })}
+              </Stack>
+            </Box>
+
+            <TextField
+              size="small"
+              fullWidth
+              label={`${labShareType} Name`}
+              placeholder={
+                labShareType === 'Doctor'
+                  ? 'e.g. Dr. Priya Sharma'
+                  : labShareType === 'Lab'
+                  ? 'e.g. SRL Diagnostics'
+                  : labShareType === 'Insurance'
+                  ? 'e.g. ABC Health Insurance'
+                  : 'e.g. Ravi Patel'
+              }
+              value={labShareTarget}
+              onChange={(e) => {
+                setLabShareTarget(e.target.value);
+                setLabShareError(null);
+              }}
+            />
+
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+                Share Channel
+              </Typography>
+              <Stack direction="row" spacing={0.7} sx={{ mt: 0.65 }}>
+                <Chip
+                  size="small"
+                  clickable
+                  label="App / Mobile"
+                  onClick={() => {
+                    setLabShareViaApp((prev) => !prev);
+                    setLabShareError(null);
+                  }}
+                  color={labShareViaApp ? 'primary' : 'default'}
+                  variant={labShareViaApp ? 'filled' : 'outlined'}
+                  sx={{ fontWeight: 700 }}
+                />
+                <Chip
+                  size="small"
+                  clickable
+                  label="Email"
+                  onClick={() => {
+                    setLabShareViaEmail((prev) => !prev);
+                    setLabShareError(null);
+                  }}
+                  color={labShareViaEmail ? 'primary' : 'default'}
+                  variant={labShareViaEmail ? 'filled' : 'outlined'}
+                  sx={{ fontWeight: 700 }}
+                />
+              </Stack>
+            </Box>
+
+            {labShareViaApp && (
+              <TextField
+                size="small"
+                fullWidth
+                label="Mobile Number"
+                placeholder="+91 98XXXXXXXX"
+                value={labShareMobile}
+                onChange={(e) => {
+                  setLabShareMobile(e.target.value);
+                  setLabShareError(null);
+                }}
+              />
+            )}
+
+            {labShareViaEmail && (
+              <TextField
+                size="small"
+                fullWidth
+                label="Email Address"
+                placeholder="recipient@example.com"
+                value={labShareEmail}
+                onChange={(e) => {
+                  setLabShareEmail(e.target.value);
+                  setLabShareError(null);
+                }}
+              />
+            )}
+
+            <TextField
+              size="small"
+              fullWidth
+              label="Note (optional)"
+              placeholder="Purpose of sharing this report"
+              value={labShareNote}
+              onChange={(e) => setLabShareNote(e.target.value)}
+            />
+
             <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
               {['Dr. Priya Sharma', 'Dr. Arvind Mehta', 'SRL Diagnostics'].map(name => (
-                <Chip key={name} label={name} size="small" onClick={() => setLabShareTarget(name)} sx={{ cursor: 'pointer', fontWeight: 600 }} variant="outlined" />
+                <Chip
+                  key={name}
+                  label={name}
+                  size="small"
+                  onClick={() => {
+                    setLabShareTarget(name);
+                    setLabShareType(name.includes('Dr.') ? 'Doctor' : 'Lab');
+                    setLabShareError(null);
+                  }}
+                  sx={{ cursor: 'pointer', fontWeight: 600 }}
+                  variant="outlined"
+                />
               ))}
             </Box>
+
+            {labShareError && (
+              <Alert severity="warning" sx={{ borderRadius: 1.5 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  {labShareError}
+                </Typography>
+              </Alert>
+            )}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2 }}>
@@ -801,22 +1005,24 @@ export default function PatientPortalLabReportsPage({
 
       {/* ══════════════ TAB 1 — VITALS ══════════════ */}
       {activeTab === 1 && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '300px 1fr' }, height: PANEL_H, overflow: 'hidden', ...(embedded ? {} : { mx: { xs: -2, sm: -3 } }) }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '360px 1fr' }, gap: 1.25, height: PANEL_H, overflow: 'hidden', ...(embedded ? {} : { mx: { xs: -2, sm: -3 } }) }}>
 
           {/* ── Left: vital list ── */}
-          <Box sx={{ borderRight: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {/* Stat tiles */}
-            <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1.25 }}>
+          <Box sx={{ ...sectionCard, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            {/* Stat strip */}
+            <Box sx={{ px: 2, py: 1.8, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
                 {[
                   { label: 'Total', value: VITALS_DATA.length, color: pr.main },
                   { label: 'Normal', value: normalVitals, color: theme.palette.success.main },
                   { label: 'Attention', value: attentionVitals, color: theme.palette.warning.main },
-                ].map((s) => (
-                  <Card key={s.label} elevation={0} sx={{ boxShadow: cardShadow, border: 'none', p: 1.25, borderRadius: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 20, color: s.color, lineHeight: 1.1 }}>{s.value}</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 10.5 }}>{s.label}</Typography>
-                  </Card>
+                ].map((s, idx) => (
+                  <Box key={s.label} sx={{ textAlign: 'center', borderLeft: idx === 0 ? 'none' : '1px solid', borderColor: 'divider' }}>
+                    <Typography sx={{ fontWeight: 800, fontSize: 27, color: s.color, lineHeight: 1 }}>{s.value}</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 10.5 }}>
+                      {s.label}
+                    </Typography>
+                  </Box>
                 ))}
               </Box>
             </Box>
@@ -837,8 +1043,10 @@ export default function PatientPortalLabReportsPage({
                       '&:hover': { bgcolor: isSelected ? alpha(pr.main, 0.06) : alpha(pr.main, 0.03) },
                       transition: 'background 0.15s',
                     }}>
-                      <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Box sx={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{v.icon}</Box>
+                      <Stack direction="row" spacing={1.25} alignItems="center">
+                        <Box sx={{ width: 34, height: 34, borderRadius: 1.25, bgcolor: VITAL_ICON_BG[v.id] ?? alpha(pr.main, 0.12), fontSize: 18, lineHeight: 1, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {v.icon}
+                        </Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                           <Stack direction="row" justifyContent="space-between" alignItems="center">
                             <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 13 }}>{v.name}</Typography>
@@ -864,25 +1072,46 @@ export default function PatientPortalLabReportsPage({
           </Box>
 
           {/* ── Right: detail panel ── */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: alpha(theme.palette.grey[100], 0.35) }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
 
-            {/* Fixed header — vital name + status */}
-            <Box sx={{ px: 2.5, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
+            {/* Header card */}
+            <Box sx={{ ...sectionCard, bgcolor: 'background.paper', p: 2.25, flexShrink: 0 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ fontSize: 24 }}>{selectedVital.icon}</Box>
-                  <Box>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 10.5 }}>{selectedVital.category}</Typography>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 800, fontSize: 15, lineHeight: 1.2 }}>{selectedVital.name}</Typography>
+                  <Box sx={{ width: 46, height: 46, borderRadius: 1.75, bgcolor: VITAL_ICON_BG[selectedVital.id] ?? alpha(pr.main, 0.12), fontSize: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {selectedVital.icon}
                   </Box>
-                  <Chip size="small" label={VITAL_STATUS_CFG[selectedVital.status].label}
-                    sx={{ fontWeight: 700, fontSize: 10.5, bgcolor: VITAL_STATUS_CFG[selectedVital.status].bg, color: VITAL_STATUS_CFG[selectedVital.status].color, border: `1px solid ${VITAL_STATUS_CFG[selectedVital.status].border}` }} />
+                  <Box>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>
+                      {selectedVital.category}
+                    </Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, fontSize: 18, lineHeight: 1.15 }}>
+                      {selectedVital.name}
+                    </Typography>
+                  </Box>
+                  <Chip
+                    size="small"
+                    label={VITAL_STATUS_CFG[selectedVital.status].label}
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: 10.5,
+                      bgcolor: VITAL_STATUS_CFG[selectedVital.status].bg,
+                      color: VITAL_STATUS_CFG[selectedVital.status].color,
+                      border: `1px solid ${VITAL_STATUS_CFG[selectedVital.status].border}`,
+                    }}
+                  />
                 </Stack>
-                {/* Date range chips */}
+
                 <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap">
-                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mr: 0.25, fontSize: 11 }}>Period:</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mr: 0.25, fontSize: 12 }}>
+                    Period:
+                  </Typography>
                   {(['1W', '1M', '3M', '6M', 'All'] as const).map((r) => (
-                    <Chip key={r} label={r} size="small" onClick={() => setDateRange(r)}
+                    <Chip
+                      key={r}
+                      label={r}
+                      size="small"
+                      onClick={() => setDateRange(r)}
                       variant={dateRange === r ? 'filled' : 'outlined'}
                       color={dateRange === r ? 'primary' : 'default'}
                       sx={{
@@ -897,214 +1126,276 @@ export default function PatientPortalLabReportsPage({
                   ))}
                 </Stack>
               </Stack>
-
-              {/* Sub-tabs: Trend | History */}
-              <Box sx={{ mt: 1.25, mx: -2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-                <Tabs value={vDetailTab} onChange={(_, v) => { setVDetailTab(v); setHistPage(0); }}
-                  sx={{ px: 2, minHeight: 36, '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, fontSize: 12.5, minHeight: 36, py: 0.5 }, '& .MuiTabs-indicator': { height: 2.5, borderRadius: '2px 2px 0 0' } }}>
-                  <Tab label="Trend" icon={<TrendingUpIcon sx={{ fontSize: 15 }} />} iconPosition="start" />
-                  <Tab label={`History (${filteredHistory.length})`} icon={<ScienceIcon sx={{ fontSize: 15 }} />} iconPosition="start" />
-                </Tabs>
-              </Box>
             </Box>
 
-            {/* ── Sub-tab 0: TREND ── */}
-            {vDetailTab === 0 && (
-            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 1.75, ...scrollbar }}>
-
-              {/* 4 stat cards */}
-              {(() => {
-                const vals = filteredHistory.map((h) => h.value);
-                const avg  = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '—';
-                const minV = vals.length ? Math.min(...vals).toFixed(1) : '—';
-                const maxV = vals.length ? Math.max(...vals).toFixed(1) : '—';
-                const sc   = VITAL_STATUS_CFG[selectedVital.status];
-                const trend = vals.length >= 2 ? vals[0] - vals[vals.length - 1] : 0;
-                return (
-                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1.25 }}>
-                    {[
-                      { label: 'Latest',  value: selectedVital.current,           color: sc.color, trend },
-                      { label: 'Average', value: `${avg} ${selectedVital.unit}`,  color: pr.main,  trend: 0 },
-                      { label: 'Minimum', value: `${minV} ${selectedVital.unit}`, color: theme.palette.info.main, trend: 0 },
-                      { label: 'Maximum', value: `${maxV} ${selectedVital.unit}`, color: theme.palette.warning.main, trend: 0 },
-                    ].map((s) => (
-                      <Card key={s.label} elevation={0} sx={{ boxShadow: cardShadow, border: 'none', borderRadius: 2, p: 1.5 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>{s.label}</Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 900, fontSize: 15, color: s.color, lineHeight: 1.2 }}>{s.value}</Typography>
-                        {s.trend !== 0 && (
-                          s.trend > 0
-                            ? <TrendingUpIcon sx={{ fontSize: 12, color: 'warning.main', mt: 0.25 }} />
-                            : <TrendingDownIcon sx={{ fontSize: 12, color: 'success.main', mt: 0.25 }} />
-                        )}
-                      </Card>
-                    ))}
-                  </Box>
-                );
-              })()}
-
-              {/* Chart card */}
-              <Card elevation={0} sx={{ boxShadow: cardShadow, border: 'none', borderRadius: 2, p: 2 }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.5 }}>
-                  <Stack direction="row" spacing={1.5} alignItems="baseline">
-                    <Typography variant="h4" sx={{ fontWeight: 900, color: VITAL_STATUS_CFG[selectedVital.status].color, lineHeight: 1 }}>{selectedVital.current}</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>{selectedVital.unit}</Typography>
-                    {selectedVital.secondary && (
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>{selectedVital.secondary.label}: {selectedVital.secondary.value}</Typography>
-                    )}
-                  </Stack>
-                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.disabled', fontSize: 11 }}>
-                    {filteredHistory.length} readings · {dateRange === 'All' ? 'All time' : `Last ${dateRange}`}
-                  </Typography>
-                </Stack>
-
-                {filteredHistory.length >= 2 ? (
-                  <Box sx={{ width: '100%' }}>
-                    <Box sx={{ width: '100%', overflow: 'hidden', height: 90 }}>
-                      <Sparkline
-                        values={[...filteredHistory].reverse().map((h) => h.value)}
-                        color={VITAL_STATUS_CFG[selectedVital.status].color}
-                        width={700} height={90}
-                      />
-                    </Box>
-                    {/* Show only first + last + a few labels to avoid crowding */}
-                    {(() => {
-                      const reversed = [...filteredHistory].reverse();
-                      const step = Math.max(1, Math.floor(reversed.length / 6));
-                      const shown = reversed.filter((_, i) => i === 0 || i === reversed.length - 1 || i % step === 0);
-                      return (
-                        <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.5, px: 0.25 }}>
-                          {shown.map((h) => (
-                            <Typography key={h.date} variant="caption" sx={{ fontSize: 9.5, color: 'text.disabled', fontWeight: 600 }}>{fmtShort(h.date)}</Typography>
-                          ))}
-                        </Stack>
-                      );
-                    })()}
-                  </Box>
-                ) : (
-                  <Box sx={{ py: 3, textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">Not enough data for this period.</Typography>
-                  </Box>
-                )}
-
-                {/* Range gauge */}
-                <Box sx={{ mt: 1.75, pt: 1.75, borderTop: '1px solid', borderColor: 'divider' }}>
-                  <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.6 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: 11 }}>Position within Normal Range</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 11, color: 'text.secondary' }}>Ref: {selectedVital.range}</Typography>
-                  </Stack>
-                  <LinearProgress variant="determinate"
-                    value={Math.min(100, Math.max(5, ((selectedVital.currentNum - selectedVital.rangeMin) / (selectedVital.rangeMax - selectedVital.rangeMin)) * 100))}
-                    sx={{ height: 7, borderRadius: 99, bgcolor: alpha(VITAL_STATUS_CFG[selectedVital.status].color, 0.12), '& .MuiLinearProgress-bar': { bgcolor: VITAL_STATUS_CFG[selectedVital.status].color, borderRadius: 99 } }}
-                  />
-                  <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.4 }}>
-                    <Typography variant="caption" sx={{ fontSize: 10, color: 'text.disabled' }}>{selectedVital.rangeMin} {selectedVital.unit}</Typography>
-                    <Typography variant="caption" sx={{ fontSize: 10, color: 'text.disabled' }}>{selectedVital.rangeMax} {selectedVital.unit}</Typography>
-                  </Stack>
-                </Box>
-              </Card>
-
+            {/* Trend/History selector card */}
+            <Box sx={{ ...sectionCard, bgcolor: 'background.paper', p: 0.6, mt: 1.25, flexShrink: 0, alignSelf: 'flex-start' }}>
+              <Tabs
+                value={vDetailTab}
+                onChange={(_, v) => { setVDetailTab(v); setHistPage(0); }}
+                sx={{
+                  minHeight: 34,
+                  '& .MuiTab-root': {
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    fontSize: 12.5,
+                    minHeight: 34,
+                    py: 0.25,
+                    px: 1.4,
+                    borderRadius: 1.25,
+                    mr: 0.5,
+                    color: 'text.secondary',
+                  },
+                  '& .Mui-selected': {
+                    bgcolor: 'primary.main',
+                    color: '#fff',
+                  },
+                  '& .MuiTabs-indicator': {
+                    display: 'none',
+                  },
+                }}
+              >
+                <Tab label="Trend" icon={<TrendingUpIcon sx={{ fontSize: 15 }} />} iconPosition="start" />
+                <Tab label={`History (${filteredHistory.length})`} icon={<ScienceIcon sx={{ fontSize: 15 }} />} iconPosition="start" />
+              </Tabs>
             </Box>
-            )}
 
-            {/* ── Sub-tab 1: HISTORY (paginated table) ── */}
-            {vDetailTab === 1 && (
-            <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', mt: 1.25, ...scrollbar }}>
+              {/* ── Sub-tab 0: TREND ── */}
+              {vDetailTab === 0 && (
+                <Stack spacing={1.25}>
+                  {(() => {
+                    const vals = filteredHistory.map((h) => h.value);
+                    const avg  = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '—';
+                    const minV = vals.length ? Math.min(...vals).toFixed(1) : '—';
+                    const maxV = vals.length ? Math.max(...vals).toFixed(1) : '—';
+                    const sc   = VITAL_STATUS_CFG[selectedVital.status];
+                    const trend = vals.length >= 2 ? vals[0] - vals[vals.length - 1] : 0;
+                    return (
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 1.25 }}>
+                        {[
+                          { label: 'Latest',  value: selectedVital.current,           color: sc.color, trend },
+                          { label: 'Average', value: `${avg} ${selectedVital.unit}`,  color: pr.main,  trend: 0 },
+                          { label: 'Minimum', value: `${minV} ${selectedVital.unit}`, color: theme.palette.info.main, trend: 0 },
+                          { label: 'Maximum', value: `${maxV} ${selectedVital.unit}`, color: theme.palette.warning.main, trend: 0 },
+                        ].map((s) => (
+                          <Box key={s.label} sx={{ ...sectionCard, p: 1.5, borderRadius: 2, bgcolor: 'background.paper' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.55, display: 'block', mb: 0.45 }}>
+                              {s.label}
+                            </Typography>
+                            <Typography variant="h6" sx={{ fontWeight: 900, fontSize: 22, color: s.color, lineHeight: 1.1 }}>
+                              {s.value}
+                            </Typography>
+                            {s.trend !== 0 && (
+                              s.trend > 0
+                                ? <TrendingUpIcon sx={{ fontSize: 12, color: 'warning.main', mt: 0.25 }} />
+                                : <TrendingDownIcon sx={{ fontSize: 12, color: 'success.main', mt: 0.25 }} />
+                            )}
+                          </Box>
+                        ))}
+                      </Box>
+                    );
+                  })()}
 
-              {/* Table toolbar */}
-              <Box sx={{ px: 2, py: 1.25, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: 'text.secondary', fontSize: 10.5 }}>
-                    {filteredHistory.length} records · showing {histPage * rowsPerPage + 1}–{Math.min((histPage + 1) * rowsPerPage, filteredHistory.length)}
-                  </Typography>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 11, fontWeight: 600 }}>Rows:</Typography>
-                    {[10, 25, 50].map((n) => (
-                      <Chip key={n} label={n} size="small" clickable
-                        variant={rowsPerPage === n ? 'filled' : 'outlined'}
-                        color={rowsPerPage === n ? 'primary' : 'default'}
-                        onClick={() => { setRowsPerPage(n); setHistPage(0); }}
-                        sx={{ fontWeight: 700, fontSize: 11, height: 22 }}
-                      />
-                    ))}
-                  </Stack>
-                </Stack>
-              </Box>
-
-              {/* Column headers */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: '36px 1.6fr 1.1fr 0.8fr 0.9fr 1.8fr', gap: 1, px: 2, py: 0.9, bgcolor: alpha(theme.palette.grey[100], 0.9), borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
-                {['#', 'Date', 'Value', 'Unit', 'Status', 'Note'].map((h) => (
-                  <Typography key={h} variant="caption" sx={{ fontWeight: 800, fontSize: 10.5, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</Typography>
-                ))}
-              </Box>
-
-              {/* Scrollable rows */}
-              <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', ...scrollbar }}>
-                {filteredHistory.length === 0 ? (
-                  <Box sx={{ py: 4, textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">No readings found for this period.</Typography>
-                  </Box>
-                ) : pagedHistory.map((h, idx) => {
-                  const globalIdx = histPage * rowsPerPage + idx;
-                  const isLatest  = globalIdx === 0;
-                  const rSt       = readingStatus(h.value);
-                  const rCfg      = VITAL_STATUS_CFG[rSt];
-                  return (
-                    <Box key={h.date + idx} sx={{
-                      display: 'grid', gridTemplateColumns: '36px 1.6fr 1.1fr 0.8fr 0.9fr 1.8fr',
-                      gap: 1, px: 2, py: 1.1,
-                      borderBottom: '1px solid', borderColor: 'divider',
-                      bgcolor: isLatest ? alpha(pr.main, 0.04) : idx % 2 === 0 ? 'background.paper' : alpha(theme.palette.grey[50], 0.6),
-                      '&:hover': { bgcolor: alpha(pr.main, 0.03) },
-                      transition: 'background 0.12s',
-                    }}>
-                      <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 700, fontSize: 11, mt: 0.2 }}>{globalIdx + 1}</Typography>
-                      <Stack direction="row" spacing={0.75} alignItems="center">
-                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>{formatDate(h.date)}</Typography>
-                        {isLatest && <Chip size="small" label="Latest" sx={{ fontSize: 9, fontWeight: 700, height: 15, bgcolor: alpha(pr.main, 0.1), color: pr.main }} />}
+                  {/* Chart card */}
+                  <Box sx={{ ...sectionCard, p: 2, bgcolor: 'background.paper' }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.25 }}>
+                      <Stack direction="row" spacing={1.3} alignItems="baseline">
+                        <Typography variant="h4" sx={{ fontWeight: 900, fontSize: 36, color: VITAL_STATUS_CFG[selectedVital.status].color, lineHeight: 1 }}>
+                          {selectedVital.currentNum}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: 13 }}>
+                          {selectedVital.unit}
+                        </Typography>
                       </Stack>
-                      <Typography variant="body2" sx={{ fontWeight: 800, fontSize: 13, color: rCfg.color }}>{h.label}</Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.2 }}>{selectedVital.unit}</Typography>
-                      <Chip size="small" label={rCfg.label}
-                        sx={{ fontWeight: 700, fontSize: 9.5, height: 18, alignSelf: 'center', bgcolor: rCfg.bg, color: rCfg.color, border: `1px solid ${rCfg.border}` }} />
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11, mt: 0.2 }}>{h.note ?? '—'}</Typography>
-                    </Box>
-                  );
-                })}
-              </Box>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.disabled', fontSize: 11, mt: 0.4 }}>
+                        {filteredHistory.length} readings · {dateRange === 'All' ? 'All time' : `Last ${dateRange}`}
+                      </Typography>
+                    </Stack>
 
-              {/* Pagination footer */}
-              <Box sx={{ px: 2, py: 1.25, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 11, fontWeight: 600 }}>
-                    Page {histPage + 1} of {totalHistPages || 1}
-                  </Typography>
-                  <Stack direction="row" spacing={0.5}>
-                    <Button size="small" variant="outlined" disabled={histPage === 0}
-                      onClick={() => setHistPage(0)}
-                      sx={{ minWidth: 32, px: 0.75, fontSize: 11, fontWeight: 700, py: 0.4 }}>«</Button>
-                    <Button size="small" variant="outlined" disabled={histPage === 0}
-                      onClick={() => setHistPage((p) => p - 1)}
-                      sx={{ minWidth: 32, px: 0.75, fontSize: 11, fontWeight: 700, py: 0.4 }}>‹</Button>
-                    {/* page number chips */}
-                    {Array.from({ length: totalHistPages }, (_, i) => i)
-                      .filter((i) => Math.abs(i - histPage) <= 2)
-                      .map((i) => (
-                        <Button key={i} size="small"
-                          variant={i === histPage ? 'contained' : 'outlined'}
-                          onClick={() => setHistPage(i)}
-                          sx={{ minWidth: 32, px: 0.75, fontSize: 11, fontWeight: 700, py: 0.4 }}>{i + 1}</Button>
-                      ))}
-                    <Button size="small" variant="outlined" disabled={histPage >= totalHistPages - 1}
-                      onClick={() => setHistPage((p) => p + 1)}
-                      sx={{ minWidth: 32, px: 0.75, fontSize: 11, fontWeight: 700, py: 0.4 }}>›</Button>
-                    <Button size="small" variant="outlined" disabled={histPage >= totalHistPages - 1}
-                      onClick={() => setHistPage(totalHistPages - 1)}
-                      sx={{ minWidth: 32, px: 0.75, fontSize: 11, fontWeight: 700, py: 0.4 }}>»</Button>
-                  </Stack>
+                    {filteredHistory.length >= 2 ? (
+                      <Box sx={{ width: '100%' }}>
+                        <Box sx={{ width: '100%', overflow: 'hidden', height: 190, borderBottom: '1px solid', borderColor: 'divider', mb: 0.9, background: `repeating-linear-gradient(to bottom, transparent 0 30px, ${alpha(theme.palette.divider, 0.25)} 30px 31px)` }}>
+                          <Sparkline
+                            values={[...filteredHistory].reverse().map((h) => h.value)}
+                            color={VITAL_STATUS_CFG[selectedVital.status].color}
+                            width={1200}
+                            height={190}
+                          />
+                        </Box>
+                        {(() => {
+                          const reversed = [...filteredHistory].reverse();
+                          const step = Math.max(1, Math.floor(reversed.length / 5));
+                          const shown = reversed.filter((_, i) => i === 0 || i === reversed.length - 1 || i % step === 0);
+                          return (
+                            <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.45, px: 0.25 }}>
+                              {shown.map((h) => (
+                                <Typography key={h.date} variant="caption" sx={{ fontSize: 9.5, color: 'text.disabled', fontWeight: 600 }}>
+                                  {fmtShort(h.date)}
+                                </Typography>
+                              ))}
+                            </Stack>
+                          );
+                        })()}
+                      </Box>
+                    ) : (
+                      <Box sx={{ py: 3, textAlign: 'center' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Not enough data for this period.
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+
+                  {/* Range card */}
+                  <Box sx={{ ...sectionCard, p: 2, bgcolor: 'background.paper' }}>
+                    <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.6 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, fontSize: 11.25 }}>
+                        Position within Normal Range
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 11, color: 'text.secondary' }}>
+                        Ref: {selectedVital.range}
+                      </Typography>
+                    </Stack>
+                    <LinearProgress
+                      variant="determinate"
+                      value={Math.min(100, Math.max(5, ((selectedVital.currentNum - selectedVital.rangeMin) / (selectedVital.rangeMax - selectedVital.rangeMin)) * 100))}
+                      sx={{
+                        height: 7,
+                        borderRadius: 99,
+                        bgcolor: alpha(VITAL_STATUS_CFG[selectedVital.status].color, 0.12),
+                        '& .MuiLinearProgress-bar': {
+                          bgcolor: VITAL_STATUS_CFG[selectedVital.status].color,
+                          borderRadius: 99,
+                        },
+                      }}
+                    />
+                    <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.4 }}>
+                      <Typography variant="caption" sx={{ fontSize: 10, color: 'text.disabled' }}>
+                        {selectedVital.rangeMin} {selectedVital.unit}
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontSize: 10, color: 'text.disabled' }}>
+                        {selectedVital.rangeMax} {selectedVital.unit}
+                      </Typography>
+                    </Stack>
+                  </Box>
                 </Stack>
-              </Box>
+              )}
+
+              {/* ── Sub-tab 1: HISTORY (paginated table) ── */}
+              {vDetailTab === 1 && (
+                <Box sx={{ ...sectionCard, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', minHeight: '100%', overflow: 'hidden' }}>
+                  <Box sx={{ px: 2, py: 1.25, borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: 'text.secondary', fontSize: 10.5 }}>
+                        {filteredHistory.length} records · showing {histPage * rowsPerPage + 1}–{Math.min((histPage + 1) * rowsPerPage, filteredHistory.length)}
+                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 11, fontWeight: 600 }}>
+                          Rows:
+                        </Typography>
+                        {[10, 25, 50].map((n) => (
+                          <Chip
+                            key={n}
+                            label={n}
+                            size="small"
+                            clickable
+                            variant={rowsPerPage === n ? 'filled' : 'outlined'}
+                            color={rowsPerPage === n ? 'primary' : 'default'}
+                            onClick={() => { setRowsPerPage(n); setHistPage(0); }}
+                            sx={{ fontWeight: 700, fontSize: 11, height: 22 }}
+                          />
+                        ))}
+                      </Stack>
+                    </Stack>
+                  </Box>
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '36px 1.6fr 1.1fr 0.8fr 0.9fr 1.8fr', gap: 1, px: 2, py: 0.9, bgcolor: alpha(theme.palette.grey[100], 0.9), borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
+                    {['#', 'Date', 'Value', 'Unit', 'Status', 'Note'].map((h) => (
+                      <Typography key={h} variant="caption" sx={{ fontWeight: 800, fontSize: 10.5, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        {h}
+                      </Typography>
+                    ))}
+                  </Box>
+
+                  <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', ...scrollbar }}>
+                    {filteredHistory.length === 0 ? (
+                      <Box sx={{ py: 4, textAlign: 'center' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          No readings found for this period.
+                        </Typography>
+                      </Box>
+                    ) : pagedHistory.map((h, idx) => {
+                      const globalIdx = histPage * rowsPerPage + idx;
+                      const isLatest  = globalIdx === 0;
+                      const rSt       = readingStatus(h.value);
+                      const rCfg      = VITAL_STATUS_CFG[rSt];
+                      return (
+                        <Box key={h.date + idx} sx={{
+                          display: 'grid',
+                          gridTemplateColumns: '36px 1.6fr 1.1fr 0.8fr 0.9fr 1.8fr',
+                          gap: 1,
+                          px: 2,
+                          py: 1.1,
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                          bgcolor: isLatest ? alpha(pr.main, 0.04) : idx % 2 === 0 ? 'background.paper' : alpha(theme.palette.grey[50], 0.6),
+                          '&:hover': { bgcolor: alpha(pr.main, 0.03) },
+                          transition: 'background 0.12s',
+                        }}>
+                          <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 700, fontSize: 11, mt: 0.2 }}>
+                            {globalIdx + 1}
+                          </Typography>
+                          <Stack direction="row" spacing={0.75} alignItems="center">
+                            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>
+                              {formatDate(h.date)}
+                            </Typography>
+                            {isLatest && (
+                              <Chip size="small" label="Latest" sx={{ fontSize: 9, fontWeight: 700, height: 15, bgcolor: alpha(pr.main, 0.1), color: pr.main }} />
+                            )}
+                          </Stack>
+                          <Typography variant="body2" sx={{ fontWeight: 800, fontSize: 13, color: rCfg.color }}>
+                            {h.label}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.2 }}>
+                            {selectedVital.unit}
+                          </Typography>
+                          <Chip
+                            size="small"
+                            label={rCfg.label}
+                            sx={{ fontWeight: 700, fontSize: 9.5, height: 18, alignSelf: 'center', bgcolor: rCfg.bg, color: rCfg.color, border: `1px solid ${rCfg.border}` }}
+                          />
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11, mt: 0.2 }}>
+                            {h.note ?? '—'}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+
+                  <Box sx={{ px: 2, py: 1.25, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 11, fontWeight: 600 }}>
+                        Page {histPage + 1} of {totalHistPages || 1}
+                      </Typography>
+                      <Stack direction="row" spacing={0.5}>
+                        <Button size="small" variant="outlined" disabled={histPage === 0} onClick={() => setHistPage(0)} sx={{ minWidth: 32, px: 0.75, fontSize: 11, fontWeight: 700, py: 0.4 }}>«</Button>
+                        <Button size="small" variant="outlined" disabled={histPage === 0} onClick={() => setHistPage((p) => p - 1)} sx={{ minWidth: 32, px: 0.75, fontSize: 11, fontWeight: 700, py: 0.4 }}>‹</Button>
+                        {Array.from({ length: totalHistPages }, (_, i) => i)
+                          .filter((i) => Math.abs(i - histPage) <= 2)
+                          .map((i) => (
+                            <Button key={i} size="small" variant={i === histPage ? 'contained' : 'outlined'} onClick={() => setHistPage(i)} sx={{ minWidth: 32, px: 0.75, fontSize: 11, fontWeight: 700, py: 0.4 }}>
+                              {i + 1}
+                            </Button>
+                          ))}
+                        <Button size="small" variant="outlined" disabled={histPage >= totalHistPages - 1} onClick={() => setHistPage((p) => p + 1)} sx={{ minWidth: 32, px: 0.75, fontSize: 11, fontWeight: 700, py: 0.4 }}>›</Button>
+                        <Button size="small" variant="outlined" disabled={histPage >= totalHistPages - 1} onClick={() => setHistPage(totalHistPages - 1)} sx={{ minWidth: 32, px: 0.75, fontSize: 11, fontWeight: 700, py: 0.4 }}>»</Button>
+                      </Stack>
+                    </Stack>
+                  </Box>
+                </Box>
+              )}
             </Box>
-            )}
 
           </Box>
         </Box>

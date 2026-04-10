@@ -61,6 +61,7 @@ import {
   type ScheduleBlockType,
 } from "@/src/mocks/doctor-schedule-mock";
 import CustomRepeatDialog, { type CustomRepeatConfig } from "./components/CustomRepeatDialog";
+import { maskMobileNumber } from "@/src/core/utils/phone";
 
 // ─── Avatar colors ───────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
@@ -1518,7 +1519,7 @@ export default function DoctorSchedulePage() {
               <strong>MRN:</strong> {appointmentAnchor.appointment.mrn}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              <strong>Phone:</strong> {appointmentAnchor.appointment.phone}
+              <strong>Phone:</strong> {maskMobileNumber(appointmentAnchor.appointment.phone)}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
               <strong>Complaint:</strong>{" "}

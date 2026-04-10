@@ -43,6 +43,7 @@ import {
   Folder as FolderIcon,
   AccessTime as AccessTimeIcon,
 } from "@mui/icons-material";
+import { maskMobileNumber } from "@/src/core/utils/phone";
 
 interface EnrollPatientDialogProps {
   open: boolean;
@@ -522,7 +523,7 @@ export default function EnrollPatientDialog({
               {selectedPatient.id} · {selectedPatient.age} yrs · {selectedPatient.gender}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              {selectedPatient.department} · {selectedPatient.phone}
+              {selectedPatient.department} · {maskMobileNumber(selectedPatient.phone)}
             </Typography>
             <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 600, display: "block", mt: 0.2 }}>
               {subtitle}

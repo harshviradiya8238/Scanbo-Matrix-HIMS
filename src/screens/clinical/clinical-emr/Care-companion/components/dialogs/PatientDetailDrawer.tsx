@@ -41,6 +41,7 @@ import {
   FavoriteBorder as HeartOutlineIcon,
   Warning as WarningIcon,
 } from "@mui/icons-material";
+import { maskMobileNumber } from "@/src/core/utils/phone";
 
 export interface PatientDetailPatient {
   id: string;
@@ -662,7 +663,7 @@ export default function PatientDetailDrawer({
                 >
                   {[
                     { k: "Condition", v: condition },
-                    { k: "Phone", v: phone },
+                    { k: "Phone", v: maskMobileNumber(phone) },
                     { k: "Language", v: patient.language },
                     { k: "Wearable", v: patient.platforms[0] ?? "—" },
                     { k: "Adherence", v: `${patient.adherence}%` },

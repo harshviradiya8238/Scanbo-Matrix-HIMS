@@ -63,6 +63,7 @@ import type {
   VisitType,
 } from '../opd/opd-mock-data';
 import { ppSectionCard } from './patient-portal-styles';
+import { maskMobileNumber } from '@/src/core/utils/phone';
 
 type TabId = 'upcoming' | 'completed' | 'cancelled';
 type BookingStep = 1 | 2 | 3 | 4;
@@ -940,10 +941,7 @@ export default function PatientPortalAppointmentsPage() {
               <Card
                 elevation={0}
                 sx={{
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                  backgroundColor: '#FFFFFF',
-                  boxShadow: 'none',
+                  ...sectionCard,
                 }}
               >
                 <Stack spacing={1}>
@@ -1025,8 +1023,8 @@ export default function PatientPortalAppointmentsPage() {
                         fontFamily: 'Nunito, sans-serif',
                         color: theme.palette.text.primary,
                         '--fc-border-color': alpha(theme.palette.divider, 0.15),
-                        '--fc-page-bg-color': theme.palette.background.paper,
-                        '--fc-neutral-bg-color': alpha(theme.palette.primary.main, 0.04),
+                        '--fc-page-bg-color': theme.palette.common.white,
+                        '--fc-neutral-bg-color': alpha(theme.palette.primary.main, 0.03),
                         '--fc-today-bg-color': alpha(theme.palette.primary.main, 0.08),
                       },
                       '& .fc-scrollgrid': {
@@ -1209,10 +1207,7 @@ export default function PatientPortalAppointmentsPage() {
                 <Card
                   elevation={0}
                   sx={{
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    backgroundColor: '#FFFFFF',
-                    boxShadow: 'none',
+                    ...sectionCard,
                   }}
                 >
                   <Box
@@ -1870,10 +1865,7 @@ export default function PatientPortalAppointmentsPage() {
                 <Card
                   elevation={0}
                   sx={{
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    backgroundColor: '#FFFFFF',
-                    boxShadow: 'none',
+                    ...sectionCard,
                   }}
                 >
                   <Box sx={{ px: 1.5, py: 1.15, borderBottom: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.12), backgroundColor: alpha(theme.palette.primary.main, 0.04) }}>
@@ -2002,7 +1994,7 @@ export default function PatientPortalAppointmentsPage() {
               <strong>MRN:</strong> {selectedCalendarAppointment.mrn}
             </Typography>
             <Typography variant="body2">
-              <strong>Phone:</strong> {selectedCalendarAppointment.phone}
+              <strong>Phone:</strong> {maskMobileNumber(selectedCalendarAppointment.phone)}
             </Typography>
             <Typography variant="body2">
               <strong>Complaint:</strong> {selectedCalendarAppointment.chiefComplaint || 'Not specified'}

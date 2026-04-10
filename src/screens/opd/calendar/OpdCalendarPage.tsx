@@ -74,6 +74,7 @@ import {
 } from "@/src/store/slices/opdSlice";
 import { useOpdData } from "@/src/store/opdHooks";
 import { getOpdRoleFlowProfile } from "../opd-role-flow";
+import { maskMobileNumber } from "@/src/core/utils/phone";
 
 interface BookingForm {
   date: string;
@@ -2418,7 +2419,7 @@ export default function OpdCalendarPage() {
                     Phone
                   </Typography>
                   <Typography variant="body2">
-                    {patientSummary.phone || "—"}
+                    {maskMobileNumber(patientSummary.phone)}
                   </Typography>
                 </Grid>
                 <Grid item xs={12}>
@@ -2722,7 +2723,7 @@ export default function OpdCalendarPage() {
                 <strong>MRN:</strong> {selectedEvent.mrn}
               </Typography>
               <Typography variant="body2">
-                <strong>Phone:</strong> {selectedEvent.phone}
+                <strong>Phone:</strong> {maskMobileNumber(selectedEvent.phone)}
               </Typography>
               <Typography variant="body2">
                 <strong>Complaint:</strong> {selectedEvent.chiefComplaint}

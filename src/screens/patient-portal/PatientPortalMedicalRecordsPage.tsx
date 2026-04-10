@@ -69,6 +69,7 @@ type RecordsTab =
 type OcrBlockId = 'lab-report' | 'lab-requisition' | 'other-docs';
 type OcrState = 'idle' | 'file-selected' | 'running' | 'done';
 type SmartScaleFilter = 'all' | 'normal' | 'over';
+type RecordShareType = 'Doctor' | 'Lab' | 'Family' | 'Insurance';
 
 type SmartScaleSession = {
   id: string;
@@ -311,6 +312,7 @@ const OCR_PLACEHOLDER_TEXT: Record<OcrBlockId, string> = {
   'other-docs':
     'Discharge summary extracted: Continue Metoprolol 50mg OD, monitor BP twice daily, follow-up after 14 days.',
 };
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const UPLOAD_BLOCKS: Array<{
   id: OcrBlockId;
@@ -366,6 +368,12 @@ export default function PatientPortalMedicalRecordsPage() {
     React.useState<LabRequisition | null>(null);
   const [selectedOtherRecord, setSelectedOtherRecord] =
     React.useState<MedicalRecord | null>(null);
+  const [activeRequisitionId, setActiveRequisitionId] = React.useState(
+    LAB_REQUISITIONS[0]?.id ?? ''
+  );
+  const [activeOtherRecordId, setActiveOtherRecordId] = React.useState(
+    MEDICAL_RECORDS.find((record) => record.type !== 'Lab')?.id ?? ''
+  );
   const [smartScaleFilter, setSmartScaleFilter] =
     React.useState<SmartScaleFilter>('all');
   const [smartScaleActiveId, setSmartScaleActiveId] = React.useState(
@@ -387,6 +395,19 @@ export default function PatientPortalMedicalRecordsPage() {
     msg: string;
     severity: 'success' | 'info' | 'error';
   }>({ open: false, msg: '', severity: 'success' });
+  const [recordShareOpen, setRecordShareOpen] = React.useState(false);
+  const [recordShareSource, setRecordShareSource] = React.useState('');
+  const [recordShareType, setRecordShareType] =
+    React.useState<RecordShareType>('Doctor');
+  const [recordShareTarget, setRecordShareTarget] = React.useState('');
+  const [recordShareViaApp, setRecordShareViaApp] = React.useState(true);
+  const [recordShareViaEmail, setRecordShareViaEmail] = React.useState(true);
+  const [recordShareMobile, setRecordShareMobile] = React.useState('');
+  const [recordShareEmail, setRecordShareEmail] = React.useState('');
+  const [recordSharePurpose, setRecordSharePurpose] = React.useState('');
+  const [recordShareError, setRecordShareError] = React.useState<string | null>(
+    null
+  );
 
   const [ocrProgress, setOcrProgress] = React.useState<Record<OcrBlockId, number>>({
     'lab-report': 0,
@@ -448,6 +469,20 @@ export default function PatientPortalMedicalRecordsPage() {
       )
     );
   }, [normalizedQuery]);
+  const activeRequisition = React.useMemo(
+    () =>
+      filteredRequisitions.find((req) => req.id === activeRequisitionId) ??
+      filteredRequisitions[0] ??
+      null,
+    [activeRequisitionId, filteredRequisitions]
+  );
+  const activeOtherRecord = React.useMemo(
+    () =>
+      otherRecords.find((record) => record.id === activeOtherRecordId) ??
+      otherRecords[0] ??
+      null,
+    [activeOtherRecordId, otherRecords]
+  );
 
   const smartScaleVisibleSessions = React.useMemo(() => {
     return SMART_SCALE_SESSIONS.filter((session) => {
@@ -466,6 +501,18 @@ export default function PatientPortalMedicalRecordsPage() {
     if (smartScaleVisibleSessions.some((session) => session.id === smartScaleActiveId)) return;
     setSmartScaleActiveId(smartScaleVisibleSessions[0].id);
   }, [smartScaleVisibleSessions, smartScaleActiveId]);
+  React.useEffect(() => {
+    if (filteredRequisitions.length === 0) return;
+    if (!filteredRequisitions.some((req) => req.id === activeRequisitionId)) {
+      setActiveRequisitionId(filteredRequisitions[0].id);
+    }
+  }, [activeRequisitionId, filteredRequisitions]);
+  React.useEffect(() => {
+    if (otherRecords.length === 0) return;
+    if (!otherRecords.some((record) => record.id === activeOtherRecordId)) {
+      setActiveOtherRecordId(otherRecords[0].id);
+    }
+  }, [activeOtherRecordId, otherRecords]);
 
   const activeSmartScaleSession = React.useMemo(
     () =>
@@ -516,6 +563,61 @@ export default function PatientPortalMedicalRecordsPage() {
     },
     [setToast]
   );
+
+  const openRecordShareDialog = React.useCallback(
+    (source: string, defaultType: RecordShareType = 'Doctor') => {
+      setRecordShareSource(source);
+      setRecordShareType(defaultType);
+      setRecordShareTarget('');
+      setRecordShareViaApp(true);
+      setRecordShareViaEmail(true);
+      setRecordShareMobile('');
+      setRecordShareEmail('');
+      setRecordSharePurpose('');
+      setRecordShareError(null);
+      setRecordShareOpen(true);
+    },
+    []
+  );
+
+  const handleRecordShare = React.useCallback(() => {
+    const target = recordShareTarget.trim();
+    const mobile = recordShareMobile.replace(/\D/g, '');
+    const email = recordShareEmail.trim();
+
+    if (!target) {
+      setRecordShareError('Recipient is required.');
+      return;
+    }
+    if (!recordShareViaApp && !recordShareViaEmail) {
+      setRecordShareError('Choose at least one channel: App/Mobile or Email.');
+      return;
+    }
+    if (recordShareViaApp && (mobile.length < 10 || mobile.length > 15)) {
+      setRecordShareError('Enter a valid mobile number for app sharing.');
+      return;
+    }
+    if (recordShareViaEmail && !EMAIL_REGEX.test(email)) {
+      setRecordShareError('Enter a valid email address for email sharing.');
+      return;
+    }
+
+    setRecordShareOpen(false);
+    setRecordShareError(null);
+    setToast(
+      `${recordShareSource || 'Record'} shared to ${recordShareType}: ${target}`,
+      'success'
+    );
+  }, [
+    recordShareEmail,
+    recordShareSource,
+    recordShareTarget,
+    recordShareType,
+    recordShareViaApp,
+    recordShareViaEmail,
+    recordShareMobile,
+    setToast,
+  ]);
 
   const handleFileSelect = React.useCallback((id: OcrBlockId, fileName: string) => {
     setOcrFileName((prev) => ({ ...prev, [id]: fileName }));
@@ -583,193 +685,323 @@ export default function PatientPortalMedicalRecordsPage() {
 
   return (
     <PatientPortalWorkspaceCard current="medical-records">
-      <Stack spacing={1.25}>
+      <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0 }}>
         <Card
           elevation={0}
           sx={{
-            ...sectionCard,
-            ...(activeTab === 'bmi'
-              ? {
-                  display: 'flex',
-                  flexDirection: 'column',
-                  height: { xs: 'auto', lg: 'calc(100dvh - 170px)' },
-                  minHeight: 0,
-                  overflow: 'hidden',
-                }
-              : {}),
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            minHeight: 0,
+            overflow: 'hidden',
+            border: 'none',
+            boxShadow: 'none',
+            bgcolor: 'transparent',
           }}
         >
           <Box
             sx={{
-              ...sectionHeader,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1,
-              flexWrap: 'wrap',
+              ...sectionCard,
+              flexShrink: 0,
+              overflow: 'hidden',
             }}
           >
-            <Stack direction="row" spacing={1} alignItems="center">
-              <FolderSharedIcon fontSize="small" color="primary" />
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                Medical Records Workspace
-              </Typography>
-            </Stack>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-              <Button
-                size="small"
-                variant="contained"
-                disableElevation
-                startIcon={<UploadIcon sx={{ fontSize: 14 }} />}
-                onClick={() => setActiveTab('upload')}
-                sx={{ textTransform: 'none', fontWeight: 700 }}
-              >
-                Upload
-              </Button>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<AddIcon sx={{ fontSize: 14 }} />}
-                onClick={() => setAddRecordOpen(true)}
-                sx={{ textTransform: 'none', fontWeight: 700 }}
-              >
-                Add Record
-              </Button>
-            </Stack>
+            <Box
+              sx={{
+                ...sectionHeader,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 1,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                <FolderSharedIcon fontSize="small" color="primary" />
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  Medical Records Workspace
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                <Button
+                  size="small"
+                  variant="contained"
+                  disableElevation
+                  startIcon={<UploadIcon sx={{ fontSize: 14 }} />}
+                  onClick={() => setActiveTab('upload')}
+                  sx={{ textTransform: 'none', fontWeight: 700 }}
+                >
+                  Upload
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+                  onClick={() => setAddRecordOpen(true)}
+                  sx={{ textTransform: 'none', fontWeight: 700 }}
+                >
+                  Add Record
+                </Button>
+              </Stack>
+            </Box>
+
+            <Tabs
+              value={activeTab}
+              onChange={(_event, value: RecordsTab) => setActiveTab(value)}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{
+                px: 2,
+                pt: 1,
+                bgcolor: 'background.paper',
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                flexShrink: 0,
+                '& .MuiTab-root': {
+                  textTransform: 'none',
+                  minHeight: 42,
+                  fontWeight: 700,
+                },
+              }}
+            >
+              <Tab value="lab-reports" label="Lab Reports" />
+              <Tab value="lab-requisitions" label="Lab Requisitions" />
+              <Tab value="vitals" label="Vital Reports" />
+              <Tab value="bmi" label="Smart Scale" />
+              <Tab value="upload" label="Upload & OCR" />
+              <Tab value="other" label="Other Records" />
+            </Tabs>
           </Box>
 
-          <Tabs
-            value={activeTab}
-            onChange={(_event, value: RecordsTab) => setActiveTab(value)}
-            variant="scrollable"
-            scrollButtons="auto"
-            sx={{
-              px: 2,
-              pt: 1,
-              position: 'sticky',
-              top: 0,
-              zIndex: 2,
-              bgcolor: 'background.paper',
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              flexShrink: 0,
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                minHeight: 42,
-                fontWeight: 700,
-              },
-            }}
-          >
-            <Tab value="lab-reports" label="Lab Reports" />
-            <Tab value="lab-requisitions" label="Lab Requisitions" />
-            <Tab value="vitals" label="Vital Reports" />
-            <Tab value="bmi" label="Smart Scale" />
-            <Tab value="upload" label="Upload & OCR" />
-            <Tab value="other" label="Other Records" />
-          </Tabs>
-
-          {(activeTab === 'lab-requisitions' || activeTab === 'other') && (
-            <Box sx={{ px: 2, pb: 1.5 }}>
-              <TextField
-                size="small"
-                fullWidth
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={tabSearchPlaceholder[activeTab]}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-          )}
-
           {activeTab === 'lab-reports' && (
-            <Box sx={{ px: 2, pb: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+            <Box
+              sx={{
+                px: 0,
+                py: 1.25,
+                flex: 1,
+                minHeight: 0,
+                overflow: 'hidden',
+                bgcolor: 'transparent',
+              }}
+            >
               <PatientPortalLabReportsPage embedded forcedTab={0} showTopTabs={false} />
             </Box>
           )}
 
           {activeTab === 'lab-requisitions' && (
-            <Stack spacing={1.2} sx={{ px: 2, pb: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-              {filteredRequisitions.map((req) => {
-                const statusMeta = REQ_STATUS_META[req.status];
-                return (
-                  <Box
-                    key={req.id}
-                    sx={{
-                      mt: 1.2,
-                      border: '1px solid',
-                      borderColor: alpha(theme.palette.primary.main, 0.16),
-                      borderRadius: 2,
-                      p: 1.4,
-                      bgcolor: alpha(theme.palette.background.default, 0.35),
+            <Box
+              sx={{
+                px: 0,
+                py: 1.25,
+                flex: 1,
+                minHeight: 0,
+                overflow: 'hidden',
+                bgcolor: 'transparent',
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'grid',
+                  gap: 1.25,
+                  gridTemplateColumns: { xs: '1fr', lg: '360px minmax(0, 1fr)' },
+                  height: '100%',
+                  minHeight: 0,
+                }}
+              >
+                <Card
+                  elevation={0}
+                  sx={{
+                    border: '1px solid',
+                    borderColor: alpha(theme.palette.primary.main, 0.16),
+                    borderRadius: 2,
+                    p: 1.1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                    boxShadow: 'none',
+                  }}
+                >
+                  <TextField
+                    size="small"
+                    fullWidth
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={tabSearchPlaceholder[activeTab]}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+                        </InputAdornment>
+                      ),
                     }}
-                  >
-                    <Stack
-                      direction={{ xs: 'column', md: 'row' }}
-                      spacing={1}
-                      alignItems={{ xs: 'flex-start', md: 'center' }}
-                      justifyContent="space-between"
-                    >
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Stack
-                          direction="row"
-                          spacing={0.75}
-                          alignItems="center"
-                          flexWrap="wrap"
-                        >
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            {req.requisitionNo}
-                          </Typography>
-                          <Chip
-                            size="small"
-                            label={statusMeta.label}
+                  />
+
+                  <Box sx={{ mt: 1, flex: 1, minHeight: 0, overflowY: 'auto', ...panelScrollbar }}>
+                    <Stack spacing={0.75}>
+                      {filteredRequisitions.map((req) => {
+                        const statusMeta = REQ_STATUS_META[req.status];
+                        const selected = activeRequisition?.id === req.id;
+                        return (
+                          <Box
+                            key={req.id}
+                            onClick={() => setActiveRequisitionId(req.id)}
                             sx={{
-                              height: 20,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              bgcolor: statusMeta.bg,
-                              color: statusMeta.color,
+                              border: '1px solid',
+                              borderColor: selected
+                                ? alpha(theme.palette.primary.main, 0.42)
+                                : 'divider',
+                              borderRadius: 1.8,
+                              p: 0.95,
+                              cursor: 'pointer',
+                              bgcolor: selected
+                                ? alpha(theme.palette.primary.main, 0.08)
+                                : 'background.paper',
+                              transition: 'all 0.16s ease',
+                              '&:hover': {
+                                borderColor: alpha(theme.palette.primary.main, 0.3),
+                                bgcolor: alpha(theme.palette.primary.main, 0.04),
+                              },
                             }}
-                          />
-                        </Stack>
-                        <Typography variant="caption" color="text.secondary">
-                          {req.date} {req.time} - Ordered by {req.orderedBy} -{' '}
-                          {req.lab ?? 'Lab not assigned'}
+                          >
+                            <Stack direction="row" spacing={0.65} alignItems="center" justifyContent="space-between">
+                              <Typography variant="caption" sx={{ fontWeight: 700 }} noWrap>
+                                {req.requisitionNo}
+                              </Typography>
+                              <Chip
+                                size="small"
+                                label={statusMeta.label}
+                                sx={{
+                                  height: 18,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  bgcolor: statusMeta.bg,
+                                  color: statusMeta.color,
+                                }}
+                              />
+                            </Stack>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35 }} noWrap>
+                              {req.date} {req.time}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }} noWrap>
+                              {req.orderedBy} • {req.lab ?? 'Lab not assigned'}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+
+                    {filteredRequisitions.length === 0 && (
+                      <Box sx={{ p: 2.2, textAlign: 'center' }}>
+                        <AssignmentIcon sx={{ fontSize: 30, color: 'text.disabled', mb: 0.5 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          No lab requisitions found.
                         </Typography>
-                        <Stack
-                          direction="row"
-                          spacing={0.55}
-                          flexWrap="wrap"
-                          useFlexGap
-                          sx={{ mt: 0.75 }}
-                        >
-                          {req.tests.map((test) => (
+                      </Box>
+                    )}
+                  </Box>
+                </Card>
+
+                <Card
+                  elevation={0}
+                  sx={{
+                    border: '1px solid',
+                    borderColor: alpha(theme.palette.primary.main, 0.16),
+                    borderRadius: 2,
+                    p: 1.1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                    boxShadow: 'none',
+                  }}
+                >
+                  {!activeRequisition && (
+                    <Alert severity="info" sx={{ borderRadius: 1.4 }}>
+                      Select a requisition from the left panel.
+                    </Alert>
+                  )}
+
+                  {activeRequisition && (
+                    <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1}
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        justifyContent="space-between"
+                      >
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 800 }} noWrap>
+                            {activeRequisition.requisitionNo}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" noWrap>
+                            {activeRequisition.date} {activeRequisition.time}
+                          </Typography>
+                        </Box>
+                        <Chip
+                          size="small"
+                          label={REQ_STATUS_META[activeRequisition.status].label}
+                          sx={{
+                            height: 20,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            bgcolor: REQ_STATUS_META[activeRequisition.status].bg,
+                            color: REQ_STATUS_META[activeRequisition.status].color,
+                          }}
+                        />
+                      </Stack>
+
+                      <Box
+                        sx={{
+                          p: 1,
+                          borderRadius: 1.5,
+                          border: '1px solid',
+                          borderColor: alpha(theme.palette.primary.main, 0.2),
+                          bgcolor: alpha(theme.palette.primary.main, 0.04),
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          Ordered by: {activeRequisition.orderedBy}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                          Lab: {activeRequisition.lab ?? 'Lab not assigned'}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', ...panelScrollbar }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.75 }}>
+                          Ordered Tests
+                        </Typography>
+                        <Stack direction="row" spacing={0.65} flexWrap="wrap" useFlexGap>
+                          {activeRequisition.tests.map((test) => (
                             <Chip
-                              key={`${req.id}-${test}`}
+                              key={`${activeRequisition.id}-${test}`}
                               size="small"
                               label={test}
                               variant="outlined"
-                              sx={{ height: 18, fontSize: 10, fontWeight: 700 }}
+                              sx={{ height: 20, fontSize: 10.5, fontWeight: 700 }}
                             />
                           ))}
                         </Stack>
+
+                        {activeRequisition.notes && (
+                          <Alert severity="info" icon={false} sx={{ mt: 1.1, borderRadius: 1.5 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                              {activeRequisition.notes}
+                            </Typography>
+                          </Alert>
+                        )}
                       </Box>
-                      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+
+                      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap justifyContent="flex-end">
                         <Button
                           size="small"
                           variant="outlined"
                           startIcon={<VisibilityIcon sx={{ fontSize: 13 }} />}
-                          onClick={() => setSelectedRequisition(req)}
+                          onClick={() => setSelectedRequisition(activeRequisition)}
                           sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12 }}
                         >
                           View
                         </Button>
-                        {req.status === 'Pending' && (
+                        {activeRequisition.status === 'Pending' && (
                           <Button
                             size="small"
                             variant="contained"
@@ -785,32 +1017,30 @@ export default function PatientPortalMedicalRecordsPage() {
                           size="small"
                           variant="text"
                           startIcon={<DownloadIcon sx={{ fontSize: 13 }} />}
-                          onClick={() => handleDownload(req.requisitionNo)}
+                          onClick={() => handleDownload(activeRequisition.requisitionNo)}
                           sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12 }}
                         >
                           Download
                         </Button>
                       </Stack>
                     </Stack>
-                  </Box>
-                );
-              })}
-
-              {filteredRequisitions.length === 0 && (
-                <Box sx={{ p: 4, textAlign: 'center' }}>
-                  <AssignmentIcon
-                    sx={{ fontSize: 38, color: 'text.disabled', mb: 1 }}
-                  />
-                  <Typography variant="body2" color="text.secondary">
-                    No lab requisitions found for this search.
-                  </Typography>
-                </Box>
-              )}
-            </Stack>
+                  )}
+                </Card>
+              </Box>
+            </Box>
           )}
 
           {activeTab === 'vitals' && (
-            <Box sx={{ px: 2, pb: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+            <Box
+              sx={{
+                px: 0,
+                py: 1.25,
+                flex: 1,
+                minHeight: 0,
+                overflow: 'hidden',
+                bgcolor: 'transparent',
+              }}
+            >
               <PatientPortalLabReportsPage embedded forcedTab={1} showTopTabs={false} />
             </Box>
           )}
@@ -818,18 +1048,18 @@ export default function PatientPortalMedicalRecordsPage() {
           {activeTab === 'bmi' && (
             <Box
               sx={{
-                borderTop: '1px solid',
-                borderColor: 'divider',
+                py: 1.25,
                 flex: 1,
                 minHeight: { xs: 560, lg: 0 },
                 display: 'flex',
                 overflow: 'hidden',
+                bgcolor: 'transparent',
               }}
             >
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', lg: '320px 1fr' },
+                  gridTemplateColumns: { xs: '1fr', lg: '360px 1fr' },
                   flex: 1,
                   minHeight: 0,
                   overflow: 'hidden',
@@ -1360,7 +1590,17 @@ export default function PatientPortalMedicalRecordsPage() {
           )}
 
           {activeTab === 'upload' && (
-            <Box sx={{ px: 2, pb: 2, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+            <Box
+              sx={{
+                px: 0,
+                py: 1.25,
+                flex: 1,
+                minHeight: 0,
+                overflowY: 'auto',
+                bgcolor: 'transparent',
+                ...panelScrollbar,
+              }}
+            >
               {/* ── top row: Lab Report + Lab Requisition side-by-side ── */}
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5, mb: 1.5 }}>
                 {UPLOAD_BLOCKS.filter(b => b.id !== 'other-docs').map((block) => {
@@ -1470,7 +1710,7 @@ export default function PatientPortalMedicalRecordsPage() {
                                 <Button size="small" variant="contained" disableElevation sx={{ textTransform: 'none', fontWeight: 700, fontSize: 11.5, bgcolor: block.color, '&:hover': { bgcolor: alpha(block.color, 0.85) } }} startIcon={<SendIcon sx={{ fontSize: 13 }} />} onClick={() => setToast('Requisition sent to lab digitally', 'success')}>Send to Lab Digitally</Button>
                               )}
                               {block.id === 'lab-report' && (
-                                <Button size="small" variant="outlined" sx={{ textTransform: 'none', fontWeight: 700, fontSize: 11.5 }} onClick={() => setToast('Share dialog opening…', 'info')}>Share with Doctor</Button>
+                                <Button size="small" variant="outlined" sx={{ textTransform: 'none', fontWeight: 700, fontSize: 11.5 }} onClick={() => openRecordShareDialog(block.title, 'Doctor')}>Share with Doctor</Button>
                               )}
                               <Button size="small" variant="outlined" sx={{ textTransform: 'none', fontWeight: 700, fontSize: 11.5 }} startIcon={<ContentCopyIcon sx={{ fontSize: 12 }} />} onClick={() => handleCopy(text, 'Extracted text')}>Copy Text</Button>
                             </Box>
@@ -1576,7 +1816,7 @@ export default function PatientPortalMedicalRecordsPage() {
                           </Box>
                           <Box sx={{ px: 1.5, py: 1, borderTop: '1px solid', borderColor: alpha(theme.palette.success.main, 0.15), display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
                             <Button size="small" variant="contained" disableElevation sx={{ textTransform: 'none', fontWeight: 700, fontSize: 11.5, bgcolor: 'success.main', '&:hover': { bgcolor: 'success.dark' } }} onClick={() => setToast('Saved to medical records', 'success')}>Save to Records</Button>
-                            <Button size="small" variant="outlined" sx={{ textTransform: 'none', fontWeight: 700, fontSize: 11.5 }} onClick={() => setToast('Share dialog opening…', 'info')}>Share</Button>
+                            <Button size="small" variant="outlined" sx={{ textTransform: 'none', fontWeight: 700, fontSize: 11.5 }} onClick={() => openRecordShareDialog(block.title)}>Share</Button>
                             <Button size="small" variant="outlined" sx={{ textTransform: 'none', fontWeight: 700, fontSize: 11.5 }} startIcon={<ContentCopyIcon sx={{ fontSize: 12 }} />} onClick={() => handleCopy(text, 'Extracted text')}>Copy Text</Button>
                           </Box>
                         </Box>
@@ -1589,79 +1829,197 @@ export default function PatientPortalMedicalRecordsPage() {
           )}
 
           {activeTab === 'other' && (
-            <Stack spacing={1.2} sx={{ px: 2, pb: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-              {otherRecords.map((record) => {
-                const meta = RECORD_TYPE_META[record.type];
-                return (
-                  <Box
-                    key={record.id}
-                    sx={{
-                      mt: 1.2,
-                      border: '1px solid',
-                      borderColor: alpha(theme.palette.primary.main, 0.16),
-                      borderRadius: 2,
-                      p: 1.4,
-                      borderLeft: `4px solid ${meta.color}`,
-                      bgcolor: alpha(theme.palette.background.default, 0.35),
+            <Box
+              sx={{
+                px: 0,
+                py: 1.25,
+                flex: 1,
+                minHeight: 0,
+                overflow: 'hidden',
+                bgcolor: 'transparent',
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'grid',
+                  gap: 1.25,
+                  gridTemplateColumns: { xs: '1fr', lg: '360px minmax(0, 1fr)' },
+                  height: '100%',
+                  minHeight: 0,
+                }}
+              >
+                <Card
+                  elevation={0}
+                  sx={{
+                    border: '1px solid',
+                    borderColor: alpha(theme.palette.primary.main, 0.16),
+                    borderRadius: 2,
+                    p: 1.1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                    boxShadow: 'none',
+                  }}
+                >
+                  <TextField
+                    size="small"
+                    fullWidth
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={tabSearchPlaceholder[activeTab]}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+                        </InputAdornment>
+                      ),
                     }}
-                  >
-                    <Stack
-                      direction={{ xs: 'column', md: 'row' }}
-                      spacing={1}
-                      alignItems={{ xs: 'flex-start', md: 'center' }}
-                      justifyContent="space-between"
-                    >
-                      <Stack direction="row" spacing={1.1} sx={{ flex: 1, minWidth: 0 }}>
-                        <Box
-                          sx={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 1.4,
-                            bgcolor: alpha(meta.color, 0.12),
-                            color: meta.color,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {meta.icon}
-                        </Box>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
-                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                              {record.title}
-                            </Typography>
-                            <Chip
-                              size="small"
-                              label={record.type}
-                              sx={{
-                                height: 18,
-                                fontSize: 10,
-                                fontWeight: 700,
-                                bgcolor: alpha(meta.color, 0.1),
-                                color: meta.color,
-                              }}
-                            />
-                          </Stack>
-                          <Typography variant="caption" color="text.secondary">
-                            {record.doctor} - {record.date}
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ mt: 0.4, fontSize: 13 }}
+                  />
+
+                  <Box sx={{ mt: 1, flex: 1, minHeight: 0, overflowY: 'auto', ...panelScrollbar }}>
+                    <Stack spacing={0.75}>
+                      {otherRecords.map((record) => {
+                        const meta = RECORD_TYPE_META[record.type];
+                        const selected = activeOtherRecord?.id === record.id;
+                        return (
+                          <Box
+                            key={record.id}
+                            onClick={() => setActiveOtherRecordId(record.id)}
+                            sx={{
+                              border: '1px solid',
+                              borderColor: selected
+                                ? alpha(theme.palette.primary.main, 0.42)
+                                : 'divider',
+                              borderRadius: 1.8,
+                              p: 0.95,
+                              cursor: 'pointer',
+                              bgcolor: selected
+                                ? alpha(theme.palette.primary.main, 0.08)
+                                : 'background.paper',
+                              transition: 'all 0.16s ease',
+                              '&:hover': {
+                                borderColor: alpha(theme.palette.primary.main, 0.3),
+                                bgcolor: alpha(theme.palette.primary.main, 0.04),
+                              },
+                            }}
                           >
-                            {record.summary}
+                            <Stack direction="row" spacing={0.8} alignItems="center">
+                              <Box
+                                sx={{
+                                  width: 26,
+                                  height: 26,
+                                  borderRadius: 1.2,
+                                  bgcolor: alpha(meta.color, 0.12),
+                                  color: meta.color,
+                                  display: 'grid',
+                                  placeItems: 'center',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {meta.icon}
+                              </Box>
+                              <Box sx={{ minWidth: 0, flex: 1 }}>
+                                <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }} noWrap>
+                                  {record.title}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" noWrap>
+                                  {record.type} • {record.date}
+                                </Typography>
+                              </Box>
+                            </Stack>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+
+                    {otherRecords.length === 0 && (
+                      <Box sx={{ p: 2.2, textAlign: 'center' }}>
+                        <FolderSharedIcon sx={{ fontSize: 30, color: 'text.disabled', mb: 0.5 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          No records found.
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Card>
+
+                <Card
+                  elevation={0}
+                  sx={{
+                    border: '1px solid',
+                    borderColor: alpha(theme.palette.primary.main, 0.16),
+                    borderRadius: 2,
+                    p: 1.1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                    boxShadow: 'none',
+                  }}
+                >
+                  {!activeOtherRecord && (
+                    <Alert severity="info" sx={{ borderRadius: 1.4 }}>
+                      Select a record from the left panel.
+                    </Alert>
+                  )}
+
+                  {activeOtherRecord && (
+                    <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1}
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        justifyContent="space-between"
+                      >
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 800 }} noWrap>
+                            {activeOtherRecord.title}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" noWrap>
+                            {activeOtherRecord.type} • {activeOtherRecord.date} {activeOtherRecord.time}
                           </Typography>
                         </Box>
+                        <Chip
+                          size="small"
+                          label={activeOtherRecord.type}
+                          sx={{
+                            height: 20,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            bgcolor: alpha(RECORD_TYPE_META[activeOtherRecord.type].color, 0.1),
+                            color: RECORD_TYPE_META[activeOtherRecord.type].color,
+                          }}
+                        />
                       </Stack>
-                      <Stack direction="row" spacing={0.75}>
+
+                      <Box
+                        sx={{
+                          p: 1,
+                          borderRadius: 1.5,
+                          border: '1px solid',
+                          borderColor: alpha(theme.palette.primary.main, 0.2),
+                          bgcolor: alpha(theme.palette.primary.main, 0.04),
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          Doctor: {activeOtherRecord.doctor}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', ...panelScrollbar }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.75 }}>
+                          Clinical Summary
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                          {activeOtherRecord.summary}
+                        </Typography>
+                      </Box>
+
+                      <Stack direction="row" spacing={0.75} justifyContent="flex-end">
                         <Button
                           size="small"
                           variant="outlined"
                           startIcon={<VisibilityIcon sx={{ fontSize: 13 }} />}
-                          onClick={() => setSelectedOtherRecord(record)}
+                          onClick={() => setSelectedOtherRecord(activeOtherRecord)}
                           sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12 }}
                         >
                           View
@@ -1670,29 +2028,199 @@ export default function PatientPortalMedicalRecordsPage() {
                           size="small"
                           variant="text"
                           startIcon={<DownloadIcon sx={{ fontSize: 13 }} />}
-                          onClick={() => handleDownload(record.title)}
+                          onClick={() => handleDownload(activeOtherRecord.title)}
                           sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12 }}
                         >
                           Download
                         </Button>
                       </Stack>
                     </Stack>
-                  </Box>
-                );
-              })}
-
-              {otherRecords.length === 0 && (
-                <Box sx={{ p: 4, textAlign: 'center' }}>
-                  <FolderSharedIcon sx={{ fontSize: 38, color: 'text.disabled', mb: 1 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    No records found for this search.
-                  </Typography>
-                </Box>
-              )}
-            </Stack>
+                  )}
+                </Card>
+              </Box>
+            </Box>
           )}
         </Card>
       </Stack>
+
+      <Dialog
+        open={recordShareOpen}
+        onClose={() => setRecordShareOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle
+          sx={{ fontWeight: 800, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}
+        >
+          Share Medical Record
+        </DialogTitle>
+        <DialogContent sx={{ pt: '16px !important' }}>
+          <Stack spacing={1.4}>
+            {recordShareSource ? (
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                Source: {recordShareSource}
+              </Typography>
+            ) : null}
+
+            <Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+                Share Type
+              </Typography>
+              <Stack direction="row" spacing={0.7} useFlexGap flexWrap="wrap" sx={{ mt: 0.7 }}>
+                {(['Doctor', 'Lab', 'Family', 'Insurance'] as const).map((type) => {
+                  const selected = recordShareType === type;
+                  return (
+                    <Chip
+                      key={type}
+                      size="small"
+                      clickable
+                      label={type}
+                      onClick={() => {
+                        setRecordShareType(type);
+                        setRecordShareError(null);
+                      }}
+                      color={selected ? 'primary' : 'default'}
+                      variant={selected ? 'filled' : 'outlined'}
+                      sx={{ fontWeight: 700 }}
+                    />
+                  );
+                })}
+              </Stack>
+            </Box>
+
+            <TextField
+              size="small"
+              fullWidth
+              label={`${recordShareType} Name`}
+              value={recordShareTarget}
+              onChange={(event) => {
+                setRecordShareTarget(event.target.value);
+                setRecordShareError(null);
+              }}
+              placeholder={
+                recordShareType === 'Doctor'
+                  ? 'e.g. Dr. Priya Sharma'
+                  : recordShareType === 'Lab'
+                    ? 'e.g. SRL Diagnostics'
+                    : recordShareType === 'Insurance'
+                      ? 'e.g. ABC Health Insurance'
+                      : 'e.g. Ravi Patel'
+              }
+            />
+
+            <Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+                Share Channel
+              </Typography>
+              <Stack direction="row" spacing={0.7} sx={{ mt: 0.7 }}>
+                <Chip
+                  size="small"
+                  clickable
+                  label="App / Mobile"
+                  onClick={() => {
+                    setRecordShareViaApp((prev) => !prev);
+                    setRecordShareError(null);
+                  }}
+                  color={recordShareViaApp ? 'primary' : 'default'}
+                  variant={recordShareViaApp ? 'filled' : 'outlined'}
+                  sx={{ fontWeight: 700 }}
+                />
+                <Chip
+                  size="small"
+                  clickable
+                  label="Email"
+                  onClick={() => {
+                    setRecordShareViaEmail((prev) => !prev);
+                    setRecordShareError(null);
+                  }}
+                  color={recordShareViaEmail ? 'primary' : 'default'}
+                  variant={recordShareViaEmail ? 'filled' : 'outlined'}
+                  sx={{ fontWeight: 700 }}
+                />
+              </Stack>
+            </Box>
+
+            {recordShareViaApp ? (
+              <TextField
+                size="small"
+                fullWidth
+                label="Mobile Number"
+                placeholder="+91 98XXXXXXXX"
+                value={recordShareMobile}
+                onChange={(event) => {
+                  setRecordShareMobile(event.target.value);
+                  setRecordShareError(null);
+                }}
+              />
+            ) : null}
+
+            {recordShareViaEmail ? (
+              <TextField
+                size="small"
+                fullWidth
+                label="Email Address"
+                placeholder="recipient@example.com"
+                value={recordShareEmail}
+                onChange={(event) => {
+                  setRecordShareEmail(event.target.value);
+                  setRecordShareError(null);
+                }}
+              />
+            ) : null}
+
+            <TextField
+              size="small"
+              fullWidth
+              label="Purpose (optional)"
+              placeholder="Why this record is being shared"
+              value={recordSharePurpose}
+              onChange={(event) => setRecordSharePurpose(event.target.value)}
+            />
+
+            <Stack direction="row" spacing={0.7} useFlexGap flexWrap="wrap">
+              {['Dr. Priya Sharma', 'Dr. Arvind Mehta', 'SRL Diagnostics'].map((name) => (
+                <Chip
+                  key={name}
+                  label={name}
+                  size="small"
+                  variant="outlined"
+                  onClick={() => {
+                    setRecordShareTarget(name);
+                    setRecordShareType(name.includes('Dr.') ? 'Doctor' : 'Lab');
+                    setRecordShareError(null);
+                  }}
+                  sx={{ fontWeight: 600, cursor: 'pointer' }}
+                />
+              ))}
+            </Stack>
+
+            {recordShareError ? (
+              <Alert severity="warning" sx={{ borderRadius: 1.4 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  {recordShareError}
+                </Typography>
+              </Alert>
+            ) : null}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 2.5, pb: 2, gap: 1 }}>
+          <Button
+            onClick={() => setRecordShareOpen(false)}
+            sx={{ textTransform: 'none', fontWeight: 700 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disableElevation
+            onClick={handleRecordShare}
+            sx={{ textTransform: 'none', fontWeight: 700 }}
+          >
+            Share
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={addRecordOpen}

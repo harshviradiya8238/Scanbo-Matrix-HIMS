@@ -6,8 +6,10 @@ import {
   Avatar,
   Box,
   Button,
+  Checkbox,
   Chip,
   Divider,
+  FormControlLabel,
   InputAdornment,
   Snackbar,
   Stack,
@@ -15,12 +17,14 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
-  Tooltip,
   Typography,
 } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
+import CommonDialog from '@/src/ui/components/molecules/CommonDialog';
 import { alpha, useTheme } from '@/src/ui/theme';
 import CircularProgress from '@mui/material/CircularProgress';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import type { Theme } from '@mui/material/styles';
 import {
   Air as AirIcon,
@@ -28,8 +32,6 @@ import {
   DeleteOutline as DeleteOutlineIcon,
   DeviceThermostat as DeviceThermostatIcon,
   ArrowForwardRounded as ArrowForwardRoundedIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
   Favorite as FavoriteIcon,
   LocalPhone as LocalPhoneIcon,
   MailOutline as MailOutlineIcon,
@@ -38,11 +40,14 @@ import {
   Search as SearchIcon,
   Share as ShareIcon,
   ShieldOutlined as ShieldOutlinedIcon,
+  GppGoodOutlined as GppGoodOutlinedIcon,
+  InfoOutlined as InfoOutlinedIcon,
   Science as ScienceIcon,
   Timeline as TimelineIcon,
 } from '@mui/icons-material';
 import PatientPortalWorkspaceCard from './components/PatientPortalWorkspaceCard';
 import { FAMILY_MEMBERS, PATIENT } from './patient-portal-mock-data';
+import { maskMobileNumber } from '@/src/core/utils/phone';
 
 type ShareTab = 'share' | 'shared-with-me' | 'shared-by-me';
 type ShareWindowMode = 'period' | 'continuous';
@@ -88,6 +93,10 @@ interface SharedByMeEntry {
   sharedOn: string;
   status: ShareStatus;
   vitalAccess: Record<VitalMetricId, boolean>;
+  consentPurpose: string;
+  consentAt: string;
+  consentBy: string;
+  consentMethod: string;
 }
 
 interface SharedWithMeEntry {
@@ -99,6 +108,17 @@ interface SharedWithMeEntry {
   expiresOn: string | null;
   status: 'Active' | 'Expired';
   vitals: VitalMetricId[];
+}
+
+interface ShareFormErrors {
+  profile?: string;
+  recipientName?: string;
+  dateRange?: string;
+  vitals?: string;
+  channel?: string;
+  recipientMobile?: string;
+  recipientEmail?: string;
+  consentPurpose?: string;
 }
 
 const VITAL_METRICS: VitalMetric[] = [
@@ -247,6 +267,10 @@ const SHARED_BY_ME_INITIAL: SharedByMeEntry[] = [
     sharedOn: '2026-03-12',
     status: 'Active',
     vitalAccess: createVitalAccess(['blood-pressure', 'heart-rate', 'spo2', 'body-temperature']),
+    consentPurpose: 'Cardiology follow-up and medication adjustment.',
+    consentAt: '2026-03-12',
+    consentBy: PATIENT.name,
+    consentMethod: 'Digital Signature',
   },
   {
     id: 'out-2',
@@ -261,6 +285,10 @@ const SHARED_BY_ME_INITIAL: SharedByMeEntry[] = [
     sharedOn: '2026-03-15',
     status: 'Active',
     vitalAccess: createVitalAccess(['blood-glucose', 'ecg']),
+    consentPurpose: 'Share lab trends for diabetes care review.',
+    consentAt: '2026-03-01',
+    consentBy: 'Priya Patel',
+    consentMethod: 'Digital Signature',
   },
   {
     id: 'out-3',
@@ -275,6 +303,10 @@ const SHARED_BY_ME_INITIAL: SharedByMeEntry[] = [
     sharedOn: '2026-01-20',
     status: 'Revoked',
     vitalAccess: createVitalAccess(['heart-rate', 'blood-pressure']),
+    consentPurpose: 'Temporary external token-based health summary.',
+    consentAt: '2026-01-20',
+    consentBy: PATIENT.name,
+    consentMethod: 'Digital Signature',
   },
 ];
 
@@ -283,9 +315,10 @@ const scrollbar = {
   '&::-webkit-scrollbar-thumb': { borderRadius: 3, bgcolor: 'divider' },
 };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function PatientPortalSharePage() {
   const theme = useTheme();
-  const pr = theme.palette.primary;
 
   const today = React.useMemo(() => formatDateInput(new Date()), []);
   const defaultStart = React.useMemo(() => {
@@ -297,6 +330,7 @@ export default function PatientPortalSharePage() {
   const [activeTab, setActiveTab] = React.useState<ShareTab>('share');
   const [profileSearch, setProfileSearch] = React.useState('');
   const [historySearch, setHistorySearch] = React.useState('');
+  const [sharedWithMeSearch, setSharedWithMeSearch] = React.useState('');
   const [selectedProfileId, setSelectedProfileId] = React.useState<string | null>(null);
   const [shareWindowMode, setShareWindowMode] = React.useState<ShareWindowMode>('continuous');
   const [rangeStart, setRangeStart] = React.useState(defaultStart);
@@ -317,7 +351,19 @@ export default function PatientPortalSharePage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [sharedByMe, setSharedByMe] = React.useState<SharedByMeEntry[]>(SHARED_BY_ME_INITIAL);
   const [sharedWithMe] = React.useState<SharedWithMeEntry[]>(SHARED_WITH_ME_INITIAL);
-  const [expandedShareId, setExpandedShareId] = React.useState<string | null>(null);
+  const [selectedSharedWithMeId, setSelectedSharedWithMeId] = React.useState<string | null>(
+    SHARED_WITH_ME_INITIAL[0]?.id ?? null
+  );
+  const [selectedSharedByMeId, setSelectedSharedByMeId] = React.useState<string | null>(
+    SHARED_BY_ME_INITIAL[0]?.id ?? null
+  );
+  const [consentOpen, setConsentOpen] = React.useState(false);
+  const [consentConfirmDataUse, setConsentConfirmDataUse] = React.useState(false);
+  const [consentConfirmRevokeRights, setConsentConfirmRevokeRights] = React.useState(false);
+  const [consentConfirmScope, setConsentConfirmScope] = React.useState(false);
+  const [consentSignature, setConsentSignature] = React.useState('');
+  const [consentError, setConsentError] = React.useState<string | null>(null);
+  const [formErrors, setFormErrors] = React.useState<ShareFormErrors>({});
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
@@ -327,6 +373,10 @@ export default function PatientPortalSharePage() {
   const selectedProfile = React.useMemo(
     () => PROFILE_OPTIONS.find((profile) => profile.id === selectedProfileId) || null,
     [selectedProfileId]
+  );
+  const expectedConsentSigner = React.useMemo(
+    () => selectedProfile?.name.trim().toLowerCase() ?? '',
+    [selectedProfile]
   );
 
   const filteredProfiles = React.useMemo(() => {
@@ -355,25 +405,157 @@ export default function PatientPortalSharePage() {
       );
     });
   }, [historySearch, sharedByMe]);
+  const filteredSharedWithMe = React.useMemo(() => {
+    const query = sharedWithMeSearch.trim().toLowerCase();
+    if (!query) return sharedWithMe;
+    return sharedWithMe.filter((entry) => {
+      const vitalsText = entry.vitals.map((id) => VITAL_LABEL[id].toLowerCase()).join(' ');
+      return (
+        entry.sharedBy.toLowerCase().includes(query) ||
+        entry.role.toLowerCase().includes(query) ||
+        entry.source.toLowerCase().includes(query) ||
+        vitalsText.includes(query)
+      );
+    });
+  }, [sharedWithMe, sharedWithMeSearch]);
+  const selectedSharedWithMe = React.useMemo(() => {
+    if (filteredSharedWithMe.length === 0) return null;
+    return (
+      filteredSharedWithMe.find((entry) => entry.id === selectedSharedWithMeId) ??
+      filteredSharedWithMe[0]
+    );
+  }, [filteredSharedWithMe, selectedSharedWithMeId]);
+  const selectedSharedByMe = React.useMemo(() => {
+    if (filteredSharedByMe.length === 0) return null;
+    return (
+      filteredSharedByMe.find((entry) => entry.id === selectedSharedByMeId) ??
+      filteredSharedByMe[0]
+    );
+  }, [filteredSharedByMe, selectedSharedByMeId]);
 
-  const canShare = React.useMemo(() => {
-    const hasProfile = Boolean(selectedProfileId);
-    const hasRecipient = recipientName.trim().length > 0;
-    const hasVitals = selectedVitals.length > 0;
-    const hasDateRange = shareWindowMode === 'continuous' || (Boolean(rangeStart) && Boolean(rangeEnd) && rangeStart <= rangeEnd);
-    const hasChannel = (sendViaApp && recipientMobile.trim().length > 0) || (sendViaEmail && recipientEmail.trim().length > 0);
-    return hasProfile && hasRecipient && hasVitals && hasDateRange && hasChannel;
+  const selectedVitalLabels = React.useMemo(
+    () => selectedVitals.map((id) => VITAL_LABEL[id]),
+    [selectedVitals]
+  );
+  const selectedChannelsLabel = React.useMemo(
+    () => getChannelLabel(sendViaApp, sendViaEmail),
+    [sendViaApp, sendViaEmail]
+  );
+  const consentPurposeText = React.useMemo(() => note.trim(), [note]);
+  const consentStepReady = React.useMemo(
+    () =>
+      Boolean(selectedProfileId) &&
+      recipientName.trim().length > 0 &&
+      selectedVitals.length > 0 &&
+      consentPurposeText.length > 0,
+    [selectedProfileId, recipientName, selectedVitals, consentPurposeText]
+  );
+  const hasConsentSignatureMismatch = React.useMemo(() => {
+    if (!consentSignature.trim()) return false;
+    return consentSignature.trim().toLowerCase() !== expectedConsentSigner;
+  }, [consentSignature, expectedConsentSigner]);
+  const isConsentReady = React.useMemo(() => {
+    const signedName = consentSignature.trim().toLowerCase();
+    return (
+      consentConfirmDataUse &&
+      consentConfirmRevokeRights &&
+      consentConfirmScope &&
+      Boolean(expectedConsentSigner) &&
+      signedName === expectedConsentSigner
+    );
   }, [
-    selectedProfileId,
-    recipientName,
-    selectedVitals,
-    shareWindowMode,
-    rangeStart,
+    consentConfirmDataUse,
+    consentConfirmRevokeRights,
+    consentConfirmScope,
+    consentSignature,
+    expectedConsentSigner,
+  ]);
+  React.useEffect(() => {
+    if (filteredSharedWithMe.length === 0) return;
+    if (!filteredSharedWithMe.some((entry) => entry.id === selectedSharedWithMeId)) {
+      setSelectedSharedWithMeId(filteredSharedWithMe[0].id);
+    }
+  }, [filteredSharedWithMe, selectedSharedWithMeId]);
+  React.useEffect(() => {
+    if (filteredSharedByMe.length === 0) return;
+    if (!filteredSharedByMe.some((entry) => entry.id === selectedSharedByMeId)) {
+      setSelectedSharedByMeId(filteredSharedByMe[0].id);
+    }
+  }, [filteredSharedByMe, selectedSharedByMeId]);
+
+  const clearFormErrors = React.useCallback((keys: (keyof ShareFormErrors)[]) => {
+    if (keys.length === 0) return;
+    setFormErrors((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      keys.forEach((key) => {
+        if (next[key]) {
+          delete next[key];
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, []);
+
+  const validateShareForm = React.useCallback((): ShareFormErrors => {
+    const errors: ShareFormErrors = {};
+    const trimmedName = recipientName.trim();
+    const trimmedEmail = recipientEmail.trim();
+    const digitsOnlyMobile = recipientMobile.replace(/\D/g, '');
+
+    if (!selectedProfileId) {
+      errors.profile = 'Please select a patient profile first.';
+    }
+    if (!trimmedName) {
+      errors.recipientName = 'Recipient name is required.';
+    }
+    if (selectedVitals.length === 0) {
+      errors.vitals = 'Select at least one vital metric.';
+    }
+    if (shareWindowMode === 'period') {
+      if (!rangeStart || !rangeEnd) {
+        errors.dateRange = 'Start and end dates are required.';
+      } else if (rangeStart > rangeEnd) {
+        errors.dateRange = 'End date must be on or after start date.';
+      }
+    }
+    if (!sendViaApp && !sendViaEmail) {
+      errors.channel = 'Choose at least one sharing channel.';
+    }
+    if (sendViaApp) {
+      if (!recipientMobile.trim()) {
+        errors.recipientMobile = 'Mobile number is required for app sharing.';
+      } else if (digitsOnlyMobile.length < 10 || digitsOnlyMobile.length > 15) {
+        errors.recipientMobile = 'Enter a valid mobile number.';
+      }
+    }
+    if (sendViaEmail) {
+      if (!trimmedEmail) {
+        errors.recipientEmail = 'Email is required for email sharing.';
+      } else if (!EMAIL_REGEX.test(trimmedEmail)) {
+        errors.recipientEmail = 'Enter a valid email address.';
+      }
+    }
+    if (!consentPurposeText) {
+      errors.consentPurpose = 'Please capture why this data is being shared.';
+    } else if (consentPurposeText.length < 12) {
+      errors.consentPurpose = 'Purpose should be at least 12 characters for audit clarity.';
+    }
+
+    return errors;
+  }, [
+    consentPurposeText,
     rangeEnd,
+    rangeStart,
+    recipientEmail,
+    recipientMobile,
+    recipientName,
+    selectedProfileId,
+    selectedVitals,
     sendViaApp,
     sendViaEmail,
-    recipientMobile,
-    recipientEmail,
+    shareWindowMode,
   ]);
 
   const toggleVital = (vitalId: VitalMetricId) => {
@@ -381,12 +563,14 @@ export default function PatientPortalSharePage() {
       if (prev.includes(vitalId)) return prev.filter((id) => id !== vitalId);
       return [...prev, vitalId];
     });
+    clearFormErrors(['vitals']);
   };
 
   const toggleAllVitals = () => {
     setSelectedVitals((prev) =>
       prev.length === VITAL_METRICS.length ? [] : VITAL_METRICS.map((metric) => metric.id)
     );
+    clearFormErrors(['vitals']);
   };
 
   const resetComposer = () => {
@@ -402,17 +586,48 @@ export default function PatientPortalSharePage() {
     setSendViaEmail(true);
     setRecipientEmail('');
     setNote('');
+    setFormErrors({});
+    setConsentOpen(false);
+    setConsentConfirmDataUse(false);
+    setConsentConfirmRevokeRights(false);
+    setConsentConfirmScope(false);
+    setConsentSignature('');
+    setConsentError(null);
   };
 
-  const handleShareVitals = async () => {
-    if (!canShare) {
+  const handleRequestShare = () => {
+    const validationErrors = validateShareForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setFormErrors(validationErrors);
       setSnackbar({
         open: true,
-        message: 'Please select profile, recipient, vitals, and at least one valid sharing channel.',
+        message: 'Please fix the highlighted fields before sharing.',
         severity: 'warning',
       });
       return;
     }
+    setFormErrors({});
+    setConsentError(null);
+    setConsentConfirmDataUse(false);
+    setConsentConfirmRevokeRights(false);
+    setConsentConfirmScope(false);
+    setConsentSignature('');
+    setConsentOpen(true);
+  };
+
+  const handleConfirmConsentAndShare = async () => {
+    if (!selectedProfile) {
+      setConsentError('Please select a patient profile first.');
+      return;
+    }
+    if (!isConsentReady) {
+      setConsentError(
+        'Please accept all consent statements and sign with the exact patient name.'
+      );
+      return;
+    }
+    setConsentError(null);
+    setConsentOpen(false);
 
     const profile = PROFILE_OPTIONS.find((p) => p.id === selectedProfileId);
     if (!profile) return;
@@ -436,10 +651,14 @@ export default function PatientPortalSharePage() {
       sharedOn: formatDateInput(new Date()),
       status: 'Active',
       vitalAccess: createVitalAccess(selectedVitals),
+      consentPurpose: consentPurposeText,
+      consentAt: formatDateInput(new Date()),
+      consentBy: profile.name,
+      consentMethod: 'Digital Signature',
     };
 
     setSharedByMe((prev) => [nextEntry, ...prev]);
-    setExpandedShareId(nextEntry.id);
+    setSelectedSharedByMeId(nextEntry.id);
     setIsSubmitting(false);
     setActiveTab('shared-by-me');
     setSnackbar({
@@ -484,18 +703,11 @@ export default function PatientPortalSharePage() {
     });
   };
 
-  /* ── Tab config ── */
-  const TABS: { value: ShareTab; label: string; count?: number }[] = [
-    { value: 'share', label: 'Share Vitals' },
-    { value: 'shared-with-me', label: 'Shared With Me', count: sharedWithMe.length },
-    { value: 'shared-by-me', label: 'Shared By Me', count: sharedByMe.length },
-  ];
-
   return (
     <PatientPortalWorkspaceCard current="share">
       <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, gap: '10px', overflow: 'hidden' }}>
 
-        {/* ── Header card with pill tabs ── */}
+        {/* ── Header card with tab strip ── */}
         <Box sx={{
           bgcolor: 'background.paper', borderRadius: '22px',
           border: '1px solid', borderColor: 'divider',
@@ -522,183 +734,239 @@ export default function PatientPortalSharePage() {
             />
           </Stack>
 
-          {/* Pill tab switcher */}
-          <Box sx={{
-            bgcolor: alpha(theme.palette.grey[100], 0.9),
-            borderRadius: '14px', border: '1px solid', borderColor: 'divider',
-            p: '5px', display: 'flex', gap: '3px',
-          }}>
-            {TABS.map(({ value, label, count }) => (
-              <Box key={value} onClick={() => setActiveTab(value)} sx={{
-                flex: 1, py: '9px', px: 1.25, borderRadius: '11px',
-                fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
-                textAlign: 'center',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                bgcolor: activeTab === value ? 'primary.main' : 'transparent',
-                color: activeTab === value ? '#fff' : 'text.secondary',
-                transition: 'all 0.15s',
-                '&:hover': { bgcolor: activeTab === value ? 'primary.main' : alpha(pr.main, 0.06) },
-              }}>
-                {label}
-                {count !== undefined && (
-                  <Box sx={{
-                    width: 18, height: 18, borderRadius: '50%',
-                    fontSize: 10, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    bgcolor: activeTab === value ? 'rgba(255,255,255,0.25)' : alpha(theme.palette.text.secondary, 0.1),
-                    color: activeTab === value ? '#fff' : 'text.disabled',
-                  }}>
-                    {count}
-                  </Box>
-                )}
-              </Box>
-            ))}
+          {/* Tab strip — same curved style as other patient-portal tabs */}
+          <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', mx: { xs: -2.5, sm: -2.5 }, px: { xs: 1.5, sm: 2.5 } }}>
+            <Tabs
+              value={activeTab}
+              onChange={(_, value: ShareTab) => setActiveTab(value)}
+              variant="scrollable"
+              allowScrollButtonsMobile
+              sx={{
+                '& .MuiTab-root': {
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  minHeight: 44,
+                  px: 1.5,
+                },
+                '& .MuiTabs-indicator': {
+                  height: 3,
+                  borderRadius: '3px 3px 0 0',
+                },
+              }}
+            >
+              <Tab value="share" label="Share Vitals" icon={<ShareIcon sx={{ fontSize: 16 }} />} iconPosition="start" />
+              <Tab value="shared-with-me" label={`Shared With Me (${sharedWithMe.length})`} icon={<ShieldOutlinedIcon sx={{ fontSize: 16 }} />} iconPosition="start" />
+              <Tab value="shared-by-me" label={`Shared By Me (${sharedByMe.length})`} icon={<GppGoodOutlinedIcon sx={{ fontSize: 16 }} />} iconPosition="start" />
+            </Tabs>
           </Box>
         </Box>
 
         {/* ── Tab content area ── */}
         <Box sx={{
-          flex: 1, minHeight: 0, overflowY: 'auto',
-          bgcolor: 'background.paper', borderRadius: '22px',
-          border: '1px solid', borderColor: 'divider',
-          p: { xs: 1.5, sm: 2 },
-          ...scrollbar,
+          flex: 1,
+          minHeight: 0,
+          overflow: 'hidden',
+          bgcolor: 'background.paper',
+          borderRadius: '22px',
+          border: '1px solid',
+          borderColor: 'divider',
+          p: { xs: 1.25, sm: 1.5 },
         }}>
 
           {/* ══ Share Vitals tab ══ */}
           {activeTab === 'share' && (
-            <Stack spacing={1.1}>
-              <Stack direction="row" spacing={0.9} alignItems="center" flexWrap="wrap">
-                <Chip
-                  size="small"
-                  label="1. Select Patient"
-                  color={selectedProfile ? 'success' : 'primary'}
-                  variant={selectedProfile ? 'filled' : 'outlined'}
-                  sx={{ fontWeight: 700 }}
-                />
-                <ArrowForwardRoundedIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
-                <Chip
-                  size="small"
-                  label="2. Configure and Share"
-                  color={selectedProfile ? 'primary' : 'default'}
-                  variant={selectedProfile ? 'filled' : 'outlined'}
-                  sx={{ fontWeight: 700 }}
-                />
-              </Stack>
-
-              <Box
+            <Box
+              sx={{
+                display: 'grid',
+                gap: '10px',
+                gridTemplateColumns: { xs: '1fr', lg: '300px minmax(0, 1fr)' },
+                minHeight: 0,
+                height: '100%',
+              }}
+            >
+              <Card
+                elevation={0}
                 sx={{
-                  display: 'grid',
-                  gap: 1.2,
-                  gridTemplateColumns: { xs: '1fr', lg: '320px minmax(0, 1fr)' },
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.primary.main, 0.16),
+                  borderRadius: '16px',
+                  p: 1.1,
+                  display: 'flex',
+                  flexDirection: 'column',
                   minHeight: 0,
+                  boxShadow: 'none',
                 }}
               >
-                <Card
-                  elevation={0}
-                  sx={{
-                    border: '1px solid',
-                    borderColor: alpha(theme.palette.primary.main, 0.18),
-                    borderRadius: 2.1,
-                    p: 1.1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minHeight: 0,
-                  }}
-                >
-                  <TextField
+                <Stack direction="row" alignItems="center" spacing={0.6} flexWrap="wrap" sx={{ mb: 1 }}>
+                  <Chip
                     size="small"
-                    fullWidth
-                    placeholder="Search profile by name, relation or mobile"
-                    value={profileSearch}
-                    onChange={(event) => setProfileSearch(event.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
-                        </InputAdornment>
-                      ),
+                    label="1. Select Patient"
+                    sx={{
+                      height: 28,
+                      borderRadius: 999,
+                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                      border: '1px solid',
+                      borderColor: alpha(theme.palette.primary.main, 0.24),
+                      color: 'primary.main',
+                      fontWeight: 800,
                     }}
                   />
+                  <ArrowForwardRoundedIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
+                  <Chip
+                    size="small"
+                    label="2. Configure and Share"
+                    sx={{
+                      height: 28,
+                      borderRadius: 999,
+                      bgcolor: selectedProfile
+                        ? alpha(theme.palette.primary.main, 0.08)
+                        : alpha(theme.palette.grey[500], 0.07),
+                      border: '1px solid',
+                      borderColor: selectedProfile
+                        ? alpha(theme.palette.primary.main, 0.22)
+                        : alpha(theme.palette.grey[500], 0.22),
+                      color: selectedProfile ? 'primary.main' : 'text.secondary',
+                      fontWeight: 800,
+                    }}
+                  />
+                  <ArrowForwardRoundedIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
+                  <Chip
+                    size="small"
+                    label="3. Patient Consent"
+                    sx={{
+                      height: 28,
+                      borderRadius: 999,
+                      bgcolor: consentStepReady
+                        ? alpha(theme.palette.success.main, 0.12)
+                        : alpha(theme.palette.grey[500], 0.07),
+                      border: '1px solid',
+                      borderColor: consentStepReady
+                        ? alpha(theme.palette.success.main, 0.3)
+                        : alpha(theme.palette.grey[500], 0.22),
+                      color: consentStepReady ? 'success.dark' : 'text.secondary',
+                      fontWeight: 800,
+                    }}
+                  />
+                </Stack>
 
-                  <Stack spacing={0.75} sx={{ mt: 1, flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.2 }}>
-                    {filteredProfiles.map((profile) => {
-                      const selected = profile.id === selectedProfileId;
-                      return (
-                        <Box
-                          key={profile.id}
-                          onClick={() => setSelectedProfileId(profile.id)}
-                          sx={{
-                            border: '1px solid',
-                            borderColor: selected ? alpha(theme.palette.primary.main, 0.45) : 'divider',
-                            borderRadius: 1.8,
-                            p: 0.95,
-                            cursor: 'pointer',
-                            backgroundColor: selected ? alpha(theme.palette.primary.main, 0.06) : 'background.paper',
-                            transition: 'all 0.16s ease',
-                            '&:hover': {
-                              borderColor: alpha(theme.palette.primary.main, 0.35),
-                              backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                            },
+                <TextField
+                  size="small"
+                  fullWidth
+                  placeholder="Search profile by name, relation or mobile"
+                  value={profileSearch}
+                    onChange={(event) => setProfileSearch(event.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '10px',
+                      backgroundColor: alpha(theme.palette.primary.main, 0.03),
+                    },
+                  }}
+                />
+
+                  <Stack spacing={0.75} sx={{ mt: 1, flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.2, ...scrollbar }}>
+                  {filteredProfiles.map((profile) => {
+                    const selected = profile.id === selectedProfileId;
+                    return (
+                      <Box
+                        key={profile.id}
+                          onClick={() => {
+                            setSelectedProfileId(profile.id);
+                            clearFormErrors(['profile']);
                           }}
-                        >
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <Avatar sx={{ width: 30, height: 30, bgcolor: profile.avatarColor, fontSize: 12 }}>
-                              {profile.initials}
-                            </Avatar>
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Stack direction="row" spacing={0.6} alignItems="center">
-                                <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
-                                  {profile.name}
-                                </Typography>
-                                <Chip
-                                  size="small"
-                                  label={profile.relation}
-                                  sx={{
-                                    height: 17, fontSize: 10, fontWeight: 700,
-                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                    color: 'primary.dark',
-                                  }}
-                                />
-                              </Stack>
-                              <Typography variant="caption" color="text.secondary" noWrap>
-                                {profile.phone}
+                        sx={{
+                          border: '1px solid',
+                          borderColor: selected ? alpha(theme.palette.primary.main, 0.45) : 'divider',
+                          borderRadius: 1.8,
+                          p: 0.95,
+                          cursor: 'pointer',
+                          backgroundColor: selected ? alpha(theme.palette.primary.main, 0.08) : 'background.paper',
+                          transition: 'all 0.16s ease',
+                          '&:hover': {
+                            borderColor: alpha(theme.palette.primary.main, 0.35),
+                            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                          },
+                        }}
+                      >
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Avatar sx={{ width: 30, height: 30, bgcolor: profile.avatarColor, fontSize: 12 }}>
+                            {profile.initials}
+                          </Avatar>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Stack direction="row" spacing={0.6} alignItems="center">
+                              <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
+                                {profile.name}
                               </Typography>
-                            </Box>
-                            {selected && <CheckCircleIcon sx={{ fontSize: 18, color: 'success.main' }} />}
-                          </Stack>
-                        </Box>
-                      );
-                    })}
-                    {filteredProfiles.length === 0 && (
-                      <Alert severity="info" sx={{ borderRadius: 1.6 }}>
-                        No matching profile found.
-                      </Alert>
-                    )}
+                              <Chip
+                                size="small"
+                                label={profile.relation}
+                                sx={{
+                                  height: 17,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                  color: 'primary.dark',
+                                }}
+                              />
+                            </Stack>
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                              {maskMobileNumber(profile.phone)}
+                            </Typography>
+                          </Box>
+                          {selected && <CheckCircleIcon sx={{ fontSize: 18, color: 'success.main' }} />}
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                  {filteredProfiles.length === 0 && (
+                    <Alert severity="info" sx={{ borderRadius: 1.6 }}>
+                      No matching profile found.
+                    </Alert>
+                  )}
                   </Stack>
+                  {formErrors.profile && (
+                    <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600, mt: 0.6 }}>
+                      {formErrors.profile}
+                    </Typography>
+                  )}
                 </Card>
 
-                <Card
-                  elevation={0}
+              <Card
+                elevation={0}
+                sx={{
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.primary.main, 0.16),
+                  borderRadius: '16px',
+                  p: 1.1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minHeight: 0,
+                  boxShadow: 'none',
+                }}
+              >
+                {!selectedProfile && (
+                  <Alert severity="info" sx={{ borderRadius: 1.4, mb: 1 }}>
+                    Select a profile first to continue.
+                  </Alert>
+                )}
+
+                <Box
                   sx={{
-                    border: '1px solid',
-                    borderColor: alpha(theme.palette.primary.main, 0.18),
-                    borderRadius: 2.1,
-                    p: 1.1,
+                    opacity: selectedProfile ? 1 : 0.56,
                     display: 'flex',
                     flexDirection: 'column',
                     minHeight: 0,
-                    opacity: selectedProfile ? 1 : 0.55,
-                    pointerEvents: selectedProfile ? 'auto' : 'none',
+                    flex: 1,
                   }}
                 >
-                  {!selectedProfile && (
-                    <Alert severity="info" sx={{ borderRadius: 1.6, mb: 1 }}>
-                      Select a profile first to continue.
-                    </Alert>
-                  )}
-
-                  <Stack spacing={1}>
+                  <Stack spacing={1} sx={{ minHeight: 0, overflowY: 'auto', pr: 0.2, ...scrollbar }}>
                     <Stack
                       direction={{ xs: 'column', sm: 'row' }}
                       spacing={0.9}
@@ -730,7 +998,11 @@ export default function PatientPortalSharePage() {
                           type="date"
                           label="From"
                           value={rangeStart}
-                          onChange={(event) => setRangeStart(event.target.value)}
+                          onChange={(event) => {
+                            setRangeStart(event.target.value);
+                            clearFormErrors(['dateRange']);
+                          }}
+                          error={Boolean(formErrors.dateRange)}
                           InputLabelProps={{ shrink: true }}
                           fullWidth
                         />
@@ -739,17 +1011,34 @@ export default function PatientPortalSharePage() {
                           type="date"
                           label="To"
                           value={rangeEnd}
-                          onChange={(event) => setRangeEnd(event.target.value)}
+                          onChange={(event) => {
+                            setRangeEnd(event.target.value);
+                            clearFormErrors(['dateRange']);
+                          }}
+                          error={Boolean(formErrors.dateRange)}
                           InputLabelProps={{ shrink: true }}
                           fullWidth
                         />
                       </Stack>
                     ) : (
-                      <Box sx={{ p: 0.9, borderRadius: 1.4, bgcolor: alpha(theme.palette.info.main, 0.08) }}>
+                      <Box
+                        sx={{
+                          p: 1,
+                          borderRadius: 1.4,
+                          border: '1px solid',
+                          borderColor: alpha(theme.palette.info.main, 0.28),
+                          bgcolor: alpha(theme.palette.info.main, 0.07),
+                        }}
+                      >
                         <Typography variant="caption" sx={{ color: 'info.dark', fontWeight: 700 }}>
                           Continuous mode keeps sharing active until you pause or revoke.
                         </Typography>
                       </Box>
+                    )}
+                    {formErrors.dateRange && (
+                      <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600, mt: -0.2 }}>
+                        {formErrors.dateRange}
+                      </Typography>
                     )}
 
                     <Divider sx={{ my: 0.2 }} />
@@ -768,7 +1057,9 @@ export default function PatientPortalSharePage() {
                           size="small"
                           label={`${selectedVitals.length}/${VITAL_METRICS.length} selected`}
                           sx={{
-                            height: 19, fontSize: 10, fontWeight: 700,
+                            height: 19,
+                            fontSize: 10,
+                            fontWeight: 700,
                             bgcolor: alpha(theme.palette.primary.main, 0.1),
                             color: 'primary.dark',
                           }}
@@ -794,10 +1085,10 @@ export default function PatientPortalSharePage() {
                             sx={{
                               cursor: 'pointer',
                               p: 0.8,
-                              borderRadius: 1.5,
+                              borderRadius: 1.3,
                               border: '1px solid',
-                              borderColor: selected ? alpha(metric.color, 0.36) : alpha(theme.palette.primary.main, 0.15),
-                              backgroundColor: selected ? alpha(metric.color, 0.08) : theme.palette.common.white,
+                              borderColor: selected ? alpha(metric.color, 0.34) : alpha(theme.palette.primary.main, 0.14),
+                              backgroundColor: selected ? alpha(metric.color, 0.08) : alpha(theme.palette.grey[100], 0.35),
                               transition: 'all 0.12s ease',
                               '&:hover': {
                                 backgroundColor: selected ? alpha(metric.color, 0.12) : alpha(theme.palette.primary.main, 0.03),
@@ -808,8 +1099,11 @@ export default function PatientPortalSharePage() {
                               <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
                                 <Box
                                   sx={{
-                                    width: 24, height: 24, borderRadius: 1,
-                                    display: 'grid', placeItems: 'center',
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: 1,
+                                    display: 'grid',
+                                    placeItems: 'center',
                                     color: metric.color,
                                     backgroundColor: alpha(metric.color, 0.12),
                                     flexShrink: 0,
@@ -837,6 +1131,11 @@ export default function PatientPortalSharePage() {
                         );
                       })}
                     </Box>
+                    {formErrors.vitals && (
+                      <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600, mt: -0.2 }}>
+                        {formErrors.vitals}
+                      </Typography>
+                    )}
 
                     <Divider sx={{ my: 0.2 }} />
 
@@ -849,7 +1148,12 @@ export default function PatientPortalSharePage() {
                         label="Recipient Name"
                         placeholder="Dr. name, lab name, family member..."
                         value={recipientName}
-                        onChange={(event) => setRecipientName(event.target.value)}
+                        onChange={(event) => {
+                          setRecipientName(event.target.value);
+                          clearFormErrors(['recipientName']);
+                        }}
+                        error={Boolean(formErrors.recipientName)}
+                        helperText={formErrors.recipientName}
                         fullWidth
                       />
                       <TextField
@@ -865,7 +1169,9 @@ export default function PatientPortalSharePage() {
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                       <Box
                         sx={{
-                          flex: 1, p: 0.8, borderRadius: 1.4,
+                          flex: 1,
+                          p: 0.8,
+                          borderRadius: 1.4,
                           border: '1px solid',
                           borderColor: alpha(theme.palette.primary.main, 0.18),
                           backgroundColor: alpha(theme.palette.primary.main, 0.02),
@@ -878,14 +1184,26 @@ export default function PatientPortalSharePage() {
                               Share via App / Mobile
                             </Typography>
                           </Stack>
-                          <Switch checked={sendViaApp} onChange={(event) => setSendViaApp(event.target.checked)} size="small" />
+                          <Switch
+                            checked={sendViaApp}
+                            onChange={(event) => {
+                              setSendViaApp(event.target.checked);
+                              clearFormErrors(['channel', 'recipientMobile']);
+                            }}
+                            size="small"
+                          />
                         </Stack>
                         <TextField
                           size="small"
                           placeholder="+91 98XXXXXXXX"
                           value={recipientMobile}
-                          onChange={(event) => setRecipientMobile(event.target.value)}
+                          onChange={(event) => {
+                            setRecipientMobile(event.target.value);
+                            clearFormErrors(['recipientMobile', 'channel']);
+                          }}
                           disabled={!sendViaApp}
+                          error={Boolean(sendViaApp && formErrors.recipientMobile)}
+                          helperText={sendViaApp ? formErrors.recipientMobile : ''}
                           fullWidth
                           sx={{ mt: 0.8 }}
                         />
@@ -893,7 +1211,9 @@ export default function PatientPortalSharePage() {
 
                       <Box
                         sx={{
-                          flex: 1, p: 0.8, borderRadius: 1.4,
+                          flex: 1,
+                          p: 0.8,
+                          borderRadius: 1.4,
                           border: '1px solid',
                           borderColor: alpha(theme.palette.primary.main, 0.18),
                           backgroundColor: alpha(theme.palette.primary.main, 0.02),
@@ -906,333 +1226,749 @@ export default function PatientPortalSharePage() {
                               Share via Email
                             </Typography>
                           </Stack>
-                          <Switch checked={sendViaEmail} onChange={(event) => setSendViaEmail(event.target.checked)} size="small" />
+                          <Switch
+                            checked={sendViaEmail}
+                            onChange={(event) => {
+                              setSendViaEmail(event.target.checked);
+                              clearFormErrors(['channel', 'recipientEmail']);
+                            }}
+                            size="small"
+                          />
                         </Stack>
                         <TextField
                           size="small"
                           placeholder="recipient@example.com"
                           value={recipientEmail}
-                          onChange={(event) => setRecipientEmail(event.target.value)}
+                          onChange={(event) => {
+                            setRecipientEmail(event.target.value);
+                            clearFormErrors(['recipientEmail', 'channel']);
+                          }}
                           disabled={!sendViaEmail}
+                          error={Boolean(sendViaEmail && formErrors.recipientEmail)}
+                          helperText={sendViaEmail ? formErrors.recipientEmail : ''}
                           fullWidth
                           sx={{ mt: 0.8 }}
                         />
                       </Box>
                     </Stack>
-
+                    {formErrors.channel && (
+                      <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600, mt: -0.2 }}>
+                        {formErrors.channel}
+                      </Typography>
+                    )}
                     <TextField
                       size="small"
-                      label="Reason / Context (optional)"
-                      placeholder="Short note for provider"
+                      label="Purpose of Sharing (for consent log)"
+                      placeholder="Describe why this recipient needs access to these vitals"
                       value={note}
-                      onChange={(event) => setNote(event.target.value)}
-                      fullWidth
+                      onChange={(event) => {
+                        setNote(event.target.value);
+                        clearFormErrors(['consentPurpose']);
+                      }}
+                      error={Boolean(formErrors.consentPurpose)}
+                      helperText={
+                        formErrors.consentPurpose ||
+                        'This reason is shown in the patient consent summary and audit trail.'
+                      }
                       multiline
-                      minRows={1}
+                      minRows={2}
+                      fullWidth
                     />
-
-                    <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 0.4 }}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={resetComposer}
-                        sx={{ textTransform: 'none', fontWeight: 700 }}
-                      >
-                        Reset
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        disableElevation
-                        onClick={handleShareVitals}
-                        disabled={!canShare || isSubmitting}
-                        startIcon={isSubmitting ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <ShareIcon sx={{ fontSize: 14 }} />}
-                        sx={{ textTransform: 'none', fontWeight: 700, minWidth: 130 }}
-                      >
-                        {isSubmitting ? 'Sharing...' : 'Share Vitals'}
-                      </Button>
-                    </Stack>
+                    <Alert severity="info" icon={<GppGoodOutlinedIcon fontSize="small" />} sx={{ borderRadius: 1.4 }}>
+                      Final sharing happens only after patient consent in the next step.
+                    </Alert>
                   </Stack>
-                </Card>
-              </Box>
-            </Stack>
+
+                  <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={resetComposer}
+                      sx={{ textTransform: 'none', fontWeight: 700 }}
+                    >
+                      Reset
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      disableElevation
+                      onClick={handleRequestShare}
+                      disabled={isSubmitting}
+                      startIcon={isSubmitting ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <ShareIcon sx={{ fontSize: 14 }} />}
+                      sx={{ textTransform: 'none', fontWeight: 700, minWidth: 130 }}
+                    >
+                      {isSubmitting ? 'Sharing...' : 'Review Consent & Share'}
+                    </Button>
+                  </Stack>
+                </Box>
+              </Card>
+            </Box>
           )}
 
           {/* ══ Shared With Me tab ══ */}
           {activeTab === 'shared-with-me' && (
-            <Stack spacing={1}>
-              {sharedWithMe.map((entry) => (
-                <Box
-                  key={entry.id}
-                  sx={{
-                    p: 1.4, borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: entry.status === 'Active'
-                      ? alpha(theme.palette.success.main, 0.26)
-                      : alpha(theme.palette.warning.main, 0.3),
-                    backgroundColor: entry.status === 'Active'
-                      ? alpha(theme.palette.success.main, 0.03)
-                      : alpha(theme.palette.warning.main, 0.06),
+            <Box
+              sx={{
+                display: 'grid',
+                gap: '10px',
+                gridTemplateColumns: { xs: '1fr', lg: '300px minmax(0, 1fr)' },
+                minHeight: 0,
+                height: '100%',
+              }}
+            >
+              <Card
+                elevation={0}
+                sx={{
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.primary.main, 0.16),
+                  borderRadius: '16px',
+                  p: 1.1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minHeight: 0,
+                  boxShadow: 'none',
+                }}
+              >
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                    Incoming Shares
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={`${filteredSharedWithMe.length}`}
+                    sx={{
+                      height: 19,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                      color: 'primary.dark',
+                    }}
+                  />
+                </Stack>
+
+                <TextField
+                  size="small"
+                  fullWidth
+                  placeholder="Search by doctor, source, role or vital"
+                  value={sharedWithMeSearch}
+                  onChange={(event) => setSharedWithMeSearch(event.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+                      </InputAdornment>
+                    ),
                   }}
+                />
+
+                <Stack
+                  spacing={0.75}
+                  sx={{ mt: 1, flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.2, ...scrollbar }}
                 >
-                  <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1}>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap">
-                        <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                          {entry.sharedBy}
-                        </Typography>
-                        <Chip
-                          size="small"
-                          label={entry.role}
-                          sx={{
-                            height: 18, fontSize: 10, fontWeight: 700,
-                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                            color: 'primary.dark',
-                          }}
-                        />
-                        <Chip
-                          size="small"
-                          label={entry.status}
-                          sx={{
-                            height: 18, fontSize: 10, fontWeight: 700,
-                            bgcolor: entry.status === 'Active'
-                              ? alpha(theme.palette.success.main, 0.1)
-                              : alpha(theme.palette.warning.main, 0.12),
-                            color: entry.status === 'Active' ? 'success.dark' : 'warning.dark',
-                          }}
-                        />
-                      </Stack>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.4 }}>
-                        Source: {entry.source} - Granted: {formatDisplayDate(entry.grantedOn)} -{' '}
-                        {entry.expiresOn ? `Expires: ${formatDisplayDate(entry.expiresOn)}` : 'No expiry'}
-                      </Typography>
-                      <Stack direction="row" spacing={0.6} flexWrap="wrap" sx={{ mt: 0.8 }}>
-                        {entry.vitals.map((id) => (
+                  {filteredSharedWithMe.map((entry) => {
+                    const selected = selectedSharedWithMe?.id === entry.id;
+                    return (
+                      <Box
+                        key={entry.id}
+                        onClick={() => setSelectedSharedWithMeId(entry.id)}
+                        sx={{
+                          border: '1px solid',
+                          borderColor: selected
+                            ? alpha(theme.palette.primary.main, 0.45)
+                            : 'divider',
+                          borderRadius: 1.8,
+                          p: 0.95,
+                          cursor: 'pointer',
+                          backgroundColor: selected
+                            ? alpha(theme.palette.primary.main, 0.08)
+                            : 'background.paper',
+                          transition: 'all 0.16s ease',
+                          '&:hover': {
+                            borderColor: alpha(theme.palette.primary.main, 0.35),
+                            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                          },
+                        }}
+                      >
+                        <Stack direction="row" spacing={0.7} alignItems="center" justifyContent="space-between">
+                          <Box sx={{ minWidth: 0, flex: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
+                              {entry.sharedBy}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                              {entry.source}
+                            </Typography>
+                          </Box>
                           <Chip
-                            key={`${entry.id}-${id}`}
                             size="small"
-                            label={VITAL_LABEL[id]}
-                            variant="outlined"
-                            sx={{ height: 18, fontSize: 10, fontWeight: 700 }}
+                            label={entry.status}
+                            sx={{
+                              height: 17,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              bgcolor:
+                                entry.status === 'Active'
+                                  ? alpha(theme.palette.success.main, 0.1)
+                                  : alpha(theme.palette.warning.main, 0.12),
+                              color:
+                                entry.status === 'Active'
+                                  ? 'success.dark'
+                                  : 'warning.dark',
+                            }}
                           />
-                        ))}
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                  {filteredSharedWithMe.length === 0 && (
+                    <Alert severity="info" sx={{ borderRadius: 1.6 }}>
+                      No incoming shares found.
+                    </Alert>
+                  )}
+                </Stack>
+              </Card>
+
+              <Card
+                elevation={0}
+                sx={{
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.primary.main, 0.16),
+                  borderRadius: '16px',
+                  p: 1.1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minHeight: 0,
+                  boxShadow: 'none',
+                }}
+              >
+                {!selectedSharedWithMe && (
+                  <Alert severity="info" sx={{ borderRadius: 1.4 }}>
+                    Select a shared record from the left panel.
+                  </Alert>
+                )}
+
+                {selectedSharedWithMe && (
+                  <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={0.9}
+                      justifyContent="space-between"
+                      alignItems={{ xs: 'flex-start', sm: 'center' }}
+                      sx={{ pb: 0.5 }}
+                    >
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800 }} noWrap>
+                          {selectedSharedWithMe.sharedBy}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                          {selectedSharedWithMe.role} • {selectedSharedWithMe.source}
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={0.8} alignItems="center">
+                        <Chip
+                          size="small"
+                          label={selectedSharedWithMe.status}
+                          sx={{
+                            height: 19,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            bgcolor:
+                              selectedSharedWithMe.status === 'Active'
+                                ? alpha(theme.palette.success.main, 0.1)
+                                : alpha(theme.palette.warning.main, 0.12),
+                            color:
+                              selectedSharedWithMe.status === 'Active'
+                                ? 'success.dark'
+                                : 'warning.dark',
+                          }}
+                        />
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() =>
+                            setSnackbar({
+                              open: true,
+                              message: `Opening shared vitals from ${selectedSharedWithMe.sharedBy}.`,
+                              severity: 'info',
+                            })
+                          }
+                          sx={{ textTransform: 'none', fontWeight: 700 }}
+                        >
+                          View Data
+                        </Button>
+                      </Stack>
+                    </Stack>
+
+                    <Box
+                      sx={{
+                        p: 1,
+                        borderRadius: 1.4,
+                        border: '1px solid',
+                        borderColor: alpha(theme.palette.primary.main, 0.2),
+                        bgcolor: alpha(theme.palette.primary.main, 0.04),
+                      }}
+                    >
+                      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
+                        <Typography variant="caption" color="text.secondary">
+                          Granted: {formatDisplayDate(selectedSharedWithMe.grantedOn)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Expires:{' '}
+                          {selectedSharedWithMe.expiresOn
+                            ? formatDisplayDate(selectedSharedWithMe.expiresOn)
+                            : 'No expiry'}
+                        </Typography>
                       </Stack>
                     </Box>
-                    <Stack direction="row" spacing={0.8} alignItems="flex-start">
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() =>
-                          setSnackbar({
-                            open: true,
-                            message: `Opening shared vitals from ${entry.sharedBy}.`,
-                            severity: 'info',
-                          })
-                        }
-                        sx={{ textTransform: 'none', fontWeight: 700 }}
+
+                    <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.2, ...scrollbar }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.8 }}>
+                        Shared Vitals
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gap: 0.7,
+                          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                        }}
                       >
-                        View Data
-                      </Button>
-                    </Stack>
+                        {selectedSharedWithMe.vitals.map((id) => {
+                          const metric = VITAL_METRICS.find((item) => item.id === id);
+                          if (!metric) return null;
+                          return (
+                            <Box
+                              key={`${selectedSharedWithMe.id}-${id}`}
+                              sx={{
+                                p: 0.8,
+                                borderRadius: 1.4,
+                                border: '1px solid',
+                                borderColor: alpha(metric.color, 0.24),
+                                backgroundColor: alpha(metric.color, 0.05),
+                              }}
+                            >
+                              <Stack direction="row" spacing={0.8} alignItems="center">
+                                <Box sx={{ color: metric.color }}>{metric.icon}</Box>
+                                <Box sx={{ minWidth: 0 }}>
+                                  <Typography variant="caption" sx={{ fontWeight: 700 }} noWrap>
+                                    {metric.label}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" noWrap>
+                                    {VITAL_DESCRIPTION[id]}
+                                  </Typography>
+                                </Box>
+                              </Stack>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    </Box>
                   </Stack>
-                </Box>
-              ))}
-            </Stack>
+                )}
+              </Card>
+            </Box>
           )}
 
           {/* ══ Shared By Me tab ══ */}
           {activeTab === 'shared-by-me' && (
-            <Stack spacing={1.2}>
-              {/* Search bar */}
-              <Box sx={{
-                bgcolor: 'background.paper', borderRadius: '14px',
-                border: '1px solid', borderColor: 'divider',
-                px: '14px', py: '8px',
-                display: 'flex', alignItems: 'center', gap: 1,
-              }}>
-                <SearchIcon sx={{ fontSize: 15, color: 'text.disabled', flexShrink: 0 }} />
-                <Box
-                  component="input"
+            <Box
+              sx={{
+                display: 'grid',
+                gap: '10px',
+                gridTemplateColumns: { xs: '1fr', lg: '300px minmax(0, 1fr)' },
+                minHeight: 0,
+                height: '100%',
+              }}
+            >
+              <Card
+                elevation={0}
+                sx={{
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.primary.main, 0.16),
+                  borderRadius: '16px',
+                  p: 1.1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minHeight: 0,
+                  boxShadow: 'none',
+                }}
+              >
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                    Outgoing Shares
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={`${filteredSharedByMe.length}`}
+                    sx={{
+                      height: 19,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                      color: 'primary.dark',
+                    }}
+                  />
+                </Stack>
+
+                <TextField
+                  size="small"
+                  fullWidth
                   placeholder="Search by profile, recipient, channel or metric"
                   value={historySearch}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHistorySearch(e.target.value)}
-                  sx={{
-                    border: 'none', background: 'transparent', outline: 'none',
-                    fontFamily: 'inherit', fontSize: '12.5px', color: 'text.primary', width: '100%',
-                    '&::placeholder': { color: '#9AAFBF' },
+                  onChange={(event) => setHistorySearch(event.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+                      </InputAdornment>
+                    ),
                   }}
                 />
-              </Box>
 
-              <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: '32px minmax(120px,1.1fr) minmax(120px,1.2fr) minmax(100px,1fr) minmax(80px,0.9fr) 68px',
-                    gap: 0.8,
-                    px: 1.2, py: 1,
-                    backgroundColor: alpha(theme.palette.primary.main, 0.05),
-                    borderBottom: '1px solid',
-                    borderColor: alpha(theme.palette.primary.main, 0.15),
-                  }}
+                <Stack
+                  spacing={0.75}
+                  sx={{ mt: 1, flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.2, ...scrollbar }}
                 >
-                  {['', 'Profile', 'Shared To', 'Period', 'Vitals', 'Active'].map((head) => (
-                    <Typography key={head || 'toggle'} variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>
-                      {head}
-                    </Typography>
-                  ))}
-                </Box>
+                  {filteredSharedByMe.map((entry) => {
+                    const selected = selectedSharedByMe?.id === entry.id;
+                    return (
+                      <Box
+                        key={entry.id}
+                        onClick={() => setSelectedSharedByMeId(entry.id)}
+                        sx={{
+                          border: '1px solid',
+                          borderColor: selected
+                            ? alpha(theme.palette.primary.main, 0.45)
+                            : 'divider',
+                          borderRadius: 1.8,
+                          p: 0.95,
+                          cursor: 'pointer',
+                          backgroundColor: selected
+                            ? alpha(theme.palette.primary.main, 0.08)
+                            : 'background.paper',
+                          transition: 'all 0.16s ease',
+                          '&:hover': {
+                            borderColor: alpha(theme.palette.primary.main, 0.35),
+                            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                          },
+                        }}
+                      >
+                        <Stack direction="row" spacing={0.7} alignItems="center" justifyContent="space-between">
+                          <Box sx={{ minWidth: 0, flex: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }} noWrap>
+                              {entry.profileName} → {entry.recipientName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                              {entry.channel} • {formatDisplayDate(entry.sharedOn)}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            size="small"
+                            label={entry.status}
+                            sx={{
+                              height: 17,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              bgcolor: statusBackground(theme, entry.status),
+                              color: statusColor(entry.status),
+                            }}
+                          />
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                  {filteredSharedByMe.length === 0 && (
+                    <Alert severity="info" sx={{ borderRadius: 1.6 }}>
+                      No shared records found for this search.
+                    </Alert>
+                  )}
+                </Stack>
+              </Card>
 
-                {filteredSharedByMe.map((entry) => {
-                  const expanded = expandedShareId === entry.id;
-                  const enabledVitals = getEnabledVitals(entry.vitalAccess);
-                  const canToggle = entry.status !== 'Revoked' && entry.status !== 'Expired';
-                  return (
-                    <React.Fragment key={entry.id}>
+              <Card
+                elevation={0}
+                sx={{
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.primary.main, 0.16),
+                  borderRadius: '16px',
+                  p: 1.1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minHeight: 0,
+                  boxShadow: 'none',
+                }}
+              >
+                {!selectedSharedByMe && (
+                  <Alert severity="info" sx={{ borderRadius: 1.4 }}>
+                    Select a shared record from the left panel.
+                  </Alert>
+                )}
+
+                {selectedSharedByMe && (
+                  <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={0.9}
+                      justifyContent="space-between"
+                      alignItems={{ xs: 'flex-start', sm: 'center' }}
+                      sx={{ pb: 0.5 }}
+                    >
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800 }} noWrap>
+                          {selectedSharedByMe.recipientName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                          {selectedSharedByMe.profileName} • {selectedSharedByMe.channel}
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={0.8} alignItems="center">
+                        <Chip
+                          size="small"
+                          label={selectedSharedByMe.status}
+                          sx={{
+                            height: 19,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            bgcolor: statusBackground(theme, selectedSharedByMe.status),
+                            color: statusColor(selectedSharedByMe.status),
+                          }}
+                        />
+                        <Switch
+                          size="small"
+                          checked={selectedSharedByMe.status === 'Active'}
+                          disabled={
+                            selectedSharedByMe.status === 'Revoked' ||
+                            selectedSharedByMe.status === 'Expired'
+                          }
+                          onChange={(event) =>
+                            handleToggleShareStatus(
+                              selectedSharedByMe.id,
+                              event.target.checked
+                            )
+                          }
+                        />
+                      </Stack>
+                    </Stack>
+
+                    <Box
+                      sx={{
+                        p: 1,
+                        borderRadius: 1.4,
+                        border: '1px solid',
+                        borderColor: alpha(theme.palette.primary.main, 0.2),
+                        bgcolor: alpha(theme.palette.primary.main, 0.04),
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        Period: {selectedSharedByMe.periodLabel}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                        Recipient: {selectedSharedByMe.recipientType} •{' '}
+                        {selectedSharedByMe.recipientMobile ? maskMobileNumber(selectedSharedByMe.recipientMobile) : 'No mobile'} •{' '}
+                        {selectedSharedByMe.recipientEmail || 'No email'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                        Consent: {selectedSharedByMe.consentMethod} by {selectedSharedByMe.consentBy} on{' '}
+                        {formatDisplayDate(selectedSharedByMe.consentAt)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                        Purpose: {selectedSharedByMe.consentPurpose}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.2, ...scrollbar }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.8 }}>
+                        Vital Access
+                      </Typography>
                       <Box
                         sx={{
                           display: 'grid',
-                          gridTemplateColumns: '32px minmax(120px,1.1fr) minmax(120px,1.2fr) minmax(100px,1fr) minmax(80px,0.9fr) 68px',
-                          gap: 0.8,
-                          px: 1.2, py: 1,
-                          alignItems: 'center',
-                          borderBottom: expanded ? 'none' : '1px solid',
-                          borderColor: 'divider',
+                          gap: 0.7,
+                          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
                         }}
                       >
-                        <Button
-                          size="small"
-                          variant="text"
-                          onClick={() => setExpandedShareId(expanded ? null : entry.id)}
-                          sx={{ minWidth: 0, p: 0.2 }}
-                        >
-                          {expanded ? <ExpandLessIcon sx={{ fontSize: 18 }} /> : <ExpandMoreIcon sx={{ fontSize: 18 }} />}
-                        </Button>
-
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 700 }} noWrap>
-                            {entry.profileName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }} noWrap>
-                            {formatDisplayDate(entry.sharedOn)}
-                          </Typography>
-                        </Box>
-
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 700 }} noWrap>
-                            {entry.recipientName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }} noWrap>
-                            {entry.channel}
-                          </Typography>
-                        </Box>
-
-                        <Typography variant="caption" color="text.secondary" noWrap>
-                          {entry.periodLabel}
-                        </Typography>
-
-                        <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                          {enabledVitals.length}
-                        </Typography>
-
-                        <Tooltip title={entry.status}>
-                          <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-                            <Switch
-                              size="small"
-                              checked={entry.status === 'Active'}
-                              disabled={!canToggle}
-                              onChange={(event) => handleToggleShareStatus(entry.id, event.target.checked)}
-                            />
-                          </Box>
-                        </Tooltip>
-                      </Box>
-
-                      {expanded && (
-                        <Box
-                          sx={{
-                            px: 1.2, pb: 1.2,
-                            borderBottom: '1px solid', borderColor: 'divider',
-                            backgroundColor: alpha(theme.palette.primary.main, 0.02),
-                          }}
-                        >
-                          <Stack spacing={1}>
-                            <Stack direction="row" spacing={0.8} alignItems="center" justifyContent="space-between">
-                              <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap">
-                                <Chip
-                                  size="small"
-                                  label={entry.status}
-                                  sx={{
-                                    height: 20, fontSize: 10, fontWeight: 700,
-                                    bgcolor: statusBackground(theme, entry.status),
-                                    color: statusColor(entry.status),
-                                  }}
-                                />
-                                <Typography variant="caption" color="text.secondary">
-                                  {entry.recipientType} - {entry.recipientMobile || 'No mobile'} -{' '}
-                                  {entry.recipientEmail || 'No email'}
+                        {VITAL_METRICS.map((metric) => (
+                          <Box
+                            key={`${selectedSharedByMe.id}-${metric.id}`}
+                            sx={{
+                              p: 0.8,
+                              borderRadius: 1.4,
+                              border: '1px solid',
+                              borderColor: alpha(metric.color, 0.24),
+                              backgroundColor: alpha(metric.color, 0.05),
+                            }}
+                          >
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                              <Stack direction="row" spacing={0.8} alignItems="center" sx={{ minWidth: 0 }}>
+                                <Box sx={{ color: metric.color }}>{metric.icon}</Box>
+                                <Typography variant="caption" sx={{ fontWeight: 700 }} noWrap>
+                                  {metric.label}
                                 </Typography>
                               </Stack>
-                              {entry.status !== 'Revoked' && (
-                                <Button
-                                  size="small"
-                                  color="error"
-                                  variant="outlined"
-                                  onClick={() => handleRevoke(entry.id)}
-                                  sx={{ textTransform: 'none', fontWeight: 700 }}
-                                  startIcon={<DeleteOutlineIcon sx={{ fontSize: 14 }} />}
-                                >
-                                  Revoke
-                                </Button>
-                              )}
+                              <Switch
+                                size="small"
+                                checked={selectedSharedByMe.vitalAccess[metric.id]}
+                                disabled={selectedSharedByMe.status !== 'Active'}
+                                onChange={() =>
+                                  handleToggleShareVital(selectedSharedByMe.id, metric.id)
+                                }
+                              />
                             </Stack>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
 
-                            <Box sx={{ display: 'grid', gap: 0.7, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
-                              {VITAL_METRICS.map((metric) => (
-                                <Box
-                                  key={`${entry.id}-${metric.id}`}
-                                  sx={{
-                                    p: 0.8, borderRadius: 1.4,
-                                    border: '1px solid',
-                                    borderColor: alpha(metric.color, 0.24),
-                                    backgroundColor: alpha(metric.color, 0.05),
-                                  }}
-                                >
-                                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                    <Stack direction="row" spacing={0.8} alignItems="center">
-                                      <Box sx={{ color: metric.color }}>{metric.icon}</Box>
-                                      <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                        {metric.label}
-                                      </Typography>
-                                    </Stack>
-                                    <Switch
-                                      size="small"
-                                      checked={entry.vitalAccess[metric.id]}
-                                      disabled={entry.status !== 'Active'}
-                                      onChange={() => handleToggleShareVital(entry.id, metric.id)}
-                                    />
-                                  </Stack>
-                                </Box>
-                              ))}
-                            </Box>
-                          </Stack>
-                        </Box>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-
-                {filteredSharedByMe.length === 0 && (
-                  <Box sx={{ p: 2.2, textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">
-                      No shared records found for this search.
-                    </Typography>
-                  </Box>
+                    <Stack direction="row" justifyContent="flex-end" sx={{ pt: 0.8 }}>
+                      <Button
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                        disabled={selectedSharedByMe.status === 'Revoked'}
+                        onClick={() => handleRevoke(selectedSharedByMe.id)}
+                        sx={{ textTransform: 'none', fontWeight: 700 }}
+                        startIcon={<DeleteOutlineIcon sx={{ fontSize: 14 }} />}
+                      >
+                        {selectedSharedByMe.status === 'Revoked' ? 'Revoked' : 'Revoke Access'}
+                      </Button>
+                    </Stack>
+                  </Stack>
                 )}
-              </Box>
-            </Stack>
+              </Card>
+            </Box>
           )}
         </Box>
       </Box>
+
+      <CommonDialog
+        open={consentOpen}
+        onClose={() => setConsentOpen(false)}
+        maxWidth="sm"
+        title="Patient Consent Required"
+        subtitle="Review and confirm before sharing vitals."
+        icon={<GppGoodOutlinedIcon sx={{ fontSize: 18 }} />}
+        onConfirm={handleConfirmConsentAndShare}
+        confirmLabel={isSubmitting ? 'Sharing...' : 'Confirm and Share'}
+        confirmButtonProps={{ disabled: !isConsentReady || isSubmitting }}
+        cancelLabel="Cancel"
+        contentDividers
+      >
+        <Stack spacing={1.25}>
+          <Alert severity="info" icon={<InfoOutlinedIcon fontSize="small" />} sx={{ borderRadius: 1.4 }}>
+            Consent is mandatory. Patient can revoke this access anytime from Shared By Me.
+          </Alert>
+
+          <Box
+            sx={{
+              p: 1.1,
+              borderRadius: 1.5,
+              border: '1px solid',
+              borderColor: alpha(theme.palette.primary.main, 0.2),
+              backgroundColor: alpha(theme.palette.primary.main, 0.04),
+            }}
+          >
+            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>
+              CONSENT SUMMARY
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.6 }}>
+              Patient: {selectedProfile?.name || 'Not selected'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.2 }}>
+              Recipient: {recipientName.trim() || '—'} ({recipientType.trim() || 'Provider'})
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.2 }}>
+              Window:{' '}
+              {shareWindowMode === 'continuous'
+                ? 'Continuous'
+                : `${formatDisplayDate(rangeStart)} - ${formatDisplayDate(rangeEnd)}`}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.2 }}>
+              Channels: {selectedChannelsLabel}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.2 }}>
+              Purpose: {consentPurposeText || '—'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.2 }}>
+              Vitals: {selectedVitalLabels.join(', ') || 'None'}
+            </Typography>
+          </Box>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                size="small"
+                checked={consentConfirmDataUse}
+                onChange={(event) => {
+                  setConsentConfirmDataUse(event.target.checked);
+                  if (consentError) setConsentError(null);
+                }}
+              />
+            }
+            label={
+              <Typography variant="body2">
+                I authorize sharing of selected vitals with the specified recipient.
+              </Typography>
+            }
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                size="small"
+                checked={consentConfirmRevokeRights}
+                onChange={(event) => {
+                  setConsentConfirmRevokeRights(event.target.checked);
+                  if (consentError) setConsentError(null);
+                }}
+              />
+            }
+            label={
+              <Typography variant="body2">
+                I understand this access can be paused/revoked later by the patient.
+              </Typography>
+            }
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                size="small"
+                checked={consentConfirmScope}
+                onChange={(event) => {
+                  setConsentConfirmScope(event.target.checked);
+                  if (consentError) setConsentError(null);
+                }}
+              />
+            }
+            label={
+              <Typography variant="body2">
+                I confirm patient reviewed recipient, channels, duration, and purpose before signing.
+              </Typography>
+            }
+          />
+
+          <TextField
+            size="small"
+            label="Patient Signature"
+            placeholder={selectedProfile ? `Type "${selectedProfile.name}"` : 'Select patient first'}
+            value={consentSignature}
+            onChange={(event) => {
+              setConsentSignature(event.target.value);
+              if (consentError) setConsentError(null);
+            }}
+            disabled={!selectedProfile}
+            error={hasConsentSignatureMismatch}
+            helperText={
+              selectedProfile
+                ? `For consent, type exact name: ${selectedProfile.name}`
+                : 'Please select a patient profile first.'
+            }
+            fullWidth
+          />
+
+          {consentError && (
+            <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 700 }}>
+              {consentError}
+            </Typography>
+          )}
+        </Stack>
+      </CommonDialog>
 
       <Snackbar
         open={snackbar.open}

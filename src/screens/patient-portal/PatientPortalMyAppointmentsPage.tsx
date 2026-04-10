@@ -358,7 +358,7 @@ export default function PatientPortalMyAppointmentsPage() {
 
   const calendarSx = {
     height: { xs:'70vh', md:'78vh' }, minWidth:0,
-    '& .fc': { fontFamily:'Nunito, sans-serif', color:theme.palette.text.primary, '--fc-border-color':alpha(theme.palette.divider,0.15), '--fc-page-bg-color':theme.palette.background.paper, '--fc-neutral-bg-color':alpha(theme.palette.primary.main,0.04), '--fc-today-bg-color':alpha(theme.palette.primary.main,0.08) },
+    '& .fc': { fontFamily:'Nunito, sans-serif', color:theme.palette.text.primary, '--fc-border-color':alpha(theme.palette.divider,0.15), '--fc-page-bg-color':theme.palette.common.white, '--fc-neutral-bg-color':alpha(theme.palette.primary.main,0.03), '--fc-today-bg-color':alpha(theme.palette.primary.main,0.08) },
     '& .fc-scrollgrid': { borderColor:'transparent' },
     '& .fc-theme-standard td, & .fc-theme-standard th': { borderColor:alpha(theme.palette.divider,0.1) },
     '& .fc-col-header-cell': { backgroundColor:alpha(theme.palette.primary.main,0.06), fontWeight:600, color:theme.palette.text.primary, borderColor:alpha(theme.palette.divider,0.2) },
@@ -480,10 +480,10 @@ export default function PatientPortalMyAppointmentsPage() {
         <Box ref={bookingSectionRef}>
           {opdStatus==='error' && <Alert severity="warning" sx={{mb:2}}>OPD data feed unavailable. Running on fallback slots.</Alert>}
 
-          <Box sx={{ display:'grid', gap:1.5, gridTemplateColumns:{ xs:'1fr', lg:'minmax(0,1fr) 430px', xl:'minmax(0,1fr) 460px' } }}>
+          <Box sx={{ display:'grid', gap:1.5, gridTemplateColumns:{ xs:'1fr', lg:'minmax(0,1fr) 430px', xl:'minmax(0,1fr) 460px' }, alignItems:'start' }}>
 
             {/* ── FullCalendar ── */}
-            <Card elevation={0} sx={{ border:'none', borderRadius:2, overflow:'hidden', backgroundColor:'transparent', boxShadow:'none' }}>
+            <Card elevation={0} sx={{ ...sectionCard }}>
               <Stack spacing={1}>
                 {/* Calendar toolbar */}
                 <Stack direction={{xs:'column',md:'row'}} spacing={1.3} alignItems={{xs:'stretch',md:'center'}} justifyContent="space-between"
@@ -548,7 +548,7 @@ export default function PatientPortalMyAppointmentsPage() {
             {/* ── Right: booking stepper + upcoming preview ── */}
             <Stack spacing={1.5}>
               {/* Booking panel */}
-              <Card elevation={0} sx={{ border:'none', borderRadius:2, overflow:'hidden', backgroundColor:'transparent', boxShadow:'none' }}>
+              <Card elevation={0} sx={{ ...sectionCard }}>
                 <Box sx={{ px:1.5, py:1.25, borderBottom:'1px solid', borderColor:alpha(theme.palette.primary.main,0.12), backgroundColor:alpha(theme.palette.primary.main,0.04) }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Typography variant="subtitle2" sx={{ fontWeight:700 }}>Book Appointment</Typography>
@@ -736,7 +736,7 @@ export default function PatientPortalMyAppointmentsPage() {
               </Card>
 
               {/* Upcoming preview */}
-              <Card elevation={0} sx={{ border:'none', borderRadius:2, overflow:'hidden', backgroundColor:'transparent', boxShadow:'none' }}>
+              <Card elevation={0} sx={{ ...sectionCard }}>
                 <Box sx={{ px:1.5, py:1.15, borderBottom:'1px solid', borderColor:alpha(theme.palette.primary.main,0.12), backgroundColor:alpha(theme.palette.primary.main,0.04) }}>
                   <Typography variant="subtitle2" sx={{ fontWeight:700 }}>Upcoming ({listCounts.upcoming})</Typography>
                 </Box>

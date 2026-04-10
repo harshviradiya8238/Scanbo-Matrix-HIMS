@@ -42,8 +42,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
     }
   }, [pathname, addRecentItem]);
 
-  // Don't show sidebar on login page
-  const isLoginPage = pathname === "/";
+  // Don't show app shell on authentication pages
+  const isLoginPage =
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/authentication/login" ||
+    pathname === "/auth/login";
 
   const sidebarWidth = isExpanded
     ? SIDEBAR_WIDTH_EXPANDED

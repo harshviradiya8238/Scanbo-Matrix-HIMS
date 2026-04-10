@@ -20,6 +20,7 @@ import {
   TRIAGE_LEVEL_LABELS,
   TRIAGE_LEVEL_ORDER,
 } from "../../AsapEmergencyData";
+import { maskMobileNumber } from "@/src/core/utils/phone";
 
 interface RegistrationModalContentProps {
   registrationSearch: string;
@@ -100,7 +101,7 @@ export function RegistrationModalContent({
                       {patient.name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {patient.id} · {patient.mrn} · {patient.phone}
+                      {patient.id} · {patient.mrn} · {maskMobileNumber(patient.phone)}
                     </Typography>
                   </Box>
                   <Button

@@ -54,21 +54,6 @@ export default function SidebarPopover({
     [router]
   );
 
-  if (!item.children || item.children.length === 0 || !anchorEl || !open) {
-    return null;
-  }
-
-  const filteredChildren = item.children.filter((child) => {
-    if (!child.requiredPermissions || child.requiredPermissions.length === 0) {
-      return true;
-    }
-    return child.requiredPermissions.some((perm) => hasPermission(userPermissions, perm));
-  });
-
-  if (filteredChildren.length === 0) {
-    return null;
-  }
-
   // Close popover when clicking outside
   React.useEffect(() => {
     if (!anchorEl || typeof window === 'undefined') return;
@@ -92,6 +77,21 @@ export default function SidebarPopover({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [anchorEl, onClose]);
+
+  if (!item.children || item.children.length === 0 || !anchorEl || !open) {
+    return null;
+  }
+
+  const filteredChildren = item.children.filter((child) => {
+    if (!child.requiredPermissions || child.requiredPermissions.length === 0) {
+      return true;
+    }
+    return child.requiredPermissions.some((perm) => hasPermission(userPermissions, perm));
+  });
+
+  if (filteredChildren.length === 0) {
+    return null;
+  }
 
   const handleItemClick = (route?: string) => {
     if (route) {

@@ -51,6 +51,7 @@ import { TextField } from "@/src/ui/components";
 import { WorkspaceHeaderCard, StatTile } from "@/src/ui/components/molecules";
 import { cardShadow } from "@/src/core/theme/tokens";
 import { Grid } from "@/src/ui/components/layout";
+import { maskMobileNumber } from "@/src/core/utils/phone";
 
 const Card = styled(Paper)({
   backgroundColor: "#FFFFFF",
@@ -807,7 +808,7 @@ export default function StaffUsersPage() {
                         <PhoneIcon sx={{ fontSize: 14, mt: 0.3, color: "text.secondary", flexShrink: 0 }} />
                         <Box>
                           <Typography variant="caption" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 9, color: "text.secondary" }}>Phone</Typography>
-                          <Typography variant="caption" sx={{ display: "block", fontWeight: 500, fontSize: 11 }}>{selectedUser.phone || "—"}</Typography>
+                          <Typography variant="caption" sx={{ display: "block", fontWeight: 500, fontSize: 11 }}>{maskMobileNumber(selectedUser.phone)}</Typography>
                         </Box>
                       </Stack>
                       <Stack direction="row" spacing={1} alignItems="flex-start">

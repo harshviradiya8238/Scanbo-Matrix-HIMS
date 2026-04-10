@@ -59,6 +59,7 @@ import { doctorData, doctorMetrics, DoctorRow } from "@/src/mocks/doctorServer";
 import { CARE_COMPANION_ENROLLED } from "@/src/mocks/care-companion";
 import { useRouter } from "next/navigation";
 import { GridActionsCellItem } from "@mui/x-data-grid";
+import { maskMobileNumber } from "@/src/core/utils/phone";
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 
@@ -343,6 +344,11 @@ export default function DoctorListPage() {
         field: "mobile",
         headerName: "Contact",
         width: 148,
+        renderCell: (row: DoctorRow) => (
+          <Typography variant="body2">
+            {maskMobileNumber(row.mobile)}
+          </Typography>
+        ),
       },
       {
         field: "joinedDate",
@@ -1011,7 +1017,7 @@ export default function DoctorListPage() {
                         sx={{ fontSize: 14, color: "text.secondary" }}
                       />
                       <Typography variant="body2">
-                        {selectedDoctor.mobile}
+                        {maskMobileNumber(selectedDoctor.mobile)}
                       </Typography>
                     </Stack>
                     <Stack direction="row" spacing={1} alignItems="center">

@@ -36,6 +36,7 @@ import {
   Shield as ShieldIcon,
   EventNote as EventNoteIcon,
 } from '@mui/icons-material';
+import { maskMobileNumber } from '@/src/core/utils/phone';
 
 interface HospitalProfile {
   name: string;
@@ -294,7 +295,7 @@ export default function FacilitySettingsPage() {
                       </Stack>
                     </Box>
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
-                      <ProfileField icon={<PhoneIcon fontSize="small" />} label="Phone" value={displayProfile.phone} editing={editingProfile} onChange={(v) => updateDraft('phone', v)} />
+                      <ProfileField icon={<PhoneIcon fontSize="small" />} label="Phone" value={editingProfile ? displayProfile.phone : maskMobileNumber(displayProfile.phone, 'Not provided')} editing={editingProfile} onChange={(v) => updateDraft('phone', v)} />
                       <ProfileField icon={<EmailIcon fontSize="small" />} label="Email" value={displayProfile.email} editing={editingProfile} onChange={(v) => updateDraft('email', v)} />
                       <ProfileField icon={<LanguageIcon fontSize="small" />} label="Website" value={displayProfile.website} editing={editingProfile} onChange={(v) => updateDraft('website', v)} />
                     </Box>

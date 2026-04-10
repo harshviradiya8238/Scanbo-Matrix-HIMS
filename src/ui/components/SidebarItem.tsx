@@ -33,7 +33,6 @@ interface SidebarItemProps {
   favorites?: string[];
   onFavoriteToggle?: (itemId: string) => void;
   onSubmenuHover?: (item: MenuItem, anchorEl: HTMLElement | null) => void;
-  hoveredItemId?: string | null;
 }
 
 export default function SidebarItem({
@@ -45,7 +44,6 @@ export default function SidebarItem({
   favorites = [],
   onFavoriteToggle,
   onSubmenuHover,
-  hoveredItemId,
 }: SidebarItemProps) {
   const theme = useTheme();
   const brandPrimary = theme.palette.primary.main;
@@ -62,8 +60,6 @@ export default function SidebarItem({
     ? item.requiredPermissions.some((perm) => hasPermission(userPermissions, perm))
     : true;
 
-  if (!hasAccess) return null;
-
   const IconComponent = item.iconName ? iconMap[item.iconName] : null;
   const hasChildren = item.children && item.children.length > 0;
   const isActive = item.route === activeRoute;
@@ -78,8 +74,6 @@ export default function SidebarItem({
   }, [activeRoute, hasChildren, item.children]);
   const isHighlighted = isActive || hasActiveDescendant;
   const isFavorite = favorites.includes(item.id);
-  const isHovered = hoveredItemId === item.id;
-  const isCollapsed = !isExpanded;
 
   // Auto-expand if active route is in children
   React.useEffect(() => {
@@ -131,7 +125,9 @@ export default function SidebarItem({
         }
       }
     } else if (item.route) {
-      router.push(item.route);
+      if (item.route !== activeRoute) {
+        router.push(item.route);
+      }
     }
   };
 
@@ -185,6 +181,8 @@ export default function SidebarItem({
     e.stopPropagation();
     onFavoriteToggle?.(item.id);
   };
+
+  if (!hasAccess) return null;
 
   const itemContent = (
     <ListItemButton
@@ -398,7 +396,7 @@ export default function SidebarItem({
             setPopoverAnchor(null);
           }}
           onNavigate={(route) => {
-            if (route) {
+            if (route && route !== activeRoute) {
               router.push(route);
             }
             setPopoverAnchor(null);
@@ -444,7 +442,6 @@ export default function SidebarItem({
                 favorites={favorites}
                 onFavoriteToggle={onFavoriteToggle}
                 onSubmenuHover={onSubmenuHover}
-                hoveredItemId={hoveredItemId}
               />
             ))}
           </List>

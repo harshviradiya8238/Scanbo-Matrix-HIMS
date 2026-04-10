@@ -25,6 +25,7 @@ import {
 import { StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
 import { palette } from "@/src/core/theme/tokens";
+import { maskMobileNumber } from "@/src/core/utils/phone";
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
@@ -204,7 +205,7 @@ export default function TPAManagementPage() {
               fontWeight: 500,
             }}
           >
-            {row.phone}
+            {maskMobileNumber(row.phone)}
           </Typography>
         ),
       },

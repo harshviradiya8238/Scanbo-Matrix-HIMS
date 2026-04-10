@@ -21,15 +21,21 @@ export function UserProvider({
   defaultRole?: UserRole;
 }) {
   const { roles } = useStaffStore();
-  const [role, setRole] = React.useState<UserRole>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("scanbo:current-role");
-      if (saved && roles.some((r) => r.id === saved)) {
-        return saved as UserRole;
+  const [role, setRole] = React.useState<UserRole>(defaultRole);
+  const [roleHydrated, setRoleHydrated] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem("scanbo:current-role");
+    if (saved) {
+      const isKnownRole =
+        roles.length === 0 || roles.some((roleOption) => roleOption.id === saved);
+      if (isKnownRole) {
+        setRole(saved as UserRole);
       }
     }
-    return defaultRole;
-  });
+    setRoleHydrated(true);
+  }, [roles]);
 
   const permissions = React.useMemo(
     () => getPermissionsForRole(role),
@@ -37,10 +43,10 @@ export function UserProvider({
   );
 
   React.useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && roleHydrated) {
       localStorage.setItem("scanbo:current-role", role);
     }
-  }, [role]);
+  }, [role, roleHydrated]);
 
   React.useEffect(() => {
     if (roles.length === 0) return;

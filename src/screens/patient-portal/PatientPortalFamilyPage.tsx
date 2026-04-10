@@ -38,6 +38,7 @@ import PatientPortalWorkspaceCard from './components/PatientPortalWorkspaceCard'
 import { FAMILY_MEMBERS } from './patient-portal-mock-data';
 import type { FamilyMember } from './patient-portal-types';
 import { ppSectionCard } from './patient-portal-styles';
+import { maskMobileNumber } from '@/src/core/utils/phone';
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
   Active: 'success',
@@ -83,26 +84,6 @@ const getInitials = (name: string): string =>
     .join('')
     .toUpperCase()
     .slice(0, 2);
-
-const maskPhoneNumber = (phone: string): string => {
-  const input = (phone || '').trim();
-  if (!input) return '—';
-
-  const allDigits = input.match(/\d/g) || [];
-  const totalDigits = allDigits.length;
-  if (totalDigits <= 4) return input;
-
-  const countryMatch = input.match(/^\+(\d{1,3})/);
-  const keepPrefixDigits = countryMatch ? countryMatch[1].length : 0;
-  const localVisibleStart = totalDigits - 4 + 1;
-
-  let seen = 0;
-  return input.replace(/\d/g, (digit) => {
-    seen += 1;
-    if (seen <= keepPrefixDigits) return digit;
-    return seen >= localVisibleStart ? digit : 'X';
-  });
-};
 
 const toCity = (member: FamilyMember): string => {
   if (member.city?.trim()) return member.city.trim();
@@ -238,7 +219,7 @@ export default function PatientPortalFamilyPage() {
         headerName: 'Phone',
         width: 150,
         renderCell: (row) => (
-          <Typography variant="body2">{maskPhoneNumber(row.phone || '')}</Typography>
+          <Typography variant="body2">{maskMobileNumber(row.phone || '')}</Typography>
         ),
       },
       {
@@ -558,7 +539,7 @@ export default function PatientPortalFamilyPage() {
 
               <Box>
                 <Typography variant="caption" color="text.secondary">Contact</Typography>
-                <Typography variant="body2">{maskPhoneNumber(selectedMember.phone || '')}</Typography>
+                <Typography variant="body2">{maskMobileNumber(selectedMember.phone || '')}</Typography>
                 <Typography variant="body2">{selectedMember.email || '—'}</Typography>
                 <Typography variant="body2">{selectedMember.city || '—'}</Typography>
                 <Typography variant="body2">{selectedMember.address || '—'}</Typography>

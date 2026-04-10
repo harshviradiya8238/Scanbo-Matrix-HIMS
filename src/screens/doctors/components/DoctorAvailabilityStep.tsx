@@ -168,7 +168,7 @@ export default function DoctorAvailabilityStep({ values, setFieldValue }: Doctor
   const blueMid    = alpha(blue, 0.25);
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} sx={{ height: '100%' }}>
       {/* Hint bar */}
       <Box
         sx={{
@@ -177,6 +177,7 @@ export default function DoctorAvailabilityStep({ values, setFieldValue }: Doctor
           background: blueLight,
           border: `1px solid ${blueMid}`,
           display: 'flex', alignItems: 'center', gap: 1,
+          flexShrink: 0,
         }}
       >
         <Box sx={{ color: blue, fontSize: 14, lineHeight: 1, flexShrink: 0 }}>ℹ</Box>
@@ -188,6 +189,8 @@ export default function DoctorAvailabilityStep({ values, setFieldValue }: Doctor
       {/* 7-column grid */}
       <Box
         sx={{
+          flex: 1,
+          minHeight: 0,
           overflowX: 'auto',
           border: '1px solid',
           borderColor: 'divider',
@@ -201,6 +204,7 @@ export default function DoctorAvailabilityStep({ values, setFieldValue }: Doctor
             display: 'grid',
             gridTemplateColumns: 'repeat(7, minmax(148px, 1fr))',
             minWidth: 1036,
+            height: '100%',
           }}
         >
           {schedule.map((day, di) => {
@@ -230,6 +234,7 @@ export default function DoctorAvailabilityStep({ values, setFieldValue }: Doctor
                   borderColor: 'divider',
                   display: 'flex',
                   flexDirection: 'column',
+                  height: '100%',
                 }}
               >
                 {/* Column header */}
@@ -281,10 +286,10 @@ export default function DoctorAvailabilityStep({ values, setFieldValue }: Doctor
                   sx={{
                     p: '8px 8px 4px',
                     display: 'flex', flexDirection: 'column', gap: '6px',
-                    minHeight: 180, maxHeight: 300,
+                    flex: 1,
+                    minHeight: 0,
                     overflowY: 'auto',
                     background: bodyBg,
-                    flex: 1,
                     '&::-webkit-scrollbar': { width: 3 },
                     '&::-webkit-scrollbar-thumb': { background: '#CDD3DC', borderRadius: 4 },
                   }}
@@ -367,6 +372,7 @@ export default function DoctorAvailabilityStep({ values, setFieldValue }: Doctor
           borderColor: 'divider',
           background: alpha('#000', 0.02),
           display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1,
+          flexShrink: 0,
         }}
       >
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
