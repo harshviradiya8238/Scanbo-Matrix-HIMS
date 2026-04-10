@@ -27,6 +27,7 @@ import { alpha } from "@/src/ui/theme";
 import Grid from "@/src/ui/components/layout/AlignedGrid";
 import {
   Bed as BedIcon,
+  BugReport as BugReportIcon,
   CheckCircle as CheckCircleIcon,
   CleaningServices as CleaningServicesIcon,
   Close as CloseIcon,
@@ -34,6 +35,7 @@ import {
   Search as SearchIcon,
   SwapHoriz as SwapHorizIcon,
 } from "@mui/icons-material";
+import { getActiveInfectionCaseByMrn } from "@/src/mocks/infection-control";
 import {
   BedStatus,
   DISCHARGE_CANDIDATES,
@@ -282,6 +284,10 @@ export default function IpdBedManagementPage() {
 
   const seededPatient = getPatientByMrn(selectedPatient?.mrn ?? mrnParam);
   const displayMrn = selectedPatient?.mrn || seededPatient?.mrn || mrnParam;
+  const activeInfectionCase = React.useMemo(
+    () => getActiveInfectionCaseByMrn(displayMrn || ""),
+    [displayMrn],
+  );
 
   const wardOptions = React.useMemo(() => {
     const wards = new Set<string>();
@@ -515,6 +521,8 @@ export default function IpdBedManagementPage() {
           : "Admitted";
       const tags = ["Admitted"];
       if (candidate) tags.push("Discharge Due");
+      const infectionCase = getActiveInfectionCaseByMrn(patient.mrn);
+      if (infectionCase) tags.push("Infection Control");
       if (
         patient.ward.toLowerCase().includes("icu") ||
         patient.bed.toLowerCase().includes("icu")
@@ -530,9 +538,11 @@ export default function IpdBedManagementPage() {
         bed: bed?.bedNumber ?? patient.bed ?? "--",
         consultant: patient.consultant || "--",
         diagnosis: patient.diagnosis || "--",
-        status,
+        status: infectionCase ? "Infection Alert" : status,
         statusTone:
-          status === "ICU"
+          infectionCase
+            ? "error"
+            : status === "ICU"
             ? "info"
             : status === "Discharge Due"
               ? "warning"
@@ -569,6 +579,16 @@ export default function IpdBedManagementPage() {
     const status = activePatient.status ?? "Admitted";
 
     return [
+      ...(activeInfectionCase
+        ? [
+            {
+              id: "infection",
+              label: "Infection",
+              value: `${activeInfectionCase.organism} · ${activeInfectionCase.icStatus}`,
+              tone: "error" as const,
+            },
+          ]
+        : []),
       {
         id: "age-sex",
         label: "Age / Sex",
@@ -623,7 +643,7 @@ export default function IpdBedManagementPage() {
         tone: "info",
       },
     ];
-  }, [selectedTopBarPatient]);
+  }, [activeInfectionCase, selectedTopBarPatient]);
 
   const onTopBarSelectPatient = React.useCallback(
     (patientId: string) => {
@@ -827,6 +847,30 @@ export default function IpdBedManagementPage() {
           <Alert severity="warning">
             You are in read-only mode for bed allocation. Contact admin for
             `ipd.beds.write` access.
+          </Alert>
+        ) : null}
+
+        {activeInfectionCase ? (
+          <Alert
+            severity="warning"
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                startIcon={<BugReportIcon />}
+                onClick={() =>
+                  router.push(
+                    `/clinical/modules/bugsy-infection-control?mrn=${encodeURIComponent(activeInfectionCase.mrn)}`,
+                  )
+                }
+              >
+                Open Case
+              </Button>
+            }
+          >
+            Active infection case for this bed workflow:{" "}
+            {activeInfectionCase.organism} · {activeInfectionCase.icStatus} ·{" "}
+            {activeInfectionCase.isolationType} isolation.
           </Alert>
         ) : null}
 

@@ -18,11 +18,16 @@ import {
   HealthAndSafety as HealthAndSafetyIcon,
   Hotel as HotelIcon,
 } from "@mui/icons-material";
-import { PPE_CHECKLIST, ROOM_MAP_ITEMS } from "../utils/infection-control-data";
+import {
+  ROOM_MAP_ITEMS,
+  getPpeChecklistForPatient,
+} from "../utils/infection-control-data";
 import { IsolationRoom } from "../utils/infection-control-types";
+import type { InfectionCase } from "@/src/mocks/infection-control";
 
 interface IsolateTabContentProps {
   casesTableBlock: React.ReactNode;
+  selectedCase?: InfectionCase;
   selectedIsolationRoomId: string | null;
   isolations: IsolationRoom[];
   openIsolateDialog: (targetCase: any) => void;
@@ -31,6 +36,7 @@ interface IsolateTabContentProps {
 
 export default function IsolateTabContent({
   casesTableBlock,
+  selectedCase,
   selectedIsolationRoomId,
   isolations,
   openIsolateDialog,
@@ -39,13 +45,36 @@ export default function IsolateTabContent({
   const theme = useTheme();
 
   const [ppeChecklist, setPpeChecklist] = React.useState<
-    Record<string, boolean>
-  >(
-    PPE_CHECKLIST.reduce(
-      (acc, item) => ({ ...acc, [item.id]: item.checked }),
-      {},
-    ),
+    Record<string, Record<string, boolean>>
+  >({});
+
+  const selectedIsolation = React.useMemo(
+    () =>
+      isolations.find((item) => item.mrn === selectedCase?.mrn) ??
+      isolations.find((item) => item.id === selectedIsolationRoomId),
+    [isolations, selectedCase?.mrn, selectedIsolationRoomId],
   );
+
+  const checklistItems = React.useMemo(
+    () =>
+      getPpeChecklistForPatient(
+        selectedCase?.mrn ?? selectedIsolation?.mrn,
+        selectedCase?.isolationType ?? selectedIsolation?.type,
+      ),
+    [
+      selectedCase?.isolationType,
+      selectedCase?.mrn,
+      selectedIsolation?.mrn,
+      selectedIsolation?.type,
+    ],
+  );
+
+  const checklistKey =
+    selectedCase?.mrn ??
+    selectedIsolation?.mrn ??
+    selectedIsolationRoomId ??
+    "default";
+  const checklistState = ppeChecklist[checklistKey] ?? {};
 
   return (
     <Grid container spacing={2}>
@@ -65,52 +94,55 @@ export default function IsolateTabContent({
             <Stack spacing={1.25} sx={{ p: 1.75 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                 PPE Checklist —{" "}
-                {(() => {
-                  const sel = isolations.find(
-                    (i) => i.id === selectedIsolationRoomId,
-                  );
-                  return sel
-                    ? `${sel.room} (${sel.patientName ?? "—"})`
-                    : "Select a room";
-                })()}
+                {selectedIsolation
+                  ? `${selectedIsolation.room} (${selectedIsolation.patientName ?? selectedCase?.patientName ?? "—"})`
+                  : selectedCase
+                    ? `${selectedCase.bed} (${selectedCase.patientName})`
+                    : "Select a patient"}
               </Typography>
-              {PPE_CHECKLIST.map((item) => (
-                <Stack
-                  key={item.id}
-                  direction="row"
-                  alignItems="center"
-                  spacing={1}
-                  sx={{
-                    py: 0.75,
-                    px: 1,
-                    borderRadius: 1,
-                    bgcolor: ppeChecklist[item.id]
-                      ? alpha(theme.palette.success.main, 0.08)
-                      : "transparent",
-                  }}
-                >
-                  <Checkbox
-                    checked={ppeChecklist[item.id] ?? item.checked}
-                    onChange={(_, checked) =>
-                      setPpeChecklist((prev) => ({
-                        ...prev,
-                        [item.id]: checked,
-                      }))
-                    }
-                    icon={<CheckBoxOutlineBlankIcon />}
-                    checkedIcon={
-                      <CheckBoxIcon sx={{ color: "success.main" }} />
-                    }
-                    sx={{ p: 0.25 }}
-                  />
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    {item.label}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {item.role}
-                  </Typography>
-                </Stack>
-              ))}
+              {checklistItems.map((item) => {
+                const checked = checklistState[item.id] ?? item.checked;
+                return (
+                  <Stack
+                    key={item.id}
+                    direction="row"
+                    alignItems="center"
+                    spacing={1}
+                    sx={{
+                      py: 0.75,
+                      px: 1,
+                      borderRadius: 1,
+                      bgcolor: checked
+                        ? alpha(theme.palette.success.main, 0.08)
+                        : "transparent",
+                    }}
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onChange={(_, checked) =>
+                        setPpeChecklist((prev) => ({
+                          ...prev,
+                          [checklistKey]: {
+                            ...(prev[checklistKey] ?? {}),
+                            [item.id]: checked,
+                          },
+                        }))
+                      }
+                      icon={<CheckBoxOutlineBlankIcon />}
+                      checkedIcon={
+                        <CheckBoxIcon sx={{ color: "success.main" }} />
+                      }
+                      sx={{ p: 0.25 }}
+                    />
+                    <Typography variant="body2" sx={{ flex: 1 }}>
+                      {item.label}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {item.role}
+                    </Typography>
+                  </Stack>
+                );
+              })}
             </Stack>
           </Paper>
         </Stack>
@@ -145,6 +177,7 @@ export default function IsolateTabContent({
                 disabled={!canWrite}
                 onClick={() => {
                   const targetCase =
+                    selectedCase ??
                     isolations.find((c) => c.status === "Active") ??
                     isolations[0];
                   if (targetCase) openIsolateDialog(targetCase);

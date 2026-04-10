@@ -411,7 +411,43 @@ export function getInfectionCasesByMrn(mrn: string): InfectionCase[] {
   );
 }
 
+/** Get active infection cases by MRN */
+export function getActiveInfectionCasesByMrn(mrn: string): InfectionCase[] {
+  return getInfectionCasesByMrn(mrn).filter((c) => c.status === "Active");
+}
+
+/** Get the highest priority active infection case by MRN */
+export function getActiveInfectionCaseByMrn(
+  mrn: string,
+): InfectionCase | undefined {
+  const riskRank: Record<InfectionCase["risk"], number> = {
+    High: 3,
+    Moderate: 2,
+    Low: 1,
+  };
+
+  return getActiveInfectionCasesByMrn(mrn).sort(
+    (left, right) => riskRank[right.risk] - riskRank[left.risk],
+  )[0];
+}
+
 /** Check if patient has any infection cases */
 export function hasInfectionCases(mrn: string): boolean {
   return getInfectionCasesByMrn(mrn).length > 0;
 }
+
+/** Check if patient has any active infection cases */
+export function hasActiveInfectionCase(mrn: string): boolean {
+  return getActiveInfectionCasesByMrn(mrn).length > 0;
+}
+
+export const INFECTION_CONTROL_SUMMARY = {
+  activeCaseCount: INFECTION_CONTROL_CASES.filter((c) => c.status === "Active")
+    .length,
+  isolationOccupancy: INFECTION_CONTROL_CASES.filter(
+    (c) => c.status === "Active" && c.icStatus === "Isolating",
+  ).length,
+  auditOpenCount: INFECTION_CONTROL_CASES.filter(
+    (c) => c.status === "Active" && c.icStatus === "In Audit",
+  ).length,
+};

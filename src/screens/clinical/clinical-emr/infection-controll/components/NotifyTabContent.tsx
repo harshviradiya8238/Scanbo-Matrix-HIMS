@@ -26,10 +26,14 @@ import {
 } from "../utils/infection-control-data";
 
 interface NotifyTabContentProps {
+  casesTableBlock: React.ReactNode;
   canWrite: boolean;
 }
 
-export default function NotifyTabContent({ canWrite }: NotifyTabContentProps) {
+export default function NotifyTabContent({
+  casesTableBlock,
+  canWrite,
+}: NotifyTabContentProps) {
   const theme = useTheme();
 
   const [sendToChannels, setSendToChannels] = React.useState<
@@ -44,150 +48,153 @@ export default function NotifyTabContent({ canWrite }: NotifyTabContentProps) {
   return (
     <Grid container spacing={2}>
       <Grid item xs={12} lg={9.5}>
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: alpha(theme.palette.primary.main, 0.14),
-            overflow: "hidden",
-            boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
-          }}
-        >
-          <Stack spacing={1.25} sx={{ p: 1.75 }}>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              justifyContent="space-between"
-              alignItems={{ xs: "flex-start", sm: "center" }}
-              flexWrap="wrap"
-              gap={1}
-            >
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Notification Feed
-              </Typography>
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<SendIcon />}
-                disabled={!canWrite}
-                onClick={() => {}}
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 600,
-                  bgcolor: "warning.main",
-                  "&:hover": { bgcolor: "warning.dark" },
-                }}
+        <Stack spacing={1.5}>
+          {casesTableBlock}
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: alpha(theme.palette.primary.main, 0.14),
+              overflow: "hidden",
+              boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
+            }}
+          >
+            <Stack spacing={1.25} sx={{ p: 1.75 }}>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                justifyContent="space-between"
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                flexWrap="wrap"
+                gap={1}
               >
-                Send Notification
-              </Button>
-            </Stack>
-            <Stack divider={<Divider />} spacing={0}>
-              {NOTIFICATION_FEED.map((item) => (
-                <Stack
-                  key={item.id}
-                  direction={{ xs: "column", sm: "row" }}
-                  alignItems={{ xs: "flex-start", sm: "center" }}
-                  justifyContent="space-between"
-                  spacing={1}
-                  sx={{ py: 1.25 }}
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Notification Feed
+                </Typography>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<SendIcon />}
+                  disabled={!canWrite}
+                  onClick={() => {}}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 600,
+                    bgcolor: "warning.main",
+                    "&:hover": { bgcolor: "warning.dark" },
+                  }}
                 >
+                  Send Notification
+                </Button>
+              </Stack>
+              <Stack divider={<Divider />} spacing={0}>
+                {NOTIFICATION_FEED.map((item) => (
                   <Stack
-                    direction="row"
+                    key={item.id}
+                    direction={{ xs: "column", sm: "row" }}
+                    alignItems={{ xs: "flex-start", sm: "center" }}
+                    justifyContent="space-between"
                     spacing={1}
-                    alignItems="flex-start"
-                    sx={{ flex: 1, minWidth: 0 }}
+                    sx={{ py: 1.25 }}
                   >
-                    <Box
-                      sx={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        bgcolor:
-                          item.type === "critical"
-                            ? alpha(theme.palette.error.main, 0.12)
-                            : item.type === "exposure" ||
-                                item.type === "lab-ready"
-                              ? alpha(theme.palette.warning.main, 0.12)
-                              : item.type === "acknowledged"
-                                ? alpha(theme.palette.grey[500], 0.12)
-                                : "transparent",
-                      }}
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      alignItems="flex-start"
+                      sx={{ flex: 1, minWidth: 0 }}
                     >
-                      {item.type === "critical" && (
-                        <Box
-                          sx={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: "50%",
-                            bgcolor: "error.main",
-                          }}
-                        />
-                      )}
-                      {item.type === "exposure" && (
-                        <WarningAmberIcon
-                          sx={{ fontSize: 18, color: "warning.main" }}
-                        />
-                      )}
-                      {item.type === "acknowledged" && (
-                        <CheckCircleIcon
-                          sx={{ fontSize: 18, color: "success.main" }}
-                        />
-                      )}
-                      {item.type === "lab-ready" && (
-                        <Box
-                          sx={{
-                            width: 14,
-                            height: 14,
-                            borderRadius: 0.5,
-                            bgcolor: alpha(theme.palette.warning.main, 0.5),
-                          }}
-                        />
-                      )}
-                    </Box>
-                    <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {item.title}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {item.body}
-                      </Typography>
-                      {item.actionLabel && (
-                        <Typography
-                          component="button"
-                          variant="body2"
-                          sx={{
-                            color: "primary.main",
-                            fontWeight: 600,
-                            textDecoration: "underline",
-                            border: "none",
-                            background: "none",
-                            cursor: "pointer",
-                            p: 0,
-                            alignSelf: "flex-start",
-                          }}
-                          onClick={() => {}}
-                        >
-                          {item.actionLabel}
+                      <Box
+                        sx={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          bgcolor:
+                            item.type === "critical"
+                              ? alpha(theme.palette.error.main, 0.12)
+                              : item.type === "exposure" ||
+                                  item.type === "lab-ready"
+                                ? alpha(theme.palette.warning.main, 0.12)
+                                : item.type === "acknowledged"
+                                  ? alpha(theme.palette.grey[500], 0.12)
+                                  : "transparent",
+                        }}
+                      >
+                        {item.type === "critical" && (
+                          <Box
+                            sx={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              bgcolor: "error.main",
+                            }}
+                          />
+                        )}
+                        {item.type === "exposure" && (
+                          <WarningAmberIcon
+                            sx={{ fontSize: 18, color: "warning.main" }}
+                          />
+                        )}
+                        {item.type === "acknowledged" && (
+                          <CheckCircleIcon
+                            sx={{ fontSize: 18, color: "success.main" }}
+                          />
+                        )}
+                        {item.type === "lab-ready" && (
+                          <Box
+                            sx={{
+                              width: 14,
+                              height: 14,
+                              borderRadius: 0.5,
+                              bgcolor: alpha(theme.palette.warning.main, 0.5),
+                            }}
+                          />
+                        )}
+                      </Box>
+                      <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {item.title}
                         </Typography>
-                      )}
+                        <Typography variant="body2" color="text.secondary">
+                          {item.body}
+                        </Typography>
+                        {item.actionLabel && (
+                          <Typography
+                            component="button"
+                            variant="body2"
+                            sx={{
+                              color: "primary.main",
+                              fontWeight: 600,
+                              textDecoration: "underline",
+                              border: "none",
+                              background: "none",
+                              cursor: "pointer",
+                              p: 0,
+                              alignSelf: "flex-start",
+                            }}
+                            onClick={() => {}}
+                          >
+                            {item.actionLabel}
+                          </Typography>
+                        )}
+                      </Stack>
                     </Stack>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ flexShrink: 0 }}
+                    >
+                      {item.timestamp}
+                    </Typography>
                   </Stack>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ flexShrink: 0 }}
-                  >
-                    {item.timestamp}
-                  </Typography>
-                </Stack>
-              ))}
+                ))}
+              </Stack>
             </Stack>
-          </Stack>
-        </Paper>
+          </Paper>
+        </Stack>
       </Grid>
       <Grid item xs={12} lg={2.5}>
         <Card

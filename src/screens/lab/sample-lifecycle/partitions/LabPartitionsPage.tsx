@@ -359,9 +359,13 @@ export default function LabPartitionsPage() {
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={() => setModalOpen(true)}
+                  onClick={() =>{ setModalOpen(true)
+                    console.log("clicked");
+                    
+                  }}
                   disabled={!selectedParentId}
                   sx={{
+                    cursor:"pointer",
                     borderRadius: 2,
                     textTransform: "none",
                     px: 3,

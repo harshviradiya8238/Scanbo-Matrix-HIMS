@@ -38,6 +38,7 @@ import { getPatientByMrn } from '@/src/mocks/global-patients';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { setResultState, updateResult } from '@/src/store/slices/labSlice';
 import { LabResult, ResultFlag, ResultState } from '@/src/core/laboratory/types';
+import { getActiveInfectionCaseByMrn } from '@/src/mocks/infection-control';
 
 type ResultDetailState = {
   testName: string;
@@ -123,6 +124,11 @@ export default function LabResultsPage() {
   const pageSubtitleResolved = mrnParam
     ? formatPatientLabel(patientFromMrn?.name ?? selectedResult?.patientName, mrnParam)
     : formatPatientLabel(selectedResult?.patientName, selectedResult?.mrn);
+
+  const activeInfectionCase = React.useMemo(
+    () => getActiveInfectionCaseByMrn(mrnParam || selectedResult?.mrn || ''),
+    [mrnParam, selectedResult?.mrn]
+  );
 
   React.useEffect(() => {
     if (results.length === 0) {
@@ -300,7 +306,7 @@ export default function LabResultsPage() {
           chips={[{ label: 'Laboratory', color: 'primary' }, { label: 'Pathology Review', variant: 'outlined' }]}
           actions={
             <>
-              <Button variant="outlined" startIcon={<ScienceIcon />} onClick={() => router.push('/diagnostics/lab/samples')}>
+              <Button variant="outlined" startIcon={<ScienceIcon />} onClick={() => router.push(withMrn('/lab/samples'))}>
                 Open Samples
               </Button>
               <Button variant="contained" startIcon={<LocalHospitalIcon />} onClick={() => router.push(withMrn('/patients/profile'))}>
@@ -309,6 +315,28 @@ export default function LabResultsPage() {
             </>
           }
         />
+
+        {activeInfectionCase ? (
+          <Alert
+            severity="warning"
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() =>
+                  router.push(
+                    `/clinical/modules/bugsy-infection-control?mrn=${encodeURIComponent(activeInfectionCase.mrn)}`
+                  )
+                }
+              >
+                Open Case
+              </Button>
+            }
+          >
+            Active infection case: {activeInfectionCase.organism} · {activeInfectionCase.icStatus} ·{' '}
+            {activeInfectionCase.isolationType} isolation. Preserve infection precautions while validating results.
+          </Alert>
+        ) : null}
 
         <Grid container spacing={2} alignItems="stretch">
           <Grid item xs={12} md={4}>

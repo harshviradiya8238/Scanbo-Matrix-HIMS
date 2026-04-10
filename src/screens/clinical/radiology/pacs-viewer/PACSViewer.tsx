@@ -5,135 +5,13 @@ import {
   Box,
   Stack,
   Typography,
-  Tooltip,
-  IconButton,
   Slider,
-  Avatar,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  TextField,
-  InputAdornment,
-  List,
-  ListItemButton,
-  ListItemAvatar,
-  ListItemText,
-  Chip,
-  Button,
 } from "@mui/material";
-
-// ─── Design tokens ────────────────────────────────────────────────────────────
-const BRAND       = "#1172BA";
-const BRAND_DARK  = "#0D5A94";
-const BRAND_DEEPER = "#0A4472";
-const BRAND_MID   = "#5BA4D4";
-const VIEWER_BG   = "#0A0E14";
-const DARK_BORDER = "rgba(255,255,255,0.1)";
-const DARK_TEXT   = "rgba(255,255,255,0.65)";
-
-// ─── Tool button ─────────────────────────────────────────────────────────────
-function ToolBtn({
-  id, active, danger, title, onClick, children,
-}: {
-  id?: string; active?: boolean; danger?: boolean; title: string;
-  onClick?: () => void; children: React.ReactNode;
-}) {
-  return (
-    <Tooltip title={title} placement="bottom">
-      <Box
-        onClick={onClick}
-        sx={{
-          width: 34, height: 34, borderRadius: "9px",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          cursor: "pointer", flexShrink: 0,
-          border: "1.5px solid",
-          borderColor: danger ? "#FC8181" : active ? BRAND_MID : "transparent",
-          bgcolor: danger ? "#E53E3E" : active ? BRAND : "transparent",
-          transition: "all .15s",
-          "& svg": { color: danger || active ? "#fff" : DARK_TEXT },
-          "&:hover": {
-            bgcolor: danger ? "#C53030" : active ? BRAND_DARK : "rgba(255,255,255,0.1)",
-            borderColor: danger ? "#FC8181" : active ? BRAND_MID : "rgba(255,255,255,0.2)",
-            "& svg": { color: "#fff" },
-          },
-        }}
-      >
-        {children}
-      </Box>
-    </Tooltip>
-  );
-}
-
-// ─── SVG icons (inline, no external deps) ─────────────────────────────────────
-const Icon = ({ d, size = 16, viewBox = "0 0 16 16" }: { d: string; size?: number; viewBox?: string }) => (
-  <svg width={size} height={size} viewBox={viewBox} fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d={d} />
-  </svg>
-);
-
-const CircleIcon = ({ cx = 8, cy = 8, r = 5, extra = "" }) => (
-  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <circle cx={cx} cy={cy} r={r} />{extra && <path d={extra} />}
-  </svg>
-);
-
-// ─── Thumb items ──────────────────────────────────────────────────────────────
-const THUMBS = [
-  "radial-gradient(circle at 60% 40%,#2a3a4e,#0A0E14)",
-  "radial-gradient(circle at 50% 50%,#263040,#0A0E14)",
-  "radial-gradient(circle at 45% 55%,#2a3a4e,#0A0E14)",
-  "radial-gradient(circle at 55% 45%,#223040,#0A0E14)",
-  "radial-gradient(circle at 50% 50%,#1E2A38,#0A0E14)",
-  "radial-gradient(circle at 48% 52%,#243040,#0A0E14)",
-  "radial-gradient(circle at 52% 48%,#1E2A38,#0A0E14)",
-  "radial-gradient(circle at 50% 50%,#1E2A38,#0A0E14)",
-];
-
-// ─── DICOM data ───────────────────────────────────────────────────────────────
-const DICOM_SECTIONS = [
-  {
-    title: "Patient",
-    rows: [
-      { label: "Patient", value: "Rajesh Kumar" },
-      { label: "ID", value: "P10045" },
-      { label: "DOB", value: "1978-04-12" },
-      { label: "Sex", value: "M" },
-    ],
-  },
-  {
-    title: "Study",
-    rows: [
-      { label: "Modality", value: "CT" },
-      { label: "Date", value: "2026-03-27" },
-      { label: "Accession", value: "ACC-001" },
-      { label: "Institution", value: "Apollo Mumbai" },
-      { label: "Physician", value: "Dr. Sharma" },
-      { label: "Study UID", value: "1.2.840.10008.5.1.4.1", mono: true },
-    ],
-  },
-  {
-    title: "Acquisition",
-    rows: [
-      { label: "KVP", value: "120 kV" },
-      { label: "mAs", value: "250" },
-      { label: "Slice Thick", value: "5.00 mm" },
-      { label: "Pixel Spacing", value: "0.703\\0.703" },
-      { label: "Rows×Cols", value: "512×512" },
-      { label: "Bit Depth", value: "12-bit" },
-      { label: "Manufacturer", value: "Siemens Healthineers" },
-      { label: "Station", value: "CT_SCANNER_01" },
-    ],
-  },
-];
-
-// ─── Sample patients ─────────────────────────────────────────────────────────
-const PATIENTS = [
-  { id: "P10045", name: "Rajesh Kumar",   initials: "RK", dob: "1978-04-12", sex: "M", modality: "CT",  desc: "CT Chest w Contrast",  accession: "ACC-001", physician: "Dr. Sharma",  institution: "Apollo Mumbai", critical: true  },
-  { id: "P10046", name: "Priya Menon",    initials: "PM", dob: "1990-07-22", sex: "F", modality: "MRI", desc: "MRI Brain w/wo Contrast", accession: "ACC-002", physician: "Dr. Nair",    institution: "Fortis Delhi",  critical: false },
-  { id: "P10047", name: "Arun Sharma",    initials: "AS", dob: "1965-03-05", sex: "M", modality: "USG", desc: "USG Abdomen",           accession: "ACC-003", physician: "Dr. Patel",   institution: "Apollo Mumbai", critical: false },
-  { id: "P10048", name: "Sunita Joshi",   initials: "SJ", dob: "1982-11-18", sex: "F", modality: "CT",  desc: "CT Abdomen Pelvis",    accession: "ACC-004", physician: "Dr. Mehta",   institution: "Max Saket",     critical: true  },
-  { id: "P10049", name: "Vikram Reddy",   initials: "VR", dob: "1955-08-30", sex: "M", modality: "XR",  desc: "X-Ray Chest PA View",  accession: "ACC-005", physician: "Dr. Iyer",    institution: "Fortis Delhi",  critical: false },
-];
+import { DICOM_SECTIONS, PATIENTS, THUMBS } from "./utils/data";
+import PatientChangeDialog from "./components/PatientChangeDialog";
+import PatientInfoBar from "./components/PatientInfoBar";
+import { BRAND, BRAND_DEEPER, BRAND_MID, VIEWER_BG } from "./utils/tokens";
+import ViewerToolbar from "./components/ViewerToolbar";
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function PACSViewer() {
@@ -147,95 +25,6 @@ export default function PACSViewer() {
   const [patient, setPatient] = useState(PATIENTS[0]);
   const [changeOpen, setChangeOpen] = useState(false);
   const [search, setSearch] = useState("");
-
-  const tools = [
-    { id: "pan",      title: "Pan",          d: "M8 2v12M2 8h12M5 5l-3 3 3 3M11 5l3 3-3 3" },
-    { id: "zoom",     title: "Zoom",         custom: "zoom" },
-    { id: "bright",   title: "Brightness",   custom: "bright" },
-    { id: "length",   title: "Measure Length", d: "M2 14L14 2M2 10v4h4M10 2h4v4" },
-    { id: "freehand", title: "Freehand",     d: "M2 10c2-4 4-6 6-4s0 6 4 4" },
-    { id: "rect",     title: "Rectangle ROI", custom: "rect" },
-    { id: "ellipse",  title: "Ellipse ROI",  custom: "ellipse" },
-  ];
-
-  const tools2 = [
-    { id: "zoomin",   title: "Zoom In",  custom: "zoomin" },
-    { id: "zoomout",  title: "Zoom Out", custom: "zoomout" },
-    { id: "undo",     title: "Undo",     d: "M3 7a5 5 0 105 5M3 3v4h4" },
-    { id: "redo",     title: "Redo",     d: "M13 7a5 5 0 11-5 5M13 3v4h-4" },
-    { id: "fliph",    title: "Flip H",   d: "M8 2v12M4 5L1 8l3 3M12 5l3 3-3 3" },
-    { id: "wl",       title: "W/L",      custom: "wl" },
-    { id: "annotate", title: "Annotate", d: "M3 13l2-4 7-7 2 2-7 7-4 2zM11 3l2 2" },
-  ];
-
-  function renderToolIcon(t: { id: string; title: string; d?: string; custom?: string }) {
-    if (t.d) return <Icon d={t.d} />;
-    if (t.custom === "zoom" || t.custom === "zoomin") {
-      return (
-        <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="7" cy="7" r="5" /><path d="M11 11l3 3M5 7h4M7 5v4" />
-        </svg>
-      );
-    }
-    if (t.custom === "zoomout") {
-      return (
-        <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="7" cy="7" r="5" /><path d="M11 11l3 3M5 7h4" />
-        </svg>
-      );
-    }
-    if (t.custom === "bright") {
-      return (
-        <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="8" cy="8" r="3" />
-          <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4" />
-        </svg>
-      );
-    }
-    if (t.custom === "rect") {
-      return (
-        <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="2" y="3" width="12" height="10" rx="1.5" />
-        </svg>
-      );
-    }
-    if (t.custom === "ellipse") {
-      return (
-        <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <ellipse cx="8" cy="8" rx="6" ry="4" />
-        </svg>
-      );
-    }
-    if (t.custom === "wl") {
-      return (
-        <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="8" cy="8" r="6" /><path d="M8 4v4l3 2" />
-        </svg>
-      );
-    }
-    return null;
-  }
-
-  const ToolSep = () => (
-    <Box sx={{ width: "1px", height: 28, bgcolor: DARK_BORDER, mx: "4px", flexShrink: 0 }} />
-  );
-
-  const DarkNavBtn = ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
-    <Box
-      onClick={onClick}
-      sx={{
-        width: 26, height: 26, borderRadius: "7px",
-        bgcolor: "rgba(255,255,255,0.07)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        cursor: "pointer", flexShrink: 0,
-        "& svg": { color: "rgba(255,255,255,0.6)" },
-        "&:hover": { bgcolor: "rgba(255,255,255,0.12)" },
-      }}
-    >
-      {children}
-    </Box>
-  );
 
   return (
     // Direct flex child of AppLayout's <main> (overflowY:auto flex-column)
@@ -257,155 +46,17 @@ export default function PACSViewer() {
           flexDirection: "column",
         }}
       >
-        {/* ── Viewer Toolbar ── */}
-        <Box
-          sx={{
-            bgcolor: BRAND_DEEPER, height: 52, flexShrink: 0,
-            display: "flex", alignItems: "center", px: "14px", gap: "6px",
-            borderBottom: `1px solid ${DARK_BORDER}`,
-          }}
-        >
-          {/* Tool group 1 */}
-          {tools.map((t) => (
-            <ToolBtn
-              key={t.id}
-              title={t.title}
-              active={activeTool === t.id}
-              onClick={() => setActiveTool(t.id)}
-            >
-              {renderToolIcon(t)}
-            </ToolBtn>
-          ))}
+        <ViewerToolbar
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          layout={layout}
+          setLayout={setLayout}
+        />
 
-          <ToolSep />
-
-          {/* Tool group 2 */}
-          {tools2.map((t) => (
-            <ToolBtn
-              key={t.id}
-              title={t.title}
-              active={activeTool === t.id}
-              onClick={() => setActiveTool(t.id)}
-            >
-              {renderToolIcon(t)}
-            </ToolBtn>
-          ))}
-
-          {/* OVL danger button */}
-          <ToolBtn title="OVL" danger>
-            <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="8" cy="8" r="6" /><path d="M8 4v4l3 2M5 8H3M13 8h-2" />
-            </svg>
-          </ToolBtn>
-
-          {/* Reset */}
-          <Box
-            sx={{
-              px: "14px", py: "6px", borderRadius: "9px",
-              bgcolor: "rgba(255,255,255,0.1)",
-              border: "1.5px solid rgba(255,255,255,0.2)",
-              fontSize: "11.5px", fontWeight: 700, color: "#fff",
-              cursor: "pointer", flexShrink: 0,
-              "&:hover": { bgcolor: "rgba(255,255,255,0.18)" },
-            }}
-          >
-            Reset
-          </Box>
-
-          <ToolSep />
-
-          {/* Layout buttons */}
-          <Stack direction="row" gap="3px">
-            {["1×1", "1×2", "2×2"].map((l) => (
-              <Box
-                key={l}
-                onClick={() => setLayout(l)}
-                sx={{
-                  px: "12px", py: "6px", borderRadius: "9px",
-                  border: "1.5px solid",
-                  borderColor: layout === l ? BRAND_MID : "rgba(255,255,255,0.2)",
-                  fontSize: "11.5px", fontWeight: 700,
-                  color: layout === l ? "#fff" : "rgba(255,255,255,0.7)",
-                  bgcolor: layout === l ? BRAND : "transparent",
-                  cursor: "pointer", whiteSpace: "nowrap",
-                  transition: "all .15s",
-                  "&:hover": {
-                    bgcolor: layout === l ? BRAND_DARK : "rgba(255,255,255,0.1)",
-                    color: "#fff",
-                  },
-                }}
-              >
-                {l}
-              </Box>
-            ))}
-          </Stack>
-        </Box>
-
-        {/* ── Patient Info Bar ── */}
-        <Box
-          sx={{
-            bgcolor: "#F5F8FB", height: 48, flexShrink: 0,
-            display: "flex", alignItems: "center", px: "18px", gap: 0,
-            borderBottom: "1px solid #DDE8F0",
-          }}
-        >
-          <Avatar sx={{ width: 32, height: 32, bgcolor: BRAND, fontSize: 11, fontWeight: 700, mr: "10px", flexShrink: 0 }}>
-            {patient.initials}
-          </Avatar>
-          <Box sx={{ flexShrink: 0 }}>
-            <Typography sx={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{patient.name}</Typography>
-            <Typography sx={{ fontSize: 10.5, color: "#9AAFBF", mt: "1px" }}>DOB: {patient.dob} · {patient.sex} · ID: {patient.id}</Typography>
-          </Box>
-
-          {[
-            { label: "Modality",    value: patient.modality },
-            { label: "Date",        value: "2026-03-27" },
-            { label: "Description", value: patient.desc },
-            { label: "Accession",   value: patient.accession },
-            { label: "Physician",   value: patient.physician },
-            { label: "Institution", value: patient.institution },
-          ].map((f) => (
-            <React.Fragment key={f.label}>
-              <Box sx={{ width: "1px", height: 28, bgcolor: "#DDE8F0", mx: "16px", flexShrink: 0 }} />
-              <Box sx={{ flexShrink: 0 }}>
-                <Typography sx={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: "#9AAFBF" }}>
-                  {f.label}
-                </Typography>
-                <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "#0D1B2A", mt: "1px" }}>
-                  {f.value}
-                </Typography>
-              </Box>
-            </React.Fragment>
-          ))}
-
-          <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
-            {patient.critical && (
-              <Box sx={{
-                px: "14px", py: "5px", borderRadius: "20px",
-                bgcolor: "#FEE2E2", border: "1.5px solid #FCA5A5",
-                color: "#991B1B", fontSize: "11.5px", fontWeight: 800, letterSpacing: "0.5px",
-              }}>
-                CRITICAL
-              </Box>
-            )}
-            <Box
-              onClick={() => { setSearch(""); setChangeOpen(true); }}
-              sx={{
-                px: "16px", py: "8px", borderRadius: "10px",
-                bgcolor: BRAND, color: "#fff",
-                fontSize: 12, fontWeight: 700,
-                display: "flex", alignItems: "center", gap: "6px",
-                cursor: "pointer", flexShrink: 0,
-                "&:hover": { bgcolor: BRAND_DARK },
-              }}
-            >
-              <svg width={13} height={13} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <circle cx="8" cy="6" r="3" /><path d="M3 14a5 5 0 0110 0M12 4l2 2-2 2" />
-              </svg>
-              Change Patient
-            </Box>
-          </Box>
-        </Box>
+        <PatientInfoBar
+          patient={patient}
+          onChangePatient={() => { setSearch(""); setChangeOpen(true); }}
+        />
 
         {/* ── Viewer Body ── */}
         <Box sx={{ flex: 1, display: "flex", minHeight: 0, overflow: "hidden" }}>
@@ -751,90 +402,14 @@ export default function PACSViewer() {
         </Box>
       </Box>
 
-      {/* ── Change Patient Dialog ── */}
-      <Dialog
+      <PatientChangeDialog
         open={changeOpen}
         onClose={() => setChangeOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: "16px", border: "1px solid #DDE8F0" } }}
-      >
-        <DialogTitle sx={{ pb: 1, fontWeight: 800, fontSize: 15 }}>
-          Change Patient
-          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400, mt: 0.5 }}>
-            Search and select a patient to load their study
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ pt: "8px !important" }}>
-          {/* Search */}
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Search by name, MRN, or accession..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            autoFocus
-            sx={{ mb: 2, "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <svg width={15} height={15} viewBox="0 0 16 16" fill="none" stroke="#9AAFBF" strokeWidth="2">
-                    <circle cx="7" cy="7" r="5" /><path d="M11 11l3 3" />
-                  </svg>
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          {/* Patient list */}
-          <List disablePadding>
-            {PATIENTS.filter((p) =>
-              !search ||
-              p.name.toLowerCase().includes(search.toLowerCase()) ||
-              p.id.toLowerCase().includes(search.toLowerCase()) ||
-              p.accession.toLowerCase().includes(search.toLowerCase())
-            ).map((p) => (
-              <ListItemButton
-                key={p.id}
-                selected={p.id === patient.id}
-                onClick={() => { setPatient(p); setChangeOpen(false); }}
-                sx={{
-                  borderRadius: "10px", mb: "6px",
-                  border: "1px solid",
-                  borderColor: p.id === patient.id ? BRAND : "#DDE8F0",
-                  bgcolor: p.id === patient.id ? "#E8F3FB" : "transparent",
-                  "&.Mui-selected": { bgcolor: "#E8F3FB" },
-                  "&:hover": { bgcolor: p.id === patient.id ? "#E8F3FB" : "#F5F8FB" },
-                }}
-              >
-                <ListItemAvatar>
-                  <Avatar sx={{ width: 36, height: 36, bgcolor: BRAND, fontSize: 12, fontWeight: 700 }}>
-                    {p.initials}
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <Typography sx={{ fontWeight: 700, fontSize: 13 }}>{p.name}</Typography>
-                      <Typography sx={{ fontSize: 11, color: "#9AAFBF" }}>{p.id}</Typography>
-                      {p.critical && (
-                        <Box sx={{ px: "8px", py: "2px", borderRadius: "20px", bgcolor: "#FEE2E2", border: "1px solid #FCA5A5", color: "#991B1B", fontSize: 10, fontWeight: 800 }}>
-                          CRITICAL
-                        </Box>
-                      )}
-                    </Box>
-                  }
-                  secondary={
-                    <Typography sx={{ fontSize: 11.5, color: "#5A7184", mt: 0.25 }}>
-                      {p.modality} · {p.desc} · {p.physician}
-                    </Typography>
-                  }
-                />
-              </ListItemButton>
-            ))}
-          </List>
-        </DialogContent>
-      </Dialog>
+        patient={patient}
+        search={search}
+        setSearch={setSearch}
+        setPatient={setPatient}
+      />
     </Box>
 
   );

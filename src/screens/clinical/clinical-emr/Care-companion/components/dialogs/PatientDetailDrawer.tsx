@@ -21,6 +21,7 @@ import {
   Typography,
 } from "@/src/ui/components/atoms";
 import CommonTabs from "@/src/ui/components/molecules/CommonTabs";
+import { useSnackbar } from "@/src/ui/components/molecules/Snackbarcontext";
 import { alpha, useTheme } from "@/src/ui/theme";
 import type { Theme } from "@mui/material";
 import {
@@ -82,6 +83,106 @@ interface PatientDetailDrawerProps {
   editMode?: boolean;
   onClosePlanClick?: (patient: PatientDetailPatient) => void;
 }
+
+interface ScheduleItem {
+  id: string;
+  time: string;
+  title: string;
+  sub: string;
+  icon: React.ElementType;
+}
+
+interface ScheduleSection {
+  heading: "Today" | "Tomorrow";
+  items: ScheduleItem[];
+}
+
+interface CheckInEntry {
+  id: string;
+  dateLabel: string;
+  bp: string;
+  glucose: string;
+  hr: string;
+  spo2: string;
+  weight: string;
+  medsStatus: "Taken" | "Missed 1" | "Missed";
+  mood: string;
+  note?: string;
+}
+
+const DEFAULT_SCHEDULE_SECTIONS: ScheduleSection[] = [
+  {
+    heading: "Today",
+    items: [
+      {
+        id: "today-8am",
+        time: "8:00 AM",
+        title: "Morning Medications",
+        sub: "Aspirin + Metoprolol",
+        icon: MedicationIcon,
+      },
+      {
+        id: "today-10am",
+        time: "10:00 AM",
+        title: "BP Check",
+        sub: "Target <130/85",
+        icon: HeartOutlineIcon,
+      },
+      {
+        id: "today-2pm",
+        time: "2:00 PM",
+        title: "PROM Survey",
+        sub: "Weekly outcomes form",
+        icon: AssignmentIcon,
+      },
+      {
+        id: "today-4pm",
+        time: "4:00 PM",
+        title: "Evening Medication",
+        sub: "Metoprolol 25mg",
+        icon: MedicationIcon,
+      },
+    ],
+  },
+  {
+    heading: "Tomorrow",
+    items: [
+      {
+        id: "tomorrow-8am",
+        time: "8:00 AM",
+        title: "Morning Medications",
+        sub: "Aspirin + Metoprolol",
+        icon: MedicationIcon,
+      },
+      {
+        id: "tomorrow-11am",
+        time: "11:00 AM",
+        title: "Tele-Consultation",
+        sub: "Weekly review call",
+        icon: PhoneIcon,
+      },
+    ],
+  },
+];
+
+const toDisplayTime = (value: string) => {
+  const [hourPart = "08", minutePart = "00"] = value.split(":");
+  const hour = Number(hourPart);
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const normalizedHour = hour % 12 || 12;
+  return `${normalizedHour}:${minutePart} ${suffix}`;
+};
+
+const getScheduleIcon = (type: string) => {
+  switch (type) {
+    case "BP Check":
+      return HeartOutlineIcon;
+    case "Call":
+      return PhoneIcon;
+    default:
+      return MedicationIcon;
+  }
+};
 
 function getStatusConfig(status: string, theme: Theme) {
   switch (status) {
@@ -313,6 +414,7 @@ export default function PatientDetailDrawer({
   onClosePlanClick,
 }: PatientDetailDrawerProps) {
   const theme = useTheme();
+  const { success, error, info } = useSnackbar();
   const [activeTab, setActiveTab] = React.useState("overview");
   const [painLevel, setPainLevel] = React.useState<number | null>(null);
   const [mood, setMood] = React.useState<string | null>(null);
@@ -334,6 +436,26 @@ export default function PatientDetailDrawer({
     "tomorrow-8am": "pending",
     "tomorrow-11am": "pending",
   });
+  const [scheduleSections, setScheduleSections] = React.useState<ScheduleSection[]>(
+    DEFAULT_SCHEDULE_SECTIONS,
+  );
+  const [scheduleDraft, setScheduleDraft] = React.useState({
+    time: "08:00",
+    day: "Today",
+    type: "Medication",
+    title: "",
+  });
+  const [checkInDraft, setCheckInDraft] = React.useState({
+    systolicBp: "",
+    diastolicBp: "",
+    glucose: "",
+    heartRate: "82",
+    spo2: "97",
+    weight: "74",
+    medsStatus: "all",
+    doctorNote: "",
+  });
+  const [checkInHistory, setCheckInHistory] = React.useState<CheckInEntry[]>([]);
 
   React.useEffect(() => {
     if (open) {
@@ -353,8 +475,61 @@ export default function PatientDetailDrawer({
         "tomorrow-8am": "pending",
         "tomorrow-11am": "pending",
       });
+      setScheduleSections(DEFAULT_SCHEDULE_SECTIONS);
+      setScheduleDraft({
+        time: "08:00",
+        day: "Today",
+        type: "Medication",
+        title: "",
+      });
+      setCheckInDraft({
+        systolicBp: patient?.bp?.split("/")[0] ?? "",
+        diastolicBp: patient?.bp?.split("/")[1] ?? "",
+        glucose: patient?.glucose ?? "",
+        heartRate: "82",
+        spo2: "97",
+        weight: "74",
+        medsStatus: "all",
+        doctorNote: "",
+      });
+      setCheckInHistory([
+        {
+          id: "checkin-today",
+          dateLabel: "Today 8:42 AM",
+          bp: patient?.bp ?? "—",
+          glucose: patient?.glucose ?? "—",
+          hr: "82",
+          spo2: "97%",
+          weight: "74 kg",
+          medsStatus: "Missed",
+          mood: "Anxious",
+          note: "Chest discomfort reported",
+        },
+        {
+          id: "checkin-yesterday",
+          dateLabel: "Yesterday",
+          bp: patient?.bp ?? "—",
+          glucose: patient?.glucose ?? "—",
+          hr: "79",
+          spo2: "98%",
+          weight: "74 kg",
+          medsStatus: "Taken",
+          mood: "Okay",
+        },
+        {
+          id: "checkin-mar8",
+          dateLabel: "Mar 8",
+          bp: patient?.bp ?? "—",
+          glucose: patient?.glucose ?? "—",
+          hr: "81",
+          spo2: "97%",
+          weight: "75 kg",
+          medsStatus: "Taken",
+          mood: "Good",
+        },
+      ]);
     }
-  }, [open, editMode]);
+  }, [open, editMode, patient?.bp, patient?.glucose]);
 
   if (!patient) return null;
 
@@ -367,6 +542,113 @@ export default function PatientDetailDrawer({
   const note =
     patient.note ??
     "Patient allergic to Penicillin. Low activity. Needs daily BP check.";
+
+  const handleAddScheduleItem = () => {
+    const title = scheduleDraft.title.trim();
+    if (!title) {
+      error("Please enter a title before adding a schedule item.");
+      return;
+    }
+
+    const itemId = `${scheduleDraft.day.toLowerCase()}-${Date.now()}`;
+    const nextItem: ScheduleItem = {
+      id: itemId,
+      time: toDisplayTime(scheduleDraft.time),
+      title,
+      sub: scheduleDraft.type,
+      icon: getScheduleIcon(scheduleDraft.type),
+    };
+
+    setScheduleSections((prev) =>
+      prev.map((section) =>
+        section.heading === scheduleDraft.day
+          ? { ...section, items: [...section.items, nextItem] }
+          : section,
+      ),
+    );
+    setScheduleStatus((prev) => ({ ...prev, [itemId]: "pending" }));
+    setScheduleDraft((prev) => ({ ...prev, title: "" }));
+    success(`${title} added to ${scheduleDraft.day}'s schedule.`);
+  };
+
+  const handleAudioCall = () => {
+    info(`Audio call started for ${patient.name}.`);
+  };
+
+  const handleVideoCall = () => {
+    info(`Video call started for ${patient.name}.`);
+  };
+
+  const handleLogCheckIn = () => {
+    setActiveTab("checkin");
+    info("Moved to Check-in tab.");
+  };
+
+  const handleSubmitCheckIn = () => {
+    if (
+      !checkInDraft.systolicBp.trim() ||
+      !checkInDraft.diastolicBp.trim() ||
+      !checkInDraft.glucose.trim() ||
+      !checkInDraft.heartRate.trim() ||
+      !checkInDraft.spo2.trim() ||
+      !checkInDraft.weight.trim()
+    ) {
+      error("Please complete all check-in vitals before submitting.");
+      return;
+    }
+
+    const medsStatusMap: Record<string, CheckInEntry["medsStatus"]> = {
+      all: "Taken",
+      missed1: "Missed 1",
+      missedall: "Missed",
+    };
+    const moodMap: Record<string, string> = {
+      good: "Good",
+      okay: "Okay",
+      sad: "Sad",
+      anxious: "Anxious",
+      tired: "Tired",
+      frustrated: "Frustrated",
+    };
+    const now = new Date();
+    const nextEntry: CheckInEntry = {
+      id: `checkin-${Date.now()}`,
+      dateLabel: `Today ${now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`,
+      bp: `${checkInDraft.systolicBp.trim()}/${checkInDraft.diastolicBp.trim()}`,
+      glucose: checkInDraft.glucose.trim(),
+      hr: checkInDraft.heartRate.trim(),
+      spo2: `${checkInDraft.spo2.trim()}%`,
+      weight: `${checkInDraft.weight.trim()} kg`,
+      medsStatus: medsStatusMap[checkInDraft.medsStatus] ?? "Taken",
+      mood: mood ? (moodMap[mood] ?? mood) : "Not recorded",
+      note: checkInDraft.doctorNote.trim() || undefined,
+    };
+
+    setCheckInHistory((prev) => [nextEntry, ...prev.slice(0, 4)]);
+    setActiveTab("monitoring");
+    success("Check-in logged successfully.");
+  };
+
+  const handleSaveCarePlan = () => {
+    success("Care plan saved successfully.");
+  };
+
+  const latestCheckIn = checkInHistory[0];
+  const medicationAdherence = (() => {
+    const relevant = checkInHistory.slice(0, 5);
+    if (relevant.length === 0) return patient.adherence;
+    const score = relevant.reduce((total, item) => {
+      if (item.medsStatus === "Taken") return total + 1;
+      if (item.medsStatus === "Missed 1") return total + 0.5;
+      return total;
+    }, 0);
+    return Math.round((score / relevant.length) * 100);
+  })();
+  const checkInCompletion = (() => {
+    const relevant = checkInHistory.slice(0, 5);
+    if (relevant.length === 0) return 0;
+    return Math.round((relevant.length / 5) * 100);
+  })();
 
   return (
     <Drawer
@@ -532,7 +814,7 @@ export default function PatientDetailDrawer({
                 <Grid container direction="row" spacing={1.25} sx={{ mt: 1 }} wrap="wrap">
                   <Grid item xs={12} lg={6}><VitalCard
                     label="Blood Pressure"
-                    value={patient.bp ?? "—"}
+                    value={latestCheckIn?.bp ?? patient.bp ?? "—"}
                     unit="mmHg"
                     status={patient.bpAlert ? "↑ Above target" : "✓ Normal"}
                     isAlert={patient.bpAlert}
@@ -540,21 +822,21 @@ export default function PatientDetailDrawer({
                   /></Grid>
                   <Grid item xs={12} lg={6}><VitalCard
                     label="Blood Glucose"
-                    value={patient.glucose ?? "—"}
+                    value={latestCheckIn?.glucose ?? patient.glucose ?? "—"}
                     unit="mg/dL"
                     status="✓ Normal"
                     icon={BloodtypeIcon}
                   /></Grid>
                   <Grid item xs={12} lg={6}><VitalCard
                     label="Heart Rate"
-                    value="82"
+                    value={latestCheckIn?.hr ?? "82"}
                     unit="bpm"
                     status="✓ Normal"
                     icon={FavoriteIcon}
                   /></Grid>
                   <Grid item xs={12} lg={6}> <VitalCard
                     label="SpO₂"
-                    value="97%"
+                    value={latestCheckIn?.spo2 ?? "97%"}
                     unit="Oxygen Sat."
                     status="✓ Normal"
                     icon={AirIcon}
@@ -624,22 +906,22 @@ export default function PatientDetailDrawer({
                   }}
                 >
                   <ActivityRow
-                    date="Today 8:42 AM"
-                    bp={patient.bp ?? "—"}
-                    glucose={patient.glucose ?? "—"}
-                    note="Chest discomfort reported"
+                    date={checkInHistory[0]?.dateLabel ?? "Today 8:42 AM"}
+                    bp={checkInHistory[0]?.bp ?? patient.bp ?? "—"}
+                    glucose={checkInHistory[0]?.glucose ?? patient.glucose ?? "—"}
+                    note={checkInHistory[0]?.note}
                     dotColor={theme.palette.error.main}
                   />
                   <ActivityRow
-                    date="Yesterday"
-                    bp={patient.bp ?? "—"}
-                    glucose={patient.glucose ?? "—"}
+                    date={checkInHistory[1]?.dateLabel ?? "Yesterday"}
+                    bp={checkInHistory[1]?.bp ?? patient.bp ?? "—"}
+                    glucose={checkInHistory[1]?.glucose ?? patient.glucose ?? "—"}
                     dotColor={theme.palette.success.main}
                   />
                   <ActivityRow
-                    date="Mar 8"
-                    bp={patient.bp ?? "—"}
-                    glucose={patient.glucose ?? "—"}
+                    date={checkInHistory[2]?.dateLabel ?? "Mar 8"}
+                    bp={checkInHistory[2]?.bp ?? patient.bp ?? "—"}
+                    glucose={checkInHistory[2]?.glucose ?? patient.glucose ?? "—"}
                     dotColor={theme.palette.success.main}
                     last
                   />
@@ -666,7 +948,7 @@ export default function PatientDetailDrawer({
                     { k: "Phone", v: maskMobileNumber(phone) },
                     { k: "Language", v: patient.language },
                     { k: "Wearable", v: patient.platforms[0] ?? "—" },
-                    { k: "Adherence", v: `${patient.adherence}%` },
+                    { k: "Adherence", v: `${medicationAdherence}%` },
                   ].map(({ k, v }, i, arr) => (
                     <Grid
                       key={k}
@@ -745,44 +1027,50 @@ export default function PatientDetailDrawer({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {(["Today 8:42 AM", "Yesterday", "Mar 8"] as const).map((d, i) => (
+                      {checkInHistory.map((entry) => (
                         <TableRow
-                          key={d}
+                          key={entry.id}
                           sx={{ "&:last-child td": { border: 0 }, "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}
                         >
                           <TableCell>
                             <Typography variant="caption" fontWeight={600} color="text.secondary">
-                              {d}
+                              {entry.dateLabel}
                             </Typography>
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" color="error.main" fontWeight={700}>
-                              {patient.bp ?? "—"}
+                              {entry.bp}
                             </Typography>
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" color="success.main" fontWeight={700}>
-                              {patient.glucose ?? "—"}
+                              {entry.glucose}
                             </Typography>
                           </TableCell>
-                          <TableCell>{[82, 79, 81][i]}</TableCell>
-                          <TableCell>{[97, 98, 97][i]}%</TableCell>
+                          <TableCell>{entry.hr}</TableCell>
+                          <TableCell>{entry.spo2}</TableCell>
                           <TableCell>
                             <Chip
                               size="small"
-                              label={i === 0 ? "Missed" : "Taken"}
+                              label={entry.medsStatus}
                               sx={{
                                 height: 20,
                                 fontSize: "0.62rem",
                                 fontWeight: 700,
-                                bgcolor: i === 0 ? alpha(theme.palette.error.main, 0.1) : alpha(theme.palette.success.main, 0.1),
-                                color: i === 0 ? "error.main" : "success.main",
+                                bgcolor:
+                                  entry.medsStatus === "Taken"
+                                    ? alpha(theme.palette.success.main, 0.1)
+                                    : alpha(theme.palette.error.main, 0.1),
+                                color:
+                                  entry.medsStatus === "Taken"
+                                    ? "success.main"
+                                    : "error.main",
                               }}
                             />
                           </TableCell>
                           <TableCell>
                             <Typography variant="caption" color="text.secondary">
-                              {["Anxious", "Okay", "Good"][i]}
+                              {entry.mood}
                             </Typography>
                           </TableCell>
                         </TableRow>
@@ -808,8 +1096,8 @@ export default function PatientDetailDrawer({
                 >
                   <Grid container direction="column" spacing={2}>
                     {[
-                      { label: "Medication", icon: MedicationIcon, value: patient.adherence, color: theme.palette.primary.main },
-                      { label: "Check-ins", icon: ScheduleIcon, value: 58, color: theme.palette.warning.main },
+                      { label: "Medication", icon: MedicationIcon, value: medicationAdherence, color: theme.palette.primary.main },
+                      { label: "Check-ins", icon: ScheduleIcon, value: checkInCompletion, color: theme.palette.warning.main },
                       { label: "PROMs", icon: AssignmentIcon, value: 33, color: theme.palette.error.main },
                     ].map(({ label, icon: Icon, value, color }) => (
                       <Grid item key={label}>
@@ -848,24 +1136,7 @@ export default function PatientDetailDrawer({
           {/* ──── SCHEDULE ──── */}
           {activeTab === "schedule" && (
             <Grid container direction="column" spacing={3}>
-              {[
-                {
-                  heading: "Today",
-                  items: [
-                    { id: "today-8am", time: "8:00 AM", title: "Morning Medications", sub: "Aspirin + Metoprolol", icon: MedicationIcon },
-                    { id: "today-10am", time: "10:00 AM", title: "BP Check", sub: "Target <130/85", icon: HeartOutlineIcon },
-                    { id: "today-2pm", time: "2:00 PM", title: "PROM Survey", sub: "Weekly outcomes form", icon: AssignmentIcon },
-                    { id: "today-4pm", time: "4:00 PM", title: "Evening Medication", sub: "Metoprolol 25mg", icon: MedicationIcon },
-                  ],
-                },
-                {
-                  heading: "Tomorrow",
-                  items: [
-                    { id: "tomorrow-8am", time: "8:00 AM", title: "Morning Medications", sub: "Aspirin + Metoprolol", icon: MedicationIcon },
-                    { id: "tomorrow-11am", time: "11:00 AM", title: "Tele-Consultation", sub: "Weekly review call", icon: PhoneIcon },
-                  ],
-                },
-              ].map((section) => (
+              {scheduleSections.map((section) => (
                 <Grid item key={section.heading}>
                 <Box>
                   <SectionLabel>{section.heading}</SectionLabel>
@@ -1008,7 +1279,13 @@ export default function PatientDetailDrawer({
                         size="small"
                         label="Time"
                         type="time"
-                        defaultValue="08:00"
+                        value={scheduleDraft.time}
+                        onChange={(event) =>
+                          setScheduleDraft((prev) => ({
+                            ...prev,
+                            time: event.target.value,
+                          }))
+                        }
                         sx={{ minWidth: 120, flex: "1 1 100px" }}
                         InputLabelProps={{ shrink: true }}
                       />
@@ -1016,7 +1293,13 @@ export default function PatientDetailDrawer({
                         size="small"
                         select
                         label="Day"
-                        defaultValue="Today"
+                        value={scheduleDraft.day}
+                        onChange={(event) =>
+                          setScheduleDraft((prev) => ({
+                            ...prev,
+                            day: event.target.value,
+                          }))
+                        }
                         sx={{ minWidth: 120, flex: "1 1 100px" }}
                       >
                         <MenuItem value="Today">Today</MenuItem>
@@ -1026,7 +1309,13 @@ export default function PatientDetailDrawer({
                         size="small"
                         select
                         label="Type"
-                        defaultValue="Medication"
+                        value={scheduleDraft.type}
+                        onChange={(event) =>
+                          setScheduleDraft((prev) => ({
+                            ...prev,
+                            type: event.target.value,
+                          }))
+                        }
                         sx={{ minWidth: 140, flex: "1 1 120px" }}
                       >
                         <MenuItem value="Medication">Medication</MenuItem>
@@ -1040,6 +1329,13 @@ export default function PatientDetailDrawer({
                       size="small"
                       label="Title"
                       placeholder="e.g. Morning Medication"
+                      value={scheduleDraft.title}
+                      onChange={(event) =>
+                        setScheduleDraft((prev) => ({
+                          ...prev,
+                          title: event.target.value,
+                        }))
+                      }
                       fullWidth
                     />
                   </Grid>
@@ -1048,6 +1344,7 @@ export default function PatientDetailDrawer({
                       variant="contained"
                       size="small"
                       disableElevation
+                      onClick={handleAddScheduleItem}
                       sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1.5 }}
                     >
                       + Add Item
@@ -1074,7 +1371,41 @@ export default function PatientDetailDrawer({
                     "SpO₂ (%)",
                     "Weight (kg)",
                   ].map((l) => (
-                    <Grid item key={l}><TextField size="small" label={l} placeholder="Enter value" fullWidth /></Grid>
+                    <Grid item key={l}><TextField
+                      size="small"
+                      label={l}
+                      placeholder="Enter value"
+                      fullWidth
+                      value={
+                        l === "Systolic BP"
+                          ? checkInDraft.systolicBp
+                          : l === "Diastolic BP"
+                            ? checkInDraft.diastolicBp
+                            : l === "Blood Glucose (mg/dL)"
+                              ? checkInDraft.glucose
+                              : l === "Heart Rate (bpm)"
+                                ? checkInDraft.heartRate
+                                : l === "SpO₂ (%)"
+                                  ? checkInDraft.spo2
+                                  : checkInDraft.weight
+                      }
+                      onChange={(event) =>
+                        setCheckInDraft((prev) => ({
+                          ...prev,
+                          [l === "Systolic BP"
+                            ? "systolicBp"
+                            : l === "Diastolic BP"
+                              ? "diastolicBp"
+                              : l === "Blood Glucose (mg/dL)"
+                                ? "glucose"
+                                : l === "Heart Rate (bpm)"
+                                  ? "heartRate"
+                                  : l === "SpO₂ (%)"
+                                    ? "spo2"
+                                    : "weight"]: event.target.value,
+                        }))
+                      }
+                    /></Grid>
                   ))}
                 </Grid>
               </Box>
@@ -1087,7 +1418,13 @@ export default function PatientDetailDrawer({
                   select
                   size="small"
                   fullWidth
-                  defaultValue="all"
+                  value={checkInDraft.medsStatus}
+                  onChange={(event) =>
+                    setCheckInDraft((prev) => ({
+                      ...prev,
+                      medsStatus: event.target.value,
+                    }))
+                  }
                   sx={{ mt: 1 }}
                   SelectProps={{
                     renderValue: (value) => {
@@ -1190,6 +1527,13 @@ export default function PatientDetailDrawer({
                   placeholder="e.g. Patient reported dizziness, recommended rest..."
                   size="small"
                   fullWidth
+                  value={checkInDraft.doctorNote}
+                  onChange={(event) =>
+                    setCheckInDraft((prev) => ({
+                      ...prev,
+                      doctorNote: event.target.value,
+                    }))
+                  }
                   sx={{ mt: 1 }}
                 />
               </Box>
@@ -1201,6 +1545,7 @@ export default function PatientDetailDrawer({
                 size="medium"
                 disableElevation
                 fullWidth
+                onClick={handleSubmitCheckIn}
                 sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1.5, py: 1.1 }}
               >
                 Submit Check-in
@@ -1352,6 +1697,7 @@ export default function PatientDetailDrawer({
                 size="medium"
                 disableElevation
                 fullWidth
+                onClick={handleSaveCarePlan}
                 sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1.5, py: 1.1 }}
               >
                 Save Care Plan
@@ -1380,6 +1726,7 @@ export default function PatientDetailDrawer({
               variant="outlined"
               size="small"
               startIcon={<PhoneIcon sx={{ fontSize: 18 }} />}
+              onClick={handleAudioCall}
               sx={{
                 flex: "1 1 calc(50% - 4px)",
                 minWidth: 0,
@@ -1397,6 +1744,7 @@ export default function PatientDetailDrawer({
               size="small"
               startIcon={<VideocamIcon sx={{ fontSize: 18 }} />}
               disableElevation
+              onClick={handleVideoCall}
               sx={{
                 flex: "1 1 calc(50% - 4px)",
                 minWidth: 0,
@@ -1413,6 +1761,7 @@ export default function PatientDetailDrawer({
               variant="outlined"
               size="small"
               startIcon={<AssignmentIcon sx={{ fontSize: 18 }} />}
+              onClick={handleLogCheckIn}
               sx={{
                 flex: "1 1 calc(50% - 4px)",
                 minWidth: 0,

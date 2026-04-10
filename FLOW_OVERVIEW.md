@@ -53,7 +53,7 @@ This document maps the full HIMS journey end-to-end and places every Epic module
 3. MyChart: Results viewing, messaging, online payments.
 
 ### 9. Infection Control and Safety
-1. Bugsy (Infection Control): Tracking infections, isolation, audits, actions.
+1. Bugsy (Infection Control): Global clinical safety layer for infection cases, isolation, audits, lab alerts, IPD bed/transfer context, rounds, and hospital reporting.
 
 ### 10. Interoperability and Population Health
 1. Care Everywhere: Sharing records with external providers.
@@ -79,7 +79,7 @@ Legend:
 | Clinical | EpicCare Inpatient / ClinDoc | Inpatient and Surgery | `/clinical/modules/inpatient-documentation-clindoc` (also `/ipd/rounds`) | Implemented |
 | Clinical | Epic Welcome Kiosk | Patient Access and Scheduling | `/clinical/modules/welcome-kiosk` | Implemented |
 | Clinical | Epic Care Companion | Post-care, Home Health, and Engagement | `/clinical/modules/care-companion` | Implemented |
-| Clinical | Bugsy (Infection Control) | Infection Control and Safety | `/clinical/modules/bugsy-infection-control` | Implemented |
+| Clinical | Bugsy (Infection Control) | Global clinical safety across Patient Profile, Diagnostics, IPD, and Reporting | `/clinical/modules/bugsy-infection-control` | Implemented |
 | Clinical | Epic Haiku | OPD Clinical Encounter | `/clinical/modules/haiku-mobile` | Placeholder |
 | Clinical | Epic Lumens | Diagnostics and Orders | `/clinical/modules/lumens-insights` | Placeholder |
 | Clinical | Epic Care Link | OPD Clinical Encounter | `/clinical/modules/care-link` | Placeholder |
@@ -122,6 +122,19 @@ IPD Flow
 2. `/ipd/beds`
 3. `/ipd/rounds`
 4. `/ipd/discharge`
+
+Infection Control Flow
+1. `/clinical/modules/bugsy-infection-control`
+2. `/patients/profile?mrn=MRN-XXXX`
+3. `/lab/analysis-results?mrn=MRN-XXXX`
+4. `/ipd/beds?mrn=MRN-XXXX`
+5. `/ipd/rounds?mrn=MRN-XXXX`
+
+Bugsy Current Status
+1. Implemented frontend flow: Detect -> Isolate -> Notify -> Audit -> Close.
+2. Covered: lab auto-flag concept, IPD-linked case creation, room map, dynamic patient PPE checklist, notification feed, audit checklist, closure confirmation, MRN-aware navigation, and global summary metrics.
+3. Still pending: dedicated contact tracing, outbreak dashboard, role-specific views, 48h escalation logic, real LIS/notification/regulatory integrations, and generated report download.
+4. Detailed mapping: `docs/INFECTION_CONTROL_GUIDE.md`.
 
 Patient Access
 1. `/patients/registration`

@@ -47,6 +47,7 @@ import { UserRole } from "@/src/core/navigation/types";
 import { useStaffStore } from "@/src/core/staff/staffStore";
 import { PATIENT } from "@/src/screens/patient-portal/patient-portal-mock-data";
 import { getOpdRoleFlowProfile } from "@/src/screens/opd/opd-role-flow";
+import { doctorData } from "@/src/mocks/doctorServer";
 import * as MuiIcons from "@mui/icons-material";
 
 interface HeaderProps {
@@ -79,7 +80,7 @@ export default function Header({
   const router = useRouter();
   const pathname = usePathname() ?? "";
   const { role, setRole } = useUser();
-  const { roles } = useStaffStore();
+  const { roles, users } = useStaffStore();
   const roleFlow = React.useMemo(() => getOpdRoleFlowProfile(role), [role]);
   const [userMenuAnchor, setUserMenuAnchor] =
     React.useState<null | HTMLElement>(null);
@@ -256,6 +257,29 @@ export default function Header({
       ),
     [roles, switchRoleIdSet],
   );
+
+  const doctorProfileRoute = React.useMemo(() => {
+    if (role !== "DOCTOR") return "/profile";
+
+    const staffDoctor = users.find(
+      (user) => user.roleId === "DOCTOR" && user.status === "active",
+    );
+    const normalizedStaffName = staffDoctor?.name
+      ?.replace(/^Dr\.\s*/i, "")
+      .trim()
+      .toLowerCase();
+    const matchedDoctor =
+      doctorData.find(
+        (doctor) =>
+          normalizedStaffName &&
+          doctor.name.replace(/^Dr\.\s*/i, "").trim().toLowerCase() ===
+            normalizedStaffName,
+      ) ?? doctorData[0];
+
+    return matchedDoctor
+      ? `/doctors/profile?doctorId=${encodeURIComponent(matchedDoctor.doctorId)}`
+      : "/doctors/profile";
+  }, [role, users]);
 
   const tileSx = (accentColor: string) => ({
     width: 36,
@@ -509,6 +533,18 @@ export default function Header({
                 </IconButton>
               </Tooltip>
             ))}
+            {role === "DOCTOR" ? (
+              <Tooltip title="My Profile">
+                <IconButton
+                  size="small"
+                  onClick={() => router.push(doctorProfileRoute)}
+                  aria-label="My Profile"
+                  sx={tileSx(theme.palette.info.main)}
+                >
+                  <PersonIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            ) : null}
             <Tooltip title="Notifications">
               <IconButton
                 size="small"
@@ -629,7 +665,9 @@ export default function Header({
               router.push(
                 role === "PATIENT_PORTAL"
                   ? "/patient-portal/profile"
-                  : "/profile",
+                  : role === "DOCTOR"
+                    ? doctorProfileRoute
+                    : "/profile",
               );
             }}
             sx={{ gap: 1.25 }}
@@ -647,7 +685,9 @@ export default function Header({
             >
               <PersonIcon sx={{ fontSize: 18 }} />
             </Box>
-            <Text sx={{ fontWeight: 600 }}>Profile</Text>
+            <Text sx={{ fontWeight: 600 }}>
+              {role === "DOCTOR" ? "My Profile" : "Profile"}
+            </Text>
           </MenuItem>
           <MenuItem
             onClick={() => {

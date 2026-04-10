@@ -22,22 +22,9 @@ import {
   updateEncounter,
   updateEncounterOrder,
 } from "@/src/store/slices/opdSlice";
-import {
-  OpdEncounterCase,
-  OrderCatalogItem,
-  OpdEncounterOrder,
-} from "../../../../opd-mock-data";
+import { OpdEncounterCase, OpdEncounterOrder } from "../../../../opd-mock-data";
 import OpdTable from "../../../../components/OpdTable";
 import { CommonDialog } from "@/src/ui/components/molecules";
-
-interface DraftOrderLine {
-  id: string;
-  catalogId: string;
-  orderName: string;
-  category: OrderCatalogItem["category"];
-  priority: "Routine" | "Urgent";
-  instructions: string;
-}
 
 interface OrdersTabProps {
   encounter: OpdEncounterCase | undefined;
@@ -101,7 +88,15 @@ const buildOrderLineFromCatalog = (
   category: item?.category ?? "Lab",
   priority: item?.defaultPriority ?? "Routine",
   instructions: "",
+  frequency: "Once",
+  duration: "",
 });
+
+import {
+  CommonOrderDialog,
+  DraftOrderLine,
+  OrderCatalogItem,
+} from "../../../../../clinical/components/CommonOrderDialog";
 
 export default function OrdersTab({
   encounter,
@@ -120,28 +115,11 @@ export default function OrdersTab({
   }, [allOrders, encounter?.id]);
 
   const [orderDialogOpen, setOrderDialogOpen] = React.useState(false);
-  const [orderCategoryFilter, setOrderCategoryFilter] = React.useState("All");
-  const [orderSearchQuery, setOrderSearchQuery] = React.useState("");
-  const [orderDraft, setOrderDraft] = React.useState<DraftOrderLine>(() =>
-    buildOrderLineFromCatalog(ORDER_CATALOG[0]),
-  );
   const [editingOrderId, setEditingOrderId] = React.useState<string | null>(
     null,
   );
-
-  const filteredOrderCatalog = React.useMemo(
-    () =>
-      ORDER_CATALOG.filter(
-        (item) =>
-          (orderCategoryFilter === "All" ||
-            item.category === orderCategoryFilter) &&
-          (item.name.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
-            item.category
-              .toLowerCase()
-              .includes(orderSearchQuery.toLowerCase())),
-      ),
-    [orderCategoryFilter, orderSearchQuery],
-  );
+  const [orderInitialData, setOrderInitialData] =
+    React.useState<DraftOrderLine | null>(null);
 
   const openOrderDialog = () => {
     if (
@@ -152,18 +130,14 @@ export default function OrdersTab({
     )
       return;
     setEditingOrderId(null);
-    setOrderDraft(buildOrderLineFromCatalog(ORDER_CATALOG[0]));
+    setOrderInitialData(null);
     setOrderDialogOpen(true);
   };
 
   const closeOrderDialog = () => {
     setOrderDialogOpen(false);
     setEditingOrderId(null);
-  };
-
-  const handleAddOrderFromCatalog = (item: OrderCatalogItem) => {
-    setOrderDraft(buildOrderLineFromCatalog(item));
-    setEditingOrderId(null);
+    setOrderInitialData(null);
   };
 
   const handleEditOrder = (orderId: string) => {
@@ -173,13 +147,15 @@ export default function OrdersTab({
     const fromCatalog = ORDER_CATALOG.find(
       (item) => item.name === selected.orderName,
     );
-    setOrderDraft({
+    setOrderInitialData({
       id: selected.id,
       catalogId: fromCatalog?.id ?? "",
       orderName: selected.orderName,
       category: selected.category,
       priority: selected.priority,
       instructions: selected.instructions || "",
+      frequency: "Once",
+      duration: "",
     });
     setEditingOrderId(selected.id);
     setOrderDialogOpen(true);
@@ -195,20 +171,9 @@ export default function OrdersTab({
     });
   };
 
-  const handleSaveOrder = () => {
+  const handleSaveOrder = (draft: DraftOrderLine) => {
     if (!guardRoleAction(canPlaceOrders, "save encounter orders")) return;
     if (!encounter) return;
-    const selectedCatalog = ORDER_CATALOG.find(
-      (item) => item.id === orderDraft.catalogId,
-    );
-    if (!selectedCatalog) {
-      setSnackbar({
-        open: true,
-        message: "Select an order from catalog.",
-        severity: "error",
-      });
-      return;
-    }
 
     const orderedAt = new Date().toLocaleTimeString([], {
       hour: "2-digit",
@@ -220,10 +185,10 @@ export default function OrdersTab({
         updateEncounterOrder({
           id: editingOrderId,
           changes: {
-            orderName: selectedCatalog.name,
-            category: selectedCatalog.category,
-            priority: orderDraft.priority,
-            instructions: orderDraft.instructions,
+            orderName: draft.orderName,
+            category: draft.category as any,
+            priority: draft.priority as any,
+            instructions: draft.instructions,
             orderedAt,
           },
         }),
@@ -242,11 +207,11 @@ export default function OrdersTab({
         id: `order-${Date.now()}`,
         encounterId: encounter.id,
         patientId: encounter.patientId,
-        orderName: selectedCatalog.name,
-        category: selectedCatalog.category,
-        priority: orderDraft.priority,
+        orderName: draft.orderName,
+        category: draft.category as any,
+        priority: draft.priority as any,
         status: "Pending",
-        instructions: orderDraft.instructions,
+        instructions: draft.instructions,
         orderedAt,
       }),
     );
@@ -350,161 +315,13 @@ export default function OrdersTab({
         ]}
       />
 
-      <CommonDialog
+      <CommonOrderDialog
         open={orderDialogOpen}
         onClose={closeOrderDialog}
-        maxWidth="md"
-        title={editingOrderId ? "Edit Order" : "Place New Orders"}
-        icon={<ScienceIcon fontSize="small" />}
-        contentDividers
-        content={
-          <Grid container spacing={2}>
-            {!editingOrderId && (
-              <Grid item xs={12} md={5}>
-                <Stack spacing={1.5}>
-                  <Stack direction="row" spacing={1}>
-                    <TextField
-                      select
-                      size="small"
-                      label="Category"
-                      value={orderCategoryFilter}
-                      onChange={(e) => setOrderCategoryFilter(e.target.value)}
-                      sx={{ minWidth: 120 }}
-                    >
-                      {ORDER_CATEGORIES.map((cat) => (
-                        <MenuItem key={cat} value={cat}>
-                          {cat}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField
-                      size="small"
-                      placeholder="Search catalog..."
-                      fullWidth
-                      value={orderSearchQuery}
-                      onChange={(e) => setOrderSearchQuery(e.target.value)}
-                    />
-                  </Stack>
-                  <Stack
-                    spacing={0.5}
-                    sx={{
-                      maxHeight: 300,
-                      overflowY: "auto",
-                      border: "1px solid",
-                      borderColor: "divider",
-                      borderRadius: 1,
-                      p: 0.5,
-                    }}
-                  >
-                    {filteredOrderCatalog.map((item) => (
-                      <Button
-                        key={item.id}
-                        variant={
-                          orderDraft.catalogId === item.id
-                            ? "contained"
-                            : "text"
-                        }
-                        size="small"
-                        fullWidth
-                        sx={{
-                          justifyContent: "flex-start",
-                          textAlign: "left",
-                          py: 0.75,
-                        }}
-                        onClick={() => handleAddOrderFromCatalog(item)}
-                      >
-                        <Stack>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {item.name}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            color="inherit"
-                            sx={{ opacity: 0.8 }}
-                          >
-                            {item.category}
-                          </Typography>
-                        </Stack>
-                      </Button>
-                    ))}
-                    {filteredOrderCatalog.length === 0 && (
-                      <Typography
-                        variant="caption"
-                        sx={{ p: 1, textAlign: "center" }}
-                      >
-                        No orders match search
-                      </Typography>
-                    )}
-                  </Stack>
-                </Stack>
-              </Grid>
-            )}
-            <Grid item xs={12} md={editingOrderId ? 12 : 7}>
-              <Stack spacing={1.5}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  Order Details
-                </Typography>
-                <TextField
-                  fullWidth
-                  disabled
-                  label="Selected Order"
-                  value={orderDraft.orderName || "Select an order from catalog"}
-                />
-                <Stack direction="row" spacing={1.2}>
-                  <TextField
-                    select
-                    fullWidth
-                    label="Priority"
-                    value={orderDraft.priority}
-                    onChange={(e) =>
-                      setOrderDraft((p: any) => ({
-                        ...p,
-                        priority: e.target.value as DraftOrderLine["priority"],
-                      }))
-                    }
-                  >
-                    {["Routine", "Urgent"].map((p) => (
-                      <MenuItem key={p} value={p}>
-                        {p}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                  <TextField
-                    fullWidth
-                    disabled
-                    label="Category"
-                    value={orderDraft.category || "--"}
-                  />
-                </Stack>
-                <TextField
-                  fullWidth
-                  multiline
-                  minRows={3}
-                  label="Instructions / Reason"
-                  value={orderDraft.instructions}
-                  onChange={(e) =>
-                    setOrderDraft((p: any) => ({
-                      ...p,
-                      instructions: e.target.value,
-                    }))
-                  }
-                />
-              </Stack>
-            </Grid>
-          </Grid>
-        }
-        actions={
-          <>
-            <Button onClick={closeOrderDialog}>Cancel</Button>
-            <Button
-              variant="contained"
-              startIcon={<ScienceIcon />}
-              onClick={handleSaveOrder}
-            >
-              {editingOrderId ? "Update Order" : "Place Order"}
-            </Button>
-          </>
-        }
+        onSave={handleSaveOrder}
+        catalog={ORDER_CATALOG}
+        categories={ORDER_CATEGORIES}
+        initialData={orderInitialData}
       />
     </Stack>
   );

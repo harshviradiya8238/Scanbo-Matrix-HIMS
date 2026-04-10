@@ -415,6 +415,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'LocalPharmacy',
         type: 'group',
         requiredPermissions: ['pharmacy.read'],
+        excludedRoles: ['DOCTOR'],
         order: 1,
         children: [
           {

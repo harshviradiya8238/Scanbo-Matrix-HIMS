@@ -1,150 +1,63 @@
-import * as React from "react";
-import { MenuItem, Stack, TextField } from "@/src/ui/components/atoms";
-import CommonDialog from "@/src/ui/components/molecules/CommonDialog";
-import { ANALYSTS, type LabWorksheet, type WorksheetStatus } from "../lab-types";
+'use client';
 
-interface AddWorksheetModalProps {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (payload: Omit<LabWorksheet, "id" | "samples">) => void;
-}
+import * as React from 'react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Stack, FormControl, InputLabel, MenuItem, Select } from '@/src/ui/components/atoms';
+import type { LabWorksheet } from '../lab-types';
+import { ANALYSTS } from '../lab-types';
 
-const DEPARTMENT_OPTIONS = [
-  "Biochemistry",
-  "Haematology",
-  "Microbiology",
-  "Serology",
-];
+const TEMPLATES = ['Biochemistry Panel', 'Hematology + UA', 'Microbiology', 'Neurology Panel', 'Immunology Panel'];
+const DEPTS = ['Biochemistry', 'Hematology', 'Microbiology', 'Immunology', 'Pathology'];
 
-const STATUS_OPTIONS: WorksheetStatus[] = [
-  "open",
-  "to_be_verified",
-  "verified",
-  "closed",
-];
+export default function AddWorksheetModal(props: { open: boolean; onClose: () => void; onSubmit: (form: Omit<LabWorksheet, 'id' | 'samples'>) => void }) {
+  const { open, onClose, onSubmit } = props;
+  const [template, setTemplate] = React.useState(TEMPLATES[0]);
+  const [dept, setDept] = React.useState(DEPTS[0]);
+  const [analyst, setAnalyst] = React.useState(ANALYSTS[0]);
+  const [notes, setNotes] = React.useState('');
 
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-export default function AddWorksheetModal({
-  open,
-  onClose,
-  onSubmit,
-}: AddWorksheetModalProps) {
-  const [template, setTemplate] = React.useState("");
-  const [department, setDepartment] = React.useState(DEPARTMENT_OPTIONS[0]);
-  const [analyst, setAnalyst] = React.useState(ANALYSTS[0] ?? "");
-  const [status, setStatus] = React.useState<WorksheetStatus>("open");
-  const [created, setCreated] = React.useState(todayIsoDate());
-  const [notes, setNotes] = React.useState("");
-
-  React.useEffect(() => {
-    if (!open) return;
-    setTemplate("");
-    setDepartment(DEPARTMENT_OPTIONS[0]);
-    setAnalyst(ANALYSTS[0] ?? "");
-    setStatus("open");
-    setCreated(todayIsoDate());
-    setNotes("");
-  }, [open]);
-
-  const canSubmit =
-    Boolean(template.trim()) &&
-    Boolean(department) &&
-    Boolean(analyst.trim()) &&
-    Boolean(created);
-
-  const handleSubmit = () => {
-    if (!canSubmit) return;
-    onSubmit({
-      template: template.trim(),
-      dept: department,
-      analyst: analyst.trim(),
-      status,
-      created,
-      notes: notes.trim(),
-    });
+  const handleClose = () => {
+    setTemplate(TEMPLATES[0]);
+    setDept(DEPTS[0]);
+    setAnalyst(ANALYSTS[0]);
+    setNotes('');
     onClose();
   };
 
+  const handleSubmit = () => {
+    onSubmit({ template, dept, analyst, status: 'open', created: new Date().toISOString().slice(0, 10), notes });
+    handleClose();
+  };
+
   return (
-    <CommonDialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      title="New Worksheet"
-      subtitle="Create a worksheet to assign and track samples."
-      onConfirm={handleSubmit}
-      confirmLabel="Create Worksheet"
-      contentDividers
-      confirmButtonProps={{ disabled: !canSubmit }}
-    >
-      <Stack spacing={1.5}>
-        <TextField
-          size="small"
-          label="Template"
-          value={template}
-          onChange={(event) => setTemplate(event.target.value)}
-          placeholder="e.g. Biochemistry Panel"
-        />
-        <TextField
-          select
-          size="small"
-          label="Department"
-          value={department}
-          onChange={(event) => setDepartment(event.target.value)}
-        >
-          {DEPARTMENT_OPTIONS.map((option) => (
-            <MenuItem key={option} value={option}>
-              {option}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          label="Analyst"
-          value={analyst}
-          onChange={(event) => setAnalyst(event.target.value)}
-        >
-          {ANALYSTS.map((option) => (
-            <MenuItem key={option} value={option}>
-              {option}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          label="Initial Status"
-          value={status}
-          onChange={(event) => setStatus(event.target.value as WorksheetStatus)}
-        >
-          {STATUS_OPTIONS.map((option) => (
-            <MenuItem key={option} value={option}>
-              {option.replaceAll("_", " ")}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          size="small"
-          type="date"
-          label="Created Date"
-          value={created}
-          onChange={(event) => setCreated(event.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-        <TextField
-          size="small"
-          label="Notes"
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          multiline
-          minRows={2}
-          placeholder="Optional notes"
-        />
-      </Stack>
-    </CommonDialog>
+    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+      <DialogTitle>New Worksheet</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          <FormControl size="small" fullWidth>
+            <InputLabel>Template</InputLabel>
+            <Select value={template} label="Template" onChange={(e) => setTemplate(e.target.value as string)}>
+              {TEMPLATES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <FormControl size="small" fullWidth>
+            <InputLabel>Department</InputLabel>
+            <Select value={dept} label="Department" onChange={(e) => setDept(e.target.value as string)}>
+              {DEPTS.map((d) => <MenuItem key={d} value={d}>{d}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <FormControl size="small" fullWidth>
+            <InputLabel>Analyst</InputLabel>
+            <Select value={analyst} label="Analyst" onChange={(e) => setAnalyst(e.target.value as string)}>
+              {ANALYSTS.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <TextField label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} multiline rows={2} size="small" fullWidth />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>Cancel</Button>
+        <Button variant="contained" onClick={handleSubmit}>Create Worksheet</Button>
+      </DialogActions>
+    </Dialog>
   );
 }
