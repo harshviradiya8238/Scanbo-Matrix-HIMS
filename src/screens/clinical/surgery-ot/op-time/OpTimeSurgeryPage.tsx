@@ -60,10 +60,11 @@ import {
   defaultScheduleForm,
 } from "./OpTimeData";
 
-import AddDischargeMedicationModal, { MedicationForm } from "./components/dialogs/AddDischargeMedicationModal";
+import AddDischargeMedicationModal from "./components/dialogs/AddDischargeMedicationModal";
 import AddIntraOpEventModal, { IntraOpEventForm } from "./components/dialogs/AddIntraOpEventModal";
 import AddIntraOpMedicationModal, { IntraOpMedicationForm } from "./components/dialogs/AddIntraOpMedicationModal";
 import VerifyInstrumentCountModal from "./components/dialogs/VerifyInstrumentCountModal";
+import type { MedicationForm } from "@/src/ui/components/forms/CommonMedicationForm";
 import { useSnackbar } from "@/src/ui/components/molecules/Snackbarcontext";
 
 export default function OpTimeSurgeryPage() {
