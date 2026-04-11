@@ -176,11 +176,10 @@ const AsapEmergencyPage = () => {
     handleUseExistingPatient,
     openTriageAssessment,
     openVitalsDialog,
-    openAssignBedModal,
     handleRegisterPatient,
     handleSaveTriage,
     handleOpenPatientChart,
-    handleConfirmAssignBed,
+    handleConfirmAssignBed: handleConfirmAssignBedWithForm,
     handleSetBedFree,
     handleSaveClinicalNote,
     handleAddOrder,
@@ -221,6 +220,24 @@ const AsapEmergencyPage = () => {
       setSelectedPatientId,
     ],
   );
+
+  const openAssignBedModal = React.useCallback(
+    (patientId: string, preferredBedId?: string) => {
+      setSelectedPatientId(patientId);
+      setAssignBedForm((prev) => ({
+        ...prev,
+        patientId,
+        bedId: preferredBedId ?? "",
+        notes: "",
+      }));
+      setAssignBedModalOpen(true);
+    },
+    [setSelectedPatientId],
+  );
+
+  const handleConfirmAssignBed = React.useCallback(() => {
+    handleConfirmAssignBedWithForm(assignBedForm);
+  }, [assignBedForm, handleConfirmAssignBedWithForm]);
 
   const getArrivalColumnsFor = React.useCallback(
     (context: "dashboard" | "triage" | string) => {

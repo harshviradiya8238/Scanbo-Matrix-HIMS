@@ -50,9 +50,27 @@ export function AssignBedModalContent({
 }: AssignBedModalContentProps) {
   if (!assignBedPatient) {
     return (
-      <Alert severity="info">
-        Select a patient from Arrivals & Triage to assign bed.
-      </Alert>
+      <Stack spacing={1.25}>
+        <Alert severity="info">
+          Select a patient from Arrivals & Triage to assign bed.
+        </Alert>
+        <TextField
+          size="small"
+          select
+          label="Patient"
+          value={assignBedForm.patientId}
+          onChange={(event) =>
+            handleAssignBedField("patientId", event.target.value)
+          }
+          fullWidth
+        >
+          {patients.map((patient) => (
+            <MenuItem key={patient.id} value={patient.id}>
+              {patient.id} · {patient.name} · {patient.triageLevel}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Stack>
     );
   }
 

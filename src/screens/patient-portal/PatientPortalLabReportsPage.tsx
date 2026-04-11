@@ -1215,7 +1215,7 @@ export default function PatientPortalLabReportsPage({
 
                     {filteredHistory.length >= 2 ? (
                       <Box sx={{ width: '100%' }}>
-                        <Box sx={{ width: '100%', overflow: 'hidden', height: 190, borderBottom: '1px solid', borderColor: 'divider', mb: 0.9, background: `repeating-linear-gradient(to bottom, transparent 0 30px, ${alpha(theme.palette.divider, 0.25)} 30px 31px)` }}>
+                        <Box sx={{ width: '100%', overflow: 'hidden', height: 190, mb: 0.9 }}>
                           <Sparkline
                             values={[...filteredHistory].reverse().map((h) => h.value)}
                             color={VITAL_STATUS_CFG[selectedVital.status].color}
