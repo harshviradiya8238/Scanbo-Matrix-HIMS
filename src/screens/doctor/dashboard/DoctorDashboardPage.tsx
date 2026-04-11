@@ -47,32 +47,32 @@ import { MOCK_CASES } from "@/src/screens/doctor/PatientCasesPage";
 const DOCTOR_UPCOMING_TASKS = [
   {
     id: "t1",
-    patient: "Rajesh Kumar",
-    mrn: "MRN-2024-001",
+    patient: "Aarav Nair",
+    mrn: "MRN-245781",
     type: "Review Lab Results",
     dueIn: "30 min",
     priority: "high",
   },
   {
     id: "t2",
-    patient: "Priya Sharma",
-    mrn: "MRN-2024-002",
+    patient: "Meera Joshi",
+    mrn: "MRN-245799",
     type: "Prescription Renewal",
     dueIn: "1 hr",
     priority: "normal",
   },
   {
     id: "t3",
-    patient: "Sneha Reddy",
-    mrn: "MRN-2024-004",
+    patient: "Fatima Khan",
+    mrn: "MRN-245811",
     type: "Post-op Note",
     dueIn: "2 hrs",
     priority: "normal",
   },
   {
     id: "t4",
-    patient: "Vikram Singh",
-    mrn: "MRN-2024-005",
+    patient: "Rahul Menon",
+    mrn: "MRN-245990",
     type: "Referral Letter",
     dueIn: "3 hrs",
     priority: "normal",
@@ -82,7 +82,7 @@ const DOCTOR_UPCOMING_TASKS = [
 const DOCTOR_ALERTS = [
   {
     id: "a1",
-    text: "Lab results ready for Amit Patel (MRN-2024-003)",
+    text: "Lab results ready for Ravi Iyer (MRN-245802)",
     severity: "info" as const,
   },
   {
@@ -92,12 +92,12 @@ const DOCTOR_ALERTS = [
   },
   {
     id: "a3",
-    text: "Sneha Reddy overdue on 30-day follow-up",
+    text: "Fatima Khan overdue on 30-day follow-up",
     severity: "error" as const,
   },
   {
     id: "a4",
-    text: "Critical BP reading flagged for Rajesh Kumar",
+    text: "Critical BP reading flagged for Aarav Nair",
     severity: "error" as const,
   },
 ];
@@ -105,8 +105,8 @@ const DOCTOR_ALERTS = [
 const IPD_PATIENTS = [
   {
     id: "ip1",
-    name: "Rohan Mehta",
-    mrn: "MRN-2024-101",
+    name: "Siddharth Roy",
+    mrn: "MRN-245817",
     ward: "General Ward B",
     bed: "B-04",
     diagnosis: "Pneumonia",
@@ -115,8 +115,8 @@ const IPD_PATIENTS = [
   },
   {
     id: "ip2",
-    name: "Ananya Joshi",
-    mrn: "MRN-2024-102",
+    name: "Sneha Patil",
+    mrn: "MRN-245991",
     ward: "ICU",
     bed: "ICU-02",
     diagnosis: "Post-CABG",
@@ -125,8 +125,8 @@ const IPD_PATIENTS = [
   },
   {
     id: "ip3",
-    name: "Suresh Gupta",
-    mrn: "MRN-2024-103",
+    name: "Arvind Sharma",
+    mrn: "MRN-245994",
     ward: "Surgical Ward",
     bed: "S-11",
     diagnosis: "Appendectomy",
@@ -138,8 +138,8 @@ const IPD_PATIENTS = [
 const LAB_RESULTS = [
   {
     id: "lr1",
-    patient: "Amit Patel",
-    mrn: "MRN-2024-003",
+    patient: "Ravi Iyer",
+    mrn: "MRN-245802",
     test: "CBC",
     result: "WBC: 12.4 k/µL",
     flag: "High",
@@ -147,8 +147,8 @@ const LAB_RESULTS = [
   },
   {
     id: "lr2",
-    patient: "Priya Sharma",
-    mrn: "MRN-2024-002",
+    patient: "Meera Joshi",
+    mrn: "MRN-245799",
     test: "HbA1c",
     result: "7.8%",
     flag: "Normal",
@@ -156,8 +156,8 @@ const LAB_RESULTS = [
   },
   {
     id: "lr3",
-    patient: "Rohan Mehta",
-    mrn: "MRN-2024-101",
+    patient: "Siddharth Roy",
+    mrn: "MRN-245817",
     test: "CXR",
     result: "Bilateral infiltrate",
     flag: "Abnormal",
@@ -168,8 +168,8 @@ const LAB_RESULTS = [
 const RECENT_PRESCRIPTIONS = [
   {
     id: "rx1",
-    patient: "Rajesh Kumar",
-    mrn: "MRN-2024-001",
+    patient: "Aarav Nair",
+    mrn: "MRN-245781",
     drug: "Amoxicillin 500mg",
     sig: "1 tab × 3/day × 7 days",
     issuedAt: "9:00 AM",
@@ -177,8 +177,8 @@ const RECENT_PRESCRIPTIONS = [
   },
   {
     id: "rx2",
-    patient: "Priya Sharma",
-    mrn: "MRN-2024-002",
+    patient: "Meera Joshi",
+    mrn: "MRN-245799",
     drug: "Metformin 500mg",
     sig: "1 tab × 2/day after meals",
     issuedAt: "9:45 AM",
@@ -186,8 +186,8 @@ const RECENT_PRESCRIPTIONS = [
   },
   {
     id: "rx3",
-    patient: "Sneha Reddy",
-    mrn: "MRN-2024-004",
+    patient: "Fatima Khan",
+    mrn: "MRN-245811",
     drug: "Paracetamol 650mg",
     sig: "SOS – max 4/day",
     issuedAt: "10:30 AM",
@@ -195,8 +195,8 @@ const RECENT_PRESCRIPTIONS = [
   },
   {
     id: "rx4",
-    patient: "Vikram Singh",
-    mrn: "MRN-2024-005",
+    patient: "Rahul Menon",
+    mrn: "MRN-245990",
     drug: "Cetirizine 10mg",
     sig: "1 tab × OD at bedtime",
     issuedAt: "11:15 AM",
@@ -207,8 +207,8 @@ const RECENT_PRESCRIPTIONS = [
 const RECENT_ORDERS = [
   {
     id: "or1",
-    patient: "Rohan Mehta",
-    mrn: "MRN-2024-101",
+    patient: "Siddharth Roy",
+    mrn: "MRN-245817",
     test: "Sputum Culture",
     priority: "Routine",
     status: "Pending",
@@ -216,8 +216,8 @@ const RECENT_ORDERS = [
   },
   {
     id: "or2",
-    patient: "Ananya Joshi",
-    mrn: "MRN-2024-102",
+    patient: "Sneha Patil",
+    mrn: "MRN-245991",
     test: "Echo & ECG",
     priority: "Urgent",
     status: "In Progress",
@@ -225,8 +225,8 @@ const RECENT_ORDERS = [
   },
   {
     id: "or3",
-    patient: "Suresh Gupta",
-    mrn: "MRN-2024-103",
+    patient: "Arvind Sharma",
+    mrn: "MRN-245994",
     test: "Post-op CXR",
     priority: "Routine",
     status: "Completed",
@@ -693,7 +693,7 @@ export default function DoctorDashboardPage() {
           <Grid item xs={12} md={6} lg={5}>
           <Card elevation={0} sx={{ p: 2, borderRadius: 2, height: "100%" }}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <SectionHeader icon={<LocalPharmacyIcon sx={{ fontSize: 20 }} />} title="Recent Prescriptions" action={<Button size="small" endIcon={<ArrowForwardIcon />} onClick={() => router.push("/ipd/orders-tests/orders")}>All Rx</Button>} />
+              <SectionHeader icon={<LocalPharmacyIcon sx={{ fontSize: 20 }} />} title="Recent Prescriptions" action={<Button size="small" endIcon={<ArrowForwardIcon />} onClick={() => router.push("/doctor/orders?tab=prescriptions")}>All Rx</Button>} />
               {RECENT_PRESCRIPTIONS.map((rx) => (
                 <Box
                   key={rx.id}
@@ -730,7 +730,7 @@ export default function DoctorDashboardPage() {
           <Grid item xs={12} md={6} lg={7}>
           <Card elevation={0} sx={{ p: 2, borderRadius: 2, height: "100%" }}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <SectionHeader icon={<BiotechIcon sx={{ fontSize: 20 }} />} title="Pending Lab Results" action={<Button size="small" endIcon={<ArrowForwardIcon />} onClick={() => router.push("/ipd/orders-tests/lab")}>All Results</Button>} />
+              <SectionHeader icon={<BiotechIcon sx={{ fontSize: 20 }} />} title="Pending Lab Results" action={<Button size="small" endIcon={<ArrowForwardIcon />} onClick={() => router.push("/doctor/orders?tab=lab")}>All Results</Button>} />
               {LAB_RESULTS.map((lr) => (
                 <Box
                   key={lr.id}
@@ -768,7 +768,7 @@ export default function DoctorDashboardPage() {
           <Grid item xs={12} md={6} lg={5}>
           <Card elevation={0} sx={{ p: 2, borderRadius: 2, height: "100%" }}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <SectionHeader icon={<ReceiptIcon sx={{ fontSize: 20 }} />} title="Recent Orders" action={<Button size="small" endIcon={<ArrowForwardIcon />} onClick={() => router.push("/ipd/orders-tests/orders")}>All Orders</Button>} />
+              <SectionHeader icon={<ReceiptIcon sx={{ fontSize: 20 }} />} title="Recent Orders" action={<Button size="small" endIcon={<ArrowForwardIcon />} onClick={() => router.push("/doctor/orders?tab=lab")}>All Orders</Button>} />
               {RECENT_ORDERS.map((order) => (
                 <Box
                   key={order.id}

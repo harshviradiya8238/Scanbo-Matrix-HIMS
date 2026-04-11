@@ -1,16 +1,12 @@
 import React from "react";
 import {
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   MenuItem,
   Stack,
   TextField,
   Alert,
 } from "@/src/ui/components/atoms";
 import Grid from "@/src/ui/components/layout/AlignedGrid";
+import { CommonDialog } from "@/src/ui/components/molecules";
 import { AddCircleOutline as AddCircleOutlineIcon } from "@mui/icons-material";
 import { CasePriority, ROOM_OPTIONS, ScheduleForm } from "../../OpTimeData";
 
@@ -33,14 +29,19 @@ export const OpTimeDialogs: React.FC<OpTimeDialogsProps> = ({
   handleScheduleCase,
 }) => {
   return (
-    <Dialog
+    <CommonDialog
       open={scheduleDialogOpen}
       onClose={() => setScheduleDialogOpen(false)}
+      title="Schedule New OT Case"
+      onConfirm={handleScheduleCase}
+      confirmLabel="Schedule & Open"
+      confirmButtonProps={{
+        startIcon: <AddCircleOutlineIcon fontSize="small" />,
+      }}
       fullWidth
       maxWidth="md"
+      contentDividers
     >
-      <DialogTitle sx={{ fontWeight: 700 }}>Schedule New OT Case</DialogTitle>
-      <DialogContent dividers>
         <Stack spacing={1.35} sx={{ pt: 0.5 }}>
           <Alert severity="info">
             Minimum required details are enough. Case opens directly in
@@ -164,17 +165,6 @@ export const OpTimeDialogs: React.FC<OpTimeDialogsProps> = ({
             </Grid>
           </Grid>
         </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setScheduleDialogOpen(false)}>Cancel</Button>
-        <Button
-          variant="contained"
-          onClick={handleScheduleCase}
-          startIcon={<AddCircleOutlineIcon fontSize="small" />}
-        >
-          Schedule & Open
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </CommonDialog>
   );
 };

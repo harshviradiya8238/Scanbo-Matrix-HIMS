@@ -51,6 +51,7 @@ const CustomTabPanel: React.FC<CustomTabPanelProps> = ({
 const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
   items = [],
   defaultValue = 0,
+  header,
   sx,
   tabsSx,
   orientation = "horizontal",
@@ -89,24 +90,31 @@ const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
           position: sticky ? "sticky" : "relative",
           top: 0,
           zIndex: 10,
-          p:1,
+          p: 1,
           borderRadius: 2,
           backgroundColor: showBackground ? "background.paper" : "transparent",
           borderColor: showBackground ? "divider" : "transparent",
           boxShadow: showBackground ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
           ...tabsSx,
         }}
       >
-        <CommonTabs
-          tabs={tabs}
-          value={tabValue.toString()}
-          onChange={(val) => {
-            const newValue = Number(val);
-            setTabValue(newValue);
-            if (onChange) onChange(newValue);
-          }}
-          variant="scrollable"
-        />
+        
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <CommonTabs
+            tabs={tabs}
+            value={tabValue.toString()}
+            onChange={(val) => {
+              const newValue = Number(val);
+              setTabValue(newValue);
+              if (onChange) onChange(newValue);
+            }}
+            variant="scrollable"
+          />
+        </Box>
+        {header && <Box sx={{ flexShrink: 0 }}>{header}</Box>}  
       </Box>
 
       <Box

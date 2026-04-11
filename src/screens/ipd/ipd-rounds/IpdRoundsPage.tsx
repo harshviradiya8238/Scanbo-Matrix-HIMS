@@ -32,24 +32,24 @@ import {
 } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
 import { useMrnParam } from "@/src/core/patients/useMrnParam";
-import { INPATIENT_STAYS } from "./ipd-mock-data";
+import { INPATIENT_STAYS } from "../ipd-mock-data";
 import { getPatientByMrn } from "@/src/mocks/global-patients";
 import { getActiveInfectionCaseByMrn } from "@/src/mocks/infection-control";
 import { useUser } from "@/src/core/auth/UserContext";
 import { canAccessRoute } from "@/src/core/navigation/route-access";
-import { ipdFormStylesSx } from "./components/ipd-ui";
+import { ipdFormStylesSx } from "../components/ipd-ui";
 import IpdPatientTopBar, {
   IPD_PATIENT_TOP_BAR_STICKY_OFFSET,
   IpdPatientOption,
   IpdPatientTopBarField,
-} from "./components/IpdPatientTopBar";
+} from "../components/IpdPatientTopBar";
 import {
   IpdEncounterRecord,
   IpdClinicalStatus,
   syncIpdEncounterClinical,
   syncIpdEncounterDischargeChecks,
   useIpdEncounters,
-} from "./ipd-encounter-context";
+} from "../ipd-encounter-context";
 import {
   AssignmentTurnedIn as AssignmentTurnedInIcon,
   Checklist as ChecklistIcon,
@@ -68,7 +68,8 @@ import {
   CommonOrderDialog,
   type DraftOrderLine,
   type OrderCatalogItem,
-} from "../clinical/components/CommonOrderDialog";
+} from "../../clinical/components/CommonOrderDialog";
+import CommonMedicationForm, { type CommonMedicationFormHandle } from "../../../ui/components/forms/CommonMedicationForm";
 
 type ClinicalTab =
   | "rounds"
@@ -1611,6 +1612,7 @@ export default function IpdRoundsPage() {
     plan: "",
   });
   const [medDialogOpen, setMedDialogOpen] = React.useState(false);
+  const medicationFormRef = React.useRef<CommonMedicationFormHandle>(null);
   const [medDialogError, setMedDialogError] = React.useState("");
   const [medDraft, setMedDraft] = React.useState({
     medication: "",
@@ -1715,9 +1717,9 @@ export default function IpdRoundsPage() {
           prescribedBy: consultant,
           updatedAt: shouldRefreshTimestamp
             ? new Date().toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
+              hour: "2-digit",
+              minute: "2-digit",
+            })
             : (existing?.updatedAt ??
               new Date().toLocaleTimeString([], {
                 hour: "2-digit",
@@ -1796,7 +1798,7 @@ export default function IpdRoundsPage() {
             patient={null}
             fields={[]}
             patientOptions={[]}
-            onSelectPatient={() => {}}
+            onSelectPatient={() => { }}
           />
         }
         currentPageTitle="Clinical Care Workspace"
@@ -2056,13 +2058,13 @@ export default function IpdRoundsPage() {
     return [
       ...(activeInfectionCase
         ? [
-            {
-              id: "infection",
-              label: "Infection",
-              value: `${activeInfectionCase.organism} · ${activeInfectionCase.icStatus}`,
-              tone: "error" as const,
-            },
-          ]
+          {
+            id: "infection",
+            label: "Infection",
+            value: `${activeInfectionCase.organism} · ${activeInfectionCase.icStatus}`,
+            tone: "error" as const,
+          },
+        ]
         : []),
       {
         id: "age-sex",
@@ -2237,11 +2239,11 @@ export default function IpdRoundsPage() {
           (order) =>
             order.id === orderId
               ? {
-                  ...order,
-                  status,
-                  statusUpdatedAt: statusStamp,
-                  statusUpdatedBy: selectedPatient.consultant,
-                }
+                ...order,
+                status,
+                statusUpdatedAt: statusStamp,
+                statusUpdatedBy: selectedPatient.consultant,
+              }
               : order,
         ),
       }));
@@ -2251,11 +2253,11 @@ export default function IpdRoundsPage() {
           (entry) =>
             entry.orderId === orderId
               ? {
-                  ...entry,
-                  status: billingStatusFromOrderStatus(status),
-                  statusUpdatedAt: statusStamp,
-                  statusUpdatedBy: selectedPatient.consultant,
-                }
+                ...entry,
+                status: billingStatusFromOrderStatus(status),
+                statusUpdatedAt: statusStamp,
+                statusUpdatedBy: selectedPatient.consultant,
+              }
               : entry,
         ),
       }));
@@ -2591,15 +2593,15 @@ export default function IpdRoundsPage() {
       [selectedPatient.id]: (previous[selectedPatient.id] ?? []).map((item) =>
         item.id === itemId
           ? {
-              ...item,
-              done: !item.done,
-              updatedBy: !item.done
-                ? `Updated ${new Date().toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}`
-                : undefined,
-            }
+            ...item,
+            done: !item.done,
+            updatedBy: !item.done
+              ? `Updated ${new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`
+              : undefined,
+          }
           : item,
       ),
     }));
@@ -3026,10 +3028,14 @@ export default function IpdRoundsPage() {
                 <Button
                   size="small"
                   variant="outlined"
-                  disabled={!canNavigate("/ipd/beds")}
-                  onClick={() =>
-                    openRoute("/ipd/beds?tab=inpatient-list", "/ipd/beds")
-                  }
+                  disabled={!canNavigate(isDoctor ? "/patients/list" : "/ipd/beds")}
+                  onClick={() => {
+                    if (isDoctor) {
+                      router.push("/patients/list");
+                    } else {
+                      openRoute("/ipd/beds?tab=inpatient-list", "/ipd/beds");
+                    }
+                  }}
                 >
                   All Patients
                 </Button>
@@ -3098,19 +3104,21 @@ export default function IpdRoundsPage() {
                 if (!nextTab || !isClinicalTab(nextTab)) return;
                 switchTab(nextTab);
               }}
-              sticky={false}
+              sticky={true}
+              showBackground={true}
+              scrollable={true}
             />
           </Box>
         </Stack>
 
-        {/* Scrollable content area only */}
+        {/* Scrollable content area */}
         <Box
           sx={{
             flex: 1,
             minHeight: 0,
             overflowY: "auto",
             overflowX: "hidden",
-            pt: 1.25,
+            // pt: 1,
           }}
         >
           {activeTab === "rounds" ? (
@@ -4138,39 +4146,39 @@ export default function IpdRoundsPage() {
                       {patientNotes.map((note) => {
                         const soapSections: Array<{
                           id:
-                            | "subjective"
-                            | "objective"
-                            | "assessment"
-                            | "plan";
+                          | "subjective"
+                          | "objective"
+                          | "assessment"
+                          | "plan";
                           label: string;
                           value: string;
                           color: string;
                         }> = [
-                          {
-                            id: "subjective",
-                            label: "SUBJECTIVE",
-                            value: note.subjective,
-                            color: "#4338ca",
-                          },
-                          {
-                            id: "objective",
-                            label: "OBJECTIVE",
-                            value: note.objective,
-                            color: "#7e22ce",
-                          },
-                          {
-                            id: "assessment",
-                            label: "ASSESSMENT",
-                            value: note.assessment,
-                            color: "#ea580c",
-                          },
-                          {
-                            id: "plan",
-                            label: "PLAN",
-                            value: note.plan,
-                            color: "#16a34a",
-                          },
-                        ];
+                            {
+                              id: "subjective",
+                              label: "SUBJECTIVE",
+                              value: note.subjective,
+                              color: "#4338ca",
+                            },
+                            {
+                              id: "objective",
+                              label: "OBJECTIVE",
+                              value: note.objective,
+                              color: "#7e22ce",
+                            },
+                            {
+                              id: "assessment",
+                              label: "ASSESSMENT",
+                              value: note.assessment,
+                              color: "#ea580c",
+                            },
+                            {
+                              id: "plan",
+                              label: "PLAN",
+                              value: note.plan,
+                              color: "#16a34a",
+                            },
+                          ];
 
                         const isNursingNote = note.role
                           .toLowerCase()
@@ -4892,7 +4900,7 @@ export default function IpdRoundsPage() {
               <Button
                 size="small"
                 variant="contained"
-                onClick={addMedicationFromDialog}
+                onClick={() => medicationFormRef.current?.submit()}
                 startIcon={<MedicationIcon sx={{ fontSize: 14 }} />}
                 sx={clinicalPrimaryButtonSx}
               >
@@ -4901,127 +4909,31 @@ export default function IpdRoundsPage() {
             </Stack>
           }
           content={
-            <Stack spacing={1.1}>
-              <Grid container spacing={1.1} sx={{ mt: 0.15 }}>
-                <Grid xs={12} sm={6}>
-                  <Typography variant="caption" sx={clinicalLabelSx}>
-                    Medication Name
-                  </Typography>
-                  <TextField
-                    size="small"
-                    placeholder="e.g. Aspirin"
-                    value={medDraft.medication}
-                    onChange={(event) =>
-                      setMedDraft((previous) => ({
-                        ...previous,
-                        medication: event.target.value,
-                      }))
-                    }
-                    fullWidth
-                  />
-                </Grid>
-                <Grid xs={12} sm={6}>
-                  <Typography variant="caption" sx={clinicalLabelSx}>
-                    Dose
-                  </Typography>
-                  <TextField
-                    size="small"
-                    placeholder="e.g. 75mg"
-                    value={medDraft.dose}
-                    onChange={(event) =>
-                      setMedDraft((previous) => ({
-                        ...previous,
-                        dose: event.target.value,
-                      }))
-                    }
-                    fullWidth
-                  />
-                </Grid>
-              </Grid>
-              <Grid container spacing={1.1}>
-                <Grid xs={12} sm={4}>
-                  <Typography variant="caption" sx={clinicalLabelSx}>
-                    Route
-                  </Typography>
-                  <TextField
-                    select
-                    size="small"
-                    value={medDraft.route}
-                    onChange={(event) =>
-                      setMedDraft((previous) => ({
-                        ...previous,
-                        route: event.target.value,
-                      }))
-                    }
-                    fullWidth
-                  >
-                    <MenuItem value="Oral">PO (Oral)</MenuItem>
-                    <MenuItem value="IV">IV</MenuItem>
-                    <MenuItem value="SC">SC</MenuItem>
-                    <MenuItem value="IM">IM</MenuItem>
-                    <MenuItem value="Topical">Topical</MenuItem>
-                  </TextField>
-                </Grid>
-                <Grid xs={12} sm={4}>
-                  <Typography variant="caption" sx={clinicalLabelSx}>
-                    Frequency
-                  </Typography>
-                  <TextField
-                    size="small"
-                    placeholder="e.g. OD, BD, TDS"
-                    value={medDraft.frequency}
-                    onChange={(event) =>
-                      setMedDraft((previous) => ({
-                        ...previous,
-                        frequency: event.target.value,
-                      }))
-                    }
-                    fullWidth
-                  />
-                </Grid>
-                <Grid xs={12} sm={4}>
-                  <Typography variant="caption" sx={clinicalLabelSx}>
-                    Duration
-                  </Typography>
-                  <TextField
-                    size="small"
-                    placeholder="e.g. 5 days"
-                    value={medDraft.duration}
-                    onChange={(event) =>
-                      setMedDraft((previous) => ({
-                        ...previous,
-                        duration: event.target.value,
-                      }))
-                    }
-                    fullWidth
-                  />
-                </Grid>
-              </Grid>
-              <Box>
-                <Typography variant="caption" sx={clinicalLabelSx}>
-                  Notes
-                </Typography>
-                <TextField
-                  size="small"
-                  multiline
-                  minRows={2}
-                  placeholder="Instructions..."
-                  value={medDraft.notes}
-                  onChange={(event) =>
-                    setMedDraft((previous) => ({
-                      ...previous,
-                      notes: event.target.value,
-                    }))
-                  }
-                  fullWidth
-                />
-              </Box>
-              {medDialogError ? (
-                <Typography variant="caption" color="error.main">
-                  {medDialogError}
-                </Typography>
-              ) : null}
-            </Stack>
+            <CommonMedicationForm
+              ref={medicationFormRef}
+              onSave={(data) => {
+                const newMedication: MedicationRow = {
+                  id: `med-${Date.now()}`,
+                  medication: data.drugName,
+                  dose: data.dose + (data.doseUnit ? ` ${data.doseUnit}` : ""),
+                  route: data.route || "Oral",
+                  frequency: data.duration
+                    ? `${data.frequency || "OD"} | ${data.duration} ${data.durationUnit || "Days"}`
+                    : data.frequency || "OD",
+                  state: "Due",
+                  given: { morning: false, afternoon: false, night: false },
+                };
+                setMedicationsByPatient((previous) => ({
+                  ...previous,
+                  [selectedPatient.id]: [
+                    ...(previous[selectedPatient.id] ?? []),
+                    newMedication,
+                  ],
+                }));
+                setMedDialogOpen(false);
+                showSnack(`${newMedication.medication} added to medication list.`, "success");
+              }}
+            />
           }
         />
 

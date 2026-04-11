@@ -50,6 +50,11 @@ export interface WorkspaceProps {
   countColumns: any;
   medicationColumns: any;
   dischargeMedicationColumns: any;
+  onAddDischargeClick: () => void;
+  onAddEventClick: () => void;
+  onVerifyCountClick: () => void;
+  onAddIntraOpMedClick: () => void;
+  intraOpEvents: any[];
 }
 
 export const PreOpWorkspacePanel: React.FC<WorkspaceProps> = ({
@@ -225,6 +230,10 @@ export const IntraOpWorkspacePanel: React.FC<WorkspaceProps> = ({
   countColumns,
   intraOpMedicationRows,
   medicationColumns,
+  onAddEventClick,
+  onVerifyCountClick,
+  onAddIntraOpMedClick,
+  intraOpEvents,
 }) => (
   <Grid container spacing={1.1}>
     <Grid item xs={12} md={7}>
@@ -236,11 +245,11 @@ export const IntraOpWorkspacePanel: React.FC<WorkspaceProps> = ({
           sx={{ mb: 0.8 }}
         >
           <EnterpriseSectionTitle title="Intra-Op Events" />
-          <Button size="small" variant="outlined">
+          <Button size="small" variant="outlined" onClick={onAddEventClick}>
             + Add Event
           </Button>
         </Stack>
-        <EnterpriseTimeline items={INTRAOP_TIMELINE} />
+        <EnterpriseTimeline items={intraOpEvents} />
       </Card>
     </Grid>
     <Grid item xs={12} md={5}>
@@ -286,7 +295,7 @@ export const IntraOpWorkspacePanel: React.FC<WorkspaceProps> = ({
           sx={{ mb: 0.8 }}
         >
           <EnterpriseSectionTitle title="Instrument & Swab Count" />
-          <Button size="small" variant="outlined">
+          <Button size="small" variant="outlined" onClick={onVerifyCountClick}>
             Verify
           </Button>
         </Stack>
@@ -309,7 +318,7 @@ export const IntraOpWorkspacePanel: React.FC<WorkspaceProps> = ({
           sx={{ mb: 0.8 }}
         >
           <EnterpriseSectionTitle title="Intra-Op Medications" />
-          <Button size="small" variant="outlined">
+          <Button size="small" variant="outlined" onClick={onAddIntraOpMedClick}>
             + Add
           </Button>
         </Stack>
@@ -357,6 +366,7 @@ export const PostOpWorkspacePanel: React.FC<WorkspaceProps> = ({
   postOpVitals,
   dischargeMedicationRows,
   dischargeMedicationColumns,
+  onAddDischargeClick,
 }) => (
   <Stack spacing={1.1}>
     <Grid container spacing={1.1}>
@@ -439,7 +449,7 @@ export const PostOpWorkspacePanel: React.FC<WorkspaceProps> = ({
             sx={{ mb: 0.8 }}
           >
             <EnterpriseSectionTitle title="Discharge Medications" />
-            <Button size="small" variant="outlined">
+            <Button size="small" variant="outlined" onClick={onAddDischargeClick}>
               + Add
             </Button>
           </Stack>

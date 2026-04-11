@@ -46,12 +46,6 @@ export interface ScheduleForm {
   priority: CasePriority;
 }
 
-export interface ToastState {
-  open: boolean;
-  message: string;
-  severity: "success" | "info" | "warning" | "error";
-}
-
 export interface InstrumentCountRow {
   id: string;
   item: string;

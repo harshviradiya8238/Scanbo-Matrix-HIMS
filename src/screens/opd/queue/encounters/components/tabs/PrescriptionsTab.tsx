@@ -33,6 +33,7 @@ import {
 } from "../../../../opd-mock-data";
 import OpdTable from "../../../../components/OpdTable";
 import { CommonDialog } from "@/src/ui/components/molecules";
+import CommonMedicationForm, { type CommonMedicationFormHandle } from "@/src/ui/components/forms/CommonMedicationForm";
 
 interface PrescriptionDraftLine {
   id: string;
@@ -133,6 +134,7 @@ export default function PrescriptionsTab({
   const [editingPrescriptionId, setEditingPrescriptionId] = React.useState<
     string | null
   >(null);
+  const medicationFormRef = React.useRef<CommonMedicationFormHandle>(null);
 
   const openPrescriptionDialog = () => {
     if (
@@ -402,121 +404,63 @@ export default function PrescriptionsTab({
       <CommonDialog
         open={prescriptionDialogOpen}
         onClose={closePrescriptionDialog}
-        maxWidth="md"
+        maxWidth="sm"
         title={editingPrescriptionId ? "Edit Prescription" : "Add Medicine"}
         icon={<MedicationIcon fontSize="small" />}
         contentDividers
         content={
-          <Stack spacing={1.5}>
-            <Grid container spacing={1.2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Available Medications"
-                  value={prescriptionDraft.medicationId}
-                  onChange={(e) => handleMedicationSelection(e.target.value)}
-                >
-                  <MenuItem value="">Select medication</MenuItem>
-                  {MEDICATION_CATALOG.map((item) => (
-                    <MenuItem key={item.id} value={item.id}>
-                      {item.genericName} {item.strength} ({item.form})
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Search Medication"
-                  placeholder="Type to search catalog..."
-                  value={prescriptionDraft.medicationName}
-                  onChange={(e) =>
-                    setPrescriptionDraft((p: any) => ({
-                      ...p,
-                      medicationName: e.target.value,
-                    }))
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Dose"
-                  value={prescriptionDraft.dose}
-                  onChange={(e) =>
-                    setPrescriptionDraft((p: any) => ({
-                      ...p,
-                      dose: e.target.value,
-                    }))
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Frequency"
-                  placeholder="e.g. 1-0-1"
-                  value={prescriptionDraft.frequency}
-                  onChange={(e) =>
-                    setPrescriptionDraft((p: any) => ({
-                      ...p,
-                      frequency: e.target.value,
-                    }))
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Duration (Days)"
-                  type="number"
-                  value={prescriptionDraft.durationDays}
-                  onChange={(e) =>
-                    setPrescriptionDraft((p: any) => ({
-                      ...p,
-                      durationDays: e.target.value,
-                    }))
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Route"
-                  value={prescriptionDraft.route}
-                  onChange={(e) =>
-                    setPrescriptionDraft((p: any) => ({
-                      ...p,
-                      route: e.target
-                        .value as OpdEncounterPrescription["route"],
-                    }))
-                  }
-                >
-                  {["Oral", "Topical", "IV", "IM"].map((r) => (
-                    <MenuItem key={r} value={r}>
-                      {r}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={8}>
-                <TextField
-                  fullWidth
-                  label="Instructions"
-                  placeholder="e.g. Take after meals"
-                  value={prescriptionDraft.instructions}
-                  onChange={(e) =>
-                    setPrescriptionDraft((p: any) => ({
-                      ...p,
-                      instructions: e.target.value,
-                    }))
-                  }
-                />
-              </Grid>
-            </Grid>
-          </Stack>
+          <CommonMedicationForm
+            ref={medicationFormRef}
+            onSave={(data) => {
+              if (!encounter) return;
+              const issuedAt = new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+
+              if (editingPrescriptionId) {
+                dispatch(
+                  updateEncounterPrescription({
+                    id: editingPrescriptionId,
+                    changes: {
+                      medicationName: data.drugName,
+                      dose: data.dose + (data.doseUnit ? ` ${data.doseUnit}` : ""),
+                      frequency: data.frequency,
+                      durationDays: data.duration,
+                      route: data.route as OpdEncounterPrescription["route"],
+                      instructions: data.instructions,
+                      issuedAt,
+                    },
+                  }),
+                );
+                closePrescriptionDialog();
+                setSnackbar({ open: true, message: "Prescription item updated.", severity: "success" });
+              } else {
+                dispatch(
+                  addEncounterPrescription({
+                    id: `rx-${Date.now()}`,
+                    encounterId: encounter.id,
+                    patientId: encounter.patientId,
+                    medicationName: data.drugName,
+                    dose: data.dose + (data.doseUnit ? ` ${data.doseUnit}` : ""),
+                    frequency: data.frequency,
+                    durationDays: data.duration,
+                    route: data.route as OpdEncounterPrescription["route"],
+                    instructions: data.instructions,
+                    issuedAt,
+                  }),
+                );
+                dispatch(
+                  updateEncounter({
+                    id: encounter.id,
+                    changes: { status: "IN_PROGRESS" },
+                  }),
+                );
+                closePrescriptionDialog();
+                setSnackbar({ open: true, message: "Medicine added to prescription.", severity: "success" });
+              }
+            }}
+          />
         }
         actions={
           <>
@@ -524,7 +468,7 @@ export default function PrescriptionsTab({
             <Button
               variant="contained"
               startIcon={<MedicationIcon />}
-              onClick={handleSavePrescription}
+              onClick={() => medicationFormRef.current?.submit()}
             >
               {editingPrescriptionId
                 ? "Update Medicine"
