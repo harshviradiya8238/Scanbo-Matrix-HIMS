@@ -324,8 +324,10 @@ const AsapEmergencyPage = () => {
       <Stack
         spacing={1.25}
         sx={{
-          minHeight: activePage === "chart" ? "100%" : "auto",
-          overflowY: activePage === "chart" ? "auto" : "visible",
+          flex: activePage === "chart" ? 1 : "auto",
+          minHeight: 0,
+          height: activePage === "chart" ? "100%" : "auto",
+          overflow: "hidden",
         }}
       >
         <ModuleHeaderCard

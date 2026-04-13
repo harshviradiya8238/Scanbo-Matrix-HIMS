@@ -426,16 +426,16 @@ export default function RadiantImagingPage() {
               <Button
                 variant="outlined"
                 startIcon={<ViewListIcon />}
-                disabled={!canNavigate('/diagnostics/radiology/worklist')}
-                onClick={() => router.push(withMrn('/diagnostics/radiology/worklist'))}
+                disabled={!canNavigate('/radiology/worklist')}
+                onClick={() => router.push(withMrn('/radiology/worklist'))}
               >
                 Worklist Console
               </Button>
               <Button
                 variant="contained"
                 startIcon={<QueryStatsIcon />}
-                disabled={!canNavigate('/diagnostics/radiology/reports')}
-                onClick={() => router.push(withMrn('/diagnostics/radiology/reports'))}
+                disabled={!canNavigate('/radiology/reports')}
+                onClick={() => router.push(withMrn('/radiology/reports'))}
               >
                 Report Console
               </Button>
@@ -655,8 +655,8 @@ export default function RadiantImagingPage() {
                     <Button
                       variant="outlined"
                       size="small"
-                      disabled={!canNavigate('/diagnostics/radiology/worklist')}
-                      onClick={() => router.push(withMrn('/diagnostics/radiology/worklist'))}
+                      disabled={!canNavigate('/radiology/worklist')}
+                      onClick={() => router.push(withMrn('/radiology/worklist'))}
                     >
                       Open Worklist Console
                     </Button>
@@ -758,8 +758,8 @@ export default function RadiantImagingPage() {
                     <Button
                       variant="contained"
                       size="small"
-                      disabled={!canNavigate('/diagnostics/radiology/reports')}
-                      onClick={() => router.push(withMrn('/diagnostics/radiology/reports'))}
+                      disabled={!canNavigate('/radiology/reports')}
+                      onClick={() => router.push(withMrn('/radiology/reports'))}
                     >
                       Open Report Editor
                     </Button>

@@ -138,7 +138,7 @@ React.useEffect(() => {
   ] as const;
 
   return (
-    <Box sx={{ }}>
+    <Box>
       <WorkspaceHeaderCard sx={{ mb: 2 }}>
         <Stack
           direction={{ xs: "column", md: "row" }}
