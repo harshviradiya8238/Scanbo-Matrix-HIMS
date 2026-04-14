@@ -707,7 +707,7 @@ export default function HospitalAdminDashboard() {
                 <Box
                   sx={{ display: "flex", flexDirection: "column", gap: 0.8 }}
                 >
-                  {todaysAppointments.map((appt) => (
+                  {todaysAppointments.map((appt: any) => (
                     <Box
                       key={appt.id}
                       sx={{

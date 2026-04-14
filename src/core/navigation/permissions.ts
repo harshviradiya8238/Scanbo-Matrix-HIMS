@@ -167,7 +167,7 @@ const ROLE_PERMISSIONS: Record<SystemUserRole, string[]> = {
     'reports.read',
     // 'patient-portal.*',
     'help.read',
-    // 'financial-assistance.*',
+    'financial-assistance.*',
   ],
   NURSE: [
     'dashboard.read',

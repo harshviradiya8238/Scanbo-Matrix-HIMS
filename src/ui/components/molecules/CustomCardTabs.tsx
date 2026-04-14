@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import CommonTabs, {
   CommonTabItem,
 } from "@/src/ui/components/molecules/CommonTabs";
@@ -42,8 +42,25 @@ const CustomTabPanel: React.FC<CustomTabPanelProps> = ({
   ...other
 }) => {
   return (
-    <Box role="tabpanel" hidden={value !== index} {...other}>
-      {value === index && <Box>{children}</Box>}
+    <Box
+      role="tabpanel"
+      hidden={value !== index}
+      sx={{
+        display: value === index ? "flex" : "none",
+        flexDirection: "column",
+        flex: 1,
+        height: "100%",
+        minHeight: 0,
+      }}
+      {...other}
+    >
+      {value === index && (
+        <Box
+          sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+        >
+          {children}
+        </Box>
+      )}
     </Box>
   );
 };
@@ -59,6 +76,7 @@ const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
   showBackground = true,
   onChange,
   scrollable = false,
+  title
 }) => {
   const [tabValue, setTabValue] = useState<number>(defaultValue);
 
@@ -101,7 +119,20 @@ const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
           ...tabsSx,
         }}
       >
-        
+        {title && (
+          <Box sx={{ flexShrink: 0, mr: 1, ml: 0.5 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                color: "text.primary",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {title}
+            </Typography>
+          </Box>
+        )}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <CommonTabs
             tabs={tabs}
@@ -114,14 +145,16 @@ const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
             variant="scrollable"
           />
         </Box>
-        {header && <Box sx={{ flexShrink: 0 }}>{header}</Box>}  
+        {header && <Box sx={{ flexShrink: 0 }}>{header}</Box>}
       </Box>
 
       <Box
         sx={{
-          flex: scrollable ? 1 : "unset",
+          flex: 1,
           minHeight: 0,
-          overflowY: scrollable ? "auto" : "visible",
+          display: "flex",
+          flexDirection: "column",
+          overflowY: scrollable ? "auto" : "hidden",
           overflowX: "hidden",
           pt: orientation === "horizontal" ? 2 : 0,
         }}
