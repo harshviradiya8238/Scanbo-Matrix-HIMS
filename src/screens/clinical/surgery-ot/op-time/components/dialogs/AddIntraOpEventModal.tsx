@@ -64,11 +64,6 @@ export default function AddIntraOpEventModal({
     }
   };
 
-
-
-
-  
-
   return (
     <CommonDialog
       open={isOpen}
