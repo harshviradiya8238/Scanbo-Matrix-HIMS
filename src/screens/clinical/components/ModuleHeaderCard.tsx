@@ -17,7 +17,7 @@ export default function ModuleHeaderCard({
   actions,
 }: {
   title: string;
-  description: string;
+  description?: string;
   chips?: ModuleChip[];
   actions?: React.ReactNode;
 }) {
@@ -49,12 +49,14 @@ export default function ModuleHeaderCard({
           alignItems={{ xs: 'flex-start', md: actions ? 'center' : 'flex-start' }}
         >
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
               {title}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {description}
-            </Typography>
+            {description ? (
+              <Typography variant="body2" color="text.secondary">
+                {description}
+              </Typography>
+            ) : null}
           </Box>
           {actions ? <Stack direction="row" spacing={1}>{actions}</Stack> : null}
         </Stack>
