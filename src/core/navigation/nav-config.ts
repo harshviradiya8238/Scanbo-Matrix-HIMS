@@ -141,7 +141,7 @@ export const NAV_GROUPS: NavGroup[] = [
         iconName: 'Assignment',
         type: 'group',
         requiredPermissions: ['clinical.read'],
-        requiredRoles: ['DOCTOR'],
+        requiredRoles: ['DOCTOR', 'HOSPITAL_ADMIN'],
         order: 6,
         children: [
           {
