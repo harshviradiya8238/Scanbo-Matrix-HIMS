@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import CommonTabs, {
   CommonTabItem,
 } from "@/src/ui/components/molecules/CommonTabs";
@@ -119,7 +119,20 @@ const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
           ...tabsSx,
         }}
       >
-
+        {title && (
+          <Box sx={{ flexShrink: 0, mr: 1, ml: 0.5 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                color: "text.primary",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {title}
+            </Typography>
+          </Box>
+        )}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <CommonTabs
             tabs={tabs}

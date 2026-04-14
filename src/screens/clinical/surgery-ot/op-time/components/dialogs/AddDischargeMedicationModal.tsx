@@ -1,6 +1,7 @@
 import React from "react";
 import { CommonDialog } from "@/src/ui/components/molecules";
-import CommonMedicationForm, { MedicationForm } from "@/src/ui/components/forms/CommonMedicationForm";
+import CommonMedicationForm, { type MedicationForm } from "@/src/ui/components/forms/CommonMedicationForm";
+export type { MedicationForm };
 
 interface AddDischargeMedicationModalProps {
     isOpen: boolean;

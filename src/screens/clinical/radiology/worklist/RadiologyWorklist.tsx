@@ -23,6 +23,7 @@ import CommonDataGrid, {
 } from "@/src/components/table/CommonDataGrid";
 import { alpha, useTheme } from "@/src/ui/theme";
 import { useAppSelector } from "@/src/store/hooks";
+import { useRouter } from "next/navigation";
 import {
   WorklistState,
   ImagingPriority,
@@ -58,6 +59,7 @@ interface RadiologyWorklistProps {
 
 export default function RadiologyWorklist({}: RadiologyWorklistProps) {
   const theme = useTheme();
+  const router = useRouter();
 
   const radiologyWorklist = useAppSelector((state) => state.radiology.worklist);
 
@@ -243,6 +245,9 @@ export default function RadiologyWorklist({}: RadiologyWorklistProps) {
               rows={worklistRowsWithStatus}
               tableHeight={430}
               searchPlaceholder="Search worklist..."
+              onRowClick={(row) => {
+                router.push(`/ipd/rounds?tab=procedures&mrn=${row.mrn}`);
+              }}
             />
           </Grid>
         </Grid>

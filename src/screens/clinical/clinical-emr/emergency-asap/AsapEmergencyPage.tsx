@@ -330,10 +330,18 @@ const AsapEmergencyPage = () => {
           overflow: "hidden",
         }}
       >
-        <ModuleHeaderCard
-          title="Emergency "
-          description=""
-          actions={
+        <CustomCardTabs
+          title="Emergency"
+          scrollable={false}
+          items={tabItems}
+          defaultValue={Math.max(
+            EMERGENCY_PAGES.findIndex((p) => p.id === activePage),
+            0,
+          )}
+          onChange={(index) => setActivePage(EMERGENCY_PAGES[index].id)}
+          showBackground
+          tabsSx={{ borderRadius: 2, p: 1 }}
+          header={
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               <Button
                 size="small"
@@ -345,18 +353,6 @@ const AsapEmergencyPage = () => {
               </Button>
             </Stack>
           }
-        />
-
-        <CustomCardTabs
-          scrollable={false}
-          items={tabItems}
-          defaultValue={Math.max(
-            EMERGENCY_PAGES.findIndex((p) => p.id === activePage),
-            0,
-          )}
-          onChange={(index) => setActivePage(EMERGENCY_PAGES[index].id)}
-          showBackground
-          tabsSx={{ borderRadius: 2, p: 1 }}
         />
       </Stack>
 
