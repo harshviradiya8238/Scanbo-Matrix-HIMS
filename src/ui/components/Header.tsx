@@ -195,6 +195,8 @@ export default function Header({
     theme.palette,
   ]);
 
+  const patientPortalMrn = "MRN-245811";
+
   const quickLinks = [
     {
       label: "Dashboard",
@@ -533,6 +535,20 @@ export default function Header({
                 </IconButton>
               </Tooltip>
             ))}
+            {role === "PATIENT_PORTAL" ? (
+              <Tooltip title="Patient Profile">
+                <IconButton
+                  size="small"
+                  onClick={() =>
+                    router.push(`/patients/profile?mrn=${patientPortalMrn}`)
+                  }
+                  aria-label="Patient Profile"
+                  sx={tileSx(theme.palette.info.main)}
+                >
+                  <PersonIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            ) : null}
             {role === "DOCTOR" ? (
               <Tooltip title="My Profile">
                 <IconButton

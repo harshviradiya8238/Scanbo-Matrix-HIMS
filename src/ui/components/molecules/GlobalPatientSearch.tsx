@@ -88,32 +88,36 @@ export default function GlobalPatientSearch({
           }}
         />
       )}
-      renderOption={(props, option) => (
-        <Box
-          component="li"
-          {...props}
-          key={option.mrn}
-          sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}
-        >
-          <Avatar sx={{ width: 34, height: 34, bgcolor: theme.palette.primary.main, fontSize: 12 }}>
-            {getInitials(option.name)}
-          </Avatar>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
-              {option.name}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-              {option.mrn} · {option.department}
-            </Typography>
+      renderOption={(props, option) => {
+        const { key, ...optionProps } = props;
+
+        return (
+          <Box
+            component="li"
+            key={key ?? option.mrn}
+            {...optionProps}
+            sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}
+          >
+            <Avatar sx={{ width: 34, height: 34, bgcolor: theme.palette.primary.main, fontSize: 12 }}>
+              {getInitials(option.name)}
+            </Avatar>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                {option.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                {option.mrn} · {option.department}
+              </Typography>
+            </Box>
+            <Chip
+              size="small"
+              label={option.status}
+              variant="outlined"
+              sx={{ textTransform: 'capitalize' }}
+            />
           </Box>
-          <Chip
-            size="small"
-            label={option.status}
-            variant="outlined"
-            sx={{ textTransform: 'capitalize' }}
-          />
-        </Box>
-      )}
+        );
+      }}
       renderInput={(params) => (
         <TextField
           {...params}
