@@ -2,20 +2,22 @@
 
 import * as React from "react";
 import PageTemplate from "@/src/ui/components/PageTemplate";
-import { Button, Stack } from "@/src/ui/components/atoms";
-import { SectionLoader } from "@/src/ui/components/loaders";
+import { Box, Button, Chip, Stack, Typography } from "@/src/ui/components/atoms";
 import { useIpdAdmissionsData } from "./hooks/useIpdAdmissionsData";
 import { IpdAdmissionsMetrics } from "./components/IpdAdmissionsMetrics";
-import { IpdAdmissionsTabs } from "./components/IpdAdmissionsTabs";
 import { IpdAdmissionsTable } from "./components/IpdAdmissionsTable";
 import { IpdAdmissionsDialogs } from "./components/IpdAdmissionsDialogs";
-import { IpdSectionCard, ipdFormStylesSx } from "../components/ipd-ui";
+import IpdPatientTopBar from "../components/IpdPatientTopBar";
+import CustomCardTabs from "@/src/ui/components/molecules/CustomCardTabs";
+import { SectionLoader } from "@/src/ui/components";
 
 export default function IpdAdmissionsPageRefactored() {
   const data = useIpdAdmissionsData();
   const {
     handleOpenAdmissionDialog,
     canManageAdmissions,
+    historyTab,
+    setHistoryTab,
   } = data;
 
   const [isHydrated, setIsHydrated] = React.useState(false);
@@ -33,13 +35,17 @@ export default function IpdAdmissionsPageRefactored() {
   }
 
   return (
-    <PageTemplate title="IPD Admissions">
-      <Stack spacing={1.25}>
+    <PageTemplate title="IPD Admissions" fullHeight>
+       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, flex: 1, minHeight: 0 }}>
+
+      <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0 }}>
         <IpdAdmissionsMetrics data={data} />
 
-        <IpdSectionCard
-          title="Admission Records"
-          action={
+        <CustomCardTabs
+          sx={{ flex: 1, minHeight: 0 }}
+          defaultValue={historyTab === "all" ? 0 : 1}
+          onChange={(index) => setHistoryTab(index === 0 ? "all" : "queue")}
+          header={
             <Button
               variant="contained"
               onClick={() => handleOpenAdmissionDialog()}
@@ -48,16 +54,57 @@ export default function IpdAdmissionsPageRefactored() {
               + New Admission
             </Button>
           }
-          bodySx={ipdFormStylesSx}
-        >
-          <Stack spacing={2}>
-            <IpdAdmissionsTabs data={data} />
-            <IpdAdmissionsTable data={data} />
-          </Stack>
-        </IpdSectionCard>
+          items={[
+            {
+              label: (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography sx={{ fontWeight: 600, fontSize: 14 }}>
+                    All IPD Patients
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={data.allPatients.length}
+                    sx={{
+                      height: 20,
+                      minWidth: 24,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      bgcolor: historyTab === "all" ? "primary.main" : "action.selected",
+                      color: historyTab === "all" ? "#fff" : "text.secondary",
+                    }}
+                  />
+                </Stack>
+              ),
+              child: <IpdAdmissionsTable data={data} />,
+            },
+            {
+              label: (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography sx={{ fontWeight: 600, fontSize: 14 }}>
+                    Admission Queue
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={data.queueRows.length}
+                    sx={{
+                      height: 20,
+                      minWidth: 24,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      bgcolor: historyTab === "queue" ? "primary.main" : "action.selected",
+                      color: historyTab === "queue" ? "#fff" : "text.secondary",
+                    }}
+                  />
+                </Stack>
+              ),
+              child: <IpdAdmissionsTable data={data} />,
+            },
+          ]}
+        />
 
         <IpdAdmissionsDialogs data={data} />
       </Stack>
+       </Box>
     </PageTemplate>
   );
 }

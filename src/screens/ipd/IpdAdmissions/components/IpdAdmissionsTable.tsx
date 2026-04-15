@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Button, Chip, Typography } from "@/src/ui/components/atoms";
-import CommonTable, {
-  CommonTableColumn,
-} from "@/src/ui/components/molecules/CommonTable";
+import { Box, Button, Chip, Typography } from "@/src/ui/components/atoms";
+import CommonDataGrid, {
+  CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
 import {
   AdmissionQueueRow,
   IpdAdmissionsData,
@@ -27,51 +27,77 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
     handleOpenBedBoard,
     handleOpenInfectionCase,
     canOpenBedBoard,
+    allSearch,
+    setAllSearch,
+    allStatusFilter,
+    setAllStatusFilter,
+    allWardFilter,
+    setAllWardFilter,
+    queueSearch,
+    setQueueSearch,
+    queuePriorityFilter,
+    setQueuePriorityFilter,
+    queueSourceFilter,
+    setQueueSourceFilter,
+    allPatients,
   } = data;
 
-  const allPatientColumns: CommonTableColumn<PatientRow>[] = [
+  const allPatientColumns: CommonColumn<PatientRow>[] = [
     {
-      id: "mrn",
-      label: "MRN",
-      minWidth: 130,
+      field: "mrn",
+      headerName: "MRN",
+      width: 140,
       renderCell: (patient) => patient.mrn,
     },
     {
-      id: "patientName",
-      label: "Patient Name",
-      minWidth: 160,
+      field: "patientName",
+      headerName: "Patient Name",
+      width: 170,
       renderCell: (patient) => (
         <Typography sx={{ fontWeight: 600 }}>{patient.patientName}</Typography>
       ),
     },
     {
-      id: "ageGender",
-      label: "Age / Gender",
-      minWidth: 120,
+      field: "entryType",
+      headerName: "Entry",
+      width: 130,
+      renderCell: (patient) => (
+        <Chip
+          size="small"
+          label={patient.entryType}
+          color={patient.entryType === "Created Now" ? "info" : "default"}
+          variant={patient.entryType === "Created Now" ? "filled" : "outlined"}
+        />
+      ),
+    },
+    {
+      field: "ageGender",
+      headerName: "Age / Gender",
+      width: 130,
       renderCell: (patient) => patient.ageGender,
     },
     {
-      id: "admissionDate",
-      label: "Admission Date & Time",
-      minWidth: 170,
+      field: "admissionDate",
+      headerName: "Admission Date & Time",
+      // width: 190,
       renderCell: (patient) => patient.admissionDate,
     },
     {
-      id: "ward",
-      label: "Ward",
-      minWidth: 160,
+      field: "ward",
+      headerName: "Ward",
+      // width: 180,
       renderCell: (patient) => patient.ward,
     },
     {
-      id: "consultant",
-      label: "Consultant",
-      minWidth: 160,
+      field: "consultant",
+      headerName: "Consultant",
+      // width: 180,
       renderCell: (patient) => patient.consultant,
     },
     {
-      id: "status",
-      label: "Status",
-      minWidth: 110,
+      field: "status",
+      headerName: "Status",
+      // width: 120,
       renderCell: (patient) => (
         <Chip
           size="small"
@@ -81,9 +107,9 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
       ),
     },
     {
-      id: "infection",
-      label: "Infection",
-      minWidth: 160,
+      field: "infection",
+      headerName: "Infection",
+      // width: 170,
       renderCell: (patient) => {
         const infectionCase = getActiveInfectionCaseByMrn(patient.mrn);
         if (!infectionCase) return "--";
@@ -98,10 +124,10 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
       },
     },
     {
-      id: "open",
-      label: "Action",
-      align: "right",
-      minWidth: 150,
+      field: "action",
+      headerName: "Action",
+      align: "center",
+      width: 260,
       renderCell: (patient) => (
         <>
           <Button
@@ -117,25 +143,25 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
     },
   ];
 
-  const queueColumns: CommonTableColumn<AdmissionQueueRow>[] = [
+  const queueColumns: CommonColumn<AdmissionQueueRow>[] = [
     {
-      id: "mrn",
-      label: "MRN",
-      minWidth: 130,
+      field: "mrn",
+      headerName: "MRN",
+      width: 140,
       renderCell: (row) => row.mrn,
     },
     {
-      id: "patientName",
-      label: "Patient Name",
-      minWidth: 160,
+      field: "patientName",
+      headerName: "Patient Name",
+      width: 170,
       renderCell: (row) => (
         <Typography sx={{ fontWeight: 600 }}>{row.patientName}</Typography>
       ),
     },
     {
-      id: "stage",
-      label: "Stage",
-      minWidth: 140,
+      field: "stage",
+      headerName: "Stage",
+      width: 150,
       renderCell: (row) => (
         <Chip
           size="small"
@@ -146,9 +172,15 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
       ),
     },
     {
-      id: "priority",
-      label: "Priority",
-      minWidth: 110,
+      field: "source",
+      headerName: "Source",
+      width: 120,
+      renderCell: (row) => row.source,
+    },
+    {
+      field: "priority",
+      headerName: "Priority",
+      width: 120,
       renderCell: (row) => (
         <Chip
           size="small"
@@ -165,9 +197,9 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
       ),
     },
     {
-      id: "infection",
-      label: "Infection",
-      minWidth: 160,
+      field: "infection",
+      headerName: "Infection",
+      width: 170,
       renderCell: (row) => {
         const infectionCase = getActiveInfectionCaseByMrn(row.mrn);
         if (!infectionCase) return "--";
@@ -182,22 +214,22 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
       },
     },
     {
-      id: "preferredWard",
-      label: "Ward Selection",
-      minWidth: 160,
+      field: "preferredWard",
+      headerName: "Ward Selection",
+      width: 180,
       renderCell: (row) => row.preferredWard,
     },
     {
-      id: "consultant",
-      label: "Consultant",
-      minWidth: 160,
+      field: "consultant",
+      headerName: "Consultant",
+      // width: 180,
       renderCell: (row) => row.consultant || "--",
     },
     {
-      id: "open",
-      label: "Action",
-      align: "right",
-      minWidth: 150,
+      field: "action",
+      headerName: "Action",
+      align: "center",
+      // widthz: 260,
       renderCell: (row) => {
         return (
           <>
@@ -217,27 +249,70 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
 
   if (historyTab === "all") {
     return (
-      <CommonTable<PatientRow>
-        rows={visibleAllPatients}
-        columns={allPatientColumns}
-        getRowId={(row) => row.id}
-        emptyMessage="No IPD patients found."
-        tableMinHeight={420}
-        loading={initialTableLoading}
-        loadingMessage="Loading admissions..."
-      />
+        <CommonDataGrid<PatientRow>
+          rows={visibleAllPatients}
+          columns={allPatientColumns as any}
+          getRowId={(row: any) => row.id}
+          emptyTitle="No IPD patients found."
+          searchPlaceholder="Search all IPD patients..."
+          externalSearchValue={allSearch}
+          onSearchChange={setAllSearch}
+          tableHeight="100%"
+          showSerialNo={true}
+          filterDropdowns={[
+            {
+              id: "status-filter",
+              placeholder: "Status",
+              value: allStatusFilter,
+              options: ["all", "Admitted", "Observation"],
+              onChange: setAllStatusFilter,
+            },
+            {
+              id: "ward-filter",
+              placeholder: "Ward",
+              value: allWardFilter,
+              options: [
+                "all",
+                ...Array.from(new Set(allPatients.map((p) => p.ward))).filter(
+                  Boolean
+                ),
+              ] as string[],
+              onChange: setAllWardFilter,
+            },
+          ]}
+        />
     );
   }
 
   return (
-    <CommonTable<AdmissionQueueRow>
-      rows={visibleQueueRows}
-      columns={queueColumns}
-      getRowId={(row) => row.id}
-      emptyMessage="No patients pending bed allocation."
-      tableMinHeight={420}
-      loading={initialTableLoading}
-      loadingMessage="Loading queue..."
-    />
+    <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+      <CommonDataGrid<AdmissionQueueRow>
+        rows={visibleQueueRows}
+        columns={queueColumns as any}
+        getRowId={(row: any) => row.id}
+        emptyTitle="No patients pending bed allocation."
+        searchPlaceholder="Search queue..."
+        externalSearchValue={queueSearch}
+        onSearchChange={setQueueSearch}
+        tableHeight="100%"
+        showSerialNo={true}
+        filterDropdowns={[
+          {
+            id: "priority-filter",
+            placeholder: "Priority",
+            value: queuePriorityFilter,
+            options: ["all", "Routine", "Urgent", "Emergency"],
+            onChange: setQueuePriorityFilter,
+          },
+          {
+            id: "source-filter",
+            placeholder: "Source",
+            value: queueSourceFilter,
+            options: ["all", "OPD", "ER", "Transfer"],
+            onChange: setQueueSourceFilter,
+          },
+        ]}
+      />
+    </Box>
   );
 }
