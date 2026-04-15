@@ -68,6 +68,11 @@ const theme = createTheme(baseTheme, {
         },
       },
     },
+    MuiDialogTitle: {
+      defaultProps: {
+        component: 'div',
+      },
+    },
     MuiCard: {
       styleOverrides: {
         root: {

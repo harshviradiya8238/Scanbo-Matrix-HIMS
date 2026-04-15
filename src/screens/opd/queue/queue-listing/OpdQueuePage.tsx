@@ -19,6 +19,7 @@ import {
 } from "@/src/ui/components/atoms";
 import { SelectChangeEvent } from "@mui/material";
 import Grid from "@/src/ui/components/layout/AlignedGrid";
+import { SectionLoader } from "@/src/ui/components/loaders";
 import CommonDataGrid, {
   CommonColumn,
 } from "@/src/components/table/CommonDataGrid";
@@ -530,9 +531,7 @@ export default function OpdQueuePage() {
         showRoleGuide={false}
         fullHeight
       >
-        <Stack spacing={2}>
-          <Alert severity="info">Loading OPD queue...</Alert>
-        </Stack>
+        <SectionLoader message="Loading OPD queue..." minHeight={260} />
       </OpdLayout>
     );
   }
@@ -545,11 +544,6 @@ export default function OpdQueuePage() {
       fullHeight
     >
       <Stack spacing={2} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-        {opdStatus === "loading" ? (
-          <Alert severity="info">
-            Loading OPD data from the local JSON server.
-          </Alert>
-        ) : null}
         {opdStatus === "error" ? (
           <Alert severity="warning">
             OPD JSON server not reachable. Showing fallback data.
@@ -600,6 +594,9 @@ export default function OpdQueuePage() {
           rows={filteredQueue}
           columns={queueColumns}
           getRowId={(row) => row.id}
+          loading={opdStatus === "loading"}
+          loadingVariant="overlay"
+          loadingMessage="Loading OPD queue..."
           showSerialNo={true}
           emptyTitle="No patients in queue"
           emptyDescription="No patients in queue for the selected filter."

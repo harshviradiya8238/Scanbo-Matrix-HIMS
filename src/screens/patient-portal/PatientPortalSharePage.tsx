@@ -20,9 +20,9 @@ import {
   Typography,
 } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
+import { InlineLoaderIcon } from '@/src/ui/components/loaders';
 import CommonDialog from '@/src/ui/components/molecules/CommonDialog';
 import { alpha, useTheme } from '@/src/ui/theme';
-import CircularProgress from '@mui/material/CircularProgress';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import type { Theme } from '@mui/material/styles';
@@ -1294,7 +1294,7 @@ export default function PatientPortalSharePage() {
                       disableElevation
                       onClick={handleRequestShare}
                       disabled={isSubmitting}
-                      startIcon={isSubmitting ? <CircularProgress size={14} sx={{ color: 'white' }} /> : <ShareIcon sx={{ fontSize: 14 }} />}
+                      startIcon={isSubmitting ? <InlineLoaderIcon size={14} color="currentColor" /> : <ShareIcon sx={{ fontSize: 14 }} />}
                       sx={{ textTransform: 'none', fontWeight: 700, minWidth: 130 }}
                     >
                       {isSubmitting ? 'Sharing...' : 'Review Consent & Share'}

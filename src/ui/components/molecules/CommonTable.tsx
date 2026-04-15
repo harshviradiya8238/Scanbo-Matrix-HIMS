@@ -19,6 +19,11 @@ import {
 } from '@/src/ui/components/atoms';
 import { alpha } from '@/src/ui/theme';
 import type { Theme } from '@/src/ui/theme';
+import {
+  AppLoaderOverlay,
+  TableSkeletonRows,
+  useMinimumLoaderVisibility,
+} from '@/src/ui/components/loaders/LoaderPrimitives';
 
 type TableCellAlign = 'inherit' | 'left' | 'center' | 'right' | 'justify';
 
@@ -56,6 +61,11 @@ interface CommonTableProps<RowType> {
   filters?: CommonTableFilter<RowType>[];
   initialRowsPerPage?: number;
   rowsPerPageOptions?: number[];
+  tableMinHeight?: number | string;
+  loading?: boolean;
+  loadingVariant?: 'skeleton' | 'overlay';
+  loadingMessage?: string;
+  loadingMinDurationMs?: number;
 }
 
 function resolveFilterDefault<RowType>(filter: CommonTableFilter<RowType>): string {
@@ -100,6 +110,11 @@ export default function CommonTable<RowType>({
   filters = [],
   initialRowsPerPage = 10,
   rowsPerPageOptions = [5, 10, 25],
+  tableMinHeight,
+  loading = false,
+  loadingVariant = 'overlay',
+  loadingMessage = 'Loading records...',
+  loadingMinDurationMs = 500,
 }: CommonTableProps<RowType>) {
   const hasSearch = Boolean(searchBy);
   const hasFilters = filters.length > 0;
@@ -169,6 +184,9 @@ export default function CommonTable<RowType>({
     const start = page * rowsPerPage;
     return filteredRows.slice(start, start + rowsPerPage);
   }, [filteredRows, page, rowsPerPage]);
+  const visibleLoading = useMinimumLoaderVisibility(loading, loadingMinDurationMs);
+  const isLoadingSkeleton = visibleLoading && loadingVariant === 'skeleton';
+  const isLoadingOverlay = visibleLoading && loadingVariant === 'overlay';
 
   return (
     <Stack spacing={1.25}>
@@ -245,7 +263,20 @@ export default function CommonTable<RowType>({
         </Stack>
       ) : null}
 
-      <TableContainer sx={{ border: 0, borderRadius: 2, boxShadow: 'none' }}>
+      <TableContainer
+        sx={{
+          border: 0,
+          borderRadius: 2,
+          boxShadow: 'none',
+          minHeight: tableMinHeight,
+          position: 'relative',
+        }}
+      >
+        <AppLoaderOverlay
+          open={isLoadingOverlay}
+          scope="section"
+          message={loadingMessage}
+        />
         <Table size="small">
           <TableHead>
             <TableRow
@@ -271,32 +302,38 @@ export default function CommonTable<RowType>({
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedRows.map((row) => {
-              const rowId = getRowId(row);
-              return (
-                <TableRow
-                  key={rowId}
-                  hover
-                  sx={{
-                    '&:hover': {
-                      backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.03),
-                    },
-                    '& .MuiTableCell-root': {
-                      borderBottom: '1px solid',
-                      borderColor: 'divider',
-                    },
-                  }}
-                >
-                  {columns.map((column) => (
-                    <TableCell key={`${rowId}-${column.id}`} align={column.align}>
-                      {column.renderCell(row)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              );
-            })}
+            {isLoadingSkeleton ? (
+              <TableSkeletonRows rowCount={rowsPerPage} columnCount={columns.length} />
+            ) : null}
 
-            {filteredRows.length === 0 ? (
+            {!isLoadingSkeleton
+              ? paginatedRows.map((row) => {
+                  const rowId = getRowId(row);
+                  return (
+                    <TableRow
+                      key={rowId}
+                      hover
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.03),
+                        },
+                        '& .MuiTableCell-root': {
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                        },
+                      }}
+                    >
+                      {columns.map((column) => (
+                        <TableCell key={`${rowId}-${column.id}`} align={column.align}>
+                          {column.renderCell(row)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  );
+                })
+              : null}
+
+            {!isLoadingSkeleton && filteredRows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} align="center" sx={{ py: 3 }}>
                   <Typography variant="body2" color="text.secondary">

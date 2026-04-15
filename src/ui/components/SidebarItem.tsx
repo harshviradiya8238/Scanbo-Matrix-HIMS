@@ -23,6 +23,7 @@ import { MenuItem } from '@/src/core/navigation/types';
 import { resolveNavigationRoute } from '@/src/core/navigation/nav-config';
 import { hasPermission } from '@/src/core/navigation/permissions';
 import SidebarPopover from './SidebarPopover';
+import { useHimsLoader } from '@/src/ui/components/Himsloadercontext';
 
 interface SidebarItemProps {
   item: MenuItem;
@@ -50,6 +51,7 @@ export default function SidebarItem({
   const sidebarNavy = "#0A4472";
   const router = useRouter();
   const pathname = usePathname();
+  const { showRouteLoader } = useHimsLoader();
   const activeRoute = React.useMemo(() => resolveNavigationRoute(pathname ?? ''), [pathname]);
   const [isOpen, setIsOpen] = React.useState(false);
   const itemRef = React.useRef<HTMLDivElement>(null);
@@ -126,6 +128,7 @@ export default function SidebarItem({
       }
     } else if (item.route) {
       if (item.route !== activeRoute) {
+        showRouteLoader(`Opening ${item.label}...`, item.route);
         router.push(item.route);
       }
     }
@@ -140,10 +143,23 @@ export default function SidebarItem({
     [router]
   );
 
+  const prefetchItemTree = React.useCallback(
+    (menuItem?: MenuItem | null) => {
+      if (!menuItem) return;
+      if (menuItem.route) {
+        prefetchRoute(menuItem.route);
+      }
+      if (menuItem.children && menuItem.children.length > 0) {
+        menuItem.children.forEach((child) => prefetchItemTree(child));
+      }
+    },
+    [prefetchRoute],
+  );
+
   const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const handleMouseEnter = () => {
-    prefetchRoute(item.route);
+    prefetchItemTree(item);
     if (!isExpanded && hasChildren && itemRef.current) {
       // Clear any pending close timeout
       if (hoverTimeoutRef.current) {
@@ -190,8 +206,8 @@ export default function SidebarItem({
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onFocus={() => prefetchRoute(item.route)}
-      onTouchStart={() => prefetchRoute(item.route)}
+      onFocus={() => prefetchItemTree(item)}
+      onTouchStart={() => prefetchItemTree(item)}
       selected={isHighlighted}
       sx={{
         pl: isExpanded ? (level > 0 ? 2.35 : 1) : 0,
@@ -397,6 +413,7 @@ export default function SidebarItem({
           }}
           onNavigate={(route) => {
             if (route && route !== activeRoute) {
+              showRouteLoader("Opening menu...", route);
               router.push(route);
             }
             setPopoverAnchor(null);

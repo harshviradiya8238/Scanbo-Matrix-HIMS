@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Alert, Stack } from '@/src/ui/components/atoms';
+import { SectionLoader } from '@/src/ui/components/loaders';
 import OpdLayout from './components/OpdLayout';
 import { useOpdData } from '@/src/store/opdHooks';
 import {
@@ -58,7 +59,7 @@ export default function LegacyEncounterRedirect({ target, tab }: LegacyEncounter
   return (
     <OpdLayout title="Redirecting" currentPageTitle="Redirect" subtitle={mrn ?? undefined}>
       <Stack spacing={1}>
-        {status === 'loading' ? <Alert severity="info">Resolving encounter context...</Alert> : null}
+        {status === 'loading' ? <SectionLoader message="Resolving encounter context..." minHeight={120} /> : null}
         {!encounter ? <Alert severity="warning">No encounter available for this request.</Alert> : null}
       </Stack>
     </OpdLayout>

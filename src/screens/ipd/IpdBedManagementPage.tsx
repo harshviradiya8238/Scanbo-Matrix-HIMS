@@ -8,12 +8,10 @@ import {
   Avatar,
   Box,
   Button,
-  Checkbox,
   Chip,
   Dialog,
   DialogContent,
   Divider,
-  FormControlLabel,
   IconButton,
   InputAdornment,
   MenuItem,
@@ -22,9 +20,7 @@ import {
   TextField,
   Typography,
 } from "@/src/ui/components/atoms";
-import { Card } from "@/src/ui/components/molecules";
 import { alpha } from "@/src/ui/theme";
-import Grid from "@/src/ui/components/layout/AlignedGrid";
 import {
   Bed as BedIcon,
   BugReport as BugReportIcon,
@@ -43,13 +39,7 @@ import {
   INITIAL_BED_BOARD,
   WardBed,
 } from "./ipd-mock-data";
-import {
-  IPD_COLORS,
-  IpdMetricCard,
-  IpdSectionCard,
-  ipdFormStylesSx,
-} from "./components/ipd-ui";
-import CustomCardTabs from "@/src/ui/components/molecules/CustomCardTabs";
+import { IPD_COLORS } from "./components/ipd-ui";
 import { useMrnParam } from "@/src/core/patients/useMrnParam";
 import { getPatientByMrn } from "@/src/mocks/global-patients";
 import { usePermission } from "@/src/core/auth/usePermission";
@@ -847,7 +837,7 @@ export default function IpdBedManagementPage() {
       header={topBarHeader}
       currentPageTitle="Bed & Census"
     >
-      <Stack spacing={1.25}>
+      <Stack spacing={1.5}>
         {!canManageBeds ? (
           <Alert severity="warning">
             You are in read-only mode for bed allocation. Contact admin for
@@ -873,580 +863,1026 @@ export default function IpdBedManagementPage() {
               </Button>
             }
           >
-            Active infection case for this bed workflow:{" "}
-            {activeInfectionCase.organism} · {activeInfectionCase.icStatus} ·{" "}
-            {activeInfectionCase.isolationType} isolation.
+            Active infection case: {activeInfectionCase.organism} ·{" "}
+            {activeInfectionCase.icStatus} · {activeInfectionCase.isolationType}{" "}
+            isolation.
           </Alert>
         ) : null}
 
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={3}>
-            <IpdMetricCard
-              label="Occupancy"
-              value={`${occupancyPercent}%`}
-              trend={`${occupiedBeds} of ${totalBeds} beds occupied`}
-              tone="info"
-              icon={<HotelIcon sx={{ fontSize: 32 }} />}
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={3}>
-            <IpdMetricCard
-              label="Available Beds"
-              value={availableBeds}
-              trend="Ready for new admissions"
-              tone="success"
-              icon={<CheckCircleIcon sx={{ fontSize: 32 }} />}
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={3}>
-            <IpdMetricCard
-              label="Occupied Beds"
-              value={occupiedBeds}
-              trend="Inpatient census"
-              tone="warning"
-              icon={<BedIcon sx={{ fontSize: 32 }} />}
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={3}>
-            <IpdMetricCard
-              label="Blocked / Cleaning"
-              value={blockedBeds}
-              trend="Temporarily unavailable"
-              tone="danger"
-              icon={<CleaningServicesIcon sx={{ fontSize: 32 }} />}
-            />
-          </Grid>
-        </Grid>
-
-        <Box sx={{ px: 1 }}>
-          <CustomCardTabs
-            header={
-              canAccessClinical && (
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={() => openClinicalCare(undefined, "rounds")}
+        {/* ── Stats Row ── */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "repeat(2,1fr)", md: "repeat(4,1fr)" },
+            gap: 1.5,
+          }}
+        >
+          {/* Occupancy */}
+          <Box
+            sx={{
+              bgcolor: "#fff",
+              borderRadius: "16px",
+              border: "1px solid #DDE8F0",
+              p: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Box>
+              <Typography
+                sx={{ fontSize: "11.5px", color: "#9AAFBF", mb: 0.75, fontWeight: 500 }}
+              >
+                Occupancy
+              </Typography>
+              <Typography
+                sx={{ fontSize: 26, fontWeight: 700, lineHeight: 1, color: "#0D1B2A" }}
+              >
+                {occupancyPercent}%
+              </Typography>
+              <Typography sx={{ fontSize: "11px", color: "#9AAFBF", mt: 0.5 }}>
+                {occupiedBeds} of {totalBeds} beds occupied
+              </Typography>
+              <Box
+                sx={{
+                  height: 6,
+                  bgcolor: "#DDE8F0",
+                  borderRadius: 1,
+                  overflow: "hidden",
+                  mt: 0.75,
+                  width: 120,
+                }}
+              >
+                <Box
                   sx={{
-                    borderRadius: 1.5,
-                    px: 3,
-                    py: 1,
-                    fontWeight: 700,
-                    textTransform: "none",
-                    background: `linear-gradient(135deg, ${IPD_COLORS.primary} 0%, ${IPD_COLORS.primaryLight} 100%)`,
-                    "&:hover": {
-                      background: `linear-gradient(135deg, ${IPD_COLORS.primaryLight} 0%, ${IPD_COLORS.primary} 100%)`,
+                    height: "100%",
+                    bgcolor: "#1172BA",
+                    borderRadius: 1,
+                    width: `${occupancyPercent}%`,
+                  }}
+                />
+              </Box>
+            </Box>
+            <Box
+              sx={{
+                width: 46,
+                height: 46,
+                borderRadius: "13px",
+                bgcolor: "#DBEAFE",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <HotelIcon sx={{ fontSize: 22, color: "#1172BA" }} />
+            </Box>
+          </Box>
+
+          {/* Available */}
+          <Box
+            sx={{
+              bgcolor: "#fff",
+              borderRadius: "16px",
+              border: "1px solid #DDE8F0",
+              p: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Box>
+              <Typography
+                sx={{ fontSize: "11.5px", color: "#9AAFBF", mb: 0.75, fontWeight: 500 }}
+              >
+                Available Beds
+              </Typography>
+              <Typography
+                sx={{ fontSize: 26, fontWeight: 700, lineHeight: 1, color: "#16A34A" }}
+              >
+                {availableBeds}
+              </Typography>
+              <Typography sx={{ fontSize: "11px", color: "#9AAFBF", mt: 0.5 }}>
+                Ready for new admissions
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                width: 46,
+                height: 46,
+                borderRadius: "13px",
+                bgcolor: "#DCFCE7",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <CheckCircleIcon sx={{ fontSize: 22, color: "#16A34A" }} />
+            </Box>
+          </Box>
+
+          {/* Occupied */}
+          <Box
+            sx={{
+              bgcolor: "#fff",
+              borderRadius: "16px",
+              border: "1px solid #DDE8F0",
+              p: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Box>
+              <Typography
+                sx={{ fontSize: "11.5px", color: "#9AAFBF", mb: 0.75, fontWeight: 500 }}
+              >
+                Occupied Beds
+              </Typography>
+              <Typography
+                sx={{ fontSize: 26, fontWeight: 700, lineHeight: 1, color: "#0D1B2A" }}
+              >
+                {occupiedBeds}
+              </Typography>
+              <Typography sx={{ fontSize: "11px", color: "#9AAFBF", mt: 0.5 }}>
+                Inpatient census
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                width: 46,
+                height: 46,
+                borderRadius: "13px",
+                bgcolor: "#FEF3C7",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <BedIcon sx={{ fontSize: 22, color: "#D97706" }} />
+            </Box>
+          </Box>
+
+          {/* Blocked / Cleaning */}
+          <Box
+            sx={{
+              bgcolor: "#fff",
+              borderRadius: "16px",
+              border: "1px solid #DDE8F0",
+              p: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Box>
+              <Typography
+                sx={{ fontSize: "11.5px", color: "#9AAFBF", mb: 0.75, fontWeight: 500 }}
+              >
+                Blocked / Cleaning
+              </Typography>
+              <Typography
+                sx={{ fontSize: 26, fontWeight: 700, lineHeight: 1, color: "#DC2626" }}
+              >
+                {blockedBeds}
+              </Typography>
+              <Typography sx={{ fontSize: "11px", color: "#9AAFBF", mt: 0.5 }}>
+                Temporarily unavailable
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                width: 46,
+                height: 46,
+                borderRadius: "13px",
+                bgcolor: "#FEE2E2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <CleaningServicesIcon sx={{ fontSize: 22, color: "#DC2626" }} />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* ── Body: Bed Board + Allocation Panel ── */}
+        <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
+
+          {/* BED BOARD */}
+          <Box
+            sx={{
+              flex: 1,
+              bgcolor: "#fff",
+              borderRadius: "20px",
+              border: "1px solid #DDE8F0",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              minWidth: 0,
+            }}
+          >
+            {/* Header */}
+            <Box sx={{ p: "16px 20px", borderBottom: "1px solid #DDE8F0" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mb: 1.75,
+                }}
+              >
+                <Box>
+                  <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#0D1B2A" }}>
+                    Bed Management
+                  </Typography>
+                  <Typography sx={{ fontSize: "11.5px", color: "#9AAFBF", mt: 0.25 }}>
+                    Monitor occupancy, filter wards, and assign the right bed.
+                  </Typography>
+                </Box>
+                {canAccessClinical && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => openClinicalCare(undefined, "rounds")}
+                    sx={{
+                      borderRadius: "10px",
+                      px: 2.25,
+                      py: 1,
+                      fontWeight: 700,
+                      fontSize: "12.5px",
+                      textTransform: "none",
+                      background: "#1172BA",
+                      flexShrink: 0,
+                      "&:hover": { background: "#0D5A94" },
+                    }}
+                  >
+                    Open Clinical Care
+                  </Button>
+                )}
+              </Box>
+
+              {/* Toolbar */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  flexWrap: "wrap",
+                }}
+              >
+                <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                  {(["All", "Available", "Occupied", "Reserved", "ICU"] as const).map(
+                    (f) => {
+                      const isOn = statusFilter === f;
+                      return (
+                        <Box
+                          key={f}
+                          onClick={() => setStatusFilter(f as any)}
+                          sx={{
+                            px: 1.75,
+                            py: 0.75,
+                            borderRadius: "20px",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            border: "1.5px solid",
+                            borderColor: isOn ? "#0A4472" : "#DDE8F0",
+                            bgcolor: isOn ? "#0A4472" : "#F5F8FB",
+                            color: isOn ? "#fff" : "#5A7184",
+                            transition: "all .15s",
+                            userSelect: "none",
+                            "&:hover": isOn
+                              ? {}
+                              : { borderColor: "#5BA4D4", color: "#1172BA" },
+                          }}
+                        >
+                          {f}
+                        </Box>
+                      );
+                    },
+                  )}
+                </Box>
+
+                <TextField
+                  select
+                  size="small"
+                  value={wardFilter}
+                  onChange={(e) => setWardFilter(e.target.value)}
+                  sx={{
+                    minWidth: 150,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "10px",
+                      bgcolor: "#F5F8FB",
+                      fontSize: "12.5px",
+                      "& fieldset": {
+                        borderColor: "#DDE8F0",
+                        borderWidth: "1.5px",
+                      },
                     },
                   }}
                 >
-                  Open Clinical Care
-                </Button>
-              )
-            }
-            items={[
-              {
-                label: "Bed Board",
-                child: (
-                  <Grid container spacing={1}>
-                    <Grid item xs={12} lg={8}>
-                      <IpdSectionCard
-                        title="Bed Management"
-                        subtitle="Monitor occupancy, filter wards, and assign the right bed."
-                        bodySx={ipdFormStylesSx}
+                  {wardOptions.map((ward) => (
+                    <MenuItem key={ward} value={ward}>
+                      {ward}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  size="small"
+                  placeholder="Search bed or patient..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" sx={{ color: "#9AAFBF" }} />
+                      </InputAdornment>
+                    ),
+                    sx: {
+                      borderRadius: "10px",
+                      bgcolor: "#F5F8FB",
+                      fontSize: "12.5px",
+                      "& fieldset": {
+                        borderColor: "#DDE8F0",
+                        borderWidth: "1.5px",
+                      },
+                    },
+                  }}
+                  sx={{ minWidth: 200 }}
+                />
+              </Box>
+            </Box>
+
+            {/* Tab bar */}
+            <Box
+              sx={{
+                display: "flex",
+                gap: 0.375,
+                px: 2.5,
+                py: 0.875,
+                borderBottom: "1px solid #DDE8F0",
+              }}
+            >
+              {BED_CENSUS_TABS.map((tab) => (
+                <Box
+                  key={tab.id}
+                  onClick={() => updateTabInRoute(tab.id)}
+                  sx={{
+                    px: 2,
+                    py: 0.875,
+                    borderRadius: "10px",
+                    fontSize: "12.5px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    bgcolor: activeTab === tab.id ? "#1172BA" : "transparent",
+                    color: activeTab === tab.id ? "#fff" : "#5A7184",
+                    transition: "all .15s",
+                    userSelect: "none",
+                    "&:hover":
+                      activeTab !== tab.id
+                        ? { bgcolor: "#F5F8FB", color: "#0D1B2A" }
+                        : {},
+                  }}
+                >
+                  {tab.label}
+                </Box>
+              ))}
+            </Box>
+
+            {/* Tab content */}
+            <Box sx={{ p: activeTab === "inpatient-list" ? 0 : 2.5 }}>
+              {/* BED BOARD TAB */}
+              {activeTab === "bed-board" && (
+                <Box
+                  sx={{
+                    display: "grid",
+                    gap: 1.25,
+                    gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+                  }}
+                >
+                  {filteredBedBoard.map((bed) => {
+                    const isIcu = bed.isolation || bed.ward === "ICU";
+                    const isSelected = allocation.targetBedId === bed.id;
+
+                    const getBedStyle = (): {
+                      border: string;
+                      bg: string;
+                      dot: string;
+                    } => {
+                      if (isIcu)
+                        return {
+                          border: "#C4B5FD",
+                          bg: "#FAF5FF",
+                          dot: "#7C3AED",
+                        };
+                      const map: Record<
+                        BedStatus,
+                        { border: string; bg: string; dot: string }
+                      > = {
+                        Occupied: {
+                          border: "#BFDBFE",
+                          bg: "#EFF6FF",
+                          dot: "#1172BA",
+                        },
+                        Available: {
+                          border: "#86EFAC",
+                          bg: "#F0FFF4",
+                          dot: "#16A34A",
+                        },
+                        Cleaning: {
+                          border: "#D1D5DB",
+                          bg: "#F9FAFB",
+                          dot: "#6B7280",
+                        },
+                        Reserved: {
+                          border: "#FDE68A",
+                          bg: "#FFFBEB",
+                          dot: "#D97706",
+                        },
+                        Blocked: {
+                          border: "#FCA5A5",
+                          bg: "#FFF5F5",
+                          dot: "#DC2626",
+                        },
+                      };
+                      return (
+                        map[bed.status] ?? {
+                          border: "#DDE8F0",
+                          bg: "#F5F8FB",
+                          dot: "#9AAFBF",
+                        }
+                      );
+                    };
+
+                    const { border, bg, dot } = getBedStyle();
+                    const patientLabel =
+                      bed.status === "Occupied"
+                        ? (bed.patientName?.split(" ")[0] ?? "Occupied")
+                        : bed.status;
+
+                    const labelColor =
+                      bed.status === "Available"
+                        ? "#16A34A"
+                        : bed.status === "Cleaning"
+                          ? "#6B7280"
+                          : bed.status === "Reserved"
+                            ? "#D97706"
+                            : bed.status === "Blocked"
+                              ? "#DC2626"
+                              : isIcu
+                                ? "#7C3AED"
+                                : "#5A7184";
+
+                    return (
+                      <Box
+                        key={bed.id}
+                        onClick={() =>
+                          canManageBeds &&
+                          updateAllocationField("targetBedId", bed.id)
+                        }
+                        sx={{
+                          borderRadius: "16px",
+                          border: "2px solid",
+                          borderColor: isSelected ? "#1172BA" : border,
+                          bgcolor: isSelected ? "#E8F3FB" : bg,
+                          p: "14px 12px",
+                          cursor: canManageBeds ? "pointer" : "default",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 1,
+                          transition: "all .15s",
+                          position: "relative",
+                          textAlign: "center",
+                          "&:hover": canManageBeds
+                            ? { borderColor: "#5BA4D4", bgcolor: "#E8F3FB" }
+                            : {},
+                        }}
                       >
-                        <Stack spacing={1.5}>
-                          <Stack
-                            direction={{ xs: "column", md: "row" }}
-                            spacing={2}
-                            justifyContent="space-between"
-                            alignItems={{ xs: "flex-start", md: "center" }}
-                            sx={{ mb: 1 }}
-                          >
-                            <Stack
-                              direction="row"
-                              spacing={0.8}
-                              sx={{ flexWrap: "wrap", gap: 0.8 }}
-                            >
-                              {["All", "Available", "Occupied", "Reserved", "ICU"].map(
-                                (status) => {
-                                  const isSelected = statusFilter === status;
-                                  return (
-                                    <Button
-                                      key={status}
-                                      onClick={() => setStatusFilter(status as any)}
-                                      sx={{
-                                        borderRadius: 1.5,
-                                        px: 2,
-                                        py: 0.6,
-                                        minWidth: 0,
-                                        textTransform: "none",
-                                        fontWeight: 600,
-                                        bgcolor: isSelected ? "#1D4ED8" : "transparent",
-                                        color: isSelected
-                                          ? "#ffffff"
-                                          : "text.secondary",
-                                        "&:hover": {
-                                          bgcolor: isSelected
-                                            ? "#1e40af"
-                                            : alpha("#000000", 0.04),
-                                        },
-                                      }}
-                                    >
-                                      {status}
-                                    </Button>
-                                  );
-                                },
-                              )}
-                            </Stack>
-
-                            <Stack direction="row" spacing={1.5} alignItems="center">
-                              <TextField
-                                size="small"
-                                select
-                                value={wardFilter}
-                                onChange={(event) => setWardFilter(event.target.value)}
-                                sx={{
-                                  minWidth: 150,
-                                  "& .MuiOutlinedInput-root": {
-                                    borderRadius: 1.5,
-                                    bgcolor: "#f8fafc",
-                                  },
-                                }}
-                              >
-                                {wardOptions.map((ward) => (
-                                  <MenuItem key={ward} value={ward}>
-                                    {ward}
-                                  </MenuItem>
-                                ))}
-                              </TextField>
-
-                              <TextField
-                                size="small"
-                                placeholder="Search bed or patient..."
-                                value={search}
-                                onChange={(event) => setSearch(event.target.value)}
-                                InputProps={{
-                                  startAdornment: (
-                                    <InputAdornment position="start">
-                                      <SearchIcon fontSize="small" color="action" />
-                                    </InputAdornment>
-                                  ),
-                                  sx: { borderRadius: 1.5, bgcolor: "#f8fafc" },
-                                }}
-                              />
-                            </Stack>
-                          </Stack>
-
-                          <Box
-                            sx={{
-                              display: "grid",
-                              gap: 1.2,
-                              gridTemplateColumns: {
-                                xs: "repeat(2, minmax(0, 1fr))",
-                                sm: "repeat(3, minmax(0, 1fr))",
-                                md: "repeat(4, minmax(0, 1fr))",
-                                lg: "repeat(6, minmax(0, 1fr))",
-                              },
-                              alignItems: "stretch",
-                            }}
-                          >
-                            {filteredBedBoard.map((bed) => {
-                              const isSelected = allocation.targetBedId === bed.id;
-                              const isIcu = bed.isolation || bed.ward === "ICU";
-                              const statusColor = isIcu
-                                ? IMG_UI_COLORS.icu
-                                : bedStatusColorMap[bed.status];
-
-                              return (
-                                <Box
-                                  key={bed.id}
-                                  sx={{ display: "flex", minWidth: 0, width: "100%" }}
-                                >
-                                  <Card
-                                    elevation={0}
-                                    onClick={() => {
-                                      if (!canManageBeds) return;
-                                      updateAllocationField("targetBedId", bed.id);
-                                    }}
-                                    sx={{
-                                      p: 1.2,
-                                      pt: 1.5,
-                                      pb: 1.5,
-                                      borderRadius: 2,
-                                      border: "1px solid",
-                                      borderColor: isSelected
-                                        ? "#1D4ED8"
-                                        : alpha(statusColor, 0.4),
-                                      cursor: canManageBeds ? "pointer" : "default",
-                                      backgroundColor: isSelected
-                                        ? alpha("#1D4ED8", 0.05)
-                                        : "#ffffff",
-                                      transition: "all 0.15s ease-in-out",
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      width: "100%",
-                                      minHeight: 90,
-                                      position: "relative",
-                                      overflow: "hidden",
-                                      "&:hover": canManageBeds
-                                        ? {
-                                          transform: "translateY(-2px)",
-                                          boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-                                        }
-                                        : undefined,
-                                    }}
-                                  >
-                                    <Box
-                                      sx={{
-                                        position: "absolute",
-                                        top: 8,
-                                        right: 8,
-                                        width: 8,
-                                        height: 8,
-                                        borderRadius: "50%",
-                                        bgcolor: statusColor,
-                                      }}
-                                    />
-                                    <BedIcon
-                                      sx={{
-                                        color: statusColor,
-                                        fontSize: 28,
-                                        mb: 0.5,
-                                      }}
-                                    />
-                                    <Typography
-                                      variant="body2"
-                                      sx={{
-                                        fontWeight: 700,
-                                        color: "text.primary",
-                                        lineHeight: 1.2,
-                                      }}
-                                    >
-                                      {bed.bedNumber}
-                                    </Typography>
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        color: "text.secondary",
-                                        fontSize: "0.7rem",
-                                        mt: 0.2,
-                                        display: "-webkit-box",
-                                        WebkitLineClamp: 1,
-                                        WebkitBoxOrient: "vertical",
-                                        overflow: "hidden",
-                                      }}
-                                    >
-                                      {bed.status === "Occupied"
-                                        ? (bed.patientName?.split(" ")[0] ?? "Occupied")
-                                        : bed.status}
-                                    </Typography>
-                                  </Card>
-                                </Box>
-                              );
-                            })}
-                          </Box>
-                        </Stack>
-                      </IpdSectionCard>
-                    </Grid>
-
-                    <Grid item xs={12} lg={4}>
-                      <Stack spacing={2}>
-                        <IpdSectionCard
-                          title="Allocation / Transfer"
-                          subtitle="Assign beds for new admissions and clinical moves."
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            top: 10,
+                            right: 10,
+                            width: 9,
+                            height: 9,
+                            borderRadius: "50%",
+                            bgcolor: dot,
+                          }}
+                        />
+                        <BedIcon sx={{ fontSize: 28, color: dot }} />
+                        <Typography
+                          sx={{
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: "#0D1B2A",
+                            lineHeight: 1.2,
+                          }}
                         >
-                          <Stack spacing={1.2}>
-                            <TextField
-                              select
-                              size="small"
-                              label="Patient"
-                              value={allocation.patientId}
-                              onChange={(event) =>
-                                updateAllocationField("patientId", event.target.value)
-                              }
-                              disabled={!canManageBeds}
-                            >
-                              <MenuItem value="" disabled>
-                                Select patient
-                              </MenuItem>
-                              {ipdPatients.map((patient) => (
-                                <MenuItem key={patient.id} value={patient.id}>
-                                  {patient.patientName} ({patient.mrn})
-                                </MenuItem>
-                              ))}
-                            </TextField>
-
-                            <TextField
-                              select
-                              size="small"
-                              label="Target Bed"
-                              value={allocation.targetBedId}
-                              onChange={(event) =>
-                                updateAllocationField("targetBedId", event.target.value)
-                              }
-                              disabled={!canManageBeds}
-                            >
-                              {allocatableBeds.map((bed) => (
-                                <MenuItem key={bed.id} value={bed.id}>
-                                  {bed.bedNumber} · {bed.ward} ({bed.status})
-                                </MenuItem>
-                              ))}
-                            </TextField>
-
-                            <TextField
-                              select
-                              size="small"
-                              label="Reason"
-                              value={allocation.transferReason}
-                              onChange={(event) =>
-                                updateAllocationField(
-                                  "transferReason",
-                                  event.target.value,
-                                )
-                              }
-                              disabled={!canManageBeds}
-                            >
-                              {[
-                                "New Admission",
-                                "Clinical Transfer",
-                                "Infection Isolation",
-                                "Patient Preference",
-                              ].map((reason) => (
-                                <MenuItem key={reason} value={reason}>
-                                  {reason}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-
-                            <TextField
-                              multiline
-                              size="small"
-                              minRows={2}
-                              label="Notes"
-                              value={allocation.notes}
-                              onChange={(event) =>
-                                updateAllocationField("notes", event.target.value)
-                              }
-                              disabled={!canManageBeds}
-                            />
-
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  size="small"
-                                  checked={allocation.isolation}
-                                  onChange={(event) =>
-                                    updateAllocationField(
-                                      "isolation",
-                                      event.target.checked,
-                                    )
-                                  }
-                                  disabled={!canManageBeds}
-                                />
-                              }
-                              label={
-                                <Typography variant="body2">
-                                  Mark as isolation bed
-                                </Typography>
-                              }
-                            />
-
-                            {selectedPatient ? (
-                              <Card
-                                variant="outlined"
-                                sx={{ p: 1.2, borderRadius: 1.5 }}
-                              >
-                                <Typography variant="caption" color="text.secondary">
-                                  Selected patient
-                                </Typography>
-                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                  {selectedPatient.patientName}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Current bed: {currentBed?.bedNumber ?? "Not assigned"}
-                                </Typography>
-                              </Card>
-                            ) : null}
-
-                            <Button
-                              variant="contained"
-                              startIcon={<SwapHorizIcon />}
-                              onClick={handleAssignBed}
-                              disabled={!canManageBeds}
-                              sx={{
-                                mt: 1,
-                                background: `linear-gradient(135deg, ${IPD_COLORS.primary} 0%, ${IPD_COLORS.primaryLight} 100%)`,
-                                "&:hover": {
-                                  background: `linear-gradient(135deg, ${IPD_COLORS.primaryLight} 0%, ${IPD_COLORS.primary} 100%)`,
-                                },
-                              }}
-                            >
-                              Confirm Allocation
-                            </Button>
-
-                            {canAccessClinical && (
-                              <Button
-                                variant="outlined"
-                                onClick={() =>
-                                  openClinicalCare(selectedPatient?.mrn, "rounds")
-                                }
-                              >
-                                Continue to Rounds
-                              </Button>
-                            )}
-                            <Button
-                              variant="outlined"
-                              color="info"
-                              onClick={() => setIsBedDetailsOpen(true)}
-                              disabled={!allocation.targetBedId}
-                            >
-                              View Bed Details
-                            </Button>
-                          </Stack>
-                        </IpdSectionCard>
-                      </Stack>
-                    </Grid>
-                  </Grid>
-                ),
-              },
-              {
-                label: "Inpatient List",
-                child: (
-                  <CommonDataGrid<(typeof inpatientRows)[0]>
-                    rows={inpatientRows}
-                    columns={inpatientColumns}
-                    getRowId={(row) => row.id}
-                  />
-                ),
-              },
-              {
-                label: "Transfers",
-                child: (
-                  <IpdSectionCard
-                    title="Transfers"
-                    subtitle="Bed movement log and transfer workflow status."
-                  >
-                    <Stack spacing={1}>
-                      {movementLog.length === 0 ? (
-                        <Typography variant="body2" color="text.secondary">
-                          No bed movement recorded.
+                          {bed.bedNumber}
                         </Typography>
-                      ) : (
-                        movementLog.map((entry) => (
-                          <Card
-                            key={entry.id}
-                            variant="outlined"
-                            sx={{ p: 1.2, borderRadius: 1.6 }}
+                        <Typography
+                          sx={{
+                            fontSize: 11,
+                            color: labelColor,
+                            fontWeight: bed.status !== "Occupied" ? 600 : 400,
+                            mt: 0.125,
+                          }}
+                        >
+                          {patientLabel}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                  {filteredBedBoard.length === 0 && (
+                    <Box sx={{ gridColumn: "1 / -1", py: 6, textAlign: "center" }}>
+                      <Typography sx={{ color: "#9AAFBF", fontSize: 13 }}>
+                        No beds match the current filter.
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              )}
+
+              {/* INPATIENT LIST TAB */}
+              {activeTab === "inpatient-list" && (
+                <CommonDataGrid<(typeof inpatientRows)[0]>
+                  rows={inpatientRows}
+                  columns={inpatientColumns}
+                  getRowId={(row) => row.id}
+                  paperSx={{
+                    border: "none",
+                    borderRadius: 0,
+                    boxShadow: "none",
+                    borderTop: "1px solid #DDE8F0",
+                  }}
+                />
+              )}
+
+              {/* TRANSFERS TAB */}
+              {activeTab === "transfers" && (
+                <Stack spacing={1}>
+                  {movementLog.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      No bed movement recorded.
+                    </Typography>
+                  ) : (
+                    movementLog.map((entry) => (
+                      <Box
+                        key={entry.id}
+                        sx={{
+                          p: 1.75,
+                          borderRadius: "14px",
+                          border: "1.5px solid #DDE8F0",
+                          bgcolor: "#fff",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Box>
+                          <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
+                            {entry.patientName}
+                          </Typography>
+                          <Typography
+                            sx={{ fontSize: "11.5px", color: "#5A7184" }}
                           >
-                            <Stack
-                              direction={{ xs: "column", md: "row" }}
-                              justifyContent="space-between"
-                              spacing={1}
+                            {entry.fromBed} → {entry.toBed} · {entry.time}
+                          </Typography>
+                          <Typography sx={{ fontSize: "11px", color: "#9AAFBF" }}>
+                            Handled by {entry.operator}
+                          </Typography>
+                        </Box>
+                        <Chip
+                          size="small"
+                          color={
+                            entry.action === "Transfer" ? "warning" : "success"
+                          }
+                          label={entry.action}
+                        />
+                      </Box>
+                    ))
+                  )}
+                </Stack>
+              )}
+
+              {/* ISOLATION TAB */}
+              {activeTab === "isolation" && (
+                <Stack spacing={1}>
+                  {isolationRows.length === 0 ? (
+                    <Alert severity="info">
+                      No isolation-designated beds are active right now.
+                    </Alert>
+                  ) : (
+                    isolationRows.map((bed) => (
+                      <Box
+                        key={bed.id}
+                        sx={{
+                          p: 1.75,
+                          borderRadius: "14px",
+                          border: "1.5px solid #DDE8F0",
+                          bgcolor: "#fff",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Box>
+                          <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
+                            {bed.bedNumber} · {bed.ward}
+                          </Typography>
+                          <Typography
+                            sx={{ fontSize: "11.5px", color: "#5A7184" }}
+                          >
+                            {bed.patientName ?? "No active patient"}
+                            {bed.mrn ? ` (${bed.mrn})` : ""}
+                          </Typography>
+                          <Typography sx={{ fontSize: "11px", color: "#9AAFBF" }}>
+                            {bed.diagnosis ?? "No diagnosis captured"} ·{" "}
+                            {bed.status}
+                          </Typography>
+                        </Box>
+                        <Stack direction="row" spacing={0.8} alignItems="center">
+                          <Chip
+                            size="small"
+                            color={bed.isolation ? "warning" : "default"}
+                            label={bed.isolation ? "Isolation" : "ICU Monitor"}
+                          />
+                          {bed.mrn && canAccessClinical ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => openClinicalCare(bed.mrn, "rounds")}
                             >
-                              <Box>
-                                <Typography
-                                  variant="subtitle2"
-                                  sx={{ fontWeight: 700 }}
-                                >
-                                  {entry.patientName}
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                  {entry.fromBed} {">"} {entry.toBed} · {entry.time}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Handled by {entry.operator}
-                                </Typography>
-                              </Box>
-                              <Chip
-                                size="small"
-                                color={
-                                  entry.action === "Transfer" ? "warning" : "success"
-                                }
-                                label={entry.action}
-                              />
-                            </Stack>
-                          </Card>
-                        ))
-                      )}
-                    </Stack>
-                  </IpdSectionCard>
-                ),
-              },
-              {
-                label: "Isolation",
-                child: (
-                  <IpdSectionCard
-                    title="Isolation Beds"
-                    subtitle="Isolation and ICU status view for infection-control readiness."
+                              Clinical Care
+                            </Button>
+                          ) : null}
+                        </Stack>
+                      </Box>
+                    ))
+                  )}
+                </Stack>
+              )}
+            </Box>
+          </Box>
+
+          {/* ── ALLOCATION PANEL ── */}
+          <Box
+            sx={{
+              width: 272,
+              minWidth: 272,
+              bgcolor: "#fff",
+              borderRadius: "20px",
+              border: "1px solid #DDE8F0",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              flexShrink: 0,
+            }}
+          >
+            <Box sx={{ p: "16px 18px", borderBottom: "1px solid #DDE8F0" }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#0D1B2A" }}>
+                Allocation / Transfer
+              </Typography>
+              <Typography sx={{ fontSize: "11.5px", color: "#9AAFBF", mt: 0.25 }}>
+                Assign beds for new admissions and clinical moves.
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                flex: 1,
+                p: "16px 18px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.5,
+              }}
+            >
+              {/* Patient */}
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                <Typography
+                  sx={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: ".5px",
+                    color: "#9AAFBF",
+                  }}
+                >
+                  Patient
+                </Typography>
+                <TextField
+                  select
+                  size="small"
+                  value={allocation.patientId}
+                  onChange={(e) =>
+                    updateAllocationField("patientId", e.target.value)
+                  }
+                  disabled={!canManageBeds}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "10px",
+                      bgcolor: "#F5F8FB",
+                      fontSize: "12.5px",
+                      "& fieldset": {
+                        borderColor: "#DDE8F0",
+                        borderWidth: "1.5px",
+                      },
+                    },
+                  }}
+                >
+                  <MenuItem value="" disabled>
+                    Select patient...
+                  </MenuItem>
+                  {ipdPatients.map((p) => (
+                    <MenuItem key={p.id} value={p.id}>
+                      {p.patientName} — {p.mrn}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+
+              {/* Target Bed */}
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                <Typography
+                  sx={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: ".5px",
+                    color: "#9AAFBF",
+                  }}
+                >
+                  Target Bed
+                </Typography>
+                <TextField
+                  select
+                  size="small"
+                  value={allocation.targetBedId}
+                  onChange={(e) =>
+                    updateAllocationField("targetBedId", e.target.value)
+                  }
+                  disabled={!canManageBeds}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "10px",
+                      bgcolor: "#F5F8FB",
+                      fontSize: "12.5px",
+                      "& fieldset": {
+                        borderColor: "#DDE8F0",
+                        borderWidth: "1.5px",
+                      },
+                    },
+                  }}
+                >
+                  <MenuItem value="" disabled>
+                    Select bed...
+                  </MenuItem>
+                  {allocatableBeds.map((bed) => (
+                    <MenuItem key={bed.id} value={bed.id}>
+                      {bed.bedNumber} · {bed.ward} ({bed.status})
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+
+              {/* Reason */}
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                <Typography
+                  sx={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: ".5px",
+                    color: "#9AAFBF",
+                  }}
+                >
+                  Reason
+                </Typography>
+                <TextField
+                  select
+                  size="small"
+                  value={allocation.transferReason}
+                  onChange={(e) =>
+                    updateAllocationField("transferReason", e.target.value)
+                  }
+                  disabled={!canManageBeds}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "10px",
+                      bgcolor: "#F5F8FB",
+                      fontSize: "12.5px",
+                      "& fieldset": {
+                        borderColor: "#DDE8F0",
+                        borderWidth: "1.5px",
+                      },
+                    },
+                  }}
+                >
+                  {[
+                    "New Admission",
+                    "Transfer",
+                    "Upgrade",
+                    "Clinical Requirement",
+                    "Isolation Protocol",
+                  ].map((r) => (
+                    <MenuItem key={r} value={r}>
+                      {r}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+
+              {/* Notes */}
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                <Typography
+                  sx={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: ".5px",
+                    color: "#9AAFBF",
+                  }}
+                >
+                  Notes
+                </Typography>
+                <TextField
+                  multiline
+                  size="small"
+                  minRows={3}
+                  placeholder="Add clinical notes or instructions..."
+                  value={allocation.notes}
+                  onChange={(e) => updateAllocationField("notes", e.target.value)}
+                  disabled={!canManageBeds}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "10px",
+                      bgcolor: "#F5F8FB",
+                      fontSize: "12.5px",
+                      "& fieldset": {
+                        borderColor: "#DDE8F0",
+                        borderWidth: "1.5px",
+                      },
+                    },
+                  }}
+                />
+              </Box>
+
+              {/* Isolation toggle */}
+              <Box
+                onClick={() =>
+                  canManageBeds &&
+                  updateAllocationField("isolation", !allocation.isolation)
+                }
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  p: "10px 12px",
+                  bgcolor: "#F5F8FB",
+                  borderRadius: "10px",
+                  border: "1.5px solid",
+                  borderColor: allocation.isolation ? "#1172BA" : "#DDE8F0",
+                  cursor: canManageBeds ? "pointer" : "default",
+                  transition: "border-color .15s",
+                  "&:hover": canManageBeds
+                    ? { borderColor: "#5BA4D4" }
+                    : {},
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: "4px",
+                    border: "2px solid",
+                    borderColor: allocation.isolation ? "#1172BA" : "#DDE8F0",
+                    bgcolor: allocation.isolation ? "#1172BA" : "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    transition: "all .15s",
+                  }}
+                >
+                  {allocation.isolation && (
+                    <svg
+                      width="9"
+                      height="9"
+                      viewBox="0 0 10 10"
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="2"
+                    >
+                      <path d="M2 5l2.5 2.5L8 3" />
+                    </svg>
+                  )}
+                </Box>
+                <Typography
+                  sx={{ fontSize: "12.5px", fontWeight: 600, color: "#0D1B2A" }}
+                >
+                  Mark as isolation bed
+                </Typography>
+              </Box>
+
+              {/* Selected patient summary */}
+              {selectedPatient && (
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: "10px",
+                    border: "1.5px solid #DDE8F0",
+                    bgcolor: "#F5F8FB",
+                  }}
+                >
+                  <Typography
+                    sx={{ fontSize: 10, color: "#9AAFBF", fontWeight: 600 }}
                   >
-                    <Stack spacing={1}>
-                      {isolationRows.length === 0 ? (
-                        <Alert severity="info">
-                          No isolation-designated beds are active right now.
-                        </Alert>
-                      ) : (
-                        isolationRows.map((bed) => (
-                          <Card
-                            key={bed.id}
-                            variant="outlined"
-                            sx={{ p: 1.2, borderRadius: 1.6 }}
-                          >
-                            <Stack
-                              direction={{ xs: "column", md: "row" }}
-                              justifyContent="space-between"
-                              spacing={1}
-                            >
-                              <Box>
-                                <Typography
-                                  variant="subtitle2"
-                                  sx={{ fontWeight: 700 }}
-                                >
-                                  {bed.bedNumber} · {bed.ward}
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                  {bed.patientName ?? "No active patient"}{" "}
-                                  {bed.mrn ? `(${bed.mrn})` : ""}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {bed.diagnosis ?? "No diagnosis captured"} ·{" "}
-                                  {bed.status}
-                                </Typography>
-                              </Box>
-                              <Stack direction="row" spacing={0.8} alignItems="center">
-                                <Chip
-                                  size="small"
-                                  color={bed.isolation ? "warning" : "default"}
-                                  label={bed.isolation ? "Isolation" : "ICU Monitor"}
-                                />
-                                {bed.mrn && canAccessClinical ? (
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={() => openClinicalCare(bed.mrn, "rounds")}
-                                  >
-                                    Clinical Care
-                                  </Button>
-                                ) : null}
-                              </Stack>
-                            </Stack>
-                          </Card>
-                        ))
-                      )}
-                    </Stack>
-                  </IpdSectionCard>
-                ),
-              },
-            ]}
-            defaultValue={BED_CENSUS_TABS.findIndex((t) => t.id === activeTab)}
-            onChange={(index) => updateTabInRoute(BED_CENSUS_TABS[index].id)}
-            showBackground={true}
-            sticky={false}
-            scrollable={false}
-          />
+                    Selected patient
+                  </Typography>
+                  <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
+                    {selectedPatient.patientName}
+                  </Typography>
+                  <Typography sx={{ fontSize: "11px", color: "#5A7184" }}>
+                    Current bed: {currentBed?.bedNumber ?? "Not assigned"}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {/* Footer buttons */}
+            <Box
+              sx={{
+                p: "14px 18px",
+                borderTop: "1px solid #DDE8F0",
+                display: "flex",
+                flexDirection: "column",
+                gap: 1,
+              }}
+            >
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={handleAssignBed}
+                disabled={!canManageBeds}
+                startIcon={<SwapHorizIcon />}
+                sx={{
+                  py: 1.375,
+                  borderRadius: "12px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textTransform: "none",
+                  background: "#1172BA",
+                  "&:hover": { background: "#0D5A94" },
+                }}
+              >
+                Confirm Allocation
+              </Button>
+              {canAccessClinical && (
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  onClick={() =>
+                    openClinicalCare(selectedPatient?.mrn, "rounds")
+                  }
+                  sx={{
+                    py: 1.25,
+                    borderRadius: "12px",
+                    fontSize: "12.5px",
+                    fontWeight: 600,
+                    textTransform: "none",
+                    borderColor: "#DDE8F0",
+                    color: "#5A7184",
+                    "&:hover": { bgcolor: "#F5F8FB" },
+                  }}
+                >
+                  Continue to Rounds
+                </Button>
+              )}
+              <Button
+                variant="text"
+                fullWidth
+                onClick={() => setIsBedDetailsOpen(true)}
+                disabled={!allocation.targetBedId}
+                sx={{
+                  py: 1,
+                  borderRadius: "10px",
+                  fontSize: "12.5px",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  color: "#9AAFBF",
+                  "&:hover": { color: "#1172BA" },
+                }}
+              >
+                View Bed Details
+              </Button>
+            </Box>
+          </Box>
         </Box>
 
         <Snackbar

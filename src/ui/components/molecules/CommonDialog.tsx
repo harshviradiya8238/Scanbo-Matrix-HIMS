@@ -90,6 +90,7 @@ const CommonDialog = ({
     >
       {showHeader && (
         <DialogTitle
+          component="div"
           sx={{ pb: bodyContent || description ? 1 : 2, ...titleSx }}
         >
           <Stack
@@ -117,14 +118,14 @@ const CommonDialog = ({
               <Box>
                 {title &&
                   (isSimpleTitle ? (
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    <Typography component="span" variant="h6" sx={{ fontWeight: 700 }}>
                       {title}
                     </Typography>
                   ) : (
                     title
                   ))}
                 {subtitle && (
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography component="span" variant="body2" color="text.secondary" sx={{ display: 'block' }}>
                     {subtitle}
                   </Typography>
                 )}

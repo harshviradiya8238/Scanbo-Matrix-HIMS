@@ -22,7 +22,6 @@ import {
   TableHead,
   TableRow,
   LinearProgress,
-  CircularProgress,
   Tooltip,
   Checkbox,
   FormControlLabel,
@@ -40,6 +39,7 @@ import {
   CommonDialog,
   WorkspaceHeaderCard,
 } from "@/src/ui/components/molecules";
+import { AppLoaderOverlay, InlineLoaderIcon } from "@/src/ui/components/loaders";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
   ListAlt as ListIcon,
@@ -2070,7 +2070,7 @@ export default function ReportingWorkbenchPage() {
                     disabled={isGenerating}
                     startIcon={
                       isGenerating ? (
-                        <CircularProgress size={14} color="inherit" />
+                        <InlineLoaderIcon size={14} color="currentColor" />
                       ) : (
                         <PlayArrowIcon sx={{ fontSize: 16 }} />
                       )
@@ -2409,71 +2409,23 @@ export default function ReportingWorkbenchPage() {
             </Box>
 
             {/* ── Loading Overlay ── */}
-            {isGenerating && (
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  bgcolor: "rgba(255, 255, 255, 0.82)",
-                  zIndex: 2000,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backdropFilter: "blur(4px)",
-                }}
-              >
-                <Stack spacing={2} alignItems="center">
-                  <CircularProgress
-                    size={48}
-                    thickness={4}
-                    sx={{ color: C.primary }}
-                  />
-                  <Typography
-                    sx={{
-                      fontWeight: 900,
-                      color: C.neutral900,
-                      fontSize: "1.1rem",
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    Running Report...
-                  </Typography>
-                  <Box sx={{ width: 280, mt: 1 }}>
-                    <LinearProgress
-                      sx={{
-                        height: 6,
-                        borderRadius: 3,
-                        bgcolor: alpha(C.primary, 0.1),
-                        "& .MuiLinearProgress-bar": {
-                          borderRadius: 3,
-                          bgcolor: C.primary,
-                        },
-                      }}
-                    />
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        display: "block",
-                        textAlign: "center",
-                        mt: 1.5,
-                        color: C.neutral600,
-                        fontWeight: 700,
-                        fontSize: "0.75rem",
-                      }}
-                    >
-                      Fetching data from hospital records...
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Box>
-            )}
+            <AppLoaderOverlay
+              open={isGenerating}
+              scope="section"
+              message="Running report..."
+              zIndex={2000}
+            />
 
             {/* ── Tab Content ── */}
-            <Box sx={{ p: 2, flex: 1, overflow: "auto" }}>
+            <Box
+              sx={{
+                p: 2,
+                flex: 1,
+                minWidth: 0,
+                overflowY: "auto",
+                overflowX: "hidden",
+              }}
+            >
               {activeTab === "results" && (
                 <Stack spacing={0}>
                   <Box
@@ -2481,12 +2433,19 @@ export default function ReportingWorkbenchPage() {
                       pb: 1.5,
                       display: "flex",
                       justifyContent: "space-between",
-                      alignItems: "center",
+                      alignItems: { xs: "flex-start", md: "center" },
+                      flexWrap: "wrap",
+                      gap: 1,
                       bgcolor: C.white,
                       borderBottom: `1px solid ${C.neutral100}`,
                     }}
                   >
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      alignItems="center"
+                      sx={{ flexWrap: "wrap", minWidth: 0 }}
+                    >
                       <Typography
                         sx={{ fontSize: "0.8rem", color: C.neutral500 }}
                       >
@@ -2523,7 +2482,14 @@ export default function ReportingWorkbenchPage() {
                         </Typography>
                       </Stack>
                     </Stack>
-                    <Stack direction="row" spacing={1}>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{
+                        flexWrap: "wrap",
+                        justifyContent: { xs: "flex-start", md: "flex-end" },
+                      }}
+                    >
                       <Button
                         variant="outlined"
                         size="small"
@@ -2576,11 +2542,13 @@ export default function ReportingWorkbenchPage() {
                       </Button>
                     </Stack>
                   </Box>
-                  <CommonTable
-                    rows={resultsData}
-                    columns={filteredResultsColumns}
-                    getRowId={(r) => r.id}
-                  />
+                  <Box sx={{ minWidth: 0 }}>
+                    <CommonTable
+                      rows={resultsData}
+                      columns={filteredResultsColumns}
+                      getRowId={(r) => r.id}
+                    />
+                  </Box>
                 </Stack>
               )}
 

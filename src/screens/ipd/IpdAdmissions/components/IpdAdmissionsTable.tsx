@@ -11,12 +11,14 @@ import {
   PatientRow,
 } from "../utils/ipd-admissions-types";
 import { getActiveInfectionCaseByMrn } from "@/src/mocks/infection-control";
+import { useInitialContentLoading } from "@/src/ui/components/loaders/LoaderPrimitives";
 
 interface IpdAdmissionsTableProps {
   data: IpdAdmissionsData;
 }
 
 export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
+  const initialTableLoading = useInitialContentLoading(550);
   const {
     historyTab,
     visibleAllPatients,
@@ -31,58 +33,45 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
     {
       id: "mrn",
       label: "MRN",
-      minWidth: 140,
+      minWidth: 130,
       renderCell: (patient) => patient.mrn,
     },
     {
       id: "patientName",
       label: "Patient Name",
-      minWidth: 170,
+      minWidth: 160,
       renderCell: (patient) => (
         <Typography sx={{ fontWeight: 600 }}>{patient.patientName}</Typography>
       ),
     },
     {
-      id: "entryType",
-      label: "Entry",
-      minWidth: 130,
-      renderCell: (patient) => (
-        <Chip
-          size="small"
-          label={patient.entryType}
-          color={patient.entryType === "Created Now" ? "info" : "default"}
-          variant={patient.entryType === "Created Now" ? "filled" : "outlined"}
-        />
-      ),
-    },
-    {
       id: "ageGender",
       label: "Age / Gender",
-      minWidth: 130,
+      minWidth: 120,
       renderCell: (patient) => patient.ageGender,
     },
     {
       id: "admissionDate",
       label: "Admission Date & Time",
-      minWidth: 190,
+      minWidth: 170,
       renderCell: (patient) => patient.admissionDate,
     },
     {
       id: "ward",
       label: "Ward",
-      minWidth: 180,
+      minWidth: 160,
       renderCell: (patient) => patient.ward,
     },
     {
       id: "consultant",
       label: "Consultant",
-      minWidth: 180,
+      minWidth: 160,
       renderCell: (patient) => patient.consultant,
     },
     {
       id: "status",
       label: "Status",
-      minWidth: 120,
+      minWidth: 110,
       renderCell: (patient) => (
         <Chip
           size="small"
@@ -94,7 +83,7 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
     {
       id: "infection",
       label: "Infection",
-      minWidth: 170,
+      minWidth: 160,
       renderCell: (patient) => {
         const infectionCase = getActiveInfectionCaseByMrn(patient.mrn);
         if (!infectionCase) return "--";
@@ -103,6 +92,7 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
             size="small"
             color="error"
             label={`${infectionCase.organism} · ${infectionCase.icStatus}`}
+            onClick={() => handleOpenInfectionCase(patient)}
           />
         );
       },
@@ -111,19 +101,9 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
       id: "open",
       label: "Action",
       align: "right",
-      minWidth: 260,
+      minWidth: 150,
       renderCell: (patient) => (
         <>
-          {getActiveInfectionCaseByMrn(patient.mrn) ? (
-            <Button
-              size="small"
-              variant="text"
-              color="error"
-              onClick={() => handleOpenInfectionCase(patient)}
-            >
-              Infection
-            </Button>
-          ) : null}
           <Button
             size="small"
             variant="outlined"
@@ -141,13 +121,13 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
     {
       id: "mrn",
       label: "MRN",
-      minWidth: 140,
+      minWidth: 130,
       renderCell: (row) => row.mrn,
     },
     {
       id: "patientName",
       label: "Patient Name",
-      minWidth: 170,
+      minWidth: 160,
       renderCell: (row) => (
         <Typography sx={{ fontWeight: 600 }}>{row.patientName}</Typography>
       ),
@@ -155,7 +135,7 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
     {
       id: "stage",
       label: "Stage",
-      minWidth: 150,
+      minWidth: 140,
       renderCell: (row) => (
         <Chip
           size="small"
@@ -166,15 +146,9 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
       ),
     },
     {
-      id: "source",
-      label: "Source",
-      minWidth: 120,
-      renderCell: (row) => row.source,
-    },
-    {
       id: "priority",
       label: "Priority",
-      minWidth: 120,
+      minWidth: 110,
       renderCell: (row) => (
         <Chip
           size="small"
@@ -193,7 +167,7 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
     {
       id: "infection",
       label: "Infection",
-      minWidth: 170,
+      minWidth: 160,
       renderCell: (row) => {
         const infectionCase = getActiveInfectionCaseByMrn(row.mrn);
         if (!infectionCase) return "--";
@@ -202,6 +176,7 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
             size="small"
             color="error"
             label={`${infectionCase.organism} · ${infectionCase.icStatus}`}
+            onClick={() => handleOpenInfectionCase(row)}
           />
         );
       },
@@ -209,33 +184,23 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
     {
       id: "preferredWard",
       label: "Ward Selection",
-      minWidth: 180,
+      minWidth: 160,
       renderCell: (row) => row.preferredWard,
     },
     {
       id: "consultant",
       label: "Consultant",
-      minWidth: 180,
+      minWidth: 160,
       renderCell: (row) => row.consultant || "--",
     },
     {
       id: "open",
       label: "Action",
       align: "right",
-      minWidth: 260,
+      minWidth: 150,
       renderCell: (row) => {
         return (
           <>
-            {getActiveInfectionCaseByMrn(row.mrn) ? (
-              <Button
-                size="small"
-                variant="text"
-                color="error"
-                onClick={() => handleOpenInfectionCase(row)}
-              >
-                Infection
-              </Button>
-            ) : null}
             <Button
               size="small"
               variant="outlined"
@@ -257,6 +222,9 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
         columns={allPatientColumns}
         getRowId={(row) => row.id}
         emptyMessage="No IPD patients found."
+        tableMinHeight={420}
+        loading={initialTableLoading}
+        loadingMessage="Loading admissions..."
       />
     );
   }
@@ -267,6 +235,9 @@ export function IpdAdmissionsTable({ data }: IpdAdmissionsTableProps) {
       columns={queueColumns}
       getRowId={(row) => row.id}
       emptyMessage="No patients pending bed allocation."
+      tableMinHeight={420}
+      loading={initialTableLoading}
+      loadingMessage="Loading queue..."
     />
   );
 }

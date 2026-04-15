@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import PageTemplate from '@/src/ui/components/PageTemplate';
 import { Alert, Box, Button, Chip, MenuItem, Snackbar, Stack, TextField, Typography } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
+import { SectionLoader } from '@/src/ui/components/loaders';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import {
   AutoAwesome as AutoAwesomeIcon,
@@ -185,7 +186,7 @@ export default function OpdNotesPage() {
     <PageTemplate title="Clinical Notes" subtitle={pageSubtitle} currentPageTitle="Notes">
       <Stack spacing={2}>
         {opdStatus === 'loading' ? (
-          <Alert severity="info">Loading OPD data from the local JSON server.</Alert>
+          <SectionLoader message="Loading OPD data..." minHeight={140} />
         ) : null}
         {opdStatus === 'error' ? (
           <Alert severity="warning">

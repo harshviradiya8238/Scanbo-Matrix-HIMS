@@ -1,8 +1,7 @@
 'use client';
 
 import { Box } from '@/src/ui/components/atoms';
-import Spinner from '@/src/ui/components/atoms/Spinner';
-import Text from '@/src/ui/components/atoms/Text';
+import { AppLoaderVisual } from '@/src/ui/components/loaders/LoaderPrimitives';
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -10,27 +9,17 @@ interface LoadingSpinnerProps {
 }
 
 export default function LoadingSpinner({ message, fullScreen = false }: LoadingSpinnerProps) {
-  const content = (
+  return (
     <Box
       sx={{
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 2,
-        ...(fullScreen && {
-          minHeight: '100vh',
-        }),
+        minHeight: fullScreen ? '100vh' : 140,
+        width: '100%',
       }}
     >
-      <Spinner size={48} />
-      {message && (
-        <Text variant="body2" color="text.secondary">
-          {message}
-        </Text>
-      )}
+      <AppLoaderVisual message={message} size={fullScreen ? 'regular' : 'compact'} />
     </Box>
   );
-
-  return content;
 }

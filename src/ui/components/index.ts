@@ -1,4 +1,5 @@
 export * from './atoms';
+export * from './loaders';
 export * from './organisms';
 
 export { default as AppLayout } from './AppLayout';

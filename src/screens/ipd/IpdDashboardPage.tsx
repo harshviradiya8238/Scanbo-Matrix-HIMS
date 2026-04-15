@@ -5,35 +5,24 @@ import { useRouter } from "next/navigation";
 import PageTemplate from "@/src/ui/components/PageTemplate";
 import {
   Box,
-  Button,
-  Chip,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
 } from "@/src/ui/components/atoms";
-import { Card, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
-import { alpha, useTheme, Theme } from "@/src/ui/theme";
 import {
   AssignmentTurnedIn as AssignmentTurnedInIcon,
   Bed as BedIcon,
   CheckCircle as CheckCircleIcon,
   LocalHospital as LocalHospitalIcon,
   Medication as MedicationIcon,
-  MonitorHeart as MonitorHeartIcon,
   NotificationsActive as NotificationsActiveIcon,
   Science as ScienceIcon,
-  WarningAmber as WarningAmberIcon,
   Visibility as VisibilityIcon,
+  WarningAmber as WarningAmberIcon,
 } from "@mui/icons-material";
+import CommonDataGrid, { CommonColumn } from "@/src/components/table/CommonDataGrid";
 import { INITIAL_BED_BOARD, INPATIENT_STAYS } from "./ipd-mock-data";
 import { useUser } from "@/src/core/auth/UserContext";
 import { canAccessRoute } from "@/src/core/navigation/route-access";
-import { IpdMetricCard } from "./components/ipd-ui";
 import { useIpdEncounters } from "./ipd-encounter-context";
 
 type DashboardStatus = "critical" | "watch" | "stable";
@@ -47,14 +36,6 @@ interface DashboardPatient {
   bed: string;
   dayOfStay: number;
   status: DashboardStatus;
-}
-
-interface QuickModule {
-  id: string;
-  short: string;
-  label: string;
-  route: string;
-  tab?: string;
 }
 
 interface DashboardAlert {
@@ -82,174 +63,59 @@ const DAY_OF_STAY_BY_PATIENT_ID: Record<string, number> = {
   "ipd-4": 1,
 };
 
-const QUICK_MODULES: QuickModule[] = [
-  {
-    id: "orders",
-    short: "OR",
-    label: "Orders",
-    route: "/ipd/orders-tests/orders",
-  },
-  {
-    id: "lab",
-    short: "LB",
-    label: "Lab Results",
-    route: "/ipd/orders-tests/lab",
-  },
-  {
-    id: "radiology",
-    short: "RA",
-    label: "Radiology",
-    route: "/ipd/orders-tests/radiology",
-  },
-  {
-    id: "pharmacy",
-    short: "RX",
-    label: "Drug Review",
-    route: "/ipd/charges",
-    tab: "drug",
-  },
-  {
-    id: "careteam",
-    short: "CT",
-    label: "Care Team",
-    route: "/ipd/rounds",
-    tab: "rounds",
-  },
-  {
-    id: "flowsheet",
-    short: "FS",
-    label: "Flowsheets",
-    route: "/ipd/rounds",
-    tab: "vitals",
-  },
-  {
-    id: "problems",
-    short: "PL",
-    label: "Problem List",
-    route: "/ipd/rounds",
-    tab: "rounds",
-  },
-  {
-    id: "medrec",
-    short: "MR",
-    label: "Med Rec",
-    route: "/ipd/rounds",
-    tab: "medications",
-  },
-  {
-    id: "inbasket",
-    short: "IB",
-    label: "InBasket",
-    route: "/ipd/rounds",
-    tab: "notes",
-  },
-  {
-    id: "handoff",
-    short: "HF",
-    label: "I-PASS",
-    route: "/ipd/rounds",
-    tab: "nursing",
-  },
-  {
-    id: "risk",
-    short: "RS",
-    label: "Risk Scores",
-    route: "/ipd/rounds",
-    tab: "rounds",
-  },
-  {
-    id: "infection",
-    short: "IC",
-    label: "Infection",
-    route: "/ipd/rounds",
-    tab: "nursing",
-  },
-  {
-    id: "casemgmt",
-    short: "CM",
-    label: "Case Mgmt",
-    route: "/ipd/discharge",
-    tab: "all",
-  },
-  {
-    id: "patientedu",
-    short: "PE",
-    label: "Patient Edu",
-    route: "/ipd/discharge",
-    tab: "avs",
-  },
-  {
-    id: "codestatus",
-    short: "CS",
-    label: "Code Status",
-    route: "/ipd/rounds",
-    tab: "rounds",
-  },
-  {
-    id: "smartforms",
-    short: "SF",
-    label: "SmartForms",
-    route: "/ipd/rounds",
-    tab: "notes",
-  },
-  {
-    id: "billing",
-    short: "DR",
-    label: "Charges / DRG",
-    route: "/ipd/charges",
-    tab: "charges",
-  },
-  {
-    id: "discharge",
-    short: "DC",
-    label: "Discharge",
-    route: "/ipd/discharge",
-    tab: "pending",
-  },
-  { id: "adt", short: "AD", label: "ADT", route: "/ipd/admissions" },
-  { id: "bedmap", short: "BM", label: "Bed Map", route: "/ipd/beds" },
-  {
-    id: "clinical",
-    short: "CC",
-    label: "Clinical Care",
-    route: "/ipd/rounds",
-    tab: "rounds",
-  },
-  {
-    id: "avs",
-    short: "AV",
-    label: "AVS Preview",
-    route: "/ipd/discharge",
-    tab: "avs",
-  },
-];
+const AVATAR_COLOR_BY_ID: Record<string, string> = {
+  "ipd-1": "#1172BA",
+  "ipd-2": "#7C3AED",
+  "ipd-3": "#0D9488",
+  "ipd-4": "#16A34A",
+};
+
+const STATUS_CONFIG: Record<
+  DashboardStatus,
+  { label: string; bg: string; border: string; color: string; dot: string }
+> = {
+  critical: { label: "Critical", bg: "#FEE2E2", border: "#FCA5A5", color: "#991B1B", dot: "#E53E3E" },
+  watch:    { label: "Watch",    bg: "#FEF3C7", border: "#FDE68A", color: "#92400E", dot: "#D97706" },
+  stable:   { label: "Stable",  bg: "#DCFCE7", border: "#86EFAC", color: "#166534", dot: "#16A34A" },
+};
+
+const ALERT_TONE: Record<
+  AlertTone,
+  { iconBg: string; iconColor: string; btnColor: string; btnBorder: string; btnHoverBg: string }
+> = {
+  error:   { iconBg: "#FEE2E2", iconColor: "#DC2626", btnColor: "#DC2626", btnBorder: "#FCA5A5", btnHoverBg: "#FEE2E2" },
+  warning: { iconBg: "#FEF3C7", iconColor: "#D97706", btnColor: "#D97706", btnBorder: "#FDE68A", btnHoverBg: "#FEF3C7" },
+  info:    { iconBg: "#E8F3FB", iconColor: "#1172BA", btnColor: "#1172BA", btnBorder: "#5BA4D4", btnHoverBg: "#E8F3FB" },
+  success: { iconBg: "#DCFCE7", iconColor: "#16A34A", btnColor: "#16A34A", btnBorder: "#86EFAC", btnHoverBg: "#DCFCE7" },
+};
+
+function getInitials(name: string) {
+  return name.split(" ").filter(Boolean).slice(0, 2).map((s) => s[0].toUpperCase()).join("");
+}
 
 export default function IpdDashboardPage() {
-  const theme = useTheme();
   const router = useRouter();
   const encounterRows = useIpdEncounters();
   const { permissions, role } = useUser();
   const isDoctor = role === "DOCTOR";
 
   const activeEncounterRows = React.useMemo(
-    () =>
-      encounterRows.filter((record) => record.workflowStatus !== "discharged"),
+    () => encounterRows.filter((r) => r.workflowStatus !== "discharged"),
     [encounterRows],
   );
 
   const inpatientRows = React.useMemo<DashboardPatient[]>(() => {
     if (activeEncounterRows.length > 0) {
-      return activeEncounterRows.map((record) => ({
-        id: record.patientId,
-        mrn: record.mrn,
-        patientName: record.patientName,
-        diagnosis: record.diagnosis,
-        bed: record.bed || "--",
-        dayOfStay: DAY_OF_STAY_BY_PATIENT_ID[record.patientId] ?? 1,
-        status: record.clinicalStatus,
+      return activeEncounterRows.map((r) => ({
+        id: r.patientId,
+        mrn: r.mrn,
+        patientName: r.patientName,
+        diagnosis: r.diagnosis,
+        bed: r.bed || "--",
+        dayOfStay: DAY_OF_STAY_BY_PATIENT_ID[r.patientId] ?? 1,
+        status: r.clinicalStatus,
       }));
     }
-
     return INPATIENT_STAYS.map((stay) => ({
       id: stay.id,
       mrn: stay.mrn,
@@ -266,132 +132,49 @@ export default function IpdDashboardPage() {
     [permissions],
   );
 
-  const buildRoute = React.useCallback(
-    (route: string, tab?: string, patientMrn?: string) => {
-      const params = new URLSearchParams();
-      if (tab) {
-        params.set("tab", tab);
-      }
-      if (patientMrn) {
-        params.set("mrn", patientMrn);
-      }
-      const query = params.toString();
-      return query ? `${route}?${query}` : route;
-    },
-    [],
-  );
-
   const openRoute = React.useCallback(
-    (route: string, tab?: string, patientMrn?: string) => {
+    (route: string, tab?: string, mrn?: string) => {
       if (!canNavigate(route)) return;
-      router.push(buildRoute(route, tab, patientMrn));
+      const params = new URLSearchParams();
+      if (tab) params.set("tab", tab);
+      if (mrn) params.set("mrn", mrn);
+      const q = params.toString();
+      router.push(q ? `${route}?${q}` : route);
     },
-    [buildRoute, canNavigate, router],
+    [canNavigate, router],
   );
 
-  const criticalCount = inpatientRows.filter(
-    (row) => row.status === "critical",
-  ).length;
-  const watchCount = inpatientRows.filter(
-    (row) => row.status === "watch",
-  ).length;
-  const stableCount = inpatientRows.filter(
-    (row) => row.status === "stable",
-  ).length;
+  const criticalCount = inpatientRows.filter((r) => r.status === "critical").length;
+  const watchCount    = inpatientRows.filter((r) => r.status === "watch").length;
+  const stableCount   = inpatientRows.filter((r) => r.status === "stable").length;
+  const availableBeds = INITIAL_BED_BOARD.filter((b) => b.status === "Available").length;
+  const occupiedBeds  = INITIAL_BED_BOARD.filter((b) => b.status === "Occupied").length;
+  const blockedBeds   = INITIAL_BED_BOARD.filter((b) => b.status === "Cleaning" || b.status === "Blocked").length;
 
-  const availableBeds = INITIAL_BED_BOARD.filter(
-    (bed) => bed.status === "Available",
-  ).length;
-  const occupiedBeds = INITIAL_BED_BOARD.filter(
-    (bed) => bed.status === "Occupied",
-  ).length;
-  const cleaningOrBlockedBeds = INITIAL_BED_BOARD.filter(
-    (bed) => bed.status === "Cleaning" || bed.status === "Blocked",
-  ).length;
   const clinicalStatusByPatientId = React.useMemo(() => {
-    const map: Record<string, DashboardStatus> = {};
     if (activeEncounterRows.length > 0) {
-      activeEncounterRows.forEach((record) => {
-        map[record.patientId] = record.clinicalStatus;
-      });
+      const map: Record<string, DashboardStatus> = {};
+      activeEncounterRows.forEach((r) => { map[r.patientId] = r.clinicalStatus; });
       return map;
     }
     return DEFAULT_STATUS_BY_PATIENT_ID;
   }, [activeEncounterRows]);
 
-  const criticalBeds = INITIAL_BED_BOARD.filter((bed) => {
-    if (!bed.patientId) return false;
-    return (
-      (clinicalStatusByPatientId[bed.patientId] ?? "stable") === "critical"
-    );
-  }).length;
+  const criticalBeds = INITIAL_BED_BOARD.filter(
+    (b) => b.patientId && (clinicalStatusByPatientId[b.patientId] ?? "stable") === "critical",
+  ).length;
 
-  const statusStyles: Record<
-    DashboardStatus,
-    { label: string; color: string; bg: string }
-  > = {
-    critical: {
-      label: "Critical",
-      color: theme.palette.error.dark,
-      bg: alpha(theme.palette.error.main, 0.16),
-    },
-    watch: {
-      label: "Watch",
-      color: theme.palette.warning.dark,
-      bg: alpha(theme.palette.warning.main, 0.2),
-    },
-    stable: {
-      label: "Stable",
-      color: theme.palette.success.dark,
-      bg: alpha(theme.palette.success.main, 0.22),
-    },
-  };
-
-  const toneStyles: Record<
-    AlertTone,
-    { color: string; bg: string; border: string; buttonColor: string }
-  > = {
-    error: {
-      color: theme.palette.error.main,
-      bg: alpha(theme.palette.error.main, 0.12),
-      border: alpha(theme.palette.error.main, 0.35),
-      buttonColor: theme.palette.error.main,
-    },
-    warning: {
-      color: theme.palette.warning.dark,
-      bg: alpha(theme.palette.warning.main, 0.2),
-      border: alpha(theme.palette.warning.main, 0.35),
-      buttonColor: theme.palette.warning.dark,
-    },
-    info: {
-      color: theme.palette.info.main,
-      bg: alpha(theme.palette.info.main, 0.14),
-      border: alpha(theme.palette.info.main, 0.35),
-      buttonColor: theme.palette.info.main,
-    },
-    success: {
-      color: theme.palette.success.main,
-      bg: alpha(theme.palette.success.main, 0.18),
-      border: alpha(theme.palette.success.main, 0.35),
-      buttonColor: theme.palette.success.main,
-    },
-  };
-
-  const criticalPatient =
-    inpatientRows.find((row) => row.status === "critical") ?? inpatientRows[0];
-  const watchPatient =
-    inpatientRows.find((row) => row.status === "watch") ?? inpatientRows[0];
-  const dischargeReadyPatientId =
-    activeEncounterRows.find((record) => record.dischargeReady)?.patientId ??
-    null;
-  const dischargeReadyPatient = dischargeReadyPatientId
-    ? inpatientRows.find((row) => row.id === dischargeReadyPatientId)
+  const criticalPatient = inpatientRows.find((r) => r.status === "critical") ?? inpatientRows[0];
+  const watchPatient    = inpatientRows.find((r) => r.status === "watch")    ?? inpatientRows[0];
+  const dischargeReady  = activeEncounterRows.find((r) => r.dischargeReady);
+  const dischargePatient = dischargeReady
+    ? inpatientRows.find((r) => r.id === dischargeReady.patientId)
     : null;
 
   const alerts: DashboardAlert[] = [
     {
       id: "spo2-critical",
-      title: `SpO2 critical - ${criticalPatient?.patientName ?? "Patient"}`,
+      title: `SpO2 critical – ${criticalPatient?.patientName ?? "Patient"}`,
       detail: `Needs immediate review at Bed ${criticalPatient?.bed ?? "--"}`,
       tone: "error",
       actionLabel: "View",
@@ -421,17 +204,17 @@ export default function IpdDashboardPage() {
     },
     {
       id: "discharge-ready",
-      title: dischargeReadyPatient
-        ? `${dischargeReadyPatient.patientName} ready for discharge`
+      title: dischargePatient
+        ? `${dischargePatient.patientName} ready for discharge`
         : "Discharge checklist updates pending",
-      detail: dischargeReadyPatient
+      detail: dischargePatient
         ? "Checklist and billing are complete"
         : "Complete pending items in discharge workflow",
-      tone: dischargeReadyPatient ? "success" : "warning",
+      tone: dischargePatient ? "success" : "warning",
       actionLabel: "Process",
       route: "/ipd/discharge",
       tab: "pending",
-      mrn: dischargeReadyPatient?.mrn,
+      mrn: dischargePatient?.mrn,
     },
     {
       id: "drug-interaction",
@@ -445,497 +228,515 @@ export default function IpdDashboardPage() {
     },
   ];
 
-  const metricCards = [
-    {
-      id: "total",
-      label: "Total Inpatients",
-      value: inpatientRows.length,
-      note: "Current admitted census",
-      tone: "primary" as const,
-      icon: <LocalHospitalIcon sx={{ fontSize: 22 }} />,
-    },
-    {
-      id: "critical",
-      label: "Critical",
-      value: criticalCount,
-      note: "Requires immediate review",
-      tone: "danger" as const,
-      icon: <WarningAmberIcon sx={{ fontSize: 22 }} />,
-    },
-    {
-      id: "watch",
-      label: "Under Watch",
-      value: watchCount,
-      note: "Close monitoring needed",
-      tone: "warning" as const,
-      icon: <VisibilityIcon sx={{ fontSize: 22 }} />,
-    },
-    {
-      id: "stable",
-      label: "Stable",
-      value: stableCount,
-      note: "Clinically stable patients",
-      tone: "success" as const,
-      icon: <CheckCircleIcon sx={{ fontSize: 22 }} />,
-    },
-    {
-      id: "available",
-      label: "Beds Available",
-      value: availableBeds,
-      note: `of ${INITIAL_BED_BOARD.length} total beds`,
-      tone: "info" as const,
-      icon: <BedIcon sx={{ fontSize: 22 }} />,
-    },
+  const ALERT_ICON: Record<string, React.ElementType> = {
+    "medication-due":   MedicationIcon,
+    "lab-ready":        ScienceIcon,
+    "discharge-ready":  AssignmentTurnedInIcon,
+  };
+
+  const statCards = [
+    { label: "Total Inpatients", value: inpatientRows.length, sub: "Current admitted census",    iconBg: "#DBEAFE", iconColor: "#1172BA", Icon: LocalHospitalIcon, valueColor: "#0D1B2A" },
+    { label: "Critical",         value: criticalCount,        sub: "Requires immediate review",  iconBg: "#FEE2E2", iconColor: "#DC2626", Icon: WarningAmberIcon,  valueColor: "#DC2626" },
+    { label: "Under Watch",      value: watchCount,           sub: "Close monitoring needed",     iconBg: "#FEF3C7", iconColor: "#D97706", Icon: VisibilityIcon,    valueColor: "#D97706" },
+    { label: "Stable",           value: stableCount,          sub: "Clinically stable patients",  iconBg: "#DCFCE7", iconColor: "#16A34A", Icon: CheckCircleIcon,  valueColor: "#16A34A" },
+    ...(!isDoctor
+      ? [{ label: "Beds Available", value: availableBeds, sub: `of ${INITIAL_BED_BOARD.length} total beds`, iconBg: "#EDE9FE", iconColor: "#7C3AED", Icon: BedIcon, valueColor: "#0D1B2A" }]
+      : []),
   ];
 
-  const bedSummary = [
-    {
-      id: "occupied",
-      label: "Occupied",
-      value: occupiedBeds,
-      color: theme.palette.primary.main,
-      icon: <BedIcon sx={{ fontSize: 18 }} />,
-    },
-    {
-      id: "available",
-      label: "Free",
-      value: availableBeds,
-      color: theme.palette.success.main,
-      icon: <AssignmentTurnedInIcon sx={{ fontSize: 18 }} />,
-    },
-    {
-      id: "critical",
-      label: "Critical",
-      value: criticalBeds,
-      color: theme.palette.error.main,
-      icon: <WarningAmberIcon sx={{ fontSize: 18 }} />,
-    },
-    {
-      id: "cleaning",
-      label: "Cleaning / Blocked",
-      value: cleaningOrBlockedBeds,
-      color: theme.palette.warning.dark,
-      icon: <MonitorHeartIcon sx={{ fontSize: 18 }} />,
-    },
+  const bedSummaryItems = [
+    { id: "occupied", label: "Occupied",          value: occupiedBeds,  numColor: "#1172BA", iconColor: "#5BA4D4", bg: "#EFF6FF", Icon: BedIcon               },
+    { id: "free",     label: "Free",              value: availableBeds, numColor: "#16A34A", iconColor: "#16A34A", bg: "#F0FFF4", Icon: CheckCircleIcon        },
+    { id: "critical", label: "Critical",          value: criticalBeds,  numColor: "#DC2626", iconColor: "#E53E3E", bg: "#FFF5F5", Icon: WarningAmberIcon       },
+    { id: "cleaning", label: "Cleaning / Blocked", value: blockedBeds,  numColor: "#D97706", iconColor: "#D97706", bg: "#FFFBEB", Icon: AssignmentTurnedInIcon },
   ];
 
-  const ipdHeader = <></>;
+  /* ── Table columns ── */
+  const inpatientColumns: CommonColumn<DashboardPatient>[] = [
+    {
+      field: "patientName",
+      headerName: "Patient",
+      flex: 2,
+      renderCell: (row) => {
+        const avatarColor = AVATAR_COLOR_BY_ID[row.id] ?? "#1172BA";
+        return (
+          <Stack direction="row" alignItems="center" spacing={1.25}>
+            <Box
+              sx={{
+                width: 34, height: 34, borderRadius: "50%",
+                bgcolor: avatarColor,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0,
+              }}
+            >
+              {getInitials(row.patientName)}
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#0D1B2A", lineHeight: 1.2 }}>
+                {row.patientName}
+              </Typography>
+              <Typography sx={{ fontSize: "10.5px", color: "#9AAFBF", fontFamily: "monospace", mt: 0.125 }}>
+                {row.mrn}
+              </Typography>
+            </Box>
+          </Stack>
+        );
+      },
+    },
+    {
+      field: "bed",
+      headerName: "Bed",
+      width: 90,
+      renderCell: (row) => {
+        const isIcu = row.bed.toLowerCase().includes("icu");
+        return (
+          <Box
+            sx={{
+              display: "inline-block", px: 1.25, py: 0.375, borderRadius: "7px",
+              bgcolor: isIcu ? "#FEE2E2" : "#E8F3FB",
+              color: isIcu ? "#991B1B" : "#1172BA",
+              fontSize: 12, fontWeight: 700,
+            }}
+          >
+            {row.bed}
+          </Box>
+        );
+      },
+    },
+    {
+      field: "diagnosis",
+      headerName: "Diagnosis",
+      flex: 3,
+    },
+    {
+      field: "dayOfStay",
+      headerName: "Day",
+      width: 65,
+      align: "center",
+      renderCell: (row) => (
+        <Box
+          sx={{
+            width: 30, height: 30, borderRadius: "50%",
+            bgcolor: "#F5F8FB", border: "1.5px solid #DDE8F0",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 12, fontWeight: 700, color: "#5A7184",
+          }}
+        >
+          D{row.dayOfStay}
+        </Box>
+      ),
+    },
+    {
+      field: "status",
+      headerName: "Status",
+      width: 110,
+      valueGetter: (row) => STATUS_CONFIG[row.status].label,
+      renderCell: (row) => {
+        const sc = STATUS_CONFIG[row.status];
+        return (
+          <Box
+            sx={{
+              display: "inline-flex", alignItems: "center", gap: 0.625,
+              px: 1.5, py: 0.5, borderRadius: "20px",
+              bgcolor: sc.bg, border: "1.5px solid", borderColor: sc.border,
+              color: sc.color, fontSize: "11.5px", fontWeight: 700,
+            }}
+          >
+            <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: sc.dot, flexShrink: 0 }} />
+            {sc.label}
+          </Box>
+        );
+      },
+    },
+    {
+      field: "action",
+      headerName: "Action",
+      width: 90,
+      renderCell: (row) => (
+        <Box
+          onClick={(e) => { e.stopPropagation(); openRoute("/ipd/rounds", "rounds", row.mrn); }}
+          sx={{
+            display: "inline-block", px: "18px", py: "7px", borderRadius: "9px",
+            border: "1.5px solid #DDE8F0", bgcolor: "#fff",
+            fontSize: 12, fontWeight: 700, color: "#5A7184",
+            cursor: canNavigate("/ipd/rounds") ? "pointer" : "default",
+            opacity: canNavigate("/ipd/rounds") ? 1 : 0.5,
+            "&:hover": canNavigate("/ipd/rounds")
+              ? { bgcolor: "#E8F3FB", borderColor: "#5BA4D4", color: "#1172BA" }
+              : {},
+          }}
+        >
+          Open
+        </Box>
+      ),
+    },
+  ];
 
   return (
-    <PageTemplate
-      // header={ipdHeader}
-      title="IPD Dashboard"
-      currentPageTitle="IPD Dashboard"
-    >
-      <WorkspaceHeaderCard>
-        <Box>
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
-          >
-            IPD Dashboard
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {isDoctor
-              ? "Overview of your inpatients and clinical alerts."
-              : "Overview of all inpatients, bed status, and alerts."}
-          </Typography>
+    <PageTemplate title="IPD Dashboard" currentPageTitle="IPD Dashboard" fullHeight>
+      {/* Outer flex column — fills the PageTemplate height, no page scroll */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 1.5,
+          flex: 1,
+          minHeight: 0,
+          overflow: "hidden",
+        }}
+      >
+        {/* ── Page Header ── */}
+        <Box
+          sx={{
+            bgcolor: "#fff",
+            borderRadius: "20px",
+            border: "1px solid #DDE8F0",
+            p: "16px 22px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexShrink: 0,
+          }}
+        >
+          <Stack direction="row" alignItems="center" spacing={1.75}>
+            <Box
+              sx={{
+                width: 40, height: 40, borderRadius: "12px",
+                bgcolor: "#E8F3FB", display: "flex", alignItems: "center",
+                justifyContent: "center", flexShrink: 0,
+              }}
+            >
+              <LocalHospitalIcon sx={{ fontSize: 20, color: "#1172BA" }} />
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#0D1B2A", lineHeight: 1.2 }}>
+                IPD Dashboard
+              </Typography>
+              <Typography sx={{ fontSize: 12, color: "#9AAFBF", mt: 0.25 }}>
+                {isDoctor
+                  ? "Overview of your inpatients and clinical alerts."
+                  : "Overview of all inpatients, bed status, and alerts."}
+              </Typography>
+            </Box>
+          </Stack>
         </Box>
-      </WorkspaceHeaderCard>
-      <Stack spacing={1.25} sx={{ mt: 1.25 }}>
+
+        {/* ── Stats Row ── */}
         <Box
           sx={{
             display: "grid",
-            gap: 1.2,
             gridTemplateColumns: {
-              xs: "repeat(1, minmax(0, 1fr))",
-              sm: "repeat(2, minmax(0, 1fr))",
-              md: isDoctor ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
-              xl: isDoctor ? "repeat(4, minmax(0, 1fr))" : "repeat(5, minmax(0, 1fr))",
+              xs: "repeat(2,1fr)",
+              sm: "repeat(3,1fr)",
+              md: `repeat(${statCards.length}, minmax(0,1fr))`,
             },
+            gap: 1.5,
+            flexShrink: 0,
           }}
         >
-          {metricCards
-            .filter((m) => !isDoctor || m.id !== "available")
-            .map((metric) => (
-            <IpdMetricCard
-              key={metric.id}
-              label={metric.label}
-              value={metric.value}
-              trend={metric.note}
-              tone={metric.tone}
-              icon={metric.icon}
-            />
+          {statCards.map((s) => (
+            <Box
+              key={s.label}
+              sx={{
+                bgcolor: "#fff", borderRadius: "16px",
+                border: "1px solid #DDE8F0", p: "16px 18px",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+              }}
+            >
+              <Box>
+                <Typography sx={{ fontSize: "11.5px", color: "#9AAFBF", mb: 0.625, fontWeight: 500 }}>
+                  {s.label}
+                </Typography>
+                <Typography sx={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: s.valueColor }}>
+                  {s.value}
+                </Typography>
+                <Typography sx={{ fontSize: "11px", color: "#9AAFBF", mt: 0.5 }}>
+                  {s.sub}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 46, height: 46, borderRadius: "13px", bgcolor: s.iconBg,
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}
+              >
+                <s.Icon sx={{ fontSize: 22, color: s.iconColor }} />
+              </Box>
+            </Box>
           ))}
         </Box>
 
+        {/* ── Body Row ── flex: 1 so it fills remaining height; children scroll internally */}
         <Box
           sx={{
-            display: "grid",
-            gap: 1.3,
-            gridTemplateColumns: {
-              xs: "1fr",
-              lg: isDoctor ? "1fr" : "minmax(0, 1.2fr) minmax(0, 1fr)",
-            },
-            alignItems: "start",
+            display: "flex",
+            gap: 1.5,
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
           }}
         >
-          <Card
-            elevation={0}
+          {/* LEFT: Inpatients table — takes all remaining width */}
+          <Box
             sx={{
-              border: "1px solid",
-              borderColor: alpha(theme.palette.primary.main, 0.16),
-              borderRadius: 2,
+              flex: 1,
+              minWidth: 0,
+              bgcolor: "#fff",
+              borderRadius: "20px",
+              border: "1px solid #DDE8F0",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
             }}
           >
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
+            {/* Card header */}
+            <Box
               sx={{
-                px: 1.6,
-                py: 1.2,
-                borderBottom: "1px solid",
-                borderColor: alpha(theme.palette.primary.main, 0.14),
+                px: "22px", py: "16px",
+                borderBottom: "1px solid #DDE8F0",
+                display: "flex", alignItems: "center", gap: 1.25,
+                flexShrink: 0,
               }}
             >
-              <Stack direction="row" alignItems="center" spacing={0.8}>
-                <Box
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 1,
-                    display: "grid",
-                    placeItems: "center",
-                    color: theme.palette.primary.main,
-                    backgroundColor: alpha(theme.palette.primary.main, 0.12),
-                  }}
-                >
-                  <LocalHospitalIcon sx={{ fontSize: 18 }} />
-                </Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                  Current Inpatients
-                </Typography>
-              </Stack>
-            </Stack>
-
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={tableHeadCellSx(theme)}>Patient</TableCell>
-                    <TableCell sx={tableHeadCellSx(theme)}>Bed</TableCell>
-                    <TableCell sx={tableHeadCellSx(theme)}>Diagnosis</TableCell>
-                    <TableCell sx={tableHeadCellSx(theme)}>Day</TableCell>
-                    <TableCell sx={tableHeadCellSx(theme)}>Status</TableCell>
-                    <TableCell sx={tableHeadCellSx(theme)}>Action</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {inpatientRows.map((row) => {
-                    const status = statusStyles[row.status];
-                    return (
-                      <TableRow
-                        key={row.id}
-                        hover
-                        sx={{
-                          "&:last-child td": { borderBottom: "none" },
-                        }}
-                      >
-                        <TableCell sx={{ py: 1.2 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            {row.patientName}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "text.secondary" }}
-                          >
-                            {row.mrn}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ py: 1.2, fontWeight: 700 }}>
-                          {row.bed}
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            py: 1.2,
-                            maxWidth: 210,
-                            color: "text.secondary",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {row.diagnosis}
-                        </TableCell>
-                        <TableCell
-                          sx={{ py: 1.2, fontWeight: 700 }}
-                        >{`D${row.dayOfStay}`}</TableCell>
-                        <TableCell sx={{ py: 1.2 }}>
-                          <Chip
-                            size="small"
-                            label={status.label}
-                            sx={{
-                              height: 22,
-                              fontSize: 11,
-                              fontWeight: 700,
-                              color: status.color,
-                              backgroundColor: status.bg,
-                              "& .MuiChip-label": { px: 1 },
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell sx={{ py: 1.2 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            disabled={!canNavigate("/ipd/rounds")}
-                            onClick={() =>
-                              openRoute("/ipd/rounds", "rounds", row.mrn)
-                            }
-                            sx={{
-                              minHeight: 28,
-                              px: 1.05,
-                              textTransform: "none",
-                            }}
-                          >
-                            Open
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Card>
-
-          <Stack spacing={1.3}>
-            <Card
-              elevation={0}
-              sx={{
-                border: "1px solid",
-                borderColor: alpha(theme.palette.primary.main, 0.16),
-                borderRadius: 2,
-                p: 1.5,
-              }}
-            >
-              <Stack
-                direction="row"
-                alignItems="center"
-                spacing={0.8}
-                sx={{ mb: 0.5 }}
-              >
-                <Box
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 1,
-                    display: "grid",
-                    placeItems: "center",
-                    color: theme.palette.error.main,
-                    backgroundColor: alpha(theme.palette.error.main, 0.12),
-                  }}
-                >
-                  <NotificationsActiveIcon sx={{ fontSize: 18 }} />
-                </Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                  Live Alerts
-                </Typography>
-              </Stack>
-
-              {alerts.map((alert) => {
-                const tone = toneStyles[alert.tone];
-                return (
-                  <Stack
-                    key={alert.id}
-                    direction="row"
-                    spacing={1}
-                    alignItems="center"
-                    sx={{
-                      py: 1,
-                      borderBottom: "1px solid",
-                      borderColor: alpha(theme.palette.primary.main, 0.1),
-                      "&:last-of-type": { borderBottom: "none", pb: 0.1 },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 1,
-                        display: "grid",
-                        placeItems: "center",
-                        color: tone.color,
-                        backgroundColor: tone.bg,
-                        border: "1px solid",
-                        borderColor: tone.border,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {alert.id === "medication-due" ? (
-                        <MedicationIcon sx={{ fontSize: 16 }} />
-                      ) : alert.id === "lab-ready" ? (
-                        <ScienceIcon sx={{ fontSize: 16 }} />
-                      ) : alert.id === "discharge-ready" ? (
-                        <AssignmentTurnedInIcon sx={{ fontSize: 16 }} />
-                      ) : (
-                        <WarningAmberIcon sx={{ fontSize: 16 }} />
-                      )}
-                    </Box>
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 700, lineHeight: 1.25 }}
-                      >
-                        {alert.title}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {alert.detail}
-                      </Typography>
-                    </Box>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() =>
-                        openRoute(alert.route, alert.tab, alert.mrn)
-                      }
-                      disabled={!canNavigate(alert.route)}
-                      sx={{
-                        minHeight: 28,
-                        px: 1,
-                        minWidth: 58,
-                        borderColor: tone.border,
-                        color: tone.buttonColor,
-                        textTransform: "none",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {alert.actionLabel}
-                    </Button>
-                  </Stack>
-                );
-              })}
-            </Card>
-
-            {!isDoctor && (
-            <Card
-              elevation={0}
-              sx={{
-                border: "1px solid",
-                borderColor: alpha(theme.palette.primary.main, 0.16),
-                borderRadius: 2,
-                p: 1.5,
-              }}
-            >
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                sx={{ mb: 1.1 }}
-              >
-                <Stack direction="row" alignItems="center" spacing={0.8}>
-                  <Box
-                    sx={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 1,
-                      display: "grid",
-                      placeItems: "center",
-                      color: theme.palette.info.main,
-                      backgroundColor: alpha(theme.palette.info.main, 0.12),
-                    }}
-                  >
-                    <BedIcon sx={{ fontSize: 18 }} />
-                  </Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                    Bed Summary
-                  </Typography>
-                </Stack>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  disabled={!canNavigate("/ipd/beds")}
-                  onClick={() => openRoute("/ipd/beds")}
-                  sx={{ minHeight: 30, px: 1.1, textTransform: "none" }}
-                >
-                  Bed Map
-                </Button>
-              </Stack>
-
               <Box
                 sx={{
-                  display: "grid",
-                  gap: 0.9,
-                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  width: 34, height: 34, borderRadius: "10px", bgcolor: "#E8F3FB",
+                  display: "flex", alignItems: "center", justifyContent: "center",
                 }}
               >
-                {bedSummary.map((item) => (
+                <LocalHospitalIcon sx={{ fontSize: 17, color: "#1172BA" }} />
+              </Box>
+              <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#0D1B2A" }}>
+                Current Inpatients
+              </Typography>
+              <Box
+                sx={{
+                  px: 1.25, py: 0.375, borderRadius: "20px",
+                  bgcolor: "#E8F3FB", border: "1.5px solid #5BA4D4",
+                  color: "#1172BA", fontSize: "11.5px", fontWeight: 700,
+                }}
+              >
+                {inpatientRows.length}
+              </Box>
+            </Box>
+
+            {/* CommonDataGrid fills the remaining card height; has its own pagination */}
+            <CommonDataGrid<DashboardPatient>
+              rows={inpatientRows}
+              columns={inpatientColumns}
+              getRowId={(row) => row.id}
+              hideToolbar
+              rowsPerPageOptions={[5, 10, 25]}
+              defaultRowsPerPage={10}
+              onRowClick={(row) => openRoute("/ipd/rounds", "rounds", row.mrn)}
+              emptyTitle="No active inpatients"
+              emptyDescription="Admitted patients will appear here."
+              paperSx={{
+                border: "none",
+                borderRadius: 0,
+                boxShadow: "none",
+                flex: 1,
+                minHeight: 0,
+              }}
+            />
+          </Box>
+
+          {/* RIGHT: Live Alerts + Bed Summary — hidden for doctor view */}
+          {!isDoctor && (
+            <Box
+              sx={{
+                width: 310,
+                minWidth: 310,
+                flexShrink: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.5,
+                overflow: "hidden",   // ← no outer scroll; each card manages its own
+              }}
+            >
+              {/* ── Live Alerts — flex:1, internal scroll ── */}
+              <Box
+                sx={{
+                  flex: 1,
+                  minHeight: 0,
+                  bgcolor: "#fff",
+                  borderRadius: "20px",
+                  border: "1px solid #DDE8F0",
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                }}
+              >
+                {/* Header */}
+                <Box
+                  sx={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    px: "18px", py: "14px",
+                    borderBottom: "1px solid #DDE8F0",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <NotificationsActiveIcon sx={{ fontSize: 16, color: "#E53E3E" }} />
+                    <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#0D1B2A" }}>
+                      Live Alerts
+                    </Typography>
+                  </Stack>
                   <Box
-                    key={item.id}
                     sx={{
-                      p: 1,
-                      borderRadius: 1.4,
-                      border: "1px solid",
-                      borderColor: alpha(item.color, 0.3),
-                      backgroundColor: alpha(item.color, 0.08),
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.9,
+                      display: "flex", alignItems: "center", gap: 0.625,
+                      fontSize: "10.5px", fontWeight: 700, color: "#E53E3E",
                     }}
                   >
                     <Box
                       sx={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: 1,
-                        display: "grid",
-                        placeItems: "center",
-                        color: item.color,
-                        backgroundColor: alpha(item.color, 0.18),
-                        flexShrink: 0,
+                        width: 7, height: 7, borderRadius: "50%", bgcolor: "#E53E3E",
+                        "@keyframes blink": {
+                          "0%, 100%": { opacity: 1 },
+                          "50%": { opacity: 0.2 },
+                        },
+                        animation: "blink 1.5s infinite",
+                      }}
+                    />
+                    Live
+                  </Box>
+                </Box>
+
+                {/* Scrollable alerts list */}
+                <Box
+                  sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    overflowY: "auto",
+                    "&::-webkit-scrollbar": { width: 3 },
+                    "&::-webkit-scrollbar-thumb": { bgcolor: "#DDE8F0", borderRadius: 3 },
+                  }}
+                >
+                  {alerts.map((alert) => {
+                    const t = ALERT_TONE[alert.tone];
+                    const AlertIcon = ALERT_ICON[alert.id] ?? WarningAmberIcon;
+                    return (
+                      <Box
+                        key={alert.id}
+                        sx={{
+                          display: "flex", alignItems: "flex-start", gap: 1.5,
+                          px: "18px", py: "13px",
+                          borderBottom: "1px solid #F3F7FB",
+                          cursor: "pointer",
+                          "&:last-child": { borderBottom: "none" },
+                          "&:hover": { bgcolor: "#F8FBFF" },
+                          transition: "background .12s",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 34, height: 34, borderRadius: "10px",
+                            bgcolor: t.iconBg,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <AlertIcon sx={{ fontSize: 16, color: t.iconColor }} />
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography sx={{ fontSize: "12.5px", fontWeight: 700, color: "#0D1B2A", lineHeight: 1.3 }}>
+                            {alert.title}
+                          </Typography>
+                          <Typography sx={{ fontSize: 11, color: "#9AAFBF", mt: 0.25, lineHeight: 1.4 }}>
+                            {alert.detail}
+                          </Typography>
+                        </Box>
+                        <Box
+                          onClick={() => openRoute(alert.route, alert.tab, alert.mrn)}
+                          sx={{
+                            flexShrink: 0, px: "13px", py: "5px", borderRadius: "8px",
+                            border: "1.5px solid", borderColor: t.btnBorder,
+                            color: t.btnColor, fontSize: "11.5px", fontWeight: 700,
+                            cursor: "pointer", bgcolor: "transparent",
+                            "&:hover": { bgcolor: t.btnHoverBg },
+                            transition: "background .12s",
+                          }}
+                        >
+                          {alert.actionLabel}
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+
+              {/* ── Bed Summary — fixed height (2×2 grid, no inner scroll needed) ── */}
+              <Box
+                sx={{
+                  flexShrink: 0,
+                  bgcolor: "#fff",
+                  borderRadius: "20px",
+                  border: "1px solid #DDE8F0",
+                  overflow: "hidden",
+                }}
+              >
+                {/* Header */}
+                <Box
+                  sx={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    px: "18px", py: "14px",
+                    borderBottom: "1px solid #DDE8F0",
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <BedIcon sx={{ fontSize: 16, color: "#1172BA" }} />
+                    <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#0D1B2A" }}>
+                      Bed Summary
+                    </Typography>
+                  </Stack>
+                  <Box
+                    onClick={() => openRoute("/ipd/beds")}
+                    sx={{
+                      px: "14px", py: "6px", borderRadius: "20px",
+                      border: "1.5px solid #DDE8F0", bgcolor: "#F5F8FB",
+                      fontSize: "11.5px", fontWeight: 700, color: "#5A7184",
+                      cursor: canNavigate("/ipd/beds") ? "pointer" : "default",
+                      "&:hover": canNavigate("/ipd/beds")
+                        ? { borderColor: "#5BA4D4", color: "#1172BA" }
+                        : {},
+                      transition: "all .15s",
+                    }}
+                  >
+                    Bed Map
+                  </Box>
+                </Box>
+
+                {/* 2×2 grid */}
+                <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+                  {bedSummaryItems.map((item, i) => (
+                    <Box
+                      key={item.id}
+                      sx={{
+                        p: "16px 18px",
+                        bgcolor: item.bg,
+                        borderBottom: i < 2 ? "1px solid #F3F7FB" : "none",
+                        borderRight: i % 2 === 0 ? "1px solid #F3F7FB" : "none",
                       }}
                     >
-                      {item.icon}
-                    </Box>
-                    <Box sx={{ minWidth: 0 }}>
+                      <Box sx={{ float: "right", mt: "-2px" }}>
+                        <item.Icon sx={{ fontSize: 18, color: item.iconColor }} />
+                      </Box>
                       <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: 800,
-                          color: item.color,
-                          lineHeight: 1.1,
-                        }}
+                        sx={{ fontSize: 24, fontWeight: 700, lineHeight: 1, mb: 0.5, color: item.numColor }}
                       >
                         {item.value}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography sx={{ fontSize: "11.5px", color: "#9AAFBF", fontWeight: 500 }}>
                         {item.label}
                       </Typography>
                     </Box>
-                  </Box>
-                ))}
+                  ))}
+                </Box>
               </Box>
-            </Card>
-            )}
-          </Stack>
+            </Box>
+          )}
         </Box>
-      </Stack>
-      {/* </Card> */}
+      </Box>
     </PageTemplate>
   );
-}
-
-function tableHeadCellSx(theme: Theme) {
-  return {
-    py: 1,
-    fontSize: 11,
-    fontWeight: 800,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-    color: "text.secondary",
-    borderBottom: "1px solid",
-    borderColor: alpha(theme.palette.primary.main, 0.16),
-    backgroundColor: alpha(theme.palette.primary.main, 0.05),
-  };
 }

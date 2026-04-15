@@ -17,6 +17,7 @@ import {
   Typography,
 } from '@/src/ui/components/atoms';
 import { Card } from '@/src/ui/components/molecules';
+import { SectionLoader } from '@/src/ui/components/loaders';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { alpha, useTheme } from '@/src/ui/theme';
 import {
@@ -238,7 +239,7 @@ export default function OpdOrdersPage({ encounterId }: OpdOrdersPageProps) {
 
   return (
     <OpdLayout title="Encounter Orders" subtitle={subtitle} currentPageTitle="Orders">
-      {opdStatus === 'loading' ? <Alert severity="info">Loading OPD data from the local JSON server.</Alert> : null}
+      {opdStatus === 'loading' ? <SectionLoader message="Loading OPD data..." minHeight={140} /> : null}
       {opdStatus === 'error' ? (
         <Alert severity="warning">
           OPD JSON server not reachable. Showing fallback data.

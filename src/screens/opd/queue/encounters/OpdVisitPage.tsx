@@ -16,6 +16,7 @@ import {
   CommonDialog,
   PatientGlobalHeader,
 } from "@/src/ui/components/molecules";
+import { SectionLoader } from "@/src/ui/components/loaders";
 import Grid from "@/src/ui/components/layout/AlignedGrid";
 import { useTheme } from "@/src/ui/theme";
 import {
@@ -348,7 +349,7 @@ export default function OpdVisitPage({ encounterId }: { encounterId?: string }) 
 
   return (
     <OpdLayout title="Consultation Workspace" currentPageTitle="Consultation" fullHeight>
-      {opdStatus === "loading" && <Alert severity="info">Loading OPD data...</Alert>}
+      {opdStatus === "loading" && <SectionLoader message="Loading OPD data..." minHeight={120} />}
       {opdStatus === "error" && <Alert severity="warning">OPD data error: {opdError}</Alert>}
 
       <ConsultationWorkspaceHeader

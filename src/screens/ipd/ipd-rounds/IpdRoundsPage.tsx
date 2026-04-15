@@ -60,6 +60,11 @@ import {
   NoteAlt as NoteAltIcon,
   Science as ScienceIcon,
   WarningAmber as WarningAmberIcon,
+  Favorite as FavoriteIcon,
+  Air as AirIcon,
+  DeviceThermostat as DeviceThermostatIcon,
+  WaterDrop as WaterDropIcon,
+  SentimentVeryDissatisfied as PainIcon,
 } from "@mui/icons-material";
 import CommonDataGrid, {
   type CommonColumn,
@@ -2990,559 +2995,249 @@ export default function IpdRoundsPage() {
   return (
     <PageTemplate title="Clinical Care" header={topBarHeader} fullHeight>
       <Box
-        sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
+        sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: 1.25, overflow: "hidden" }}
       >
-        {/* Workspace header + tabs — fixed, never scrolls */}
-        <Stack spacing={1.25} sx={{ flexShrink: 0 }}>
-          <WorkspaceHeaderCard
+        {/* ── Infection Alert Banner (only when active) ── */}
+        {activeInfectionCase ? (
+          <Box
             sx={{
-              p: { xs: 1.5, md: 2 },
-              borderRadius: "16px",
-              backgroundColor: "#FFFFFF",
+              flexShrink: 0,
+              bgcolor: "#FFFBEB",
+              borderRadius: "14px",
+              border: "1.5px solid #FDE68A",
+              p: "9px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
             }}
           >
-            <Stack
-              direction={{ xs: "column", lg: "row" }}
-              justifyContent="space-between"
-              alignItems={{ xs: "flex-start", lg: "center" }}
-              spacing={1.25}
+            <WarningAmberIcon sx={{ fontSize: 15, color: "#D97706", flexShrink: 0 }} />
+            <Typography sx={{ fontSize: "12px", color: "#92400E", fontWeight: 600, flex: 1 }}>
+              Active infection case: {activeInfectionCase.organism} · {activeInfectionCase.icStatus} · {activeInfectionCase.isolationType} isolation.
+            </Typography>
+            <Box
+              onClick={() => openRoute("/clinical/modules/bugsy-infection-control", "/clinical/modules/bugsy-infection-control")}
+              sx={{ px: "12px", py: "5px", borderRadius: "8px", border: "1.5px solid #FDE68A", bgcolor: "transparent", fontSize: 11.5, fontWeight: 700, color: "#D97706", cursor: "pointer", "&:hover": { bgcolor: "#FEF3C7" }, whiteSpace: "nowrap" }}
             >
-              <Box>
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontWeight: 800,
-                    color: "primary.main",
-                    lineHeight: 1.1,
-                  }}
-                >
-                  Clinical Care Workspace
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Doctor rounds, nursing execution, vitals, orders, medication,
-                  and discharge handoff.
-                </Typography>
-              </Box>
-
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  disabled={!canNavigate(isDoctor ? "/patients/list" : "/ipd/beds")}
-                  onClick={() => {
-                    if (isDoctor) {
-                      router.push("/patients/list");
-                    } else {
-                      openRoute("/ipd/beds?tab=inpatient-list", "/ipd/beds");
-                    }
-                  }}
-                >
-                  All Patients
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  disabled={!canNavigate("/appointments/visit")}
-                  onClick={openVitalsDialog}
-                >
-                  Record Vitals
-                </Button>
-                <Button
-                  size="small"
-                  variant="contained"
-                  disabled={!canNavigate("/clinical/orders")}
-                  onClick={openOrderDialog}
-                >
-                  Write Order
-                </Button>
-                <Button
-                  size="small"
-                  color="error"
-                  variant="outlined"
-                  disabled={!canNavigate("/ipd/discharge")}
-                  onClick={() =>
-                    openRoute("/ipd/discharge?tab=pending", "/ipd/discharge")
-                  }
-                >
-                  Start Discharge
-                </Button>
-              </Stack>
-            </Stack>
-          </WorkspaceHeaderCard>
-
-          {activeInfectionCase ? (
-            <Alert
-              severity="warning"
-              action={
-                <Button
-                  color="inherit"
-                  size="small"
-                  onClick={() =>
-                    openRoute(
-                      "/clinical/modules/bugsy-infection-control",
-                      "/clinical/modules/bugsy-infection-control",
-                    )
-                  }
-                >
-                  Open Case
-                </Button>
-              }
-            >
-              Active infection case: {activeInfectionCase.organism} ·{" "}
-              {activeInfectionCase.icStatus} ·{" "}
-              {activeInfectionCase.isolationType} isolation. Keep precautions
-              visible during rounds and transfer decisions.
-            </Alert>
-          ) : null}
-
-          <Box>
-            <CustomCardTabs
-              items={customTabItems}
-              defaultValue={activeTabIndex}
-              onChange={(index) => {
-                const nextTab = visibleTabs[index]?.id;
-                if (!nextTab || !isClinicalTab(nextTab)) return;
-                switchTab(nextTab);
-              }}
-              sticky={true}
-              showBackground={true}
-              scrollable={true}
-            />
+              Open Case
+            </Box>
           </Box>
-        </Stack>
+        ) : null}
 
-        {/* Scrollable content area */}
+        {/* ── Page Header Card ── */}
+        <Box
+          sx={{
+            flexShrink: 0,
+            bgcolor: "#fff",
+            borderRadius: "20px",
+            border: "1px solid #DDE8F0",
+            p: "14px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1,
+          }}
+        >
+          <Box>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: "#0D1B2A" }}>Clinical Care Workspace</Typography>
+            <Typography sx={{ fontSize: "11.5px", color: "#9AAFBF", mt: "2px" }}>Doctor rounds, nursing execution, vitals, orders, medication, and discharge handoff.</Typography>
+          </Box>
+          <Stack direction="row" gap={0.875} flexShrink={0}>
+            <Box
+              onClick={() => { if (canNavigate(isDoctor ? "/patients/list" : "/ipd/beds")) { if (isDoctor) router.push("/patients/list"); else openRoute("/ipd/beds?tab=inpatient-list", "/ipd/beds"); } }}
+              sx={{ px: "13px", py: "7px", borderRadius: "10px", border: "1.5px solid #DDE8F0", bgcolor: "#fff", fontSize: 12, fontWeight: 600, color: "#5A7184", cursor: "pointer", "&:hover": { bgcolor: "#F5F8FB" } }}
+            >
+              All Patients
+            </Box>
+            <Box
+              onClick={() => canNavigate("/appointments/visit") && openVitalsDialog()}
+              sx={{ px: "13px", py: "7px", borderRadius: "10px", border: "1.5px solid #DDE8F0", bgcolor: "#fff", fontSize: 12, fontWeight: 600, color: "#5A7184", cursor: "pointer", "&:hover": { bgcolor: "#F5F8FB" } }}
+            >
+              Record Vitals
+            </Box>
+            <Box
+              onClick={() => canNavigate("/clinical/orders") && openOrderDialog()}
+              sx={{ px: "13px", py: "7px", borderRadius: "10px", bgcolor: "#1172BA", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", "&:hover": { bgcolor: "#0D5A94" } }}
+            >
+              Write Order
+            </Box>
+            <Box
+              onClick={() => canNavigate("/ipd/discharge") && openRoute("/ipd/discharge?tab=pending", "/ipd/discharge")}
+              sx={{ px: "13px", py: "7px", borderRadius: "10px", border: "1.5px solid #DDE8F0", bgcolor: "#F5F8FB", fontSize: 12, fontWeight: 600, color: "#9AAFBF", cursor: canNavigate("/ipd/discharge") ? "pointer" : "not-allowed" }}
+            >
+              Start Discharge
+            </Box>
+          </Stack>
+        </Box>
+
+        {/* ── Tabs Row ── */}
+        <Box
+          sx={{
+            flexShrink: 0,
+            bgcolor: "#fff",
+            borderRadius: "20px",
+            border: "1px solid #DDE8F0",
+            p: "5px",
+            display: "flex",
+            gap: "3px",
+            overflowX: "auto",
+            "&::-webkit-scrollbar": { height: 0 },
+          }}
+        >
+          {visibleTabs.map((tab) => {
+            const count =
+              tab.id === "orders" ? pendingOrders.length :
+              tab.id === "billing" ? pendingBillingEntries.length : 0;
+            const isActive = activeTab === tab.id;
+            return (
+              <Box
+                key={tab.id}
+                onClick={() => switchTab(tab.id)}
+                sx={{
+                  px: "14px", py: "8px", borderRadius: "12px",
+                  fontSize: "12.5px", fontWeight: 600,
+                  cursor: "pointer", whiteSpace: "nowrap",
+                  bgcolor: isActive ? "#1172BA" : "transparent",
+                  color: isActive ? "#fff" : "#5A7184",
+                  "&:hover": isActive ? {} : { bgcolor: "#F5F8FB", color: "#0D1B2A" },
+                  transition: "all .15s",
+                  display: "flex", alignItems: "center", gap: 0.5,
+                }}
+              >
+                {tab.label}
+                {count > 0 && (
+                  <Box sx={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 18, height: 18, borderRadius: "9px", fontSize: 10, fontWeight: 700, px: "5px", bgcolor: isActive ? "rgba(255,255,255,0.25)" : "#F5F8FB", color: isActive ? "#fff" : "#9AAFBF" }}>
+                    {count}
+                  </Box>
+                )}
+              </Box>
+            );
+          })}
+        </Box>
+
+        {/* ── Body: flex row, each col scrolls independently ── */}
         <Box
           sx={{
             flex: 1,
             minHeight: 0,
-            overflowY: "auto",
-            overflowX: "hidden",
-            // pt: 1,
+            display: "flex",
+            gap: 1.25,
+            overflow: "hidden",
           }}
         >
+          {/* Main col */}
+          <Box
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              overflowY: activeTab === "vitals" || activeTab === "orders" ? "hidden" : "auto",
+              overflowX: "hidden",
+              "&::-webkit-scrollbar": { width: 3 },
+              "&::-webkit-scrollbar-thumb": { bgcolor: "#DDE8F0", borderRadius: 3 },
+            }}
+          >
           {activeTab === "rounds" ? (
-            <Grid container spacing={1.25} alignItems="flex-start">
-              <Grid xs={12} lg={7}>
-                <Stack spacing={1.25}>
-                  <Card elevation={0} sx={sectionCardSx}>
-                    <Box
-                      sx={{
-                        px: 2,
-                        py: 1.5,
-                        borderBottom: "1px solid",
-                        borderColor: "divider",
-                        backgroundColor: alpha(theme.palette.info.main, 0.05),
-                      }}
-                    >
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="center"
+            <Stack spacing={1.25}>
+              {/* ── Vitals Snapshot ── */}
+              <Box sx={{ bgcolor: "#fff", borderRadius: "20px", border: "1px solid #DDE8F0", overflow: "hidden", flexShrink: 0 }}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: "20px", py: "14px", borderBottom: "1px solid #DDE8F0" }}>
+                  <Stack direction="row" alignItems="center" spacing={1.125}>
+                    <Box sx={{ width: 30, height: 30, borderRadius: "9px", bgcolor: "#E8F3FB", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <MonitorHeartIcon sx={{ fontSize: 15, color: "#1172BA" }} />
+                    </Box>
+                    <Typography sx={{ fontSize: "13.5px", fontWeight: 700, color: "#0D1B2A" }}>Today&apos;s Vitals Snapshot</Typography>
+                  </Stack>
+                  <Box onClick={() => switchTab("vitals")} sx={{ fontSize: 12, fontWeight: 700, color: "#1172BA", cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
+                    Full Vitals →
+                  </Box>
+                </Box>
+                <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+                  {[
+                    { key: "bp",   label: "Blood Pressure", value: latestVitals ? latestVitals.bp   : "--", unit: "mmHg", tone: latestVitals ? getVitalTone("bp",   latestVitals.bp)   : "warning" },
+                    { key: "hr",   label: "Heart Rate",     value: latestVitals ? latestVitals.hr   : "--", unit: "bpm",  tone: latestVitals ? getVitalTone("hr",   latestVitals.hr)   : "warning" },
+                    { key: "spo2", label: "SpO2",           value: latestVitals ? latestVitals.spo2 : "--", unit: "%",    tone: latestVitals ? getVitalTone("spo2", latestVitals.spo2) : "warning" },
+                    { key: "temp", label: "Temperature",    value: latestVitals ? latestVitals.temp : "--", unit: "°F",   tone: latestVitals ? getVitalTone("temp", latestVitals.temp) : "warning" },
+                  ].map((v, i) => {
+                    const isWarn    = v.tone === "error";
+                    const isCaution = v.tone === "warning";
+                    return (
+                      <Box
+                        key={v.key}
+                        sx={{
+                          p: "14px 20px",
+                          borderRight:  i % 2 === 0 ? "1px solid #F3F7FB" : "none",
+                          borderBottom: i < 2       ? "1px solid #F3F7FB" : "none",
+                          bgcolor: isWarn ? "#FFF5F5" : isCaution ? "#FFFBEB" : "#fff",
+                        }}
                       >
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <MonitorHeartIcon fontSize="small" color="primary" />
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ fontWeight: 700 }}
-                          >
-                            Today&apos;s Vitals Snapshot
-                          </Typography>
-                        </Stack>
-                        <Button
-                          size="small"
-                          variant="text"
-                          onClick={() => switchTab("vitals")}
-                        >
-                          Full Vitals
-                        </Button>
-                      </Stack>
-                    </Box>
-                    <Box sx={{ p: 2 }}>
-                      <Grid container spacing={1.2}>
-                        {[
-                          {
-                            key: "bp",
-                            label: "Blood Pressure",
-                            value: latestVitals ? latestVitals.bp : "--",
-                            unit: "mmHg",
-                            tone: latestVitals
-                              ? getVitalTone("bp", latestVitals.bp)
-                              : "warning",
-                          },
-                          {
-                            key: "hr",
-                            label: "Heart Rate",
-                            value: latestVitals ? latestVitals.hr : "--",
-                            unit: "bpm",
-                            tone: latestVitals
-                              ? getVitalTone("hr", latestVitals.hr)
-                              : "warning",
-                          },
-                          {
-                            key: "spo2",
-                            label: "SpO2",
-                            value: latestVitals ? latestVitals.spo2 : "--",
-                            unit: "%",
-                            tone: latestVitals
-                              ? getVitalTone("spo2", latestVitals.spo2)
-                              : "warning",
-                          },
-                          {
-                            key: "temp",
-                            label: "Temperature",
-                            value: latestVitals ? latestVitals.temp : "--",
-                            unit: "F",
-                            tone: latestVitals
-                              ? getVitalTone("temp", latestVitals.temp)
-                              : "warning",
-                          },
-                        ].map((vital) => (
-                          <Grid xs={12} sm={6} key={vital.key}>
-                            <Card
-                              elevation={0}
-                              sx={{
-                                p: 1.5,
-                                borderRadius: 2,
-                                border: "1px solid",
-                                borderColor:
-                                  vital.tone === "error"
-                                    ? alpha(theme.palette.error.main, 0.45)
-                                    : vital.tone === "warning"
-                                      ? alpha(theme.palette.warning.main, 0.45)
-                                      : alpha(theme.palette.success.main, 0.45),
-                                boxShadow: "none",
-                              }}
-                            >
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {vital.label}
-                              </Typography>
-                              <Typography
-                                variant="h6"
-                                sx={{ fontWeight: 800, lineHeight: 1.2 }}
-                              >
-                                {vital.value}{" "}
-                                <Typography
-                                  component="span"
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  {vital.unit}
-                                </Typography>
-                              </Typography>
-                            </Card>
-                          </Grid>
-                        ))}
-                      </Grid>
-                    </Box>
-                  </Card>
-
-                  <Card elevation={0} sx={sectionCardSx}>
-                    <Box
-                      sx={{
-                        px: 2,
-                        py: 1.5,
-                        borderBottom: "1px solid",
-                        borderColor: "divider",
-                        backgroundColor: alpha(
-                          theme.palette.primary.main,
-                          0.04,
-                        ),
-                      }}
-                    >
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="center"
-                        spacing={1}
-                      >
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <NoteAltIcon fontSize="small" color="primary" />
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ fontWeight: 700 }}
-                          >
-                            Round Notes
-                          </Typography>
-                        </Stack>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          onClick={openNoteDialog}
-                        >
-                          + Add Round
-                        </Button>
-                      </Stack>
-                    </Box>
-                    <Box sx={{ p: 2 }}>
-                      <Stack spacing={1.2}>
-                        {patientNotes.slice(0, 3).map((note) => (
-                          <Card
-                            key={note.id}
-                            elevation={0}
-                            sx={{
-                              p: 1.5,
-                              borderRadius: 2,
-                              border: "1px solid",
-                              borderColor: "divider",
-                              boxShadow: "none",
-                            }}
-                          >
-                            <Stack
-                              direction="row"
-                              justifyContent="space-between"
-                              spacing={1}
-                            >
-                              <Box>
-                                <Typography
-                                  variant="body2"
-                                  sx={{ fontWeight: 700 }}
-                                >
-                                  {note.author}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  {noteMetaLine(note)}
-                                </Typography>
-                              </Box>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {note.time}
-                              </Typography>
-                            </Stack>
-                            <Typography variant="body2" sx={{ mt: 0.75 }}>
-                              {note.assessment}
-                            </Typography>
-                          </Card>
-                        ))}
-                      </Stack>
-                    </Box>
-                  </Card>
-                </Stack>
-              </Grid>
-
-              <Grid xs={12} lg={5}>
-                <Stack spacing={1.25}>
-                  <Card elevation={0} sx={sectionCardSx}>
-                    <Box
-                      sx={{
-                        px: 2,
-                        py: 1.5,
-                        borderBottom: "1px solid",
-                        borderColor: "divider",
-                      }}
-                    >
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <LocalHospitalIcon fontSize="small" color="primary" />
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ fontWeight: 700 }}
-                        >
-                          Clinical Summary
+                        <Typography sx={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", color: "#9AAFBF", mb: "6px" }}>
+                          {v.label}
                         </Typography>
-                      </Stack>
-                    </Box>
-                    <Box sx={{ p: 2 }}>
-                      <Stack spacing={0.9}>
-                        {[
-                          ["Diagnosis", selectedPatient.diagnosis],
-                          ["Consultant", selectedPatient.consultant],
-                          ["Blood Group", selectedPatient.bloodGroup],
-                          ["Allergy", selectedPatient.allergy],
-                          [
-                            "Ward / Bed",
-                            `${selectedPatient.ward} / ${selectedPatient.bed}`,
-                          ],
-                          ["Day of Stay", `Day ${selectedPatient.dayOfStay}`],
-                        ].map(([label, value]) => (
-                          <Stack
-                            key={label}
-                            direction="row"
-                            justifyContent="space-between"
-                            spacing={1}
-                          >
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              {label}
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              sx={{ fontWeight: 700, textAlign: "right" }}
-                            >
-                              {value}
-                            </Typography>
-                          </Stack>
-                        ))}
-                      </Stack>
-                    </Box>
-                  </Card>
+                        <Typography sx={{ fontSize: 22, fontWeight: 700, color: isWarn ? "#DC2626" : isCaution ? "#D97706" : "#0D1B2A", lineHeight: 1, display: "flex", alignItems: "baseline", gap: "6px" }}>
+                          {v.value}
+                          <Typography component="span" sx={{ fontSize: 12, color: "#9AAFBF", fontWeight: 500 }}>{v.unit}</Typography>
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
 
-                  <Card elevation={0} sx={sectionCardSx}>
-                    <Box
-                      sx={{
-                        px: 2,
-                        py: 1.5,
-                        borderBottom: "1px solid",
-                        borderColor: "divider",
-                      }}
-                    >
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="center"
-                      >
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <ChecklistIcon fontSize="small" color="primary" />
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ fontWeight: 700 }}
-                          >
-                            Pending Actions
-                          </Typography>
-                        </Stack>
-                        <Button
-                          size="small"
-                          variant="text"
-                          onClick={() => switchTab("orders")}
-                        >
-                          Orders
-                        </Button>
-                      </Stack>
+              {/* ── Round Notes ── */}
+              <Box sx={{ bgcolor: "#fff", borderRadius: "20px", border: "1px solid #DDE8F0", overflow: "hidden", flexShrink: 0 }}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: "20px", py: "14px", borderBottom: "1px solid #DDE8F0" }}>
+                  <Stack direction="row" alignItems="center" spacing={1.125}>
+                    <Box sx={{ width: 30, height: 30, borderRadius: "9px", bgcolor: "#DCFCE7", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <NoteAltIcon sx={{ fontSize: 15, color: "#16A34A" }} />
                     </Box>
-                    <Box sx={{ p: 2 }}>
-                      <Stack spacing={1}>
-                        {pendingOrders.length === 0 ? (
-                          <Typography variant="body2" color="text.secondary">
-                            No pending actions.
-                          </Typography>
-                        ) : (
-                          pendingOrders.slice(0, 4).map((order) => (
-                            <Stack
-                              key={order.id}
-                              direction="row"
-                              spacing={1}
-                              alignItems="center"
-                              sx={{
-                                px: 1.2,
-                                py: 0.9,
-                                borderRadius: 1.4,
-                                border: "1px solid",
-                                borderColor: "divider",
-                              }}
-                            >
-                              <ScienceIcon fontSize="small" color="primary" />
-                              <Box sx={{ minWidth: 0, flex: 1 }}>
-                                <Typography
-                                  variant="body2"
-                                  sx={{ fontWeight: 700 }}
-                                  noWrap
-                                >
-                                  {order.description}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  noWrap
-                                >
-                                  {order.type} | {order.time}
-                                </Typography>
+                    <Typography sx={{ fontSize: "13.5px", fontWeight: 700, color: "#0D1B2A" }}>Round Notes</Typography>
+                  </Stack>
+                  <Box
+                    onClick={openNoteDialog}
+                    sx={{ px: "16px", py: "8px", borderRadius: "10px", bgcolor: "#1172BA", color: "#fff", fontSize: "12.5px", fontWeight: 700, cursor: "pointer", "&:hover": { bgcolor: "#0D5A94" }, display: "flex", alignItems: "center", gap: 0.5 }}
+                  >
+                    + Add Round
+                  </Box>
+                </Box>
+                <Box>
+                  {patientNotes.length === 0 ? (
+                    <Box sx={{ px: "20px", py: "16px" }}>
+                      <Typography sx={{ fontSize: 12, color: "#9AAFBF" }}>No round notes recorded yet.</Typography>
+                    </Box>
+                  ) : patientNotes.slice(0, 3).map((note) => {
+                    const isPhysician = note.role === "Physician" || note.role === "ICU Consultant" || note.role === "Surgeon";
+                    const avatarBg = isPhysician ? "#1172BA" : "#7C3AED";
+                    return (
+                      <Box key={note.id} sx={{ px: "20px", py: "16px", borderBottom: "1px solid #F3F7FB", "&:last-child": { borderBottom: "none" } }}>
+                        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: "8px" }}>
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <Box sx={{ width: 32, height: 32, borderRadius: "50%", bgcolor: avatarBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+                              {initials(note.author)}
+                            </Box>
+                            <Box>
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
+                                <Typography sx={{ fontSize: "12.5px", fontWeight: 700, color: "#0D1B2A" }}>{note.author}</Typography>
+                                <Box sx={{ px: "9px", py: "2px", borderRadius: "5px", fontSize: "10.5px", fontWeight: 700, bgcolor: isPhysician ? "#E8F3FB" : "#DCFCE7", color: isPhysician ? "#1172BA" : "#166534" }}>
+                                  {note.role}
+                                </Box>
+                                {note.type === "SOAP Note" && (
+                                  <Box sx={{ px: "9px", py: "2px", borderRadius: "5px", fontSize: "10.5px", fontWeight: 700, bgcolor: "#EDE9FE", color: "#5B21B6" }}>SOAP Note</Box>
+                                )}
                               </Box>
-                              <Chip
-                                size="small"
-                                color={orderStatusChipColor(order.status)}
-                                label={order.status}
-                              />
-                            </Stack>
-                          ))
-                        )}
-                      </Stack>
-                    </Box>
-                  </Card>
-
-                  <Card elevation={0} sx={sectionCardSx}>
-                    <Box
-                      sx={{
-                        px: 2,
-                        py: 1.5,
-                        borderBottom: "1px solid",
-                        borderColor: "divider",
-                      }}
-                    >
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        IPD Journey
-                      </Typography>
-                    </Box>
-                    <Box sx={{ p: 2 }}>
-                      <Stack spacing={1.2}>
-                        {PATIENT_TIMELINE.map((step, index) => (
-                          <Stack key={step.id} direction="row" spacing={1}>
-                            <Stack
-                              alignItems="center"
-                              sx={{ width: 16, pt: 0.4 }}
-                            >
-                              <Box
-                                sx={{
-                                  width: 9,
-                                  height: 9,
-                                  borderRadius: "50%",
-                                  bgcolor:
-                                    index === 2
-                                      ? "primary.main"
-                                      : index < 2
-                                        ? "success.main"
-                                        : "divider",
-                                }}
-                              />
-                              {index < PATIENT_TIMELINE.length - 1 ? (
-                                <Box
-                                  sx={{
-                                    width: 1,
-                                    flex: 1,
-                                    bgcolor: "divider",
-                                    minHeight: 24,
-                                    mt: 0.3,
-                                  }}
-                                />
-                              ) : null}
-                            </Stack>
-                            <Box sx={{ pb: 1 }}>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 700 }}
-                              >
-                                {step.title}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {step.subtitle}
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{ mt: 0.25 }}
-                              >
-                                {step.note}
-                              </Typography>
+                              <Typography sx={{ fontSize: 11, color: "#9AAFBF", mt: "1px" }}>{note.role}</Typography>
                             </Box>
                           </Stack>
-                        ))}
-                      </Stack>
-                    </Box>
-                  </Card>
-                </Stack>
-              </Grid>
-            </Grid>
+                          <Typography sx={{ fontSize: 11, color: "#9AAFBF", fontFamily: "monospace", flexShrink: 0 }}>{note.time}</Typography>
+                        </Box>
+                        <Typography sx={{ fontSize: "12.5px", color: "#5A7184", lineHeight: 1.6, pl: "40px" }}>{note.assessment}</Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+            </Stack>
           ) : null}
 
           {activeTab === "nursing" ? (
@@ -3719,287 +3414,195 @@ export default function IpdRoundsPage() {
                     </Box>
                   </Card>
 
-                  <Card elevation={0} sx={sectionCardSx}>
-                    <Box
-                      sx={{
-                        px: 2,
-                        py: 1.5,
-                        borderBottom: "1px solid",
-                        borderColor: "divider",
-                      }}
-                    >
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <WarningAmberIcon fontSize="small" color="warning" />
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ fontWeight: 700 }}
-                        >
-                          Active Care Alerts
-                        </Typography>
-                      </Stack>
-                    </Box>
-                    <Box sx={{ p: 2 }}>
-                      <Stack spacing={1}>
-                        <Chip
-                          size="small"
-                          color="error"
-                          label={`Allergy: ${selectedPatient.allergy}`}
-                          sx={{ width: "fit-content" }}
-                        />
-                        <Chip
-                          size="small"
-                          color="warning"
-                          label="Fall risk monitor active"
-                          sx={{ width: "fit-content" }}
-                        />
-                        <Chip
-                          size="small"
-                          color="info"
-                          label="Fluid balance charting every shift"
-                          sx={{ width: "fit-content" }}
-                        />
-                      </Stack>
-                    </Box>
-                  </Card>
                 </Stack>
               </Grid>
             </Grid>
           ) : null}
 
           {activeTab === "vitals" ? (
-            <Stack spacing={2}>
-              <Grid container spacing={1.2}>
-                {[
-                  {
-                    label: "Blood Pressure",
-                    value: latestVitals ? latestVitals.bp : "--",
-                    unit: "mmHg",
-                    tone: latestVitals
-                      ? getVitalTone("bp", latestVitals.bp)
-                      : "warning",
-                  },
-                  {
-                    label: "Heart Rate",
-                    value: latestVitals ? latestVitals.hr : "--",
-                    unit: "bpm",
-                    tone: latestVitals
-                      ? getVitalTone("hr", latestVitals.hr)
-                      : "warning",
-                  },
-                  {
-                    label: "SpO2",
-                    value: latestVitals ? latestVitals.spo2 : "--",
-                    unit: "%",
-                    tone: latestVitals
-                      ? getVitalTone("spo2", latestVitals.spo2)
-                      : "warning",
-                  },
-                  {
-                    label: "Temperature",
-                    value: latestVitals ? latestVitals.temp : "--",
-                    unit: "F",
-                    tone: latestVitals
-                      ? getVitalTone("temp", latestVitals.temp)
-                      : "warning",
-                  },
-                ].map((vital) => (
-                  <Grid xs={12} sm={6} md={3} key={vital.label}>
-                    <Card
-                      elevation={0}
-                      sx={{
-                        p: 1.5,
-                        borderRadius: 2,
-                        border: "1px solid",
-                        borderColor:
-                          vital.tone === "error"
-                            ? alpha(theme.palette.error.main, 0.45)
-                            : vital.tone === "warning"
-                              ? alpha(theme.palette.warning.main, 0.45)
-                              : alpha(theme.palette.success.main, 0.45),
-                        boxShadow: "none",
-                      }}
-                    >
-                      <Typography variant="caption" color="text.secondary">
-                        {vital.label}
-                      </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                        {vital.value}{" "}
-                        <Typography
-                          component="span"
-                          variant="caption"
-                          color="text.secondary"
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25, height: "100%" }}>
+              {/* Vitals snapshot grid */}
+              {(() => {
+                const vitals7 = [
+                  { key: "bp",         label: "BLOOD PRESSURE",  value: latestVitals?.bp         ?? "--", unit: "mmHg",  tone: latestVitals ? getVitalTone("bp",   latestVitals.bp)   : "warning", Icon: MonitorHeartIcon },
+                  { key: "hr",         label: "HEART RATE",      value: latestVitals?.hr         ?? "--", unit: "bpm",   tone: latestVitals ? getVitalTone("hr",   latestVitals.hr)   : "warning", Icon: FavoriteIcon },
+                  { key: "spo2",       label: "SPO2",            value: latestVitals?.spo2       ?? "--", unit: "%",     tone: latestVitals ? getVitalTone("spo2", latestVitals.spo2) : "warning", Icon: AirIcon },
+                  { key: "temp",       label: "TEMPERATURE",     value: latestVitals?.temp       ?? "--", unit: "°F",    tone: latestVitals ? getVitalTone("temp", latestVitals.temp) : "warning", Icon: DeviceThermostatIcon },
+                  { key: "rr",         label: "RESP. RATE",      value: latestVitals?.rr         ?? "--", unit: "/min",  tone: latestVitals ? (latestVitals.rr > 24 || latestVitals.rr < 10 ? "error" : latestVitals.rr > 20 ? "warning" : "success") : "warning", Icon: AirIcon },
+                  { key: "bloodSugar", label: "BLOOD SUGAR",     value: latestVitals?.bloodSugar ?? "--", unit: "mg/dL", tone: latestVitals ? (latestVitals.bloodSugar > 200 ? "error" : latestVitals.bloodSugar > 140 ? "warning" : "success") : "warning", Icon: WaterDropIcon },
+                  { key: "pain",       label: "PAIN SCALE",      value: latestVitals?.pain       ?? "--", unit: "/10",   tone: latestVitals ? (latestVitals.pain >= 7 ? "error" : latestVitals.pain >= 4 ? "warning" : "success") : "warning", Icon: PainIcon },
+                ];
+                return (
+                  <Box
+                    sx={{
+                      flexShrink: 0,
+                      display: "grid",
+                      gridTemplateColumns: "repeat(4, 1fr)",
+                      border: "1px solid #DDE8F0",
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                      boxShadow: "0 2px 8px rgba(10,77,104,0.06)",
+                    }}
+                  >
+                    {vitals7.map((v, i) => {
+                      const bg =
+                        v.tone === "error"   ? "#FFF5F5" :
+                        v.tone === "warning" ? "#FFFBEB" :
+                        v.tone === "success" ? "#F0FFF4" : "#F8FAFC";
+                      const valueColor =
+                        v.tone === "error"   ? "#C62828" :
+                        v.tone === "warning" ? "#B45309" :
+                        v.tone === "success" ? "#166534" : "#0D1B2A";
+                      const iconColor =
+                        v.tone === "error"   ? "#EF5350" :
+                        v.tone === "warning" ? "#F59E0B" :
+                        v.tone === "success" ? "#22C55E" : "#9AAFBF";
+                      const col = i % 4;
+                      const row = Math.floor(i / 4);
+                      const totalRows = Math.ceil(vitals7.length / 4);
+                      return (
+                        <Box
+                          key={v.key}
+                          sx={{
+                            bgcolor: bg,
+                            p: "10px 14px",
+                            borderRight: col < 3 ? "1px solid #DDE8F0" : "none",
+                            borderBottom: row < totalRows - 1 ? "1px solid #DDE8F0" : "none",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            minWidth: 0,
+                          }}
                         >
-                          {vital.unit}
-                        </Typography>
-                      </Typography>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
+                          <Box
+                            sx={{
+                              width: 32, height: 32, borderRadius: "8px",
+                              bgcolor: alpha(iconColor, 0.15),
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <v.Icon sx={{ fontSize: 17, color: iconColor }} />
+                          </Box>
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography
+                              sx={{
+                                fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.06em",
+                                color: "#5A7184", lineHeight: 1.2, mb: 0.2,
+                              }}
+                            >
+                              {v.label}
+                            </Typography>
+                            <Stack direction="row" alignItems="baseline" spacing={0.3}>
+                              <Typography
+                                sx={{ fontSize: "1rem", fontWeight: 800, color: valueColor, lineHeight: 1 }}
+                              >
+                                {v.value}
+                              </Typography>
+                              <Typography sx={{ fontSize: "0.65rem", color: "#9AAFBF", fontWeight: 500 }}>
+                                {v.unit}
+                              </Typography>
+                            </Stack>
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                );
+              })()}
 
+              {/* Table — fills remaining height with inner scroll */}
               <CommonDataGrid<VitalReading>
                 rows={patientVitals}
                 columns={vitalColumns}
                 getRowId={(row) => row.time}
                 hideSearch
                 toolbarLeft={
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ fontWeight: 700, ml: 1 }}
-                  >
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, ml: 1 }}>
                     Vitals History ({patientVitals.length})
                   </Typography>
                 }
                 toolbarRight={
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={openVitalsDialog}
-                    sx={{ borderRadius: 2 }}
-                  >
+                  <Button size="small" variant="contained" onClick={openVitalsDialog} sx={{ borderRadius: 2 }}>
                     + Record Vitals
                   </Button>
                 }
+                paperSx={{ flex: 1, minHeight: 0 }}
               />
-            </Stack>
+            </Box>
           ) : null}
 
           {activeTab === "orders" ? (
-            <Grid container spacing={2} alignItems="flex-start">
-              <Grid xs={12} lg={12}>
-                <Card elevation={0} sx={sectionCardSx}>
-                  <Box
-                    sx={{
-                      px: 2,
-                      py: 1.5,
-                      borderBottom: "1px solid",
-                      borderColor: "divider",
-                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                    }}
-                  >
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      alignItems="center"
-                    >
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <ScienceIcon fontSize="small" color="primary" />
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ fontWeight: 700 }}
-                        >
-                          Active Orders ({patientOrders.length})
+            <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+              <CommonDataGrid<ClinicalOrder>
+                rows={patientOrders}
+                columns={[
+                  { field: "type",        headerName: "Type",        width: 100 },
+                  {
+                    field: "description", headerName: "Description", flex: 1,
+                    renderCell: (row) => (
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{row.description}</Typography>
+                        <Typography variant="caption" color="text.secondary">{row.orderedBy} | {row.time}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                          Billing: {row.billingId ?? "--"} · {row.billingCategory ?? resolveBillingCategory(row.type)}
                         </Typography>
+                      </Box>
+                    ),
+                  },
+                  { field: "frequency",   headerName: "Frequency",   width: 120 },
+                  {
+                    field: "priority", headerName: "Priority", width: 110,
+                    renderCell: (row) => (
+                      <Chip size="small" color={priorityChipColor(row.priority)} label={row.priority} />
+                    ),
+                  },
+                  {
+                    field: "status", headerName: "Status", width: 130,
+                    renderCell: (row) => (
+                      <Chip size="small" color={orderStatusChipColor(row.status)} label={row.status} />
+                    ),
+                  },
+                  {
+                    field: "action", headerName: "Action", width: 200, align: "right",
+                    renderCell: (row) => (
+                      <Stack direction="row" spacing={0.8} justifyContent="flex-end">
+                        <Button
+                          size="small" variant="outlined"
+                          disabled={row.status === "Completed" || row.status === "Cancelled"}
+                          onClick={() => markOrderCompleted(row.id)}
+                        >
+                          Mark Done
+                        </Button>
+                        <Button
+                          size="small" color="error" variant="text"
+                          disabled={row.status === "Completed" || row.status === "Cancelled"}
+                          onClick={() => cancelOrder(row.id)}
+                        >
+                          Cancel
+                        </Button>
                       </Stack>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        onClick={openOrderDialog}
-                      >
-                        + New Order
-                      </Button>
-                    </Stack>
-                  </Box>
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead
-                        sx={{
-                          backgroundColor: alpha(
-                            theme.palette.primary.main,
-                            0.05,
-                          ),
-                        }}
-                      >
-                        <TableRow>
-                          <TableCell>Type</TableCell>
-                          <TableCell>Description</TableCell>
-                          <TableCell>Frequency</TableCell>
-                          <TableCell>Priority</TableCell>
-                          <TableCell>Status</TableCell>
-                          <TableCell align="right">Action</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {patientOrders.map((order) => (
-                          <TableRow key={order.id}>
-                            <TableCell>{order.type}</TableCell>
-                            <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 700 }}
-                              >
-                                {order.description}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {order.orderedBy} | {order.time}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{ display: "block" }}
-                              >
-                                Billing: {order.billingId ?? "--"} ·{" "}
-                                {order.billingCategory ??
-                                  resolveBillingCategory(order.type)}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>{order.frequency}</TableCell>
-                            <TableCell>
-                              <Chip
-                                size="small"
-                                color={priorityChipColor(order.priority)}
-                                label={order.priority}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                size="small"
-                                color={orderStatusChipColor(order.status)}
-                                label={order.status}
-                              />
-                            </TableCell>
-                            <TableCell align="right">
-                              <Stack
-                                direction="row"
-                                spacing={0.8}
-                                justifyContent="flex-end"
-                              >
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  disabled={
-                                    order.status === "Completed" ||
-                                    order.status === "Cancelled"
-                                  }
-                                  onClick={() => markOrderCompleted(order.id)}
-                                >
-                                  Mark Done
-                                </Button>
-                                <Button
-                                  size="small"
-                                  color="error"
-                                  variant="text"
-                                  disabled={
-                                    order.status === "Completed" ||
-                                    order.status === "Cancelled"
-                                  }
-                                  onClick={() => cancelOrder(order.id)}
-                                >
-                                  Cancel
-                                </Button>
-                              </Stack>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Card>
-              </Grid>
-            </Grid>
+                    ),
+                  },
+                ]}
+                getRowId={(row) => row.id}
+                hideSearch
+                toolbarLeft={
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <ScienceIcon fontSize="small" color="primary" />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, ml: 1 }}>
+                      Active Orders ({patientOrders.length})
+                    </Typography>
+                  </Stack>
+                }
+                toolbarRight={
+                  <Button size="small" variant="contained" onClick={openOrderDialog} sx={{ borderRadius: 2 }}>
+                    + New Order
+                  </Button>
+                }
+                paperSx={{ flex: 1, minHeight: 0 }}
+              />
+            </Box>
           ) : null}
 
           {activeTab === "billing" ? (
@@ -4472,6 +4075,125 @@ export default function IpdRoundsPage() {
               </Grid>
             </Grid>
           ) : null}
+          </Box>
+          {/* ── Right col: Clinical Summary + Pending Actions + IPD Journey ── */}
+          {activeTab === "rounds" && (
+            <Box
+              sx={{
+                width: 290,
+                minWidth: 290,
+                flexShrink: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.25,
+                overflowY: "auto",
+                "&::-webkit-scrollbar": { width: 3 },
+                "&::-webkit-scrollbar-thumb": { bgcolor: "#DDE8F0", borderRadius: 3 },
+              }}
+            >
+              {/* Clinical Summary */}
+              <Box sx={{ bgcolor: "#fff", borderRadius: "20px", border: "1px solid #DDE8F0", overflow: "hidden", flexShrink: 0 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.125, px: "18px", py: "14px", borderBottom: "1px solid #DDE8F0" }}>
+                  <Box sx={{ width: 30, height: 30, borderRadius: "9px", bgcolor: "#E8F3FB", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <LocalHospitalIcon sx={{ fontSize: 15, color: "#1172BA" }} />
+                  </Box>
+                  <Typography sx={{ fontSize: "13.5px", fontWeight: 700, color: "#0D1B2A" }}>Clinical Summary</Typography>
+                </Box>
+                <Box sx={{ px: "18px", py: "14px" }}>
+                  {[
+                    { label: "Diagnosis",   value: selectedPatient.diagnosis,                                          color: "#0D1B2A" },
+                    { label: "Consultant",  value: selectedPatient.consultant,                                         color: "#1172BA" },
+                    { label: "Blood Group", value: selectedPatient.bloodGroup,                                         color: "#0D1B2A" },
+                    { label: "Allergy",     value: selectedPatient.allergy,                                            color: selectedPatient.allergy === "No known allergies" ? "#16A34A" : "#DC2626" },
+                    { label: "Ward / Bed",  value: `${selectedPatient.ward} · ${selectedPatient.bed}`,                color: "#0D1B2A" },
+                    { label: "Day of Stay", value: `Day ${selectedPatient.dayOfStay}`,                                 color: "#0D1B2A" },
+                  ].map((row) => (
+                    <Box key={row.label} sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", py: "7px", borderBottom: "1px solid #F3F7FB", gap: "12px", "&:last-child": { borderBottom: "none" } }}>
+                      <Typography sx={{ fontSize: "11.5px", color: "#9AAFBF", fontWeight: 500, flexShrink: 0 }}>{row.label}</Typography>
+                      <Typography sx={{ fontSize: "12.5px", fontWeight: 700, color: row.color, textAlign: "right" }}>{row.value}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Pending Actions */}
+              <Box sx={{ bgcolor: "#fff", borderRadius: "20px", border: "1px solid #DDE8F0", overflow: "hidden", flexShrink: 0 }}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: "18px", py: "14px", borderBottom: "1px solid #DDE8F0" }}>
+                  <Stack direction="row" alignItems="center" spacing={1.125}>
+                    <Box sx={{ width: 30, height: 30, borderRadius: "9px", bgcolor: "#FEF3C7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <ChecklistIcon sx={{ fontSize: 15, color: "#D97706" }} />
+                    </Box>
+                    <Typography sx={{ fontSize: "13.5px", fontWeight: 700, color: "#0D1B2A" }}>Pending Actions</Typography>
+                  </Stack>
+                  <Box onClick={() => switchTab("orders")} sx={{ fontSize: 12, fontWeight: 700, color: "#1172BA", cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
+                    Orders →
+                  </Box>
+                </Box>
+                <Box>
+                  {pendingOrders.length === 0 ? (
+                    <Box sx={{ px: "18px", py: "13px" }}>
+                      <Typography sx={{ fontSize: 12, color: "#9AAFBF" }}>No pending actions.</Typography>
+                    </Box>
+                  ) : pendingOrders.slice(0, 4).map((order) => {
+                    const orderTypeLower = order.type.toLowerCase();
+                    const iconBg = orderTypeLower.includes("lab") ? "#DBEAFE" : orderTypeLower.includes("imaging") ? "#EDE9FE" : "#DCFCE7";
+                    const iconColor = orderTypeLower.includes("lab") ? "#1172BA" : orderTypeLower.includes("imaging") ? "#7C3AED" : "#16A34A";
+                    const badgeBg = order.status === "Pending" ? "#FEF3C7" : order.status === "Scheduled" ? "#E8F3FB" : "#DCFCE7";
+                    const badgeBorder = order.status === "Pending" ? "#FDE68A" : order.status === "Scheduled" ? "#5BA4D4" : "#86EFAC";
+                    const badgeColor = order.status === "Pending" ? "#92400E" : order.status === "Scheduled" ? "#1172BA" : "#166534";
+                    return (
+                      <Box key={order.id} sx={{ display: "flex", alignItems: "flex-start", gap: "11px", px: "18px", py: "12px", borderBottom: "1px solid #F3F7FB", "&:last-child": { borderBottom: "none" } }}>
+                        <Box sx={{ width: 30, height: 30, borderRadius: "9px", bgcolor: iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <ScienceIcon sx={{ fontSize: 14, color: iconColor }} />
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography sx={{ fontSize: "12.5px", fontWeight: 700, color: "#0D1B2A" }} noWrap>{order.description}</Typography>
+                          <Typography sx={{ fontSize: 11, color: "#9AAFBF", mt: "2px" }} noWrap>{order.type} · {order.time}</Typography>
+                        </Box>
+                        <Box sx={{ px: "9px", py: "3px", borderRadius: "20px", bgcolor: badgeBg, border: `1.5px solid ${badgeBorder}`, color: badgeColor, fontSize: "10.5px", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
+                          {order.status}
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+
+              {/* IPD Journey */}
+              <Box sx={{ bgcolor: "#fff", borderRadius: "20px", border: "1px solid #DDE8F0", overflow: "hidden", flexShrink: 0 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.125, px: "18px", py: "14px", borderBottom: "1px solid #DDE8F0" }}>
+                  <Box sx={{ width: 30, height: 30, borderRadius: "9px", bgcolor: "#DCFCE7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <AssignmentTurnedInIcon sx={{ fontSize: 15, color: "#16A34A" }} />
+                  </Box>
+                  <Typography sx={{ fontSize: "13.5px", fontWeight: 700, color: "#0D1B2A" }}>IPD Journey</Typography>
+                </Box>
+                <Box sx={{ px: "18px", py: "14px" }}>
+                  {PATIENT_TIMELINE.map((step, index) => {
+                    const isDone   = index < 2;
+                    const isActive = index === 2;
+                    const dotBg    = isDone ? "#16A34A" : isActive ? "#1172BA" : "#F5F8FB";
+                    const dotBorder = isDone ? "#16A34A" : isActive ? "#1172BA" : "#DDE8F0";
+                    const lineBg   = isDone ? "#16A34A" : "#E5E7EB";
+                    return (
+                      <Box key={step.id} sx={{ display: "flex", gap: "12px", pb: index < PATIENT_TIMELINE.length - 1 ? "14px" : 0 }}>
+                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                          <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: dotBg, border: `2px solid ${dotBorder}`, flexShrink: 0, boxShadow: isActive ? `0 0 0 3px #E8F3FB` : "none" }} />
+                          {index < PATIENT_TIMELINE.length - 1 && (
+                            <Box sx={{ width: 2, flex: 1, bgcolor: lineBg, mt: "4px", minHeight: 20 }} />
+                          )}
+                        </Box>
+                        <Box sx={{ flex: 1, pt: 0 }}>
+                          <Typography sx={{ fontSize: "12.5px", fontWeight: 700, color: "#0D1B2A", mb: "2px" }}>{step.title}</Typography>
+                          <Typography sx={{ fontSize: "10.5px", color: "#9AAFBF", fontWeight: 600, mb: "3px" }}>{step.subtitle}</Typography>
+                          <Typography sx={{ fontSize: "11.5px", color: "#5A7184", lineHeight: 1.5 }}>{step.note}</Typography>
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+            </Box>
+          )}
         </Box>
 
         <CommonDialog

@@ -302,7 +302,7 @@ export default function ModernSidebar({
       if (item.route) routes.add(item.route);
     });
 
-    return Array.from(routes).slice(0, 24);
+    return Array.from(routes);
   }, [filteredNavGroups, uniqueRecentMenuItems]);
 
   React.useEffect(() => {
@@ -310,10 +310,11 @@ export default function ModernSidebar({
     if (typeof window === "undefined") return;
 
     let canceled = false;
-    const runPrefetch = () => {
-      if (canceled) return;
-      prefetchRoutes.forEach((route) => router.prefetch(route));
-    };
+    let timeoutHandle: number | null = null;
+    let idleHandle: number | null = null;
+    let index = 0;
+    const CHUNK_SIZE = 8;
+    const CHUNK_DELAY_MS = 70;
 
     const win = window as Window & {
       requestIdleCallback?: (
@@ -323,20 +324,44 @@ export default function ModernSidebar({
       cancelIdleCallback?: (handle: number) => void;
     };
 
+    const runChunk = () => {
+      if (canceled) return;
+      const end = Math.min(index + CHUNK_SIZE, prefetchRoutes.length);
+      for (let cursor = index; cursor < end; cursor += 1) {
+        router.prefetch(prefetchRoutes[cursor]);
+      }
+      index = end;
+      if (index >= prefetchRoutes.length) return;
+      timeoutHandle = window.setTimeout(scheduleChunk, CHUNK_DELAY_MS);
+    };
+
+    const scheduleChunk = () => {
+      if (canceled) return;
+      if (win.requestIdleCallback) {
+        idleHandle = win.requestIdleCallback(() => runChunk(), {
+          timeout: 1000,
+        });
+        return;
+      }
+      timeoutHandle = window.setTimeout(runChunk, CHUNK_DELAY_MS);
+    };
+
     if (win.requestIdleCallback) {
-      const idleHandle = win.requestIdleCallback(() => runPrefetch(), {
+      idleHandle = win.requestIdleCallback(() => runChunk(), {
         timeout: 1200,
       });
-      return () => {
-        canceled = true;
-        win.cancelIdleCallback?.(idleHandle);
-      };
+    } else {
+      timeoutHandle = window.setTimeout(runChunk, 120);
     }
 
-    const timeoutHandle = window.setTimeout(runPrefetch, 120);
     return () => {
       canceled = true;
-      window.clearTimeout(timeoutHandle);
+      if (timeoutHandle !== null) {
+        window.clearTimeout(timeoutHandle);
+      }
+      if (idleHandle !== null) {
+        win.cancelIdleCallback?.(idleHandle);
+      }
     };
   }, [isMounted, prefetchRoutes, router]);
 

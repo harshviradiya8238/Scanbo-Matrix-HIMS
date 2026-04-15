@@ -5,8 +5,6 @@ import {
   Box,
   InputAdornment,
   MenuItem,
-  Select,
-  Skeleton,
   Stack,
   Table,
   TableBody,
@@ -19,9 +17,13 @@ import {
   Typography,
   Paper,
 } from "@/src/ui/components/atoms";
-import { SxProps, Theme } from "@/src/ui/theme";
 import { Search as SearchIcon } from "@mui/icons-material";
 import { DataGridProps } from "@mui/x-data-grid";
+import {
+  AppLoaderOverlay,
+  TableSkeletonRows,
+  useMinimumLoaderVisibility,
+} from "@/src/ui/components/loaders/LoaderPrimitives";
 
 /* ─── Column Definition ──────────────────────────────────────────────────── */
 
@@ -60,6 +62,9 @@ export type CommonDataGridProps<R extends object> = {
   /** Returns a stable unique key per row; defaults to array index */
   getRowId?: (row: R) => string | number;
   loading?: boolean;
+  loadingVariant?: "skeleton" | "overlay";
+  loadingMessage?: string;
+  loadingMinDurationMs?: number;
   /** Placeholder text inside the search input */
   searchPlaceholder?: string;
   /**
@@ -91,6 +96,8 @@ export type CommonDataGridProps<R extends object> = {
   hideSearch?: boolean;
   /** Whether to disable the pointer cursor on rows */
   disableRowPointer?: boolean;
+  /** Override styles on the root Paper wrapper */
+  paperSx?: Record<string, unknown>;
 };
 
 /* ─── Component ──────────────────────────────────────────────────────────── */
@@ -100,6 +107,9 @@ export default function CommonDataGrid<R extends object>({
   rows,
   getRowId,
   loading = false,
+  loadingVariant = "overlay",
+  loadingMessage = "Loading records...",
+  loadingMinDurationMs = 500,
   searchPlaceholder = "Search...",
   searchFields,
   filterDropdowns,
@@ -117,6 +127,7 @@ export default function CommonDataGrid<R extends object>({
   hideSearch = false,
   tableHeight,
   disableRowPointer = false,
+  paperSx,
 }: CommonDataGridProps<R>) {
   const [internalSearch, setInternalSearch] = React.useState("");
   const search = externalSearchValue ?? internalSearch;
@@ -159,6 +170,9 @@ export default function CommonDataGrid<R extends object>({
   };
 
   const rowKey = (row: R, index: number) => (getRowId ? getRowId(row) : index);
+  const visibleLoading = useMinimumLoaderVisibility(loading, loadingMinDurationMs);
+  const isLoadingSkeleton = visibleLoading && loadingVariant === "skeleton";
+  const isLoadingOverlay = visibleLoading && loadingVariant === "overlay";
 
   return (
     <Paper
@@ -173,6 +187,7 @@ export default function CommonDataGrid<R extends object>({
         flexDirection: "column",
         flex: 1,
         minHeight: 0,
+        ...paperSx,
       }}
     >
       {/* ── Toolbar ── */}
@@ -249,7 +264,12 @@ export default function CommonDataGrid<R extends object>({
       )}
 
       {/* ── Table ── */}
-      <TableContainer sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+      <TableContainer sx={{ flex: 1, minHeight: 0, overflow: "auto", position: "relative" }}>
+        <AppLoaderOverlay
+          open={isLoadingOverlay}
+          scope="section"
+          message={loadingMessage}
+        />
         <Table
           size="small"
           stickyHeader
@@ -295,21 +315,12 @@ export default function CommonDataGrid<R extends object>({
 
           {/* Body */}
           <TableBody>
-            {loading ? (
-              Array.from({ length: rowsPerPage }).map((_, i) => (
-                <TableRow key={i}>
-                  {showSerialNo && (
-                    <TableCell sx={{ py: 1.6, px: 2 }}>
-                      <Skeleton variant="text" width={20} />
-                    </TableCell>
-                  )}
-                  {columns.map((col) => (
-                    <TableCell key={col.field} sx={{ py: 1.6, px: 2 }}>
-                      <Skeleton variant="rounded" height={28} />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+            {isLoadingSkeleton ? (
+              <TableSkeletonRows
+                rowCount={rowsPerPage}
+                columnCount={columns.length}
+                showSerialNo={showSerialNo}
+              />
             ) : paginated.length === 0 ? (
               <TableRow>
                 <TableCell

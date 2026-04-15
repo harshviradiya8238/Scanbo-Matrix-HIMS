@@ -21,6 +21,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from '@/src/ui/components/atoms';
+import { SectionLoader } from '@/src/ui/components/loaders';
 import { WorkspaceHeaderCard } from '@/src/ui/components/molecules';
 import Grid from '@/src/ui/components/layout/AlignedGrid';
 import { useOpdData } from '@/src/store/opdHooks';
@@ -148,7 +149,7 @@ export default function DoctorVolumeReportPage() {
   return (
     <PageTemplate title="OPD Command Center" currentPageTitle="Reports">
       <Stack spacing={1.25}>
-        {opdStatus === 'loading' ? <Alert severity="info">Loading OPD data…</Alert> : null}
+        {opdStatus === 'loading' ? <SectionLoader message="Loading OPD data..." minHeight={120} /> : null}
         {opdStatus === 'error' ? (
           <Alert severity="warning">OPD JSON server unreachable. Showing fallback data. {opdError ?? ''}</Alert>
         ) : null}
