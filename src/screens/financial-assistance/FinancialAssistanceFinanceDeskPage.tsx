@@ -9,38 +9,28 @@ import {
   Chip,
   Grid,
   Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  IconButton,
   alpha,
 } from "@mui/material";
 import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Info as InfoIcon,
-  Close as CloseIcon,
   AccountBalance as AccountBalanceIcon,
   AssignmentInd as AssignmentIndIcon,
-  Description as DescriptionIcon,
   PriorityHigh as PriorityHighIcon,
-  ArrowForward as ArrowForwardIcon,
-  MoreHoriz as MoreHorizIcon,
   Add as AddIcon,
   HourglassEmpty as HourglassIcon,
   LocalHospital as LocalHospitalIcon,
-  HourglassEmpty as HourglassEmptyIcon,
 } from "@mui/icons-material";
 
 // Components
-import { WorkspaceHeaderCard, StatTile } from "@/src/ui/components/molecules";
+import { WorkspaceHeaderCard, StatTile, CustomCardTabs } from "@/src/ui/components/molecules";
 import PageTemplate from "@/src/ui/components/PageTemplate";
-import { CommonTabs, CustomCardTabs } from "@/src/ui/components/molecules";
 import CommonDataGrid, {
   CommonColumn,
 } from "@/src/components/table/CommonDataGrid";
+import CommonDialog from "@/src/ui/components/molecules/CommonDialog";
 
 const COLORS = {
   bg: "#F8FAFC", // Clean, minimal hospital white-smoke
@@ -91,6 +81,7 @@ const REQUESTS = [
 
 export default function FinancialAssistanceFinanceDeskPage() {
   const [reviewOpen, setReviewOpen] = React.useState(false);
+  const [newRequestOpen, setNewRequestOpen] = React.useState(false);
   const [selectedRequest, setSelectedRequest] = React.useState<any>(null);
 
   const handleReview = (req: any) => {
@@ -254,8 +245,10 @@ export default function FinancialAssistanceFinanceDeskPage() {
       title="Financial Assistance"
       subtitle="Final approval, rejection & disbursement tracking for medical assistance requests."
       currentPageTitle="Finance Desk"
+      fullHeight
     >
-      <WorkspaceHeaderCard >
+      <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
+        <WorkspaceHeaderCard>
         <Stack
           direction="row"
           spacing={2}
@@ -278,14 +271,16 @@ export default function FinancialAssistanceFinanceDeskPage() {
             variant="contained"
             size="small"
             startIcon={<AddIcon />}
+            onClick={() => setNewRequestOpen(true)}
             sx={{
               textTransform: "none",
               borderRadius: "8px",
               fontSize: 12,
               px: 3,
               fontWeight: 700,
-              "&:hover": { bgcolor: "#065F46" },
-              boxShadow: (t: any) => `0 4px 12px ${alpha("#064E3B", 0.2)}`,
+              bgcolor: "primary.main",
+              "&:hover": { bgcolor: "primary.dark" },
+              boxShadow: (t: any) => `0 4px 12px ${alpha(t.palette.primary.main, 0.2)}`,
             }}
           >
             New Request
@@ -335,12 +330,13 @@ export default function FinancialAssistanceFinanceDeskPage() {
 
     
       <CustomCardTabs
+        sx={{ flex: 1, minHeight: 0 }}
         items={[
           {
             label: "Pending Approval",
             icon: <HourglassIcon />,
             child: (
-              <Box >
+              <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
                 <Box
                   sx={{
                     p: 1.5,
@@ -557,34 +553,35 @@ export default function FinancialAssistanceFinanceDeskPage() {
           {
             label: "All Requests",
             child: (
-              <CommonDataGrid
-                showSerialNo
-                rows={Array(8)
-                  .fill(0)
-                  .map((_, i) => ({
-                    ...REQUESTS[0],
-                    id: `FAR-00${9 - i}`,
-                    patientName:
-                      [
-                        "Rahul Sharma",
-                        "Vijay Kumar",
-                        "Sunita Patel",
-                        "Ananya Singh",
-                        "Mahesh Yadav",
-                        "Kiran Devi",
-                        "Om Prakash",
-                        "Aarti Pal",
-                      ][i] || "Rahul Sharma",
-                    status:
-                      i % 3 === 0
-                        ? "Doctor Approved"
-                        : i % 3 === 1
-                          ? "Approved"
-                          : "Rejected",
-                  }))}
-                columns={columns}
-                searchPlaceholder="Search by patient, ID, bill..."
-              />
+                <CommonDataGrid
+                  showSerialNo
+                  rows={Array(8)
+                    .fill(0)
+                    .map((_, i) => ({
+                      ...REQUESTS[0],
+                      id: `FAR-00${9 - i}`,
+                      patientName:
+                        [
+                          "Rahul Sharma",
+                          "Vijay Kumar",
+                          "Sunita Patel",
+                          "Ananya Singh",
+                          "Mahesh Yadav",
+                          "Kiran Devi",
+                          "Om Prakash",
+                          "Aarti Pal",
+                        ][i] || "Rahul Sharma",
+                      status:
+                        i % 3 === 0
+                          ? "Doctor Approved"
+                          : i % 3 === 1
+                            ? "Approved"
+                            : "Rejected",
+                    }))}
+                  columns={columns}
+                  searchPlaceholder="Search by patient, ID, bill..."
+                  tableHeight="100%"
+                />
             ),
           },
           {
@@ -664,11 +661,24 @@ export default function FinancialAssistanceFinanceDeskPage() {
         ]}
       />
 
-      <Dialog
+      {/* Case Review / Approval Dialog */}
+      <CommonDialog
         open={reviewOpen}
         onClose={() => setReviewOpen(false)}
         maxWidth="md"
-        fullWidth
+        title="Case Approval"
+        subtitle={
+          <Typography sx={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>
+            Reference No: <span style={{ color: "#38BDF8" }}>{selectedRequest?.id}</span>
+          </Typography>
+        }
+        icon={<LocalHospitalIcon sx={{ color: "#38BDF8", fontSize: 26 }} />}
+        titleSx={{
+          background: "linear-gradient(135deg, #1172BA 0%, #0A4472 100%)",
+          color: "#fff",
+          "& .MuiTypography-root": { color: "#fff" },
+          "& .MuiIconButton-root": { color: "rgba(255,255,255,0.6)" },
+        }}
         PaperProps={{
           sx: {
             borderRadius: "24px",
@@ -677,83 +687,49 @@ export default function FinancialAssistanceFinanceDeskPage() {
             bgcolor: "#F8FAFC",
           },
         }}
-      >
-        <Box
-          sx={{
-            background: "linear-gradient(135deg, #1172BA 0%, #0A4472 100%)",
-            px: 4,
-            py: 3,
-            color: "#fff",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <Box
-            sx={{
-              position: "absolute",
-              top: -50,
-              right: -50,
-              width: 150,
-              height: 150,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.05)",
-            }}
-          />
-
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-          >
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: "14px",
-                  bgcolor: "rgba(255,255,255,0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backdropFilter: "blur(8px)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }}
-              >
-                <LocalHospitalIcon sx={{ color: "#38BDF8", fontSize: 26 }} />
-              </Box>
-              <Box>
-                <Typography
-                  sx={{ fontSize: 20, fontWeight: 900, letterSpacing: -0.5 }}
-                >
-                  Case Approval
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: 13,
-                    color: "rgba(255,255,255,0.6)",
-                    fontWeight: 600,
-                  }}
-                >
-                  Reference No:{" "}
-                  <span style={{ color: "#38BDF8" }}>
-                    {selectedRequest?.id}
-                  </span>
-                </Typography>
-              </Box>
-            </Stack>
-            <IconButton
+        contentSx={{ p: 4 }}
+        actionsSx={{ p: 4, pt: 0, mt: 0 }}
+        actions={
+          <>
+            <Button
               onClick={() => setReviewOpen(false)}
               sx={{
-                color: "rgba(255,255,255,0.6)",
-                "&:hover": { color: "#fff", bgcolor: "rgba(255,255,255,0.1)" },
+                color: "#64748B",
+                fontWeight: 700,
+                textTransform: "none",
+                fontSize: 14,
               }}
             >
-              <CloseIcon />
-            </IconButton>
-          </Stack>
-        </Box>
-
-        <DialogContent sx={{ p: 4 }}>
+              Wait for more info
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                fontWeight: 700,
+                px: 3,
+                borderRadius: "14px",
+                textTransform: "none",
+              }}
+            >
+              Decline Case
+            </Button>
+            <Button
+              variant="contained"
+              sx={{
+                textTransform: "none",
+                fontWeight: 800,
+                fontSize: 15,
+                px: 4,
+                py: 1.25,
+                borderRadius: "14px",
+              }}
+            >
+              Authorize Clearance
+            </Button>
+          </>
+        }
+      >
+        <Box>
           <Grid container spacing={4}>
             <Grid item xs={12} md={7}>
               <Stack spacing={3}>
@@ -1187,47 +1163,140 @@ export default function FinancialAssistanceFinanceDeskPage() {
               </Stack>
             </Grid>
           </Grid>
-        </DialogContent>
+        </Box>
+      </CommonDialog>
+      {/* New Request Dialog */}
+      <CommonDialog
+        open={newRequestOpen}
+        onClose={() => setNewRequestOpen(false)}
+        maxWidth="sm"
+        title="Generate Assistance Request"
+        subtitle="Initiate a new medical support request for patient review."
+        confirmLabel="Submit Request to Doctor Review"
+        onConfirm={() => setNewRequestOpen(false)}
+        confirmButtonProps={{
+          sx: {
+            py: 1.2,
+            borderRadius: "10px",
+            fontWeight: 800,
+            textTransform: "none",
+            fontSize: 14,
+            boxShadow: "0 10px 15px -3px rgba(17, 114, 186, 0.25)",
+          }
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: "20px",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+          },
+        }}
+        contentSx={{ p: 1 }}
+      >
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+          <Box>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
+              PATIENT SEARCH
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search by MRN or Name (e.g. MRN-24599)"
+              InputProps={{
+                startAdornment: (
+                  <AssignmentIndIcon sx={{ color: "text.disabled", mr: 1, fontSize: 18 }} />
+                ),
+              }}
+            />
+          </Box>
 
-        <DialogActions sx={{ p: 4, pt: 0 }}>
-          <Button
-            onClick={() => setReviewOpen(false)}
-            sx={{
-              color: "#64748B",
-              fontWeight: 700,
-              textTransform: "none",
-              fontSize: 14,
-            }}
-          >
-            Wait for more info
-          </Button>
-          <Button
-            variant="outlined"
-            sx={{
-              fontWeight: 700,
-              px: 3,
-              borderRadius: "14px",
-              textTransform: "none",
-            }}
-          >
-            Decline Case
-          </Button>
-          <Button
-            variant="contained"
-            sx={{
-              // background: `linear-gradient(135deg, ${COLORS.accentBright} 0%, #0A4472 100%)`,
-              textTransform: "none",
-              fontWeight: 800,
-              fontSize: 15,
-              px: 4,
-              py: 1.25,
-              borderRadius: "14px",
-            }}
-          >
-            Authorize Clearance
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </PageTemplate>
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
+                BILL AMOUNT
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                placeholder="₹ 0.00"
+                InputProps={{
+                  startAdornment: (
+                    <Typography sx={{ mr: 1, fontSize: 13, fontWeight: 700, color: "text.secondary" }}>
+                      ₹
+                    </Typography>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
+                REQUESTED ASSISTANCE
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                placeholder="₹ 0.00"
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    bgcolor: alpha("#BE123C", 0.02),
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <Typography sx={{ mr: 1, fontSize: 13, fontWeight: 700, color: "#BE123C" }}>
+                      ₹
+                    </Typography>
+                  ),
+                }}
+              />
+            </Grid>
+          </Grid>
+
+          <Box>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
+              ASSISTANCE SCHEME / TYPE
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {["Ayushman Bharat", "Charity", "Trust Relief", "Staff Discount"].map((s) => (
+                <Chip
+                  key={s}
+                  label={s}
+                  onClick={() => {}}
+                  sx={{
+                    borderRadius: "8px",
+                    fontWeight: 600,
+                    fontSize: 11,
+                    bgcolor: s === "Ayushman Bharat" ? alpha(COLORS.accentBright, 0.1) : "transparent",
+                    color: s === "Ayushman Bharat" ? COLORS.accentBright : COLORS.textSecondary,
+                    border: `1px solid ${s === "Ayushman Bharat" ? COLORS.accentBright : COLORS.border}`,
+                    "&:hover": { bgcolor: alpha(COLORS.accentBright, 0.05) }
+                  }}
+                />
+              ))}
+            </Stack>
+          </Box>
+
+          <Box>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
+              JUSTIFICATION / REMARKS
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              placeholder="Provide a brief explanation for the assistance request..."
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  fontSize: 13,
+                  borderRadius: "12px",
+                }
+              }}
+            />
+          </Box>
+        </Box>
+      </CommonDialog>
+    </Stack>
+  </PageTemplate>
   );
 }

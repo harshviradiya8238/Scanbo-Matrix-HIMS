@@ -29,22 +29,24 @@ export default function IpdAdmissionsPageRefactored() {
     setIsHydrated(true);
   }, []);
 
-  const header = (
-    <IpdPatientTopBar
-      moduleTitle="IPD Admissions"
-      sectionLabel="IPD"
-      pageLabel="Admissions"
-      patient={selectedTopBarPatient}
-      fields={topBarFields}
-      patientOptions={topBarPatientOptions}
-      onSelectPatient={onSelectTopBarPatient}
-    />
-  );
+  // const header = (
+  //   <IpdPatientTopBar
+  //     moduleTitle="IPD Admissions"
+  //     sectionLabel="IPD"
+  //     pageLabel="Admissions"
+  //     patient={selectedTopBarPatient}
+  //     fields={topBarFields}
+  //     patientOptions={topBarPatientOptions}
+  //     onSelectPatient={onSelectTopBarPatient}
+  //   />
+  // );
 
   if (!isHydrated) return null;
 
   return (
-    <PageTemplate header={header} title="IPD Admissions" fullHeight>
+    <PageTemplate 
+    // header={header}
+     title="IPD Admissions" fullHeight>
        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, flex: 1, minHeight: 0 }}>
 
       <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0 }}>

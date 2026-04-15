@@ -109,6 +109,7 @@ export function usePatientProfileData() {
   const tabs = [
     { id: "history", label: "Medical History" },
     { id: "vitals", label: "Vitals Reports" },
+    { id: "appointments", label: "Appointments" },
     { id: "medications", label: "Medications" },
     { id: "ipd", label: "IPD / Inpatient" },
     { id: "billing", label: "Billing" },
@@ -118,8 +119,7 @@ export function usePatientProfileData() {
     { id: "labs", label: "Lab Results" },
     { id: "immunizations", label: "Immunizations" },
     { id: "documents", label: "Documents" },
-    { id: "appointments", label: "Appointments" },
-    { id: "problems", label: "Problem List" },
+    // { id: "problems", label: "Problem List" },
   ];
 
   const [activeTab, setActiveTab] = React.useState(tabs[0].id);

@@ -13,6 +13,7 @@ import {
   FormControl,
   IconButton,
   InputLabel,
+  Menu,
   MenuItem,
   Select,
   SelectChangeEvent,
@@ -28,11 +29,13 @@ import {
   Add as AddIcon,
   AssignmentLate as AssignmentLateIcon,
   Close as CloseIcon,
+  Edit as EditIcon,
   FilterList as FilterListIcon,
   Hotel as HotelIcon,
   MoreVert as MoreVertIcon,
   PeopleAlt as PeopleAltIcon,
   PersonAddAlt as PersonAddAltIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import PatientPortalWorkspaceCard from './components/PatientPortalWorkspaceCard';
 import { FAMILY_MEMBERS } from './patient-portal-mock-data';
@@ -141,6 +144,8 @@ export default function PatientPortalFamilyPage() {
   const [selectedMember, setSelectedMember] = React.useState<FamilyPortalRow | null>(null);
   const [snackbar, setSnackbar] = React.useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null);
+  const [actionAnchor, setActionAnchor] = React.useState<null | HTMLElement>(null);
+  const [actionMember, setActionMember] = React.useState<FamilyPortalRow | null>(null);
 
   const [filters, setFilters] = React.useState({
     status: 'All',
@@ -176,6 +181,22 @@ export default function PatientPortalFamilyPage() {
     }
     setConfirmDeleteId(null);
     setSnackbar('Family member removed.');
+  };
+
+  const handleActionMenuClose = () => {
+    setActionAnchor(null);
+    setActionMember(null);
+  };
+
+  const handleViewProfile = () => {
+    const targetMrn = actionMember?.mrn === 'MRN-245811' ? actionMember.mrn : 'MRN-245811';
+    handleActionMenuClose();
+    router.push(`/patients/profile?mrn=${targetMrn}`);
+  };
+
+  const handleEditMember = () => {
+    handleActionMenuClose();
+    router.push(buildRegistrationRoute());
   };
 
   const columns = React.useMemo<CommonColumn<FamilyPortalRow>[]>(
@@ -269,7 +290,11 @@ export default function PatientPortalFamilyPage() {
         renderCell: (row) => (
           <IconButton
             size="small"
-            onClick={() => { setSelectedMember(row); setDetailsOpen(true); }}
+            onClick={(event) => {
+              event.stopPropagation();
+              setActionAnchor(event.currentTarget);
+              setActionMember(row);
+            }}
             sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
           >
             <MoreVertIcon sx={{ fontSize: 18 }} />
@@ -502,6 +527,27 @@ export default function PatientPortalFamilyPage() {
           </Stack>
         </Box>
       </Drawer>
+
+      <Menu
+        anchorEl={actionAnchor}
+        open={Boolean(actionAnchor)}
+        onClose={handleActionMenuClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem onClick={handleViewProfile} sx={{ gap: 1.25 }}>
+          <VisibilityIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            View
+          </Typography>
+        </MenuItem>
+        <MenuItem onClick={handleEditMember} sx={{ gap: 1.25 }}>
+          <EditIcon sx={{ fontSize: 18, color: 'info.main' }} />
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            Edit
+          </Typography>
+        </MenuItem>
+      </Menu>
 
       <Drawer anchor="right" open={detailsOpen} onClose={() => setDetailsOpen(false)}>
         <Box sx={{ width: 380, p: 3 }}>
