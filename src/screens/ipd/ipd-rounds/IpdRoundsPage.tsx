@@ -4029,14 +4029,9 @@ export default function IpdRoundsPage() {
                       </Button>
                       <Button
                         variant="outlined"
-                        disabled={
-                          !canNavigate("/diagnostics/radiology/worklist")
-                        }
+                        disabled={!canNavigate("/radiology/worklist")}
                         onClick={() =>
-                          openRoute(
-                            "/diagnostics/radiology/worklist",
-                            "/diagnostics/radiology/worklist",
-                          )
+                          openRoute("/radiology/worklist", "/radiology/worklist")
                         }
                       >
                         Open Radiology Worklist

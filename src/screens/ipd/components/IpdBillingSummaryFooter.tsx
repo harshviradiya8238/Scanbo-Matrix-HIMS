@@ -27,42 +27,25 @@ export default function IpdBillingSummaryFooter({
   processPaymentLabel = 'Process Payment',
 }: IpdBillingSummaryFooterProps) {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isExpanded } = useSidebarState();
-  const sidebarOffset = isMobile ? 0 : isExpanded ? 260 : 96;
-  const barHeight = isMobile ? 92 : 88;
 
   return (
     <>
-      <Box sx={{ height: `${barHeight}px` }} />
       <Card
         elevation={0}
         sx={{
-          backgroundColor: theme.palette.background.paper,
-          backgroundImage: 'none',
-          borderTop: '1px solid',
-          borderBottom: 0,
-          borderLeft: 0,
-          borderRight: 0,
-          borderColor: alpha(theme.palette.primary.main, 0.2),
-          borderRadius: 0,
-          position: 'fixed',
-          left: `${sidebarOffset}px`,
-          right: 0,
+         
+          position: 'sticky',
           bottom: 0,
-          zIndex: theme.zIndex.appBar + 2,
-          boxShadow: `0 -8px 18px ${alpha(theme.palette.primary.main, 0.08)}`,
-          isolation: 'isolate',
-          transition: theme.transitions.create(['left'], {
-            duration: 220,
-            easing: theme.transitions.easing.sharp,
-          }),
+          zIndex: 10,
+          backgroundColor: theme.palette.background.paper,
+          borderTop: `1px solid ${theme.palette.divider}`,
         }}
       >
         <Box
           sx={{
             px: 2,
             py: 1.2,
+             borderRadius: 5,
             backgroundColor: theme.palette.background.paper,
             backgroundImage: 'none',
           }}

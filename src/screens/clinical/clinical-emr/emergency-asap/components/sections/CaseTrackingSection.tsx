@@ -21,14 +21,16 @@ import { CommonTabs, StatTile } from "@/src/ui/components/molecules";
 import CommonDataGrid, {
   type CommonColumn,
 } from "@/src/components/table/CommonDataGrid";
-import { cardShadow } from "@/src/core/theme/tokens";
 import {
   AccessibilityNew as AccessibilityNewIcon,
   Air as AirIcon,
   Bloodtype as BloodtypeIcon,
   FavoriteBorder as FavoriteBorderIcon,
+  FilterList as FilterListIcon,
+  LocalHospital as LocalHospitalIcon,
   MonitorHeart as MonitorHeartIcon,
   Search as SearchIcon,
+  KeyboardArrowDown as ArrowDownIcon,
 } from "@mui/icons-material";
 import {
   type EmergencyPatient,
@@ -254,9 +256,52 @@ export function CaseTrackingSection({
     );
   };
 
+  // ── Sidebar stat counts ─────────────────────────────────
+  const statCounts = [
+    {
+      label: "Active",
+      value: patients.length,
+      color: theme.palette.primary.main,
+    },
+    {
+      label: "Critical",
+      value: patients.filter(
+        (p: EmergencyPatient) => p.triageLevel === "Critical",
+      ).length,
+      color: theme.palette.error.main,
+    },
+    {
+      label: "Treating",
+      value: patients.filter(
+        (p: EmergencyPatient) => p.status === "In Treatment",
+      ).length,
+      color: theme.palette.warning.main,
+    },
+    {
+      label: "Ready",
+      value: patients.filter(
+        (p: EmergencyPatient) => p.status === "Ready for Disposition",
+      ).length,
+      color: theme.palette.success.main,
+    },
+  ];
+
+  const SIDEBAR_COLORS = {
+    border: "#DDE8F0",
+    borderStrong: "#CBD5E1",
+    textMuted: "#94A3B8",
+    textSecondary: "#64748B",
+    textPrimary: "#0F172A",
+    accent: theme.palette.primary.main,
+  };
+
   const renderQueueRail = () => (
     <Box
       sx={{
+        width: { xs: "100%", lg: 320 },
+        height: "100%",
+        flexShrink: 0,
+        // borderRight: { xs: "none", lg: "1px solid" },
         borderBottom: { xs: "1px solid", lg: "none" },
         borderColor: "divider",
         bgcolor: "background.paper",
@@ -266,153 +311,199 @@ export function CaseTrackingSection({
         overflow: "hidden",
       }}
     >
-      <Box
-        sx={{
-          p: 2,
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          bgcolor: "background.paper",
-          flexShrink: 0,
-        }}
-      >
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: 1.25,
-            mb: 1.5,
-          }}
-        >
-          {[
-            {
-              label: "Active",
-              value: caseTrackingRows.length,
-              color: theme.palette.primary.main,
-            },
-            {
-              label: "Critical",
-              value: caseTrackingRows.filter(
-                (patient: EmergencyPatient) =>
-                  patient.triageLevel === "Critical",
-              ).length,
-              color: theme.palette.error.main,
-            },
-            {
-              label: "Ready",
-              value: caseTrackingRows.filter(
-                (patient: EmergencyPatient) =>
-                  patient.status === "Ready for Disposition",
-              ).length,
-              color: theme.palette.success.main,
-            },
-          ].map((item) => (
-            <Card
-              key={item.label}
-              elevation={0}
+      {/* ── Sidebar header ─────────────────────── */}
+      <Box sx={{ px: 2.5, pt: 2.5, pb: 2 }}>
+        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2.5 }}>
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: 2,
+              bgcolor: theme.palette.error.main,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <LocalHospitalIcon sx={{ color: "#fff", fontSize: 17 }} />
+          </Box>
+          <Box>
+            <Typography
               sx={{
-                boxShadow: cardShadow,
-                border: "none",
-                p: 1.25,
-                borderRadius: 2,
+                fontWeight: 800,
+                fontSize: 16,
+                color: SIDEBAR_COLORS.textPrimary,
+                lineHeight: 1,
               }}
             >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 800,
-                  fontSize: 19,
-                  lineHeight: 1.1,
-                  color: item.color,
-                }}
-              >
-                {item.value}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 600,
-                  color: "text.secondary",
-                  fontSize: 10.5,
-                }}
-              >
-                {item.label}
-              </Typography>
-            </Card>
-          ))}
-        </Box>
+              Case Tracking
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: 12,
+                color: SIDEBAR_COLORS.textSecondary,
+                fontWeight: 500,
+                mt: 0.5,
+              }}
+            >
+              Emergency Department
+            </Typography>
+          </Box>
+          <Box sx={{ ml: "auto" }}>
+            <Box
+              sx={{
+                position: "relative",
+                width: 28,
+                height: 28,
+                borderRadius: 1.5,
+                border: `1px solid ${SIDEBAR_COLORS.border}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <FilterListIcon sx={{ fontSize: 14, color: SIDEBAR_COLORS.textSecondary }} />
+              {patients.filter((p: EmergencyPatient) => p.triageLevel === "Critical").length > 0 && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: -4,
+                    right: -4,
+                    width: 14,
+                    height: 14,
+                    borderRadius: "50%",
+                    bgcolor: "error.main",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Typography sx={{ fontSize: 8, fontWeight: 800, color: "#fff" }}>
+                    {patients.filter((p: EmergencyPatient) => p.triageLevel === "Critical").length}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </Stack>
 
+        {/* Search */}
         <TextField
-          size="small"
           fullWidth
-          placeholder="Search patient, MRN, ER no..."
+          placeholder="Search patient, MRN, ER no…"
+          size="small"
           value={caseTrackingSearch}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
             setCaseTrackingSearch(event.target.value)
           }
+          sx={{ mb: 2 }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon sx={{ fontSize: 17, color: "text.disabled" }} />
+                <SearchIcon sx={{ fontSize: 16, color: SIDEBAR_COLORS.textMuted }} />
               </InputAdornment>
             ),
-          }}
-          sx={{
-            mb: 1.25,
-            "& .MuiOutlinedInput-root": {
-              borderRadius: 2,
+            sx: {
+              borderRadius: 2.5,
+              bgcolor: "#F8FAFC",
               fontSize: 13,
+              "& fieldset": { borderColor: SIDEBAR_COLORS.border },
+              "&:hover fieldset": { borderColor: SIDEBAR_COLORS.borderStrong },
             },
           }}
         />
 
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-          {(
-            [
-              "All",
-              "Critical",
-              "In Treatment",
-              "Ready",
-            ] as CaseTrackingSidebarFilter[]
-          ).map((filter) => (
-            <Chip
-              key={filter}
-              label={filter}
-              size="small"
-              onClick={() => setCaseTrackingFilter(filter)}
-              variant={caseTrackingFilter === filter ? "filled" : "outlined"}
-              color={caseTrackingFilter === filter ? "primary" : "default"}
-              sx={{ fontWeight: 600, fontSize: 11.5, cursor: "pointer" }}
-            />
-          ))}
+        {/* Status filter pills – box-style matching pharmacy queue */}
+        <Stack direction="row" spacing={0.65} sx={{ mb: 0.5 }} flexWrap="wrap">
+          {(["All", "Critical", "In Treatment", "Ready"] as CaseTrackingSidebarFilter[]).map(
+            (filter) => {
+              const active = caseTrackingFilter === filter;
+              const filterColors: Record<string, { bg: string; text: string; border: string }> = {
+                Critical: { bg: alpha(theme.palette.error.main, 0.06), text: theme.palette.error.main, border: alpha(theme.palette.error.main, 0.35) },
+                "In Treatment": { bg: alpha(theme.palette.warning.main, 0.06), text: theme.palette.warning.dark, border: alpha(theme.palette.warning.main, 0.35) },
+                Ready: { bg: alpha(theme.palette.success.main, 0.06), text: theme.palette.success.dark, border: alpha(theme.palette.success.main, 0.35) },
+                All: { bg: alpha(theme.palette.primary.main, 0.06), text: theme.palette.primary.main, border: alpha(theme.palette.primary.main, 0.35) },
+              };
+              const fc = filterColors[filter] ?? filterColors.All;
+              return (
+                <Box
+                  key={filter}
+                  onClick={() => setCaseTrackingFilter(filter)}
+                  sx={{
+                    px: 1.3,
+                    py: 0.4,
+                    borderRadius: 2,
+                    cursor: "pointer",
+                    border: `1.5px solid ${active ? fc.border : SIDEBAR_COLORS.border}`,
+                    bgcolor: active ? fc.bg : "transparent",
+                    transition: "all 0.12s",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: active ? fc.text : SIDEBAR_COLORS.textSecondary,
+                    }}
+                  >
+                    {filter}
+                  </Typography>
+                </Box>
+              );
+            },
+          )}
         </Stack>
       </Box>
 
+      <Divider sx={{ borderColor: SIDEBAR_COLORS.border }} />
+
+      {/* Result count + sort */}
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ px: 2.5, py: 1.25 }}
+      >
+        <Typography sx={{ fontSize: 11, color: SIDEBAR_COLORS.textMuted, fontWeight: 600 }}>
+          {caseTrackingRows.length} results
+        </Typography>
+        <Stack direction="row" alignItems="center" spacing={0.25} sx={{ cursor: "pointer" }}>
+          <Typography sx={{ fontSize: 11, color: SIDEBAR_COLORS.textSecondary, fontWeight: 600 }}>
+            Newest
+          </Typography>
+          <ArrowDownIcon sx={{ fontSize: 14, color: SIDEBAR_COLORS.textSecondary }} />
+        </Stack>
+      </Stack>
+
+      {/* Patient list */}
       <Box
         sx={{
           flex: 1,
           overflowY: "auto",
-          minHeight: 0,
-          maxHeight: { xs: 320, lg: "none" },
+          px: 2,
+          pb: 2,
+          maxHeight: { xs: 320, lg: "100%" },
           "&::-webkit-scrollbar": { width: 5 },
           "&::-webkit-scrollbar-track": { bgcolor: "transparent" },
-          "&::-webkit-scrollbar-thumb": {
-            borderRadius: 99,
-            bgcolor: "divider",
-          },
+          "&::-webkit-scrollbar-thumb": { borderRadius: 99, bgcolor: "divider" },
         }}
       >
         {caseTrackingRows.length === 0 ? (
-          <Box sx={{ p: 2 }}>
-            <Alert severity="info">No emergency cases match this search.</Alert>
+          <Box sx={{ textAlign: "center", py: 6 }}>
+            <Typography sx={{ color: SIDEBAR_COLORS.textMuted, fontSize: 13 }}>
+              No emergency cases match this filter.
+            </Typography>
           </Box>
         ) : (
-          <Stack spacing={0}>
+          <Stack spacing={1.25}>
             {caseTrackingRows.map((patient: EmergencyPatient) => {
               const selected = selectedPatientId === patient.id;
               const highlightColor =
                 patient.triageLevel === "Critical"
                   ? theme.palette.error.main
-                  : theme.palette.primary.main;
+                  : patient.triageLevel === "Emergency" || patient.triageLevel === "Urgent"
+                    ? theme.palette.warning.main
+                    : theme.palette.primary.main;
               const waitProgress = Math.min(
                 100,
                 Math.max(10, Math.round((patient.waitingMinutes / 45) * 100)),
@@ -423,170 +514,172 @@ export function CaseTrackingSection({
                   key={patient.id}
                   onClick={() => handleOpenPatientChart(patient.id)}
                   sx={{
-                    px: 2,
-                    py: 1.75,
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
+                    px: 1.25,
+                    py: 1,
+                    borderRadius: 2,
                     cursor: "pointer",
-                    bgcolor: selected
-                      ? alpha(theme.palette.primary.main, 0.06)
-                      : "background.paper",
-                    borderLeft: selected
-                      ? `3px solid ${highlightColor}`
-                      : "3px solid transparent",
+                    border: `1.5px solid ${selected ? highlightColor : SIDEBAR_COLORS.border}`,
+                    bgcolor: selected ? alpha(highlightColor, 0.03) : "background.paper",
+                    transition: "all 0.15s",
                     "&:hover": {
-                      bgcolor: selected
-                        ? alpha(theme.palette.primary.main, 0.06)
-                        : alpha(theme.palette.primary.main, 0.03),
+                      borderColor: highlightColor,
+                      bgcolor: alpha(highlightColor, 0.02),
                     },
-                    transition: "background 0.15s ease",
                   }}
                 >
-                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                    <Box
-                      sx={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: "50%",
-                        bgcolor: highlightColor,
-                        mt: 0.7,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="flex-start"
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.75 }}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Avatar
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          bgcolor: selected ? highlightColor : "#E2E8F0",
+                          color: selected ? "#fff" : SIDEBAR_COLORS.textSecondary,
+                          letterSpacing: 0.5,
+                        }}
                       >
+                        {patient.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                      </Avatar>
+                      <Box>
                         <Typography
-                          variant="body2"
                           sx={{
-                            fontWeight: 700,
+                            fontWeight: 800,
                             fontSize: 13,
-                            lineHeight: 1.3,
-                            mr: 0.75,
+                            color: SIDEBAR_COLORS.textPrimary,
+                            lineHeight: 1.1,
                           }}
                         >
                           {patient.name}
                         </Typography>
-                        <Chip
-                          size="small"
-                          label={patient.triageLevel}
+                        <Typography
                           sx={{
-                            fontWeight: 700,
                             fontSize: 10,
-                            ml: 0.5,
-                            flexShrink: 0,
-                            bgcolor: alpha(highlightColor, 0.12),
-                            color:
-                              patient.triageLevel === "Critical"
-                                ? "error.main"
-                                : patient.triageLevel === "Emergency" ||
-                                    patient.triageLevel === "Urgent"
-                                  ? "warning.dark"
-                                  : "primary.main",
+                            color: SIDEBAR_COLORS.textSecondary,
+                            fontWeight: 600,
+                            fontFamily: "monospace",
+                            lineHeight: 1.3,
                           }}
-                        />
-                      </Stack>
+                        >
+                          {patient.mrn}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    <Box
+                      sx={{
+                        px: 0.75,
+                        py: 0.25,
+                        borderRadius: 1,
+                        bgcolor: alpha(highlightColor, 0.08),
+                        border: `1px solid ${alpha(highlightColor, 0.25)}`,
+                      }}
+                    >
                       <Typography
-                        variant="caption"
                         sx={{
-                          display: "block",
-                          color: "text.secondary",
-                          fontFamily: '"JetBrains Mono", monospace',
+                          fontSize: 8,
+                          fontWeight: 800,
+                          color: highlightColor,
+                          letterSpacing: 0.5,
                         }}
                       >
-                        {patient.id} · {patient.mrn}
+                        {patient.triageLevel.toUpperCase()}
                       </Typography>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: "block", mt: 0.35 }}
+                    </Box>
+                  </Stack>
+
+                  <Stack spacing={0.25} sx={{ pl: "42px" }}>
+                    <Typography
+                      sx={{
+                        fontSize: 11,
+                        color: SIDEBAR_COLORS.textSecondary,
+                        fontWeight: 500,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.75,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      <LocalHospitalIcon sx={{ fontSize: 12, color: SIDEBAR_COLORS.textMuted }} />
+                      <Box component="span" sx={{ fontWeight: 700, color: SIDEBAR_COLORS.textPrimary }}>
+                        {patient.assignedDoctor || "Unassigned"}
+                      </Box>
+                      {" · "}{patient.arrivalMode}
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} sx={{ mt: 0.25, flexWrap: "wrap", gap: 0.5 }}>
+                      <Box
+                        sx={{
+                          px: 0.75,
+                          py: 0.15,
+                          borderRadius: 0.75,
+                          bgcolor: "#F8FAFC",
+                          border: `1px solid ${SIDEBAR_COLORS.border}`,
+                        }}
                       >
-                        {patient.chiefComplaint}
-                      </Typography>
-                      <Stack
-                        direction="row"
-                        spacing={0.75}
-                        alignItems="center"
-                        sx={{ mt: 0.75 }}
-                        flexWrap="wrap"
-                        useFlexGap
+                        <Typography sx={{ fontSize: 9, fontWeight: 700, color: SIDEBAR_COLORS.textSecondary }}>
+                          {patient.assignedBed ? `Bed ${patient.assignedBed}` : "No bed"}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          px: 0.75,
+                          py: 0.15,
+                          borderRadius: 0.75,
+                          bgcolor:
+                            patient.status === "Ready for Disposition"
+                              ? alpha(theme.palette.success.main, 0.08)
+                              : alpha(theme.palette.info.main, 0.08),
+                          border: `1px solid ${
+                            patient.status === "Ready for Disposition"
+                              ? alpha(theme.palette.success.main, 0.25)
+                              : alpha(theme.palette.info.main, 0.2)
+                          }`,
+                        }}
                       >
-                        <Chip
-                          size="small"
-                          label={
-                            patient.assignedBed
-                              ? `Bed ${patient.assignedBed}`
-                              : "No bed"
-                          }
+                        <Typography
                           sx={{
-                            fontWeight: 600,
-                            fontSize: 10,
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
-                            color: "primary.main",
-                          }}
-                        />
-                        <Chip
-                          size="small"
-                          label={patient.status}
-                          sx={{
-                            fontWeight: 600,
-                            fontSize: 10,
-                            bgcolor:
-                              patient.status === "Ready for Disposition"
-                                ? alpha(theme.palette.success.main, 0.1)
-                                : alpha(theme.palette.info.main, 0.08),
+                            fontSize: 9,
+                            fontWeight: 700,
                             color:
                               patient.status === "Ready for Disposition"
                                 ? "success.main"
                                 : "info.main",
                           }}
-                        />
+                        >
+                          {patient.status}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    <Box sx={{ mt: 0.5 }}>
+                      <Stack direction="row" justifyContent="space-between">
+                        <Typography variant="caption" color="text.disabled" sx={{ fontSize: 9 }}>
+                          Wait {patient.waitingMinutes} min
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontSize: 9, color: patient.waitingMinutes >= 30 ? "warning.main" : "text.disabled" }}
+                        >
+                          {patient.chiefComplaint}
+                        </Typography>
                       </Stack>
-                      <Box sx={{ mt: 1 }}>
-                        <Stack direction="row" justifyContent="space-between">
-                          <Typography
-                            variant="caption"
-                            color="text.disabled"
-                            sx={{ fontSize: 10 }}
-                          >
-                            Wait {patient.waitingMinutes} min
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontSize: 10,
-                              color:
-                                patient.waitingMinutes >= 30
-                                  ? "warning.main"
-                                  : "text.disabled",
-                            }}
-                          >
-                            {patient.arrivalMode}
-                          </Typography>
-                        </Stack>
+                      <Box
+                        sx={{
+                          mt: 0.25,
+                          height: 3,
+                          borderRadius: 99,
+                          bgcolor: alpha(theme.palette.warning.main, 0.15),
+                          overflow: "hidden",
+                        }}
+                      >
                         <Box
                           sx={{
-                            mt: 0.5,
-                            height: 4,
-                            borderRadius: 99,
-                            bgcolor: alpha(theme.palette.warning.main, 0.18),
-                            overflow: "hidden",
+                            width: `${waitProgress}%`,
+                            height: "100%",
+                            bgcolor: patient.waitingMinutes >= 30 ? "warning.main" : "success.main",
                           }}
-                        >
-                          <Box
-                            sx={{
-                              width: `${waitProgress}%`,
-                              height: "100%",
-                              bgcolor:
-                                patient.waitingMinutes >= 30
-                                  ? "warning.main"
-                                  : "success.main",
-                            }}
-                          />
-                        </Box>
+                        />
                       </Box>
                     </Box>
                   </Stack>
@@ -601,32 +694,58 @@ export function CaseTrackingSection({
 
   if (!selectedPatient) {
     return (
-      <Card
-        elevation={0}
+      <Box
         sx={{
           flex: 1,
           minHeight: 0,
           height: { xs: "auto", lg: CASE_TRACKING_PANEL_H },
           maxHeight: { xs: "none", lg: CASE_TRACKING_PANEL_H },
-          borderRadius: 2.5,
-          border: "1px solid",
-          borderColor: "divider",
-          overflow: "hidden",
+          display: "flex",
+          gap: 1.25,
         }}
       >
+        {/* Sidebar */}
         <Box
           sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", lg: "340px minmax(0, 1fr)" },
-            height: "100%",
-            minHeight: 0,
+            flexShrink: 0,
+            borderRadius: "16px",
+            border: "1px solid #DDE8F0",
+            bgcolor: "background.paper",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
           }}
         >
           {renderQueueRail()}
+        </Box>
 
+        {/* Right panel — empty state */}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: 1.25,
+          }}
+        >
+          {/* Stat row */}
+          <Box sx={{ display: "flex", gap: 1.25, flexShrink: 0 }}>
+            {statCounts.map((s) => (
+              <Box key={s.label} sx={{ flex: 1 }}>
+                <StatTile label={s.label} value={s.value} />
+              </Box>
+            ))}
+          </Box>
+
+          {/* Empty state detail */}
           <Box
             sx={{
-              bgcolor: alpha(theme.palette.primary.main, 0.03),
+              flex: 1,
+              borderRadius: "16px",
+              border: "1px solid #DDE8F0",
+              bgcolor: alpha(theme.palette.primary.main, 0.02),
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
@@ -661,25 +780,19 @@ export function CaseTrackingSection({
             </Alert>
 
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-              <Button
-                variant="contained"
-                onClick={() => setActivePage("triage")}
-              >
+              <Button variant="contained" onClick={() => setActivePage("triage")}>
                 Open Arrivals & Triage
               </Button>
               <Button variant="outlined" onClick={openRegistrationModal}>
                 Register New Arrival
               </Button>
-              <Button
-                variant="outlined"
-                onClick={() => setActivePage("bed-board")}
-              >
+              <Button variant="outlined" onClick={() => setActivePage("bed-board")}>
                 Open Bed Board
               </Button>
             </Stack>
           </Box>
         </Box>
-      </Card>
+      </Box>
     );
   }
 
@@ -854,56 +967,83 @@ export function CaseTrackingSection({
   ];
 
   return (
-    <Card
-      elevation={0}
+    <Box
       sx={{
         flex: 1,
         minHeight: 0,
-        height: { xs: "auto", lg: CASE_TRACKING_PANEL_H },
-        maxHeight: { xs: "none", lg: CASE_TRACKING_PANEL_H },
-        borderRadius: 2.5,
-        border: "1px solid",
-        borderColor: "divider",
+        height: "100%",
+        display: "flex",
+        gap: 1.25,
         overflow: "hidden",
       }}
     >
+      {/* Sidebar */}
       <Box
         sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", lg: "340px minmax(0, 1fr)" },
           height: "100%",
-          minHeight: 0,
+          flexShrink: 0,
+          borderRadius: "16px",
+          bgcolor: "background.paper",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
         }}
       >
         {renderQueueRail()}
+      </Box>
 
+      {/* Right panel */}
+      <Box
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 1.25,
+          overflow: "hidden",
+        }}
+      >
+        {/* Stat row */}
+        <Box sx={{ display: "flex", gap: 1.25, flexShrink: 0 }}>
+          {statCounts.map((s) => (
+            <Box key={s.label} sx={{ flex: 1 }}>
+              <StatTile label={s.label} value={s.value} />
+            </Box>
+          ))}
+        </Box>
+
+        {/* Detail panel */}
         <Box
           sx={{
+            flex: 1,
+            minHeight: 0,
             display: "flex",
             flexDirection: "column",
-            minHeight: 0,
-            bgcolor: alpha(theme.palette.primary.main, 0.01),
+            borderRadius: "16px",
+            bgcolor: "background.paper",
+            overflow: "hidden",
           }}
         >
           <Box
             sx={{
               px: 1.5,
               py: 1.25,
-              bgcolor: "background.default",
+               bgcolor: "background.default",
               flexShrink: 0,
             }}
           >
-            <Card
+            {/* <Card
               elevation={0}
               sx={{
                 borderRadius: 2.5,
-                border: "1px solid",
-                borderColor: alpha(theme.palette.primary.main, 0.08),
-                bgcolor: "background.paper",
-                backgroundImage: `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.035)} 0%, ${theme.palette.background.paper} 72%)`,
-                overflow: "hidden",
+                // border: "1px solid",
+                // borderColor: alpha(theme.palette.primary.main, 0.08),
+                // bgcolor: "background.paper",
+                // backgroundImage: `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.035)} 0%, ${theme.palette.background.paper} 72%)`,
+                // overflow: "hidden",
               }}
-            >
+            > */}
               <Stack spacing={0.9} sx={{ px: { xs: 1.5, md: 1.75 }, py: 1.15 }}>
                 <Stack
                   direction="row"
@@ -1066,6 +1206,7 @@ export function CaseTrackingSection({
                 sx={{
                   px: 1,
                   py: 0.45,
+                  borderBottom: "1px solid #e3edf3ff",
                   bgcolor: alpha(theme.palette.primary.main, 0.015),
                 }}
               >
@@ -1078,19 +1219,19 @@ export function CaseTrackingSection({
                   value={caseTrackingTab}
                   onChange={setCaseTrackingTab}
                   sx={{ minHeight: 0 }}
-                  tabSx={{
-                    minHeight: 34,
-                    px: 1.2,
-                    borderRadius: 1.25,
-                    fontSize: 12.5,
-                    "&.Mui-selected": {
-                      bgcolor: alpha(theme.palette.primary.main, 0.12),
-                      color: theme.palette.primary.main,
-                    },
-                  }}
+                  // tabSx={{
+                  //   minHeight: 34,
+                  //   px: 1.2,
+                  //   borderRadius: 1.25,
+                  //   fontSize: 12.5,
+                  //   "&.Mui-selected": {
+                  //     bgcolor: alpha(theme.palette.primary.main, 0.12),
+                  //     color: theme.palette.primary.main,
+                  //   },
+                  // }}
                 />
               </Box>
-            </Card>
+            {/* </Card> */}
           </Box>
 
           <Box
@@ -1193,20 +1334,13 @@ export function CaseTrackingSection({
                   </Grid>
                 </Grid>
 
-                <Card
-                  elevation={0}
-                  sx={{
-                    borderRadius: 2,
-                    border: "1px solid",
-                    borderColor: "divider",
-                  }}
-                >
+               
                   <Box
                     sx={{
                       px: 1.75,
                       py: 1.25,
                       borderBottom: "1px solid",
-                      borderColor: "divider",
+                      borderColor: "#d9e8f7ff",
                     }}
                   >
                     <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
@@ -1219,7 +1353,6 @@ export function CaseTrackingSection({
                     getRowId={(row) => row.id}
                     emptyTitle="No vitals log available for this case."
                   />
-                </Card>
               </Stack>
             ) : null}
 
@@ -1952,6 +2085,6 @@ export function CaseTrackingSection({
           </Box>
         </Box>
       </Box>
-    </Card>
+    </Box>
   );
 }

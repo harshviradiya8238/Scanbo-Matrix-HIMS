@@ -1,22 +1,16 @@
-// TODO: Uncomment when Financial Assistance module is ready
+"use client";
 
-// "use client";
-
-// import * as React from "react";
-// import FinancialAssistanceFinanceDeskPage from "@/src/screens/financial-assistance/FinancialAssistanceFinanceDeskPage";
-// import FinancialAssistanceDoctorQueuePage from "@/src/screens/financial-assistance/FinancialAssistanceDoctorQueuePage";
-// import { useUser } from "@/src/core/auth/UserContext";
-
-// export default function Page() {
-//   const { role } = useUser();
-
-//   if (role === "DOCTOR") {
-//     return <FinancialAssistanceDoctorQueuePage />;
-//   }
-
-//   return <FinancialAssistanceFinanceDeskPage />;
-// }
+import * as React from "react";
+import FinancialAssistanceFinanceDeskPage from "@/src/screens/financial-assistance/FinancialAssistanceFinanceDeskPage";
+import FinancialAssistanceDoctorQueuePage from "@/src/screens/financial-assistance/FinancialAssistanceDoctorQueuePage";
+import { useUser } from "@/src/core/auth/UserContext";
 
 export default function Page() {
-  return null;
+  const { role } = useUser();
+
+  if (role === "DOCTOR") {
+    return <FinancialAssistanceDoctorQueuePage />;
+  }
+
+  return <FinancialAssistanceFinanceDeskPage />;
 }

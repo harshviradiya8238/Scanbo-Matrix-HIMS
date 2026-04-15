@@ -1,9 +1,7 @@
-// import PatientPortalFinancialAssistancePage from "@/src/screens/patient-portal/PatientPortalFinancialAssistancePage";
+"use client";
 
-// export default function Page() {
-//   return <PatientPortalFinancialAssistancePage />;
-// }
+import PatientPortalFinancialAssistancePage from "@/src/screens/patient-portal/PatientPortalFinancialAssistancePage";
 
 export default function Page() {
-  return null;
+  return <PatientPortalFinancialAssistancePage />;
 }
