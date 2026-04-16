@@ -7,24 +7,13 @@ import {
   Avatar,
   Box,
   Button,
-  Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
   Typography,
-  InputAdornment,
-  MenuItem,
-  Select,
+  Chip,
 } from "@/src/ui/components/atoms";
-import { StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
+import { Card, StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
 import {
-  Search as SearchIcon,
   ReceiptLong as InvoiceIcon,
   History as OverdueIcon,
   Warning as WarningIcon,
@@ -82,19 +71,6 @@ const MOCK_DATA: OutstandingDue[] = [
     avatarColor: "#ED6C02",
   },
 ];
-
-const HEADER_SX = {
-  fontWeight: 700,
-  textTransform: "uppercase" as const,
-  fontSize: "0.65rem",
-  letterSpacing: "0.05em",
-  color: "text.secondary",
-  py: 1.5,
-  borderBottom: "1px solid",
-  borderColor: "rgba(17, 114, 186, 0.12)",
-  bgcolor: "rgba(17, 114, 186, 0.03)",
-  whiteSpace: "nowrap" as const,
-};
 
 const BILLING_MODULE_STORAGE_KEY =
   "scanbo.hims.ipd.billing-medication.module.v1";
@@ -401,29 +377,39 @@ export default function OutstandingDuesPage() {
       title="Outstanding Dues"
       subtitle="Management of pending payments and aging invoices"
       currentPageTitle="Outstanding Dues"
+      fullHeight
     >
-      <Stack spacing={1.25}>
-        {/* Header Section */}
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         <WorkspaceHeaderCard>
           <Stack
-            direction="row"
-            alignItems="center"
+            direction={{ xs: "column", md: "row" }}
+            spacing={1.25}
             justifyContent="space-between"
+            alignItems={{ xs: "flex-start", md: "center" }}
           >
             <Box>
-              <Typography
-                variant="h5"
-                sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                sx={{ mb: 0.5 }}
               >
-                Outstanding Dues Tracker
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: 0.5 }}
-              >
-                Monitor aging invoices, send reminders, and manage accounts
-                receivable.
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
+                >
+                  Outstanding Dues
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip size="small" color="warning" label="Aging Tracker" />
+                  <Chip size="small" color="info" variant="outlined" label="Collections Follow-up" />
+                </Stack>
+              </Stack>
+              <Typography variant="body2" color="text.secondary">
+                Monitor aging invoices, reminders, and receivable collections from one table.
               </Typography>
             </Box>
             <Button
@@ -436,15 +422,14 @@ export default function OutstandingDuesPage() {
           </Stack>
         </WorkspaceHeaderCard>
 
-        {/* KPI Strip */}
         <Box
           sx={{
             display: "grid",
-            gap: 2,
+            gap: 1.25,
             gridTemplateColumns: {
               xs: "1fr",
-              sm: "repeat(2, 1fr)",
-              lg: "repeat(4, 1fr)",
+              sm: "repeat(2, minmax(0, 1fr))",
+              lg: "repeat(4, minmax(0, 1fr))",
             },
           }}
         >
@@ -474,14 +459,23 @@ export default function OutstandingDuesPage() {
           />
         </Box>
 
-        {/* Invoices Table Section */}
-        <Box sx={{ mt: 2 }}>
+        {/* <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}> */}
           <CommonDataGrid<OutstandingDue>
             rows={filteredData}
             columns={duesColumns}
             getRowId={(row) => row.id}
             searchPlaceholder="Search invoice or patient..."
             searchFields={["patientName", "invoiceNo"]}
+            showSerialNo
+            toolbarRight={
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => setAgingFilter("All Time")}
+              >
+                Clear
+              </Button>
+            }
             filterDropdowns={[
               {
                 id: "agingFilter",
@@ -492,7 +486,7 @@ export default function OutstandingDuesPage() {
               },
             ]}
           />
-        </Box>
+        {/* </Card> */}
       </Stack>
     </PageTemplate>
   );

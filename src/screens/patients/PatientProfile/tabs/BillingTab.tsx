@@ -99,6 +99,10 @@ import {
 } from "../utils/utils";
 import { PatientProfileData } from "../hooks/usePatientProfileData";
 
+import CommonDataGrid, {
+  CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
+
 interface BillingTabProps {
   data: PatientProfileData;
 }
@@ -114,6 +118,71 @@ export function BillingTab({ data }: BillingTabProps) {
     lightBorder,
     billingInvoices,
   } = data;
+
+  const columns: CommonColumn<any>[] = [
+    {
+      field: "id",
+      headerName: "Invoice #",
+      width: 150,
+      renderCell: (row) => (
+        <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
+          {row.id}
+        </Typography>
+      ),
+    },
+    {
+      field: "date",
+      headerName: "Date",
+      width: 130,
+      renderCell: (row) => (
+        <Typography variant="body2">{formatDate(row.date)}</Typography>
+      ),
+    },
+    {
+      field: "description",
+      headerName: "Description",
+      width: 250,
+    },
+    {
+      field: "amount",
+      headerName: "Amount",
+      width: 130,
+      align: "right",
+      renderCell: (row) => (
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+          ₹{row.amount.toLocaleString()}
+        </Typography>
+      ),
+    },
+    {
+      field: "status",
+      headerName: "Status",
+      width: 130,
+      align: "center",
+      renderCell: (row) => (
+        <Chip
+          size="small"
+          label={row.status}
+          sx={{
+            fontWeight: 600,
+            bgcolor:
+              row.status === "Paid"
+                ? alpha(theme.palette.success.main, 0.12)
+                : row.status === "Overdue"
+                  ? alpha(theme.palette.error.main, 0.12)
+                  : alpha(theme.palette.warning.main, 0.12),
+            color:
+              row.status === "Paid"
+                ? "success.dark"
+                : row.status === "Overdue"
+                  ? "error.dark"
+                  : "warning.dark",
+          }}
+        />
+      ),
+    },
+  ];
+
   return (
     <TabPanel value={activeTab} tab="billing">
       <Stack direction="row" spacing={1} alignItems="center" sx={tabHeaderSx}>
@@ -174,93 +243,15 @@ export function BillingTab({ data }: BillingTabProps) {
         ))}
       </Box>
       {/* Invoice Table */}
-      <TableContainer
-        sx={{
-          borderRadius: 2,
-          overflow: "hidden",
-          border: lightBorder,
-          overflowX: "auto",
-        }}
-      >
-        <Table size="small" sx={{ minWidth: 650 }}>
-          <TableHead
-            sx={{
-              "& .MuiTableCell-root": {
-                fontWeight: 700,
-                textTransform: "uppercase",
-                fontSize: "0.72rem",
-                letterSpacing: "0.05em",
-                bgcolor: alpha(theme.palette.primary.main, 0.04),
-                color: "text.secondary",
-                whiteSpace: "nowrap",
-              },
-            }}
-          >
-            <TableRow>
-              <TableCell>Invoice #</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell align="right">Amount</TableCell>
-              <TableCell align="center">Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {billingInvoices.map((inv) => (
-              <TableRow
-                key={inv.id}
-                sx={{
-                  "&:hover": {
-                    bgcolor: alpha(theme.palette.text.primary, 0.02),
-                  },
-                }}
-              >
-                <TableCell>
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 600, color: "primary.main" }}
-                  >
-                    {inv.id}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2">
-                    {formatDate(inv.date)}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2">{inv.description}</Typography>
-                </TableCell>
-                <TableCell align="right">
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    ₹{inv.amount.toLocaleString()}
-                  </Typography>
-                </TableCell>
-                <TableCell align="center">
-                  <Chip
-                    size="small"
-                    label={inv.status}
-                    sx={{
-                      fontWeight: 600,
-                      bgcolor:
-                        inv.status === "Paid"
-                          ? alpha(theme.palette.success.main, 0.12)
-                          : inv.status === "Overdue"
-                            ? alpha(theme.palette.error.main, 0.12)
-                            : alpha(theme.palette.warning.main, 0.12),
-                      color:
-                        inv.status === "Paid"
-                          ? "success.dark"
-                          : inv.status === "Overdue"
-                            ? "error.dark"
-                            : "warning.dark",
-                    }}
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <Box sx={{ flex: 1, minHeight: 400 }}>
+        <CommonDataGrid
+          rows={billingInvoices}
+          columns={columns}
+          getRowId={(row) => row.id}
+          showSerialNo
+        />
+      </Box>
     </TabPanel>
   );
 }
+

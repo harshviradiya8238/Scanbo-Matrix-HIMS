@@ -5,8 +5,7 @@ import { alpha, useTheme } from "@/src/ui/theme";
 import {
   Box,
   Button,
-  Chip,
-  Grid,
+  Card,
   MenuItem,
   Paper,
   Stack,
@@ -117,14 +116,16 @@ export function QueueSection({
   );
 
   return (
-    <Stack spacing={2}>
+    <Stack
+      spacing={1.25}
+      sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+    >
+      {/* ── Original filter bar ── */}
       <Paper
         elevation={0}
         sx={{
           p: 1.5,
           borderRadius: 2,
-          // border: "1px solid",
-          // borderColor: "divider",
           bgcolor: "background.paper",
         }}
       >
@@ -149,10 +150,7 @@ export function QueueSection({
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon
-                      fontSize="small"
-                      sx={{ color: "text.secondary" }}
-                    />
+                    <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
                   </InputAdornment>
                 ),
               }}
@@ -163,9 +161,7 @@ export function QueueSection({
               size="small"
               value={queueStatusFilter}
               onChange={(event) =>
-                setQueueStatusFilter(
-                  event.target.value as "ALL" | PatientStatus,
-                )
+                setQueueStatusFilter(event.target.value as "ALL" | PatientStatus)
               }
               select
               sx={{ minWidth: 140 }}
@@ -245,7 +241,7 @@ export function QueueSection({
                 variant={queueView === "table" ? "contained" : "text"}
                 onClick={() => setQueueView("table")}
                 startIcon={<ViewListIcon />}
-                disabled={queueView === "table"} // The image shows active without hover state, but contained gives a good indication. Let's keep toggle functionality.
+                disabled={queueView === "table"}
                 disableElevation
                 sx={{
                   borderRadius: 1.5,
@@ -300,228 +296,161 @@ export function QueueSection({
         </Stack>
       </Paper>
 
-      <Box>
+      {/* ── Table / Kanban — fills remaining height and scrolls ── */}
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         {queueView === "table" ? (
-          <CommonDataGrid<EmergencyPatient>
-            rows={sortedQueueRows}
-            columns={arrivalColumns}
-            getRowId={(row) => row.id}
-            hideToolbar
-            tableHeight={600}
-            emptyTitle="No queue rows found for the selected filter."
-          />
+          <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}>
+            <CommonDataGrid<EmergencyPatient>
+              rows={sortedQueueRows}
+              columns={arrivalColumns}
+              getRowId={(row) => row.id}
+              hideToolbar
+              showSerialNo={true}
+              disableRowPointer={true}
+              emptyTitle="No queue rows found for the selected filter."
+            />
+          </Card>
         ) : (
-          <Box sx={{ overflowX: "auto", pb: 0.5 }}>
-            <Stack direction="row" spacing={2} sx={{ minWidth: 1200 }}>
-              {queueKanbanColumns.map((column) => (
-                <Box
-                  key={column.level}
-                  sx={{ flex: 1, minWidth: 280, maxWidth: 320 }}
-                >
-                  <Stack spacing={1.5}>
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      alignItems="center"
-                      sx={{
-                        px: 1,
-                        py: 0.5,
-                      }}
-                    >
-                      <Stack direction="row" spacing={1} alignItems="center">
+          <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", p: 1.5 }}>
+            <Box sx={{ overflowX: "auto", pb: 0.5 }}>
+              <Stack direction="row" spacing={2} sx={{ minWidth: 1200 }}>
+                {queueKanbanColumns.map((column) => (
+                  <Box
+                    key={column.level}
+                    sx={{ flex: 1, minWidth: 280, maxWidth: 320 }}
+                  >
+                    <Stack spacing={1.5}>
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        sx={{ px: 1, py: 0.5 }}
+                      >
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Box
+                            sx={{
+                              width: 4,
+                              height: 16,
+                              bgcolor: TRIAGE_META[column.level].accent,
+                              borderRadius: 1,
+                            }}
+                          />
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ fontWeight: 800, color: "text.primary" }}
+                          >
+                            {column.level}
+                          </Typography>
+                        </Stack>
                         <Box
                           sx={{
-                            width: 4,
-                            height: 16,
-                            bgcolor: TRIAGE_META[column.level].accent,
-                            borderRadius: 1,
-                          }}
-                        />
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ fontWeight: 800, color: "text.primary" }}
-                        >
-                          {column.level}
-                        </Typography>
-                      </Stack>
-                      <Box
-                        sx={{
-                          minWidth: 20,
-                          height: 20,
-                          borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          border: "1px solid",
-                          borderColor: alpha(
-                            TRIAGE_META[column.level].accent,
-                            0.3,
-                          ),
-                          bgcolor: alpha(TRIAGE_META[column.level].accent, 0.1),
-                        }}
-                      >
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 11,
-                            color: TRIAGE_META[column.level].accent,
-                            lineHeight: 1,
-                          }}
-                        >
-                          {column.rows.length}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                    <Stack spacing={1.25} sx={{ px: 0.5 }}>
-                      {column.rows.map((row: EmergencyPatient) => (
-                        <Paper
-                          key={row.id}
-                          elevation={0}
-                          sx={{
-                            p: 1.5,
-                            borderRadius: 2,
+                            minWidth: 20,
+                            height: 20,
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                             border: "1px solid",
-                            borderColor: alpha(
-                              TRIAGE_META[column.level].accent,
-                              0.3,
-                            ),
-                            bgcolor: alpha(
-                              TRIAGE_META[column.level].accent,
-                              0.02,
-                            ),
+                            borderColor: alpha(TRIAGE_META[column.level].accent, 0.3),
+                            bgcolor: alpha(TRIAGE_META[column.level].accent, 0.1),
                           }}
                         >
-                          <Stack spacing={1.5}>
-                            <Box>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 700, color: "text.primary" }}
-                              >
-                                {row.name}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {row.id} · {row.mrn}
-                              </Typography>
-                            </Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 700,
+                              fontSize: 11,
+                              color: TRIAGE_META[column.level].accent,
+                              lineHeight: 1,
+                            }}
+                          >
+                            {column.rows.length}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                      <Stack spacing={1.25} sx={{ px: 0.5 }}>
+                        {column.rows.map((row: EmergencyPatient) => (
+                          <Paper
+                            key={row.id}
+                            elevation={0}
+                            sx={{
+                              p: 1.5,
+                              borderRadius: 2,
+                              border: "1px solid",
+                              borderColor: alpha(TRIAGE_META[column.level].accent, 0.3),
+                              bgcolor: alpha(TRIAGE_META[column.level].accent, 0.02),
+                            }}
+                          >
+                            <Stack spacing={1.5}>
+                              <Box>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 700, color: "text.primary" }}
+                                >
+                                  {row.name}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {row.id} · {row.mrn}
+                                </Typography>
+                              </Box>
 
-                            <Stack spacing={0.5}>
-                              <Stack
-                                direction="row"
-                                spacing={1}
-                                alignItems="center"
-                              >
-                                <BedIcon
-                                  sx={{ fontSize: 16, color: "text.secondary" }}
-                                />
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: "text.secondary",
-                                    fontWeight: 500,
-                                  }}
-                                >
-                                  Bed: {row.assignedBed || "Not Assigned"}
-                                </Typography>
+                              <Stack spacing={0.5}>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  <BedIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+                                  <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+                                    Bed: {row.assignedBed || "Not Assigned"}
+                                  </Typography>
+                                </Stack>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  <FavoriteBorderIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+                                  <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+                                    Dr: {row.assignedDoctor || "Not Assigned"}
+                                  </Typography>
+                                </Stack>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  <TimelineIcon sx={{ fontSize: 16, color: theme.palette.success.main }} />
+                                  <Typography variant="caption" sx={{ color: theme.palette.success.main, fontWeight: 700 }}>
+                                    Wait: {row.waitingMinutes} min
+                                  </Typography>
+                                </Stack>
                               </Stack>
-                              <Stack
-                                direction="row"
-                                spacing={1}
-                                alignItems="center"
-                              >
-                                <FavoriteBorderIcon
-                                  sx={{ fontSize: 16, color: "text.secondary" }}
-                                />
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: "text.secondary",
-                                    fontWeight: 500,
-                                  }}
+
+                              <Stack direction="row" alignItems="center" spacing={1}>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => openTriageAssessment(row.id)}
+                                  disabled={activePage !== "triage"}
+                                  sx={{ flex: 1, color: "primary.main", borderColor: "divider" }}
                                 >
-                                  Dr: {row.assignedDoctor || "Not Assigned"}
-                                </Typography>
-                              </Stack>
-                              <Stack
-                                direction="row"
-                                spacing={1}
-                                alignItems="center"
-                              >
-                                <TimelineIcon
-                                  sx={{
-                                    fontSize: 16,
-                                    color: theme.palette.success.main,
-                                  }}
-                                />
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: theme.palette.success.main,
-                                    fontWeight: 700,
-                                  }}
+                                  Triage
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  disabled={availableBedsLength === 0}
+                                  onClick={() => openAssignBedModal(row.id)}
+                                  sx={{ flex: 1, color: "primary.main", borderColor: "divider" }}
                                 >
-                                  Wait: {row.waitingMinutes} min
-                                </Typography>
+                                  Assign
+                                </Button>
+                                <IconButton
+                                  size="small"
+                                  sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}
+                                  onClick={() => handleOpenPatientChart(row.id)}
+                                >
+                                  <TimelineIcon fontSize="small" sx={{ color: "primary.main" }} />
+                                </IconButton>
                               </Stack>
                             </Stack>
-
-                            <Stack
-                              direction="row"
-                              alignItems="center"
-                              spacing={1}
-                            >
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                onClick={() => openTriageAssessment(row.id)}
-                                disabled={activePage !== "triage"}
-                                sx={{
-                                  flex: 1,
-                                  color: "primary.main",
-                                  borderColor: "divider",
-                                }}
-                              >
-                                Triage
-                              </Button>
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                disabled={availableBedsLength === 0}
-                                onClick={() => openAssignBedModal(row.id)}
-                                sx={{
-                                  flex: 1,
-                                  color: "primary.main",
-                                  borderColor: "divider",
-                                }}
-                              >
-                                Assign
-                              </Button>
-                              <IconButton
-                                size="small"
-                                sx={{
-                                  border: "1px solid",
-                                  borderColor: "divider",
-                                  borderRadius: 1,
-                                }}
-                                onClick={() => handleOpenPatientChart(row.id)}
-                              >
-                                <TimelineIcon
-                                  fontSize="small"
-                                  sx={{ color: "primary.main" }}
-                                />
-                              </IconButton>
-                            </Stack>
-                          </Stack>
-                        </Paper>
-                      ))}
+                          </Paper>
+                        ))}
+                      </Stack>
                     </Stack>
-                  </Stack>
-                </Box>
-              ))}
-            </Stack>
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
           </Box>
         )}
       </Box>

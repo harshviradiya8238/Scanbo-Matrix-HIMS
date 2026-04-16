@@ -292,8 +292,15 @@ export default function IpdLabOrdersPage() {
       title="Laboratory"
       subtitle="Inpatient orders arriving from wards & ICU"
       currentPageTitle="IPD Orders"
+      fullHeight
     >
-      <Stack spacing={1.25}>
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
+
+        <IpdOrdersHeader errorMainColor={theme.palette.error.main} />
+
         <IpdOrdersAlertBanner statCount={statCount} />
 
         <IpdOrdersKpis
@@ -303,9 +310,8 @@ export default function IpdLabOrdersPage() {
           completed={completed}
         />
 
-        <IpdOrdersHeader errorMainColor={theme.palette.error.main} />
-
-        <Box>
+      
+        {/* <Box> */}
           <CommonDataGrid<LabSample>
             rows={tabFiltered}
             columns={columns}
@@ -375,9 +381,9 @@ export default function IpdLabOrdersPage() {
               />
             }
           />
-        </Box>
+        {/* </Box> */}
 
-        <IpdOrdersWorkflowLegend cardSx={lab.cardSx} />
+        {/* <IpdOrdersWorkflowLegend cardSx={lab.cardSx} /> */}
       </Stack>
     </PageTemplate>
   );

@@ -99,12 +99,124 @@ import {
 } from "../utils/utils";
 import { PatientProfileData } from "../hooks/usePatientProfileData";
 
+import CommonDataGrid, {
+  CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
+
 interface RadiologyTabProps {
   data: PatientProfileData;
 }
 
 export function RadiologyTab({ data }: RadiologyTabProps) {
-  const { activeTab, tabHeaderSx, radiologyOrders, theme, lightBorder } = data;
+  const { activeTab, tabHeaderSx, radiologyOrders, theme } = data;
+
+  const columns: CommonColumn<any>[] = [
+    {
+      field: "test",
+      headerName: "Test",
+      width: 250,
+      renderCell: (row) => (
+        <Stack spacing={0.25}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            {row.test}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {row.id}
+          </Typography>
+        </Stack>
+      ),
+    },
+    {
+      field: "modality",
+      headerName: "Modality",
+      width: 130,
+    },
+    {
+      field: "orderedBy",
+      headerName: "Ordered By",
+      width: 180,
+    },
+    {
+      field: "orderedOn",
+      headerName: "Date",
+      width: 130,
+      renderCell: (row) => (
+        <Typography variant="body2">{formatDate(row.orderedOn)}</Typography>
+      ),
+    },
+    {
+      field: "priority",
+      headerName: "Priority",
+      width: 120,
+      align: "center",
+      renderCell: (row) => (
+        <Chip
+          size="small"
+          label={row.priority}
+          sx={{
+            fontWeight: 600,
+            bgcolor:
+              row.priority === "Urgent"
+                ? alpha(theme.palette.error.main, 0.12)
+                : alpha(theme.palette.info.main, 0.1),
+            color: row.priority === "Urgent" ? "error.dark" : "info.dark",
+          }}
+        />
+      ),
+    },
+    {
+      field: "status",
+      headerName: "Status",
+      width: 120,
+      align: "center",
+      renderCell: (row) => (
+        <Chip
+          size="small"
+          label={row.status}
+          sx={{
+            fontWeight: 600,
+            bgcolor:
+              row.status === "Completed"
+                ? alpha(theme.palette.success.main, 0.12)
+                : alpha(theme.palette.warning.main, 0.12),
+            color: row.status === "Completed" ? "success.dark" : "warning.dark",
+          }}
+        />
+      ),
+    },
+    {
+      field: "reportUrl",
+      headerName: "Report",
+      width: 130,
+      align: "center",
+      renderCell: (row) =>
+        row.reportUrl ? (
+          <Button
+            size="small"
+            variant="outlined"
+            href={row.reportUrl}
+            endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
+            sx={{
+              borderRadius: 999,
+              fontWeight: 600,
+              textTransform: "none",
+              px: 1.5,
+            }}
+          >
+            View
+          </Button>
+        ) : (
+          <Chip
+            size="small"
+            label="Awaiting"
+            variant="outlined"
+            color="warning"
+            sx={{ fontWeight: 600 }}
+          />
+        ),
+    },
+  ];
+
   return (
     <TabPanel value={activeTab} tab="radiology">
       <Stack direction="row" spacing={1} alignItems="center" sx={tabHeaderSx}>
@@ -113,160 +225,45 @@ export function RadiologyTab({ data }: RadiologyTabProps) {
           Radiology Orders
         </Typography>
       </Stack>
-      <Stack spacing={2}>
+      <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
         {/* Pending Banner */}
         {radiologyOrders.filter((r: any) => r.status === "Pending").length >
           0 && (
-          <Box
-            sx={{
-              p: 1.5,
-              borderRadius: 1.5,
-              bgcolor: alpha(theme.palette.warning.main, 0.1),
-              border: `1px solid ${alpha(theme.palette.warning.main, 0.35)}`,
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-            }}
-          >
-            <WarningAmberIcon sx={{ color: "warning.main", fontSize: 20 }} />
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 600, color: "warning.dark" }}
-            >
-              {
-                radiologyOrders.filter((r: any) => r.status === "Pending")
-                  .length
-              }{" "}
-              radiology report(s) pending. Please follow up.
-            </Typography>
-          </Box>
-        )}
-
-        <TableContainer
-          sx={{
-            borderRadius: 2,
-            overflow: "hidden",
-            border: lightBorder,
-          }}
-        >
-          <Table size="small">
-            <TableHead
+            <Box
               sx={{
-                "& .MuiTableCell-root": {
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  fontSize: "0.72rem",
-                  letterSpacing: "0.05em",
-                  bgcolor: alpha(theme.palette.primary.main, 0.04),
-                  color: "text.secondary",
-                },
+                p: 1.5,
+                borderRadius: 1.5,
+                bgcolor: alpha(theme.palette.warning.main, 0.1),
+                border: `1px solid ${alpha(theme.palette.warning.main, 0.35)}`,
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
               }}
             >
-              <TableRow>
-                <TableCell>Test</TableCell>
-                <TableCell>Modality</TableCell>
-                <TableCell>Ordered By</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell align="center">Priority</TableCell>
-                <TableCell align="center">Status</TableCell>
-                <TableCell align="center">Report</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {radiologyOrders.map((order: any) => (
-                <TableRow
-                  key={order.id}
-                  sx={{
-                    "&:hover": {
-                      bgcolor: alpha(theme.palette.text.primary, 0.02),
-                    },
-                  }}
-                >
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {order.test}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {order.id}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{order.modality}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{order.orderedBy}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {formatDate(order.orderedOn)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      size="small"
-                      label={order.priority}
-                      sx={{
-                        fontWeight: 600,
-                        bgcolor:
-                          order.priority === "Urgent"
-                            ? alpha(theme.palette.error.main, 0.12)
-                            : alpha(theme.palette.info.main, 0.1),
-                        color:
-                          order.priority === "Urgent"
-                            ? "error.dark"
-                            : "info.dark",
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      size="small"
-                      label={order.status}
-                      sx={{
-                        fontWeight: 600,
-                        bgcolor:
-                          order.status === "Completed"
-                            ? alpha(theme.palette.success.main, 0.12)
-                            : alpha(theme.palette.warning.main, 0.12),
-                        color:
-                          order.status === "Completed"
-                            ? "success.dark"
-                            : "warning.dark",
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    {order.reportUrl ? (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        href={order.reportUrl}
-                        endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
-                        sx={{
-                          borderRadius: 999,
-                          fontWeight: 600,
-                          textTransform: "none",
-                          px: 1.5,
-                        }}
-                      >
-                        View
-                      </Button>
-                    ) : (
-                      <Chip
-                        size="small"
-                        label="Awaiting"
-                        variant="outlined"
-                        color="warning"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              <WarningAmberIcon sx={{ color: "warning.main", fontSize: 20 }} />
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: "warning.dark" }}
+              >
+                {
+                  radiologyOrders.filter((r: any) => r.status === "Pending")
+                    .length
+                }{" "}
+                radiology report(s) pending. Please follow up.
+              </Typography>
+            </Box>
+          )}
+
+        <Box sx={{ flex: 1, minHeight: 400 }}>
+          <CommonDataGrid
+            rows={radiologyOrders}
+            columns={columns}
+            getRowId={(row) => row.id}
+            showSerialNo
+          />
+        </Box>
       </Stack>
     </TabPanel>
   );
 }
+

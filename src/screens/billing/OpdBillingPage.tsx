@@ -8,31 +8,17 @@ import {
   Box,
   Button,
   Chip,
-  Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
   Typography,
-  InputAdornment,
 } from "@/src/ui/components/atoms";
-import { StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
+import { Card, StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
 import {
-  Search as SearchIcon,
   Receipt as ReceiptIcon,
   People as PeopleIcon,
   PendingActions as PendingIcon,
   AccountBalanceWallet as WalletIcon,
 } from "@mui/icons-material";
-import { MenuItem, Select } from "@mui/material";
-import CommonTabs, {
-  CommonTabItem,
-} from "@/src/ui/components/molecules/CommonTabs";
 import CommonDataGrid, {
   type CommonColumn,
 } from "@/src/components/table/CommonDataGrid";
@@ -101,27 +87,6 @@ const MOCK_DATA: OpdPatient[] = [
   },
 ];
 
-const HEADER_SX = {
-  fontWeight: 700,
-  textTransform: "uppercase" as const,
-  fontSize: "0.7rem",
-  letterSpacing: "0.06em",
-  color: "text.secondary",
-  py: 1.25,
-  borderBottom: "1px solid",
-  borderColor: "rgba(17, 114, 186, 0.12)",
-  bgcolor: "rgba(17, 114, 186, 0.03)",
-  whiteSpace: "nowrap" as const,
-};
-
-const TABS: CommonTabItem[] = [
-  { id: "overview", label: "Overview" },
-  { id: "today", label: "Today's Bills" },
-  { id: "outstanding", label: "Outstanding" },
-  { id: "collections", label: "Collections" },
-  { id: "refunds", label: "Refunds" },
-];
-
 const BILLING_MODULE_STORAGE_KEY =
   "scanbo.hims.ipd.billing-medication.module.v1";
 
@@ -143,7 +108,6 @@ interface BillingModulePersistedState {
 export default function OpdBillingPage() {
   const router = useRouter();
   const theme = useTheme();
-  const [activeTab, setActiveTab] = React.useState("today");
   const [statusFilter, setStatusFilter] = React.useState("All Status");
   const [deptFilter, setDeptFilter] = React.useState("All Departments");
   const [moduleState, setModuleState] =
@@ -410,46 +374,59 @@ export default function OpdBillingPage() {
       title="OPD Billing"
       subtitle="Today's OPD Revenue Management"
       currentPageTitle="OPD Billing"
+      fullHeight
     >
-      <Stack spacing={1.25}>
-        {/* Header Section */}
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         <WorkspaceHeaderCard>
           <Stack
-            direction="row"
-            alignItems="center"
+            direction={{ xs: "column", md: "row" }}
+            spacing={1.25}
             justifyContent="space-between"
+            alignItems={{ xs: "flex-start", md: "center" }}
           >
             <Box>
-              <Typography
-                variant="h5"
-                sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                sx={{ mb: 0.5 }}
               >
-                OPD Billing Control Tower
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: 0.5 }}
-              >
-                Real-time tracking of outpatient billing, collections, and
-                pending invoices.
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
+                >
+                  OPD Billing
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip size="small" color="primary" label="Front Desk Billing" />
+                  <Chip size="small" color="info" variant="outlined" label="OPD Collections" />
+                </Stack>
+              </Stack>
+              <Typography variant="body2" color="text.secondary">
+                Manage outpatient billing, collections, and pending invoices in one place.
               </Typography>
             </Box>
+            <Button
+              variant="contained"
+              onClick={() => router.push("/ipd/charges?tab=invoices")}
+              sx={{ fontWeight: 700, px: 3, whiteSpace: "nowrap" }}
+            >
+              Open Billing Desk
+            </Button>
           </Stack>
         </WorkspaceHeaderCard>
 
-        {/* Navigation Tabs */}
-        {/* <CommonTabs tabs={TABS} value={activeTab} onChange={setActiveTab} /> */}
-
-        {/* KPI Strip */}
         <Box
           sx={{
             display: "grid",
-            gap: 2,
+            gap: 1.25,
             gridTemplateColumns: {
               xs: "1fr",
-              sm: "repeat(2, 1fr)",
-              lg: "repeat(4, 1fr)",
+              sm: "repeat(2, minmax(0, 1fr))",
+              lg: "repeat(4, minmax(0, 1fr))",
             },
           }}
         >
@@ -486,9 +463,7 @@ export default function OpdBillingPage() {
           />
         </Box>
 
-        {/* Patients Table Section */}
-        {/* Patients Table Section */}
-        <Box sx={{ mt: 2 }}>
+        {/* <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}> */}
           <CommonDataGrid<OpdPatient>
             rows={filteredData}
             columns={opdColumns}
@@ -496,6 +471,18 @@ export default function OpdBillingPage() {
             searchPlaceholder="Search patient, HIMS ID..."
             searchFields={["name", "himsId"]}
             showSerialNo
+            toolbarRight={
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => {
+                  setStatusFilter("All Status");
+                  setDeptFilter("All Departments");
+                }}
+              >
+                Clear
+              </Button>
+            }
             filterDropdowns={[
               {
                 id: "statusFilter",
@@ -519,7 +506,7 @@ export default function OpdBillingPage() {
               },
             ]}
           />
-        </Box>
+        {/* </Card> */}
       </Stack>
     </PageTemplate>
   );

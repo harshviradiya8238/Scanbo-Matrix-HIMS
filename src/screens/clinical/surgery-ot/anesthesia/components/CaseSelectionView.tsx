@@ -209,48 +209,46 @@ export function CaseSelectionView({
         />
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-        <CommonDataGrid<WorklistCase>
-          rows={cases}
-          columns={columns}
-          getRowId={(row) => row.id}
-          onRowClick={(row) => onSelect(row.id)}
-          externalSearchValue={query}
-          onSearchChange={setQuery}
-          searchPlaceholder="Search by MRN, patient name, procedure, room..."
-          searchFields={[
-            "patientName",
-            "mrn",
-            "procedure",
-            "room",
-            "surgeon",
-            "asaClass",
-          ]}
-          defaultRowsPerPage={5}
-          rowsPerPageOptions={[5, 10]}
-          emptyTitle="No matching OT cases"
-          emptyDescription="Try another search or status filter."
-          toolbarRight={
-            <Stack direction="row" spacing={0.6} flexWrap="wrap" useFlexGap>
-              {FILTER_OPTIONS.map((item) => (
-                <Button
-                  key={item.value}
-                  size="small"
-                  variant={filter === item.value ? "contained" : "outlined"}
-                  onClick={() => setFilter(item.value)}
-                  sx={
-                    filter === item.value
-                      ? { backgroundColor: "primary.main" }
-                      : { borderColor: "divider", color: "text.secondary" }
-                  }
-                >
-                  {item.label}
-                </Button>
-              ))}
-            </Stack>
-          }
-        />
-      </Box>
+      <CommonDataGrid<WorklistCase>
+        rows={cases}
+        columns={columns}
+        getRowId={(row) => row.id}
+        onRowClick={(row) => onSelect(row.id)}
+        externalSearchValue={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="Search by MRN, patient name, procedure, room..."
+        searchFields={[
+          "patientName",
+          "mrn",
+          "procedure",
+          "room",
+          "surgeon",
+          "asaClass",
+        ]}
+        defaultRowsPerPage={5}
+        rowsPerPageOptions={[5, 10]}
+        emptyTitle="No matching OT cases"
+        emptyDescription="Try another search or status filter."
+        toolbarRight={
+          <Stack direction="row" spacing={0.6} flexWrap="wrap" useFlexGap>
+            {FILTER_OPTIONS.map((item) => (
+              <Button
+                key={item.value}
+                size="small"
+                variant={filter === item.value ? "contained" : "outlined"}
+                onClick={() => setFilter(item.value)}
+                sx={
+                  filter === item.value
+                    ? { backgroundColor: "primary.main" }
+                    : { borderColor: "divider", color: "text.secondary" }
+                }
+              >
+                {item.label}
+              </Button>
+            ))}
+          </Stack>
+        }
+      />
     </Box>
   );
 }

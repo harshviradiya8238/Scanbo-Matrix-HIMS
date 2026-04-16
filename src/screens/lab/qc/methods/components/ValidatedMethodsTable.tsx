@@ -42,14 +42,12 @@ function ValidatedMethodsTableBase({
   );
 
   return (
-    <Box sx={{ mt: 1 }}>
-      <CommonDataGrid
-        rows={data}
-        columns={columns}
-        getRowId={getValidatedMethodRowId}
-        toolbarRight={toolbarRight}
-      />
-    </Box>
+    <CommonDataGrid
+      rows={data}
+      columns={columns}
+      getRowId={getValidatedMethodRowId}
+      toolbarRight={toolbarRight}
+    />
   );
 }
 

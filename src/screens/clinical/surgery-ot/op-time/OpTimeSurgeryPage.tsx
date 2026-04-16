@@ -28,7 +28,6 @@ import {
 
 import {
   getCaseBoardColumns,
-  getBoardFilters,
   getCountColumns,
   getMedicationColumns,
   getDischargeMedicationColumns,
@@ -251,7 +250,6 @@ export default function OpTimeSurgeryPage() {
       getCaseBoardColumns(theme, roomLabelById, selectedCaseId, openWorkspace),
     [openWorkspace, roomLabelById, selectedCaseId, theme],
   );
-  const boardFilters = React.useMemo(() => getBoardFilters(), []);
 
   const countColumns = React.useMemo(() => getCountColumns(), []);
   const medicationColumns = React.useMemo(() => getMedicationColumns(), []);
@@ -585,16 +583,6 @@ export default function OpTimeSurgeryPage() {
 
   return (
     <PageTemplate title="OpTime" currentPageTitle="OT Scheduling" fullHeight>
-      <Box
-        sx={{
-          p: { xs: 0.5, sm: 0.8 },
-          height: "100%",
-          minHeight: 0,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
         <Stack
           spacing={1.1}
           sx={{
@@ -609,14 +597,13 @@ export default function OpTimeSurgeryPage() {
               boardStats={boardStats}
               boardRows={boardRows}
               caseBoardColumns={caseBoardColumns}
-              boardFilters={boardFilters}
               setScheduleForm={setScheduleForm}
               setScheduleDialogOpen={setScheduleDialogOpen}
               dashboardCardSx={dashboardCardSx}
               roomLabelById={roomLabelById}
             />
           ) : (
-            <Stack spacing={1.1} sx={{ flex: 1, minHeight: 0 }}>
+            <Stack spacing={1.1} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
               <OpTimeWorkspaceHeader
                 theme={theme}
                 selectedCase={selectedCase}
@@ -625,15 +612,17 @@ export default function OpTimeSurgeryPage() {
               />
 
               {selectedCase ? (
-                <CustomCardTabs
-                  items={workspaceTabItems}
-                  defaultValue={TAB_ORDER.indexOf(workspaceTab)}
-                  onChange={(index: number) =>
-                    setWorkspaceTab(TAB_ORDER[index])
-                  }
-                  showBackground
-                  sticky={true}
-                />
+                <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+                  <CustomCardTabs
+                    items={workspaceTabItems}
+                    defaultValue={TAB_ORDER.indexOf(workspaceTab)}
+                    onChange={(index: number) =>
+                      setWorkspaceTab(TAB_ORDER[index])
+                    }
+                    showBackground
+                    sticky={true}
+                  />
+                </Box>
               ) : (
                 <Box sx={{ p: 1.1 }}>
                   <Alert severity="warning">
@@ -644,7 +633,6 @@ export default function OpTimeSurgeryPage() {
             </Stack>
           )}
         </Stack>
-      </Box>
 
       <OpTimeDialogs
         scheduleDialogOpen={scheduleDialogOpen}

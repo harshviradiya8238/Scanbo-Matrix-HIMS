@@ -1133,13 +1133,13 @@ export default function IpdDischargePage() {
     const requiredFields: Array<
       Exclude<keyof DischargeDraft, "dischargeMedicationRows">
     > = [
-      "dischargeDate",
-      "finalDiagnosis",
-      "conditionAtDischarge",
-      "followUpDate",
-      "followUpDoctor",
-      "patientInstructions",
-    ];
+        "dischargeDate",
+        "finalDiagnosis",
+        "conditionAtDischarge",
+        "followUpDate",
+        "followUpDoctor",
+        "patientInstructions",
+      ];
 
     requiredFields.forEach((field) => {
       if (!draft[field].trim()) {
@@ -1577,24 +1577,22 @@ export default function IpdDischargePage() {
     const rows = patientIds.map((id) => ({ id }));
 
     return (
-      <Box sx={{ mt: 2 }}>
-        <CommonDataGrid<{ id: string }>
-          rows={rows}
-          columns={dischargePatientColumns}
-          getRowId={(row) => row.id}
-          hideSearch
-          emptyTitle="No Discharges"
-          emptyDescription={emptyMessage}
-          toolbarLeft={
-            <Stack direction="row" spacing={0.8} alignItems="center">
-              <ChecklistIcon fontSize="small" color="warning" />
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                {title}
-              </Typography>
-            </Stack>
-          }
-        />
-      </Box>
+      <CommonDataGrid<{ id: string }>
+        rows={rows}
+        columns={dischargePatientColumns}
+        getRowId={(row) => row.id}
+        hideSearch
+        emptyTitle="No Discharges"
+        emptyDescription={emptyMessage}
+        toolbarLeft={
+          <Stack direction="row" spacing={0.8} alignItems="center">
+            <ChecklistIcon fontSize="small" color="warning" />
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              {title}
+            </Typography>
+          </Stack>
+        }
+      />
     );
   };
 
@@ -1608,8 +1606,18 @@ export default function IpdDischargePage() {
   );
 
   return (
-    <PageTemplate title="Discharge & AVS" header={topBarHeader}>
-      <Stack spacing={1.25}>
+    <PageTemplate title="Discharge & AVS" header={topBarHeader} fullHeight>
+      <Stack
+        spacing={1.25}
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          overflowY: "auto",
+          pb: 4,
+        }}
+      >
         {!canManageDischarge ? (
           <Alert severity="warning">
             You are in read-only mode for discharge workflow. Contact admin for
@@ -1682,7 +1690,7 @@ export default function IpdDischargePage() {
           <Box
             sx={{
               position: "sticky",
-              top: IPD_PATIENT_TOP_BAR_STICKY_OFFSET,
+              top: 0,
               zIndex: 5,
               backdropFilter: "blur(6px)",
             }}
@@ -1737,18 +1745,18 @@ export default function IpdDischargePage() {
 
         {flowTab === "pending"
           ? renderDischargeTable(
-              activeCandidates.map((candidate) => candidate.patientId),
-              "Patients Approaching Discharge",
-              "No pending discharges.",
-            )
+            activeCandidates.map((candidate) => candidate.patientId),
+            "Patients Approaching Discharge",
+            "No pending discharges.",
+          )
           : null}
 
         {flowTab === "all"
           ? renderDischargeTable(
-              DISCHARGE_CANDIDATES.map((candidate) => candidate.patientId),
-              "All Active Patients",
-              "No discharge patients available.",
-            )
+            DISCHARGE_CANDIDATES.map((candidate) => candidate.patientId),
+            "All Active Patients",
+            "No discharge patients available.",
+          )
           : null}
 
         {flowTab === "avs" ? (
@@ -1759,7 +1767,7 @@ export default function IpdDischargePage() {
                 borderRadius: 2,
                 border: "1px solid",
                 borderColor: alpha(theme.palette.primary.main, 0.18),
-                overflow: "hidden",
+                overflow: "visible",
                 boxShadow: "none",
               }}
             >

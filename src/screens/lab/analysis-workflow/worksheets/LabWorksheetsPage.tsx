@@ -97,7 +97,11 @@ export default function LabWorksheetsPage() {
 
   if (selectedWs) {
     return (
-      <PageTemplate title="Worksheets" currentPageTitle="Worksheet Detail">
+      <PageTemplate title="Worksheets" currentPageTitle="Worksheet Detail" fullHeight>
+         <Stack
+                spacing={1.25}
+                sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+              >
         <LabWorkspaceCard current="worksheets">
           <WorksheetDetailView
             worksheet={selectedWs}
@@ -134,6 +138,7 @@ export default function LabWorksheetsPage() {
             }}
           />
         </LabWorkspaceCard>
+        </Stack>
       </PageTemplate>
     );
   }

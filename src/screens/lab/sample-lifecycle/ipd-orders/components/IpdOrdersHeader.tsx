@@ -41,14 +41,6 @@ export default function IpdOrdersHeader({
             </Typography>
           </Box>
         </Stack>
-        <Stack direction="row" spacing={1}>
-          <Button size="small" variant="outlined" startIcon={<FilterIcon />}>
-            Filter
-          </Button>
-          <Button size="small" variant="outlined" startIcon={<RefreshIcon />}>
-            Refresh
-          </Button>
-        </Stack>
       </Stack>
     </WorkspaceHeaderCard>
   );

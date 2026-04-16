@@ -7,23 +7,19 @@ import {
   Avatar,
   Box,
   Button,
+  Chip,
   Stack,
   Typography,
-
 } from "@/src/ui/components/atoms";
-import { StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
+import { Card, StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
 import {
-  Search as SearchIcon,
   Receipt as ReceiptIcon,
   People as PeopleIcon,
   LocalHospital as HospitalIcon,
   AssignmentTurnedIn as DoneIcon,
   AccountBalanceWallet as WalletIcon,
 } from "@mui/icons-material";
-import CommonTabs, {
-  CommonTabItem,
-} from "@/src/ui/components/molecules/CommonTabs";
 import CommonDataGrid, {
   type CommonColumn,
 } from "@/src/components/table/CommonDataGrid";
@@ -92,27 +88,6 @@ const MOCK_DATA: IpdAdmission[] = [
   },
 ];
 
-const HEADER_SX = {
-  fontWeight: 700,
-  textTransform: "uppercase" as const,
-  fontSize: "0.65rem",
-  letterSpacing: "0.05em",
-  color: "text.secondary",
-  py: 1.5,
-  borderBottom: "1px solid",
-  borderColor: "rgba(17, 114, 186, 0.12)",
-  bgcolor: "rgba(17, 114, 186, 0.03)",
-  whiteSpace: "nowrap" as const,
-};
-
-const TABS: CommonTabItem[] = [
-  { id: "overview", label: "Overview" },
-  { id: "admissions", label: "Current Admissions" },
-  { id: "discharged", label: "Discharged (Pending Clearance)" },
-  { id: "claims", label: "Insurance Claims" },
-  { id: "refunds", label: "Refunds" },
-];
-
 const BILLING_MODULE_STORAGE_KEY =
   "scanbo.hims.ipd.billing-medication.module.v1";
 
@@ -144,7 +119,6 @@ interface BillingModulePersistedState {
 export default function IpdBillingPage() {
   const router = useRouter();
   const theme = useTheme();
-  const [activeTab, setActiveTab] = React.useState("admissions");
   const [statusFilter, setStatusFilter] = React.useState("All Status");
   const [moduleState, setModuleState] =
     React.useState<BillingModulePersistedState | null>(null);
@@ -498,43 +472,59 @@ export default function IpdBillingPage() {
       title="IPD Billing"
       subtitle="Inpatient Revenue & Billing Management"
       currentPageTitle="IPD Billing"
+      fullHeight
     >
-      <Stack spacing={1.25}>
-        {/* Header Section */}
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         <WorkspaceHeaderCard>
           <Stack
-            direction="row"
-            alignItems="center"
+            direction={{ xs: "column", md: "row" }}
+            spacing={1.25}
             justifyContent="space-between"
+            alignItems={{ xs: "flex-start", md: "center" }}
           >
             <Box>
-              <Typography
-                variant="h5"
-                sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                sx={{ mb: 0.5 }}
               >
-                IPD Billing Control Tower
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: 0.5 }}
-              >
-                Comprehensive tracking of inpatient billing, advance payments,
-                and discharge clearances.
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
+                >
+                  IPD Billing
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip size="small" color="primary" label="Admission Accounts" />
+                  <Chip size="small" color="info" variant="outlined" label="Discharge Clearance" />
+                </Stack>
+              </Stack>
+              <Typography variant="body2" color="text.secondary">
+                Track inpatient billing, advances, balances, and discharge collections together.
               </Typography>
             </Box>
+            <Button
+              variant="contained"
+              onClick={() => router.push("/ipd/charges?tab=payments")}
+              sx={{ fontWeight: 700, px: 3, whiteSpace: "nowrap" }}
+            >
+              Open IPD Desk
+            </Button>
           </Stack>
         </WorkspaceHeaderCard>
 
-        {/* KPI Strip */}
         <Box
           sx={{
             display: "grid",
-            gap: 2,
+            gap: 1.25,
             gridTemplateColumns: {
               xs: "1fr",
-              sm: "repeat(2, 1fr)",
-              lg: "repeat(4, 1fr)",
+              sm: "repeat(2, minmax(0, 1fr))",
+              lg: "repeat(4, minmax(0, 1fr))",
             },
           }}
         >
@@ -564,14 +554,23 @@ export default function IpdBillingPage() {
           />
         </Box>
 
-        {/* Patients Table Section */}
-        <Box sx={{ mt: 2 }}>
+        {/* <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}> */}
           <CommonDataGrid<IpdAdmission>
             rows={filteredData}
             columns={ipdColumns}
             getRowId={(row) => row.id}
             searchPlaceholder="Search admission, patient, HIMS ID..."
             searchFields={["name", "himsId", "admissionNo"]}
+            showSerialNo
+            toolbarRight={
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => setStatusFilter("All Status")}
+              >
+                Clear
+              </Button>
+            }
             filterDropdowns={[
               {
                 id: "statusFilter",
@@ -582,7 +581,7 @@ export default function IpdBillingPage() {
               },
             ]}
           />
-        </Box>
+        {/* </Card> */}
       </Stack>
     </PageTemplate>
   );

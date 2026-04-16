@@ -81,8 +81,12 @@ export function DashboardSection({
   const theme = useTheme();
 
   return (
-    <Stack spacing={2}>
-      <Grid container spacing={2}>
+    <Stack
+      spacing={1.25}
+      sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+    >
+      {/* ── KPI Stat Strip ── */}
+      <Grid container spacing={1.25}>
         <Grid item xs={12} sm={6} md={4} lg={2}>
           <StatTile
             label="Critical Patients"
@@ -133,53 +137,53 @@ export function DashboardSection({
         </Grid>
       </Grid>
 
-      {/* <Card elevation={0} sx={{ p: 0, borderRadius: 0, border: "none" }}> */}
-      <Stack spacing={2}>
-        {sortedQueueRows.length === 0 ? (
-          <Stack spacing={1.25} alignItems="flex-start">
-            <Typography variant="body2" color="text.secondary">
-              No emergency arrivals yet for this shift.
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<PersonAddAlt1Icon />}
-              onClick={() => setRegistrationModalOpen(true)}
-            >
-              Register First Patient
-            </Button>
-          </Stack>
-        ) : (
-          <CommonDataGrid<EmergencyPatient>
-            rows={sortedQueueRows.slice(0, 8)}
-            columns={arrivalColumns}
-            getRowId={(row) => row.id}
-            searchPlaceholder="Search patients..."
-            searchFields={["name", "mrn", "id"]}
-            tableHeight={550}
-            toolbarRight={
-              <Stack direction="row" spacing={1}>
-                <Button
-                  size="small"
-                  variant="contained"
-                  startIcon={<PersonAddAlt1Icon />}
-                  onClick={() => setRegistrationModalOpen(true)}
-                  sx={{ textTransform: "none", fontWeight: 700 }}
-                >
-                  New Arrival
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => setActivePage("triage")}
-                  sx={{ textTransform: "none", fontWeight: 700 }}
-                >
-                  View All
-                </Button>
-              </Stack>
-            }
-          />
-        )}
-      </Stack>
+      {/* ── Patient Queue Table — fills remaining height, matches /patients/list ── */}
+      {/* <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}> */}
+      {sortedQueueRows.length === 0 ? (
+        <Stack spacing={1.25} alignItems="flex-start" sx={{ p: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            No emergency arrivals yet for this shift.
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<PersonAddAlt1Icon />}
+            onClick={() => setRegistrationModalOpen(true)}
+          >
+            Register First Patient
+          </Button>
+        </Stack>
+      ) : (
+        <CommonDataGrid<EmergencyPatient>
+          rows={sortedQueueRows}
+          columns={arrivalColumns}
+          getRowId={(row) => row.id}
+          searchPlaceholder="Search patients..."
+          searchFields={["name", "mrn", "id"]}
+          showSerialNo={true}
+          disableRowPointer={true}
+          toolbarRight={
+            <Stack direction="row" spacing={1}>
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<PersonAddAlt1Icon />}
+                onClick={() => setRegistrationModalOpen(true)}
+                sx={{ textTransform: "none", fontWeight: 700 }}
+              >
+                New Arrival
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => setActivePage("triage")}
+                sx={{ textTransform: "none", fontWeight: 700 }}
+              >
+                View All
+              </Button>
+            </Stack>
+          }
+        />
+      )}
       {/* </Card> */}
     </Stack>
   );

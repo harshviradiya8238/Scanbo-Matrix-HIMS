@@ -22,7 +22,7 @@ import {
   MenuItem,
   Select,
 } from "@/src/ui/components/atoms";
-import { StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
+import { Card, StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
 import { palette } from "@/src/core/theme/tokens";
 import { maskMobileNumber } from "@/src/core/utils/phone";
@@ -297,8 +297,12 @@ export default function TPAManagementPage() {
       title="TPA Management"
       subtitle="Corporate and TPA partner profile management"
       currentPageTitle="TPAs"
+      fullHeight
     >
-      <Stack spacing={1.25}>
+       <Stack
+              spacing={1.25}
+              sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+            >
         {/* Header Card */}
         <WorkspaceHeaderCard>
           <Stack
@@ -395,7 +399,7 @@ export default function TPAManagementPage() {
         </Box>
 
         {/* Table Section */}
-        <Box sx={{ mt: 2 }}>
+        {/* <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}> */}
           <CommonDataGrid<TPARecord>
             rows={MOCK_DATA}
             columns={columns}
@@ -427,7 +431,7 @@ export default function TPAManagementPage() {
               </Stack>
             }
           />
-        </Box>
+       {/* </Card> */}
       </Stack>
     </PageTemplate>
   );

@@ -46,8 +46,13 @@ export default function LabClientsPage() {
       title="Laboratory Workbench"
       subtitle="Result management and report publishing"
       currentPageTitle="Lab Workbench"
+
+      fullHeight
     >
-      <Stack spacing={1.25}>
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         <WorkspaceHeaderCard>
           <Stack
             direction={{ xs: "column", md: "row" }}
@@ -80,7 +85,7 @@ export default function LabClientsPage() {
           </Stack>
         </WorkspaceHeaderCard>
 
-        <Box sx={{ mt: 1 }}>
+        <Box sx={{ mt: 1, flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
           {activeTab === "entry" && <ResultEntryTab sampleId={urlSampleId} />}
           {activeTab === "verification" && <VerificationTab />}
           {activeTab === "published" && <PublishedReportTab />}

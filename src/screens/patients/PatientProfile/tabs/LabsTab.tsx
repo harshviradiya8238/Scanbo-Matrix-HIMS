@@ -174,3 +174,4 @@ export function LabsTab({ data }: LabsTabProps) {
     </TabPanel>
   );
 }
+

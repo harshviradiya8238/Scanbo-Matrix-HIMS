@@ -8,6 +8,9 @@ import {
   Chip,
   Stack,
   Typography,
+  Checkbox,
+  Grid,
+  Divider,
 } from "@/src/ui/components/atoms";
 import { CommonDialog } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
@@ -17,9 +20,13 @@ import {
   Block as BlockIcon,
   Notifications as NotificationsIcon,
   Search as SearchIcon,
+  CheckBox as CheckBoxIcon,
+  CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
+  History as HistoryIcon,
 } from "@mui/icons-material";
 import { type InfectionCase } from "@/src/mocks/infection-control";
-import { CaseDetailEvent } from "../../utils/infection-control-types";
+import { CaseDetailEvent, IsolationRoom } from "../../utils/infection-control-types";
+import { getPpeChecklistForPatient } from "../../utils/infection-control-data";
 
 interface CaseDetailDialogProps {
   open: boolean;
@@ -35,6 +42,9 @@ interface CaseDetailDialogProps {
   setAuditDialogOpen: (open: boolean) => void;
   openCloseCaseDialog: (targetCase: InfectionCase) => void;
   setCaseDetailOpen: (open: boolean) => void;
+  ppeChecklist: Record<string, Record<string, boolean>>;
+  setPpeChecklist: React.Dispatch<React.SetStateAction<Record<string, Record<string, boolean>>>>;
+  isolations: IsolationRoom[];
 }
 
 const CaseDetailDialog: React.FC<CaseDetailDialogProps> = ({
@@ -48,8 +58,22 @@ const CaseDetailDialog: React.FC<CaseDetailDialogProps> = ({
   setAuditDialogOpen,
   openCloseCaseDialog,
   setCaseDetailOpen,
+  ppeChecklist,
+  setPpeChecklist,
+  isolations,
 }) => {
   const theme = useTheme();
+
+  const selectedIsolation = React.useMemo(() => {
+    return isolations.find((item) => item.mrn === selectedCase?.mrn);
+  }, [isolations, selectedCase?.mrn]);
+
+  const checklistKey = selectedCase?.mrn ?? "default";
+  const checklistItems = React.useMemo(
+    () => getPpeChecklistForPatient(selectedCase?.mrn ?? ""),
+    [selectedCase],
+  );
+  const checklistState = ppeChecklist[checklistKey] ?? {};
 
   return (
     <CommonDialog
@@ -166,18 +190,89 @@ const CaseDetailDialog: React.FC<CaseDetailDialogProps> = ({
               </Stack>
             </Box>
 
+            {/* PPE Checklist Grid */}
+            <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mt: 1 }}>
+              PPE Safety Protocols
+            </Typography>
+            <Grid container spacing={2}>
+              {checklistItems.map((item) => {
+                const checked = checklistState[item.id] ?? item.checked;
+                return (
+                  <Grid item xs={6} key={item.id}>
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        border: '1px solid',
+                        borderColor: checked ? alpha(theme.palette.success.main, 0.2) : 'divider',
+                        bgcolor: checked
+                          ? alpha(theme.palette.success.main, 0.04)
+                          : "transparent",
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onChange={(_, checked) =>
+                          setPpeChecklist((prev) => ({
+                            ...prev,
+                            [checklistKey]: {
+                              ...(prev[checklistKey] ?? {}),
+                              [item.id]: checked,
+                            },
+                          }))
+                        }
+                        icon={<CheckBoxOutlineBlankIcon sx={{ fontSize: 18 }} />}
+                        checkedIcon={
+                          <CheckBoxIcon sx={{ color: "success.main", fontSize: 18 }} />
+                        }
+                        sx={{ p: 0.25 }}
+                      />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '12px' }}>
+                          {item.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '10px' }}>
+                          {item.role}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Grid>
+                );
+              })}
+            </Grid>
+
+            <Divider sx={{ my: 1 }} />
+
             {/* Timeline */}
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 2, mb: 1 }}>
+              <HistoryIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+              <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary', letterSpacing: 1.5 }}>
+                Case Timeline & History
+              </Typography>
+            </Stack>
+
             <Box
               sx={{
                 position: "relative",
-                pl: 1,
-                borderLeft: "2px solid",
-                borderColor: alpha(theme.palette.grey[500], 0.25),
-                ml: 1.5,
+                pl: 4,
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  left: 15,
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  background: `linear-gradient(to bottom, ${alpha(theme.palette.primary.main, 0.4)}, ${alpha(theme.palette.primary.main, 0.05)})`,
+                  borderRadius: 1
+                }
               }}
             >
-              <Stack spacing={2}>
-                {(CASE_DETAIL_EVENTS[selectedCase.id] ?? []).map((evt) => {
+              <Stack spacing={3}>
+                {(CASE_DETAIL_EVENTS[selectedCase.id] ?? []).map((evt, idx) => {
                   const IconComponent =
                     evt.icon === "detect"
                       ? SearchIcon
@@ -186,70 +281,98 @@ const CaseDetailDialog: React.FC<CaseDetailDialogProps> = ({
                         : evt.icon === "notify"
                           ? NotificationsIcon
                           : AssignmentTurnedInIcon;
-                  const iconColor =
-                    evt.icon === "detect"
-                      ? "primary.main"
-                      : evt.icon === "isolate"
-                        ? "error.main"
-                        : evt.icon === "notify"
-                          ? "warning.main"
-                          : "info.main";
+
+                  const colorMap = {
+                    detect: theme.palette.primary.main,
+                    isolate: theme.palette.error.main,
+                    notify: theme.palette.warning.main,
+                    audit: theme.palette.info.main,
+                  };
+
+                  const brandColor = (colorMap as any)[evt.icon] || theme.palette.primary.main;
+
                   return (
-                    <Stack
-                      key={evt.id}
-                      direction="row"
-                      spacing={1.5}
-                      sx={{ position: "relative", ml: -2.5 }}
-                    >
-                      <Stack
+                    <Box key={evt.id} sx={{ position: "relative" }}>
+                      {/* Timeline Dot with Icon */}
+                      <Box
                         sx={{
+                          position: "absolute",
+                          left: -33, // Correctly centered on the line
+                          top: 0,
                           width: 32,
                           height: 32,
-                          borderRadius: "50%",
-                          bgcolor:
-                            evt.icon === "detect"
-                              ? alpha(theme.palette.primary.main, 0.12)
-                              : evt.icon === "isolate"
-                                ? alpha(theme.palette.error.main, 0.12)
-                                : evt.icon === "notify"
-                                  ? alpha(theme.palette.warning.main, 0.12)
-                                  : alpha(theme.palette.info.main, 0.12),
-                          color: iconColor,
+                          borderRadius: "10px",
+                          bgcolor: 'background.paper',
+                          border: "2px solid",
+                          borderColor: alpha(brandColor, 0.5),
+                          display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          flexShrink: 0,
-                          border: "2px solid",
-                          borderColor: "background.paper",
-                          boxShadow:
-                            "0 0 0 1px " + alpha(theme.palette.grey[500], 0.2),
+                          zIndex: 1,
+                          boxShadow: `0 0 0 4px ${alpha(brandColor, 0.08)}`,
+                          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                          '&:hover': {
+                            transform: 'scale(1.1)',
+                            borderColor: brandColor,
+                            boxShadow: `0 0 12px ${alpha(brandColor, 0.2)}`,
+                          }
                         }}
                       >
-                        <IconComponent sx={{ fontSize: 16 }} />
-                      </Stack>
-                      <Stack sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="body2" fontWeight={600}>
-                          {evt.title}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {evt.date}
-                          {evt.source ? ` • ${evt.source}` : ""}
-                        </Typography>
+                        <IconComponent sx={{ fontSize: 16, color: brandColor }} />
+                      </Box>
+
+                      {/* Content Card */}
+                      <Stack spacing={0.5}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                            {evt.title}
+                          </Typography>
+                          <Typography variant="caption" sx={{
+                            fontWeight: 700,
+                            color: 'text.secondary',
+                            bgcolor: alpha(theme.palette.grey[500], 0.08),
+                            px: 1, py: 0.25, borderRadius: 1
+                          }}>
+                            {evt.date}
+                          </Typography>
+                        </Stack>
+
+                        {evt.source && (
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: alpha(brandColor, 0.7) }}>
+                            via {evt.source}
+                          </Typography>
+                        )}
+
                         <Box
                           sx={{
                             mt: 1,
-                            p: 1.25,
-                            borderRadius: 1,
-                            bgcolor: alpha(theme.palette.grey[500], 0.06),
+                            p: 1.5,
+                            borderRadius: 2,
+                            bgcolor: alpha(brandColor, 0.03),
                             border: "1px solid",
-                            borderColor: alpha(theme.palette.grey[500], 0.12),
+                            borderColor: alpha(brandColor, 0.08),
+                            position: 'relative',
+                            '&::after': {
+                              content: '""',
+                              position: 'absolute',
+                              left: 0, top: 0, bottom: 0,
+                              width: 3,
+                              bgcolor: brandColor,
+                              borderRadius: '2px 0 0 2px'
+                            }
                           }}
                         >
-                          <Typography variant="body2" color="text.secondary">
-                            {evt.description}
+                          <Typography variant="body2" sx={{
+                            color: 'text.secondary',
+                            fontSize: '0.8125rem',
+                            lineHeight: 1.6,
+                            fontStyle: 'italic'
+                          }}>
+                            "{evt.description}"
                           </Typography>
                         </Box>
                       </Stack>
-                    </Stack>
+                    </Box>
                   );
                 })}
               </Stack>

@@ -9,25 +9,15 @@ import {
   Button,
   Chip,
   IconButton,
-  Paper,
   Stack,
-
   Typography,
-  TextField,
-  InputAdornment,
-  MenuItem,
-  Select,
 } from "@/src/ui/components/atoms";
-import { StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
+import { Card, StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
-import { palette } from "@/src/core/theme/tokens";
 import {
-  Search as SearchIcon,
   FilterList as FilterIcon,
   FileDownload as ExportIcon,
   Print as PrintIcon,
-  NavigateBefore as PrevIcon,
-  NavigateNext as NextIcon,
   AccountBalanceWallet as WalletIcon,
   ReceiptLong as ReceiptIcon,
   TrendingUp as RevenueIcon,
@@ -117,20 +107,6 @@ const MOCK_DATA: PaymentReceipt[] = [
     action: "Print",
   },
 ];
-
-const HEADER_SX = {
-  fontWeight: 700,
-  textTransform: "uppercase" as const,
-  fontSize: "0.68rem",
-  letterSpacing: "0.08em",
-  color: "text.secondary",
-  py: 1.8,
-  px: 2,
-  borderBottom: "1px solid",
-  borderColor: "rgba(17, 114, 186, 0.12)",
-  bgcolor: alpha(palette.primary.main, 0.03),
-  whiteSpace: "nowrap" as const,
-};
 
 const BILLING_MODULE_STORAGE_KEY =
   "scanbo.hims.ipd.billing-medication.module.v1";
@@ -440,35 +416,42 @@ export default function PaymentReceiptsPage() {
       title="Payment Receipts"
       subtitle="Track and manage all payment transactions"
       currentPageTitle="Payment Receipts"
+      fullHeight
     >
-      <Stack spacing={1.25}>
-        {/* Header Card */}
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         <WorkspaceHeaderCard>
           <Stack
-            direction="row"
-            alignItems="center"
+            direction={{ xs: "column", md: "row" }}
+            spacing={1.25}
             justifyContent="space-between"
+            alignItems={{ xs: "flex-start", md: "center" }}
           >
             <Box>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 900,
-                  color: "primary.main",
-                  letterSpacing: "-0.02em",
-                }}
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                sx={{ mb: 0.5 }}
               >
-                Receipt Control Tower
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: "text.secondary", mt: 0.5, fontWeight: 500 }}
-              >
-                Access all generated payment receipts, track collections and
-                manage cashier records.
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
+                >
+                  Payment Receipts
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip size="small" color="primary" label="Receipt Desk" />
+                  <Chip size="small" color="info" variant="outlined" label="Collection Register" />
+                </Stack>
+              </Stack>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Access all generated payment receipts, collections, and cashier records in one place.
               </Typography>
             </Box>
-            <Stack direction="row" spacing={1.5}>
+            <Stack direction="row" spacing={1.5} flexWrap="wrap">
               <Button
                 variant="outlined"
                 startIcon={<ExportIcon />}
@@ -499,15 +482,14 @@ export default function PaymentReceiptsPage() {
           </Stack>
         </WorkspaceHeaderCard>
 
-        {/* Stats Strip */}
         <Box
           sx={{
             display: "grid",
-            gap: 1.5,
+            gap: 1.25,
             gridTemplateColumns: {
               xs: "1fr",
-              sm: "repeat(2, 1fr)",
-              lg: "repeat(4, 1fr)",
+              sm: "repeat(2, minmax(0, 1fr))",
+              lg: "repeat(4, minmax(0, 1fr))",
             },
           }}
         >
@@ -522,14 +504,14 @@ export default function PaymentReceiptsPage() {
           ))}
         </Box>
 
-        {/* Table Section */}
-        <Box sx={{ mt: 2 }}>
+        {/* <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}> */}
           <CommonDataGrid<PaymentReceipt>
             rows={filteredData}
             columns={receiptColumns}
             getRowId={(row) => row.id}
             searchPlaceholder="Search receipt #, patient, or invoice..."
             searchFields={["receiptNo", "patientName", "invoiceNo"]}
+            showSerialNo
             filterDropdowns={[
               {
                 id: "modeFilter",
@@ -567,10 +549,17 @@ export default function PaymentReceiptsPage() {
                 >
                   <PrintIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                 </IconButton>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => setModeFilter("All Payment Modes")}
+                >
+                  Clear
+                </Button>
               </Stack>
             }
           />
-        </Box>
+        {/* </Card> */}
       </Stack>
     </PageTemplate>
   );

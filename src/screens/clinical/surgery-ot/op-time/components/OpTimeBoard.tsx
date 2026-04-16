@@ -1,6 +1,6 @@
 import React from "react";
-import { Box, Button, Typography } from "@/src/ui/components/atoms";
-import { Card, CommonTable, StatTile } from "@/src/ui/components/molecules";
+import { Box, Button, Typography, MenuItem, TextField, Stack } from "@/src/ui/components/atoms";
+import { Card, StatTile } from "@/src/ui/components/molecules";
 import Grid from "@/src/ui/components/layout/AlignedGrid";
 import { EnterpriseModuleHeader } from "../../../components/EnterpriseUi";
 import {
@@ -17,10 +17,7 @@ import {
   ROOM_OPTIONS,
   defaultScheduleForm,
 } from "../OpTimeData";
-import {
-  CommonTableColumn,
-  CommonTableFilter,
-} from "@/src/ui/components/molecules/CommonTable";
+import CommonDataGrid, { CommonColumn } from "@/src/components/table/CommonDataGrid";
 
 interface OpTimeBoardProps {
   boardStats: {
@@ -31,8 +28,7 @@ interface OpTimeBoardProps {
     utilization: number;
   };
   boardRows: OtCase[];
-  caseBoardColumns: CommonTableColumn<OtCase>[];
-  boardFilters: CommonTableFilter<OtCase>[];
+  caseBoardColumns: CommonColumn<OtCase>[];
   setScheduleForm: (form: ScheduleForm) => void;
   setScheduleDialogOpen: (open: boolean) => void;
   dashboardCardSx: any;
@@ -43,35 +39,46 @@ export const OpTimeBoard: React.FC<OpTimeBoardProps> = ({
   boardStats,
   boardRows,
   caseBoardColumns,
-  boardFilters,
   setScheduleForm,
   setScheduleDialogOpen,
   dashboardCardSx,
   roomLabelById,
 }) => {
+  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [roomFilter, setRoomFilter] = React.useState("all");
+  const [priorityFilter, setPriorityFilter] = React.useState("all");
+
+  const filteredRows = React.useMemo(() => {
+    return boardRows.filter((row) => {
+      const matchStatus = statusFilter === "all" || row.status === statusFilter;
+      const matchRoom = roomFilter === "all" || row.roomId === roomFilter;
+      const matchPriority = priorityFilter === "all" || row.priority === priorityFilter;
+      return matchStatus && matchRoom && matchPriority;
+    });
+  }, [boardRows, statusFilter, roomFilter, priorityFilter]);
+
   return (
-    <>
+    <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: 1.1 }}>
       <EnterpriseModuleHeader
         title="OpTime Enterprise OT Command Center"
         subtitle="Global OT scheduling and perioperative execution workspace"
         icon={<LocalHospitalIcon fontSize="small" />}
         accent="blue"
         actions={
-          <>
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={<AddCircleOutlineIcon fontSize="small" />}
-              onClick={() => {
-                setScheduleForm(
-                  defaultScheduleForm(ROOM_OPTIONS[0]?.id ?? "or-1"),
-                );
-                setScheduleDialogOpen(true);
-              }}
-            >
-              Schedule Case
-            </Button>
-          </>
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<AddCircleOutlineIcon fontSize="small" />}
+            onClick={() => {
+              setScheduleForm(
+                defaultScheduleForm(ROOM_OPTIONS[0]?.id ?? "or-1"),
+              );
+              setScheduleDialogOpen(true);
+            }}
+            sx={{ textTransform: "none", fontWeight: 700 }}
+          >
+            Schedule Case
+          </Button>
         }
       />
 
@@ -123,69 +130,69 @@ export const OpTimeBoard: React.FC<OpTimeBoardProps> = ({
         </Grid>
       </Grid>
 
-      <Card
-        elevation={0}
-        sx={{
-          ...dashboardCardSx,
-          flex: 1,
-          minHeight: 0,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        <Box
-          sx={{
-            px: 1.6,
-            py: 1.2,
-            borderBottom: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            Today's OR Case Board
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Open one patient case to continue full workflow in Pre-Op, Intra-Op,
-            and Post-Op modules.
-          </Typography>
-        </Box>
-        <Box
-          sx={{
-            p: 1.2,
-            flex: 1,
-            minHeight: 0,
-            overflowY: "auto",
-            overflowX: "hidden",
-          }}
-        >
-          <CommonTable
-            rows={boardRows}
-            columns={caseBoardColumns}
-            getRowId={(row) => row.id}
-            searchBy={(row) =>
-              [
-                row.caseNo,
-                row.patientName,
-                row.mrn,
-                row.procedure,
-                row.department,
-                row.diagnosis,
-                row.surgeon,
-                row.anesthetist,
-                roomLabelById.get(row.roomId) ?? row.roomId,
-                row.status,
-                row.priority,
-              ].join(" ")
-            }
-            searchPlaceholder="Search by case, patient, MRN, procedure, department, doctor..."
-            filters={boardFilters}
-            emptyMessage="No OT cases found for current filters."
-            initialRowsPerPage={10}
-            rowsPerPageOptions={[5, 10, 25]}
-          />
-        </Box>
-      </Card>
-    </>
+
+      <CommonDataGrid<OtCase>
+        rows={filteredRows}
+        columns={caseBoardColumns}
+        getRowId={(row) => row.id}
+        searchPlaceholder="Search by patient, MRN, procedure, surgeon..."
+        searchFields={[
+          "caseNo",
+          "patientName",
+          "mrn",
+          "procedure",
+          "department",
+          "diagnosis",
+          "surgeon",
+          "anesthetist",
+        ]}
+        toolbarRight={
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <TextField
+              size="small"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              select
+              sx={{ minWidth: 130, "& .MuiOutlinedInput-root": { borderRadius: 2, fontSize: "0.81rem" } }}
+            >
+              <MenuItem value="all">All Statuses</MenuItem>
+              {["Scheduled", "Pre-Op", "In OR", "Closing", "PACU", "Completed", "Cancelled"].map(s => (
+                <MenuItem key={s} value={s}>{s}</MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              size="small"
+              value={roomFilter}
+              onChange={(e) => setRoomFilter(e.target.value)}
+              select
+              sx={{ minWidth: 130, "& .MuiOutlinedInput-root": { borderRadius: 2, fontSize: "0.81rem" } }}
+            >
+              <MenuItem value="all">All Rooms</MenuItem>
+              {ROOM_OPTIONS.map(r => (
+                <MenuItem key={r.id} value={r.id}>{r.label}</MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              size="small"
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              select
+              sx={{ minWidth: 130, "& .MuiOutlinedInput-root": { borderRadius: 2, fontSize: "0.81rem" } }}
+            >
+              <MenuItem value="all">All Priorities</MenuItem>
+              {["STAT", "Urgent", "Elective"].map(p => (
+                <MenuItem key={p} value={p}>{p}</MenuItem>
+              ))}
+            </TextField>
+          </Stack>
+        }
+        emptyTitle="No OT cases found for current filters."
+        showSerialNo={true}
+        disableRowPointer={true}
+      />
+
+    </Box>
   );
 };

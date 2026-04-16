@@ -460,9 +460,13 @@ export default function InventoryItemsPage() {
       title="Inventory Items"
       subtitle="Drug master for pharmacy and procurement workflow. New drug onboarding starts here."
       currentPageTitle="Items"
+      fullHeight
     >
-      <Box sx={{  }}>
-        <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0 }}>
+      {/* <Box sx={{  }} */}
+         <Stack
+                spacing={1.25}
+                sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+              >
           {!canRead ? (
             <Alert severity="error">
               You do not have access to Inventory Item Master. Request
@@ -537,7 +541,6 @@ export default function InventoryItemsPage() {
             </>
           ) : null}
         </Stack>
-      </Box>
 
       <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="md">
         <DialogTitle>

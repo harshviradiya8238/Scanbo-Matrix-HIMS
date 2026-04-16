@@ -73,6 +73,7 @@ export {
   TableHead,
   TablePagination,
   TableRow,
+  TableSortLabel,
   Tabs,
   ToggleButton,
   ToggleButtonGroup,

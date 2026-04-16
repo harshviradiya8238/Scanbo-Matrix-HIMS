@@ -91,23 +91,12 @@ const MOCK_INSTRUMENTS: Instrument[] = [
   },
 ];
 
+import { LabInstrumentsTable } from "./components/LabInstrumentsTable";
+
 export default function LabInstrumentsPage() {
   const theme = useTheme();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const dispatch = useAppDispatch();
-
-  const getStatusColor = (status: Instrument["status"]) => {
-    switch (status) {
-      case "online":
-        return "#16a34a";
-      case "warning":
-        return "#ea580c";
-      case "offline":
-        return "#dc2626";
-      default:
-        return "#64748b";
-    }
-  };
 
   const handleSimulateLink = (instId: string) => {
     // Simulate parsing a CSV: SID, Test, Analyte, Result, Flag
@@ -148,266 +137,17 @@ export default function LabInstrumentsPage() {
     );
   };
 
-  const renderInstrumentCard = (inst: Instrument) => {
-    return (
-      <Card
-        key={inst.id}
-        sx={{
-          p: 0,
-          borderRadius: 2.5,
-          minHeight: "100%",
-          border: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <Box sx={{ p: 2 }}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="flex-start"
-          >
-            <Box>
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: 800, color: "text.primary", mb: 0.25 }}
-              >
-                {inst.name}
-              </Typography>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ fontWeight: 500 }}
-              >
-                {inst.type} - {inst.department}
-              </Typography>
-            </Box>
-            <StatusIcon
-              sx={{ fontSize: 12, color: getStatusColor(inst.status) }}
-            />
-          </Stack>
-
-          <Stack spacing={1.25} sx={{ mt: 2.5 }}>
-            {inst.interface && (
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ color: "text.secondary", fontWeight: 500 }}
-                >
-                  Interface
-                </Typography>
-                <Chip
-                  label={inst.interface}
-                  size="small"
-                  sx={{
-                    height: 20,
-                    fontSize: "0.65rem",
-                    fontWeight: 700,
-                    bgcolor: alpha(theme.palette.success.main, 0.1),
-                    color: "#0891b2",
-                    borderRadius: 1,
-                    "& .MuiChip-label": { px: 0.75 },
-                  }}
-                />
-              </Stack>
-            )}
-
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Typography
-                variant="caption"
-                sx={{ color: "text.secondary", fontWeight: 500 }}
-              >
-                Calibration
-              </Typography>
-              <Stack direction="row" alignItems="center" spacing={0.5}>
-                {inst.status === "online" && (
-                  <CheckCircleIcon sx={{ fontSize: 12, color: "#16a34a" }} />
-                )}
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color:
-                      inst.status === "online" ? "#16a34a" : "text.primary",
-                  }}
-                >
-                  {inst.calibrationStatus}
-                </Typography>
-              </Stack>
-            </Stack>
-
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Typography
-                variant="caption"
-                sx={{ color: "text.secondary", fontWeight: 500 }}
-              >
-                Last QC
-              </Typography>
-              <Stack direction="row" alignItems="center" spacing={0.5}>
-                {inst.qcStatus === "pass" && (
-                  <CheckCircleIcon sx={{ fontSize: 12, color: "#16a34a" }} />
-                )}
-                {inst.qcStatus === "fail" && (
-                  <ErrorIcon sx={{ fontSize: 12, color: "#dc2626" }} />
-                )}
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color: inst.qcStatus === "fail" ? "#dc2626" : "#16a34a",
-                  }}
-                >
-                  {inst.lastQC}
-                </Typography>
-              </Stack>
-            </Stack>
-
-            {inst.todayCount && (
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ color: "text.secondary", fontWeight: 500 }}
-                >
-                  Today's Count
-                </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 800 }}>
-                  {inst.todayCount}
-                </Typography>
-              </Stack>
-            )}
-
-            {inst.bottlesLoaded && (
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ color: "text.secondary", fontWeight: 500 }}
-                >
-                  Bottles Loaded
-                </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 800 }}>
-                  {inst.bottlesLoaded}
-                </Typography>
-              </Stack>
-            )}
-
-            {inst.positiveFlags && (
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ color: "text.secondary", fontWeight: 500 }}
-                >
-                  Positive Flags
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{ fontWeight: 700, color: "#dc2626" }}
-                >
-                  {inst.positiveFlags}
-                </Typography>
-              </Stack>
-            )}
-
-            {inst.statusText && (
-              <Stack
-                direction="row"
-                justifyContent="flex-end"
-                alignItems="center"
-              >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    color:
-                      inst.status === "warning" ? "#ea580c" : "text.primary",
-                    fontSize: "0.65rem",
-                  }}
-                >
-                  {inst.statusText}
-                </Typography>
-              </Stack>
-            )}
-          </Stack>
-        </Box>
-
-        <Stack
-          direction="row"
-          sx={{
-            mt: "auto",
-            p: 1,
-            gap: 1,
-            borderTop: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          <Button
-            fullWidth
-            variant="text"
-            size="small"
-            sx={{
-              py: 0.75,
-              justifyContent: "center",
-              borderRadius: 1.5,
-              bgcolor: alpha(theme.palette.primary.main, 0.04),
-              color: "text.secondary",
-              textTransform: "none",
-              fontSize: "0.7rem",
-              fontWeight: 700,
-            }}
-          >
-            View Logs
-          </Button>
-          <Button
-            fullWidth
-            variant="contained"
-            size="small"
-            startIcon={<UploadIcon sx={{ fontSize: 13 }} />}
-            onClick={() => handleSimulateLink(inst.id)}
-            sx={{
-              py: 0.75,
-              justifyContent: "center",
-              borderRadius: 1.5,
-              textTransform: "none",
-              fontSize: "0.7rem",
-              fontWeight: 700,
-              bgcolor: theme.palette.primary.main,
-              boxShadow: "none",
-              "&:hover": { bgcolor: theme.palette.primary.dark },
-            }}
-          >
-            Simulate Link
-          </Button>
-        </Stack>
-      </Card>
-    );
-  };
-
   return (
-    <PageTemplate title="Laboratory Instruments" currentPageTitle="Instruments">
-      <Stack spacing={1.25}>
-        <WorkspaceHeaderCard sx={{ p: 2, borderRadius: '22px' }}>
+    <PageTemplate
+      title="Laboratory Instruments"
+      currentPageTitle="Instruments"
+      fullHeight
+    >
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
+        <WorkspaceHeaderCard sx={{ p: 2, borderRadius: "22px" }}>
           <Stack
             direction="row"
             justifyContent="space-between"
@@ -440,15 +180,10 @@ export default function LabInstrumentsPage() {
           </Stack>
         </WorkspaceHeaderCard>
 
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" },
-            gap: 2.5,
-          }}
-        >
-          {MOCK_INSTRUMENTS.map((inst) => renderInstrumentCard(inst))}
-        </Box>
+        <LabInstrumentsTable
+          instruments={MOCK_INSTRUMENTS}
+          onSimulateLink={handleSimulateLink}
+        />
       </Stack>
 
       <CommonDialog

@@ -65,8 +65,9 @@ export default function ValidatedMethodsPage() {
     <PageTemplate
       title="Validated Methods"
       subtitle="Manage validated analytical methods and standards"
+      fullHeight
     >
-      <Stack spacing={1.25}>
+      <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         <ValidatedMethodsHeader onAdd={handleOpenModal} />
 
         <ValidatedMethodsTable

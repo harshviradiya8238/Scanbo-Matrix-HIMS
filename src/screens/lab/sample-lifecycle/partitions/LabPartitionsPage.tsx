@@ -182,8 +182,11 @@ export default function LabPartitionsPage() {
   const selectedSample = samples.find((s) => s.id === selectedParentId);
 
   return (
-    <PageTemplate title="Sample Partition" currentPageTitle="Sample Partition">
-      <Stack spacing={1.25}>
+    <PageTemplate title="Sample Partition" currentPageTitle="Sample Partition" fullHeight>
+      <Stack
+             spacing={1.25}
+             sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+           >
         <WorkspaceHeaderCard>
           <Stack
             direction="row"
@@ -294,7 +297,7 @@ export default function LabPartitionsPage() {
           ))}
         </Box>
 
-        <Box sx={{ ...lab.cardSx }}>
+        {/* <Box sx={{ ...lab.cardSx }}> */}
           <CommonDataGrid
             toolbarLeft={
               <Stack
@@ -384,7 +387,7 @@ export default function LabPartitionsPage() {
             columns={columns}
             getRowId={(row) => row.id}
           />
-        </Box>
+        {/* </Box> */}
       </Stack>
 
       <AddPartitionModal

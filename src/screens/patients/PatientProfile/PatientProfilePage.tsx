@@ -35,6 +35,7 @@ import {
   Button,
   Chip,
   Divider,
+  IconButton,
   Stack,
   Typography,
 } from "@/src/ui/components/atoms";
@@ -56,12 +57,16 @@ import {
   PersonOutline as PersonOutlineIcon,
   VerifiedUser as VerifiedUserIcon,
   WarningAmber as WarningAmberIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+  VpnKey as VpnKeyIcon,
 } from "@mui/icons-material";
 import GlobalPatientSearch from "@/src/ui/components/molecules/GlobalPatientSearch";
 import { GLOBAL_PATIENTS } from "@/src/mocks/global-patients";
 
 export default function PatientProfilePage() {
   const data = usePatientProfileData();
+  const [showPassword, setShowPassword] = React.useState(false);
   const {
     theme,
     router,
@@ -373,6 +378,49 @@ export default function PatientProfilePage() {
               },
             }}
           >
+            {/* Patient Credentials card */}
+            <Card elevation={6} sx={{ p: 2, borderRadius: 2 }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <VpnKeyIcon fontSize="small" color="primary" />
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Patient Credentials
+                </Typography>
+              </Stack>
+              <Divider sx={dividerSx} />
+              <Stack spacing={0}>
+                <InfoRow
+                  label="Email ID"
+                  value={
+                    patient.email ??
+                    `${patient.name.toLowerCase().replace(" ", ".")}@example.com`
+                  }
+                />
+                <InfoRow
+                  label="Password"
+                  value={
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {showPassword
+                          ? (patient.password ?? "password123")
+                          : "••••••••"}
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() => setShowPassword(!showPassword)}
+                        sx={{ p: 0.5 }}
+                      >
+                        {showPassword ? (
+                          <VisibilityOffIcon sx={{ fontSize: 16 }} />
+                        ) : (
+                          <VisibilityIcon sx={{ fontSize: 16 }} />
+                        )}
+                      </IconButton>
+                    </Stack>
+                  }
+                />
+              </Stack>
+            </Card>
+
             {/* Insurance card */}
             <Card elevation={6} sx={{ p: 2, borderRadius: 2 }}>
               <Stack direction="row" spacing={1} alignItems="center">

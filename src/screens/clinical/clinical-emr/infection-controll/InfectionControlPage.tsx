@@ -10,6 +10,7 @@ import {
   Chip,
   Stack,
   Typography,
+  Grid
 } from "@/src/ui/components/atoms";
 import CommonDataGrid, {
   CommonColumn,
@@ -79,9 +80,11 @@ import {
   INITIAL_CASES,
   INITIAL_ISOLATIONS,
   IPD_PATIENTS,
+  NOTIFICATION_FEED,
   PPE_CHECKLIST,
   SEND_TO_OPTIONS,
 } from "./utils/infection-control-data";
+import { type NotificationFeedItem } from "./utils/infection-control-types";
 import {
   FLOW_TAB_IDS,
   IC_STATUS_BY_TAB,
@@ -113,6 +116,10 @@ export default function InfectionControlPage() {
   >("iso-1");
 
   const [audits, setAudits] = React.useState<AuditRecord[]>(INITIAL_AUDITS);
+  const [notifications, setNotifications] = React.useState<NotificationFeedItem[]>(NOTIFICATION_FEED);
+  const [ppeChecklist, setPpeChecklist] = React.useState<
+    Record<string, Record<string, boolean>>
+  >({});
   const [selectedCaseId, setSelectedCaseId] = React.useState<string>(
     INITIAL_CASES[0]?.id ?? "",
   );
@@ -157,6 +164,7 @@ export default function InfectionControlPage() {
 
   const selectedCase =
     cases.find((item) => item.id === selectedCaseId) ?? cases[0];
+
   const caseTimeline = CASE_TIMELINES[selectedCase?.id ?? ""] ?? [];
   const closedCases = cases.filter((item) => item.status === "Closed");
   const activeCaseCount = cases.filter((item) => item.status === "Active").length;
@@ -166,9 +174,9 @@ export default function InfectionControlPage() {
   const averageAuditCompliance =
     audits.length > 0
       ? Math.round(
-          audits.reduce((total, audit) => total + audit.compliance, 0) /
-            audits.length,
-        )
+        audits.reduce((total, audit) => total + audit.compliance, 0) /
+        audits.length,
+      )
       : 0;
   const flowMrn = selectedCase?.mrn ?? mrnParam;
   const pageSubtitle = formatPatientLabel(selectedCase?.patientName, flowMrn);
@@ -192,11 +200,11 @@ export default function InfectionControlPage() {
       prev.map((item) =>
         item.id === caseId
           ? {
-              ...item,
-              status: "Closed",
-              icStatus: "Closed" as IcStatus,
-              lastUpdate: "Just now",
-            }
+            ...item,
+            status: "Closed",
+            icStatus: "Closed" as IcStatus,
+            lastUpdate: "Just now",
+          }
           : item,
       ),
     );
@@ -240,10 +248,10 @@ export default function InfectionControlPage() {
     const { caseForm } = data;
     const sel = caseForm.patientSelect
       ? IPD_PATIENTS.find(
-          (p) =>
-            p.mrn === caseForm.patientSelect ||
-            p.name === caseForm.patientSelect,
-        )
+        (p) =>
+          p.mrn === caseForm.patientSelect ||
+          p.name === caseForm.patientSelect,
+      )
       : null;
     const [unit, bed] = sel?.wardBed
       ? sel.wardBed.split(" / ")
@@ -308,12 +316,12 @@ export default function InfectionControlPage() {
         prev.map((c) =>
           c.id === isolateCaseId
             ? {
-                ...c,
-                icStatus: "Isolating" as IcStatus,
-                unit: room.unit,
-                bed: room.room,
-                isolationType: isoType as IsolationType,
-              }
+              ...c,
+              icStatus: "Isolating" as IcStatus,
+              unit: room.unit,
+              bed: room.room,
+              isolationType: isoType as IsolationType,
+            }
             : c,
         ),
       );
@@ -326,6 +334,31 @@ export default function InfectionControlPage() {
     }
     setIsolateDialogOpen(false);
     setIsolateCaseId(null);
+  };
+
+  // Auto-generate a live notification when a case is moved to "Notified"
+  const handleNotifyCase = (row: InfectionCase) => {
+    setCases((prev) =>
+      prev.map((c) =>
+        c.id === row.id ? { ...c, icStatus: "Notified" as IcStatus, lastUpdate: "Just now" } : c,
+      ),
+    );
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    const newNotif: NotificationFeedItem = {
+      id: `nf-live-${Date.now()}`,
+      type: "critical",
+      title: `Notified — ${row.patientName} (${row.unit} · Bed ${row.bed})`,
+      body: `${row.organism} case moved to Notify stage. HOD, Nursing & IPC Officer alerted. Isolation: ${row.isolationType}.`,
+      actionLabel: "View Case",
+      timestamp: timeStr,
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+    setActiveTab("notify");
+  };
+
+  const handleAddNotification = (notif: NotificationFeedItem) => {
+    setNotifications((prev) => [notif, ...prev]);
   };
 
   const handleLogAudit = (formData: any) => {
@@ -420,8 +453,8 @@ export default function InfectionControlPage() {
                 borderRadius: "50%",
                 bgcolor:
                   row.organism === "MRSA" ||
-                  row.organism === "VRE" ||
-                  row.organism.includes("COVID")
+                    row.organism === "VRE" ||
+                    row.organism.includes("COVID")
                     ? "error.main"
                     : row.organism === "C. diff"
                       ? "warning.main"
@@ -613,16 +646,7 @@ export default function InfectionControlPage() {
                 disabled={!canWrite}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setCases((prev) =>
-                    prev.map((c) =>
-                      c.id === row.id
-                        ? {
-                            ...c,
-                            icStatus: "Notified" as IcStatus,
-                          }
-                        : c,
-                    ),
-                  );
+                  handleNotifyCase(row);
                 }}
                 sx={{
                   px: 2,
@@ -646,9 +670,9 @@ export default function InfectionControlPage() {
                     prev.map((c) =>
                       c.id === row.id
                         ? {
-                            ...c,
-                            icStatus: "In Audit" as IcStatus,
-                          }
+                          ...c,
+                          icStatus: "In Audit" as IcStatus,
+                        }
                         : c,
                     ),
                   );
@@ -690,6 +714,38 @@ export default function InfectionControlPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [theme, router, handleMenuOpen, canWrite],
   );
+
+  // Highlight columns with selection
+  const memoColumns = React.useMemo(() => {
+    return columns.map(col => {
+      if (col.field === "patientName") {
+        return {
+          ...col,
+          renderCell: (row: InfectionCase) => {
+            const isSelected = row.id === selectedCaseId;
+            return (
+              <Box sx={{
+                position: 'relative',
+                '&::before': isSelected ? {
+                  content: '""',
+                  position: 'absolute',
+                  left: -16,
+                  top: -8,
+                  bottom: -8,
+                  width: 4,
+                  bgcolor: 'primary.main',
+                  borderRadius: '0 4px 4px 0'
+                } : {}
+              }}>
+                {col.renderCell ? col.renderCell(row) : (row as any)[col.field]}
+              </Box>
+            );
+          }
+        };
+      }
+      return col;
+    });
+  }, [columns, selectedCaseId, theme]);
 
   const tabCounts = React.useMemo(() => {
     const counts: Record<(typeof FLOW_TAB_IDS)[number], number> = {
@@ -977,12 +1033,29 @@ export default function InfectionControlPage() {
   const casesTableBlock = (
     <CommonDataGrid<InfectionCase>
       rows={activeTabCases}
-      columns={columns}
+      columns={memoColumns}
       getRowId={(row) => row.id}
       showSerialNo={true}
       searchPlaceholder="Search patient, MRN, organism..."
       searchFields={["patientName", "mrn", "organism"]}
       toolbarRight={tableToolbarAction}
+      onRowClick={(row) => {
+        setSelectedCaseId(row.id);
+        const isoMatch = isolations.find(iso => iso.mrn === row.mrn);
+        if (isoMatch) {
+          setSelectedIsolationRoomId(isoMatch.id);
+        } else {
+          setSelectedIsolationRoomId(null);
+        }
+      }}
+      paperSx={{
+        "& .MuiTableRow-root": {
+          transition: "background-color 0.2s",
+        },
+        "& .MuiTableRow-root.Mui-selected": {
+          backgroundColor: alpha(theme.palette.primary.main, 0.08),
+        }
+      }}
     />
   );
 
@@ -1000,9 +1073,13 @@ export default function InfectionControlPage() {
           casesTableBlock={casesTableBlock}
           selectedCase={selectedCase}
           selectedIsolationRoomId={selectedIsolationRoomId}
+          setSelectedIsolationRoomId={setSelectedIsolationRoomId}
+          setSelectedCaseId={setSelectedCaseId}
           isolations={isolations}
           openIsolateDialog={openIsolateDialog}
           canWrite={canWrite}
+          ppeChecklist={ppeChecklist}
+          setPpeChecklist={setPpeChecklist}
         />
       ),
     },
@@ -1013,6 +1090,8 @@ export default function InfectionControlPage() {
         <NotifyTabContent
           casesTableBlock={casesTableBlock}
           canWrite={canWrite}
+          notifications={notifications}
+          onAddNotification={handleAddNotification}
         />
       ),
     },
@@ -1077,38 +1156,6 @@ export default function InfectionControlPage() {
           />
         </Box>
 
-        <Box
-          sx={{
-            p: 2,
-            borderRadius: 2,
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
-            bgcolor: alpha(theme.palette.primary.main, 0.03),
-          }}
-        >
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={1.5}
-            justifyContent="space-between"
-            alignItems={{ xs: "flex-start", md: "center" }}
-          >
-            <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                Global Infection Control Summary
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Active cases, isolation occupancy, and audit status are visible
-                for hospital-wide clinical safety follow-up.
-              </Typography>
-            </Box>
-            <Stack direction="row" spacing={1} flexWrap="wrap">
-              <Chip size="small" color="error" label={`${activeCaseCount} active cases`} />
-              <Chip size="small" color="warning" label={`${isolationOccupancy} isolation rooms`} />
-              <Chip size="small" color="info" label={`${tabCounts.audit} audits in progress`} />
-              <Chip size="small" color="success" label={`${averageAuditCompliance}% audit score`} />
-            </Stack>
-          </Stack>
-        </Box>
-
         {/* Tabs and Flow content */}
         <CustomCardTabs
           items={tabItems}
@@ -1118,10 +1165,10 @@ export default function InfectionControlPage() {
           onChange={(index) => {
             setActiveTab(FLOW_TAB_IDS[index]);
           }}
-          // tabsSx={{
-          //   mb: 1,
-          //   "& .MuiTabs-indicator": { height: 3, borderRadius: "3px 3px 0 0" },
-          // }}
+        // tabsSx={{
+        //   mb: 1,
+        //   "& .MuiTabs-indicator": { height: 3, borderRadius: "3px 3px 0 0" },
+        // }}
         />
       </Stack>
 
@@ -1143,6 +1190,9 @@ export default function InfectionControlPage() {
         setAuditDialogOpen={setAuditDialogOpen}
         openCloseCaseDialog={openCloseCaseDialog}
         setCaseDetailOpen={setCaseDetailOpen}
+        ppeChecklist={ppeChecklist}
+        setPpeChecklist={setPpeChecklist}
+        isolations={isolations}
       />
 
       <IsolateDialog

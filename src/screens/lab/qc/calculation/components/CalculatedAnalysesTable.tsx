@@ -25,13 +25,11 @@ function CalculatedAnalysesTableBase({
   );
 
   return (
-    <Box sx={{ mt: 1 }}>
-      <CommonDataGrid
-        rows={data}
-        columns={columns}
-        getRowId={getCalculatedAnalysisRowId}
-      />
-    </Box>
+    <CommonDataGrid
+      rows={data}
+      columns={columns}
+      getRowId={getCalculatedAnalysisRowId}
+    />
   );
 }
 

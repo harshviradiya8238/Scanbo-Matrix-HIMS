@@ -16,6 +16,7 @@ import { alpha, useTheme } from "@/src/ui/theme";
 import { Block as BlockIcon } from "@mui/icons-material";
 
 interface IsolateForm {
+  selectedPatientId: string;
   roomId: string;
   isolationType: string;
   gloves: boolean;
@@ -73,6 +74,7 @@ const IsolateDialog: React.FC<IsolateDialogProps> = ({
   const theme = useTheme();
 
   const [isolateForm, setIsolateForm] = React.useState<IsolateForm>({
+    selectedPatientId: "",
     roomId: "",
     isolationType: "Droplet Precautions",
     gloves: true,
@@ -83,32 +85,62 @@ const IsolateDialog: React.FC<IsolateDialogProps> = ({
     notes: "",
   });
 
+  // Helper: build form defaults from a case object
+  const buildFormFromCase = (targetCase: InfectionCase) => ({
+    selectedPatientId: targetCase.id,
+    roomId: "",
+    isolationType:
+      targetCase.isolationType === "Contact"
+        ? "Contact Precautions"
+        : targetCase.isolationType === "Droplet"
+          ? "Droplet Precautions"
+          : targetCase.isolationType === "Airborne"
+            ? "Airborne Precautions"
+            : "Standard Precautions",
+    gloves: true,
+    gown: true,
+    surgicalMask:
+      targetCase.isolationType === "Droplet" ||
+      targetCase.isolationType === "Airborne",
+    n95: targetCase.isolationType === "Airborne",
+    faceShield: false,
+    notes: "",
+  });
+
   React.useEffect(() => {
-    if (open && isolateCaseId) {
-      const targetCase = cases.find((c) => c.id === isolateCaseId);
-      if (targetCase) {
+    if (open) {
+      const preselected = isolateCaseId
+        ? cases.find((c) => c.id === isolateCaseId)
+        : cases[0]; // fallback to first detected case
+      if (preselected) {
+        setIsolateForm(buildFormFromCase(preselected));
+      } else {
         setIsolateForm({
+          selectedPatientId: "",
           roomId: "",
-          isolationType:
-            targetCase.isolationType === "Contact"
-              ? "Contact Precautions"
-              : targetCase.isolationType === "Droplet"
-                ? "Droplet Precautions"
-                : targetCase.isolationType === "Airborne"
-                  ? "Airborne Precautions"
-                  : "Standard Precautions",
+          isolationType: "Contact Precautions",
           gloves: true,
           gown: true,
-          surgicalMask:
-            targetCase.isolationType === "Droplet" ||
-            targetCase.isolationType === "Airborne",
-          n95: targetCase.isolationType === "Airborne",
+          surgicalMask: false,
+          n95: false,
           faceShield: false,
           notes: "",
         });
       }
     }
   }, [open, isolateCaseId, cases]);
+
+  // When patient changes, re-derive isolation type defaults
+  const handlePatientChange = (patientId: string) => {
+    const targetCase = cases.find((c) => c.id === patientId);
+    if (targetCase) {
+      setIsolateForm(buildFormFromCase(targetCase));
+    } else {
+      setIsolateForm((prev) => ({ ...prev, selectedPatientId: patientId }));
+    }
+  };
+
+  const resolvedCase = cases.find((c) => c.id === isolateForm.selectedPatientId);
 
   const handleClose = () => {
     onClose();
@@ -123,16 +155,7 @@ const IsolateDialog: React.FC<IsolateDialogProps> = ({
       open={open}
       onClose={handleClose}
       title="Initiate Isolation"
-      subtitle={
-        isolateCaseId
-          ? (() => {
-              const c = cases.find((x) => x.id === isolateCaseId);
-              return c
-                ? `${c.patientName} · ${c.mrn} · ${c.organism} · ${c.bed}`
-                : undefined;
-            })()
-          : undefined
-      }
+      subtitle={resolvedCase ? `${resolvedCase.patientName} · ${resolvedCase.mrn} · ${resolvedCase.organism}` : "Select a patient to proceed"}
       icon={
         <Box
           sx={{
@@ -152,72 +175,85 @@ const IsolateDialog: React.FC<IsolateDialogProps> = ({
       maxWidth="sm"
       fullWidth
       content={
-        isolateCaseId
-          ? (() => {
-              const isolateCase = cases.find((c) => c.id === isolateCaseId);
-              if (!isolateCase) return null;
-              return (
-                <Stack spacing={2} sx={{ mt: 1 }}>
-                  {/* Patient card */}
-                  <Box
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      bgcolor: alpha(theme.palette.primary.main, 0.06),
-                      border: "1px solid",
-                      borderColor: alpha(theme.palette.primary.main, 0.15),
-                    }}
-                  >
-                    <Stack
-                      direction="row"
-                      spacing={2}
-                      alignItems="center"
-                      flexWrap="wrap"
+        (() => {
+          const isolateCase = resolvedCase;
+          return (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+
+              {/* ── Patient Preview Card ─────────────────── */}
+              {isolateCase && (
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: alpha(theme.palette.primary.main, 0.06),
+                    border: "1px solid",
+                    borderColor: alpha(theme.palette.primary.main, 0.15),
+                  }}
+                >
+                  <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                    <Avatar
+                      sx={{
+                        width: 44,
+                        height: 44,
+                        bgcolor: "primary.main",
+                        fontWeight: 700,
+                        fontSize: "0.9rem",
+                        flexShrink: 0,
+                      }}
                     >
-                      <Avatar
-                        sx={{
-                          width: 48,
-                          height: 48,
-                          bgcolor: "primary.main",
-                          fontWeight: 700,
-                          fontSize: "1rem",
-                        }}
-                      >
-                        {isolateCase.patientName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)}
-                      </Avatar>
-                      <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="subtitle1" fontWeight={700}>
-                          {isolateCase.patientName}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {CASE_EXTRA[isolateCase.id]?.genderAge ?? "—"} ·{" "}
-                          {isolateCase.mrn} · {isolateCase.unit} · Bed{" "}
-                          {isolateCase.bed}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Pathogen: {isolateCase.organism} Current: Detected —
-                          Isolation Pending
-                        </Typography>
-                      </Stack>
-                      <Chip
-                        size="small"
-                        label={isolateCase.isolationType}
-                        sx={{
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          bgcolor: alpha(theme.palette.info.main, 0.12),
-                          borderColor: alpha(theme.palette.info.main, 0.4),
-                        }}
-                        variant="outlined"
-                      />
+                      {isolateCase.patientName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                    </Avatar>
+                    <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="subtitle2" fontWeight={700}>
+                        {isolateCase.patientName}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {CASE_EXTRA[isolateCase.id]?.genderAge ?? "—"} · {isolateCase.mrn} · {isolateCase.unit} · Bed {isolateCase.bed}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Pathogen: <strong>{isolateCase.organism}</strong> · Isolation Pending
+                      </Typography>
                     </Stack>
-                  </Box>
+                    <Chip
+                      size="small"
+                      label={isolateCase.isolationType}
+                      sx={{
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        bgcolor: alpha(theme.palette.info.main, 0.12),
+                        borderColor: alpha(theme.palette.info.main, 0.4),
+                      }}
+                      variant="outlined"
+                    />
+                  </Stack>
+                </Box>
+              )}
 
                   {/* Form fields */}
+
+                     {/* ── Patient Selection ─────────────────────── */}
+              <TextField
+                select
+                label="Select Patient *"
+                value={isolateForm.selectedPatientId}
+                onChange={(e) => handlePatientChange(e.target.value)}
+                size="small"
+                fullWidth
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
+              >
+                <MenuItem value="">— Select Patient —</MenuItem>
+                {cases.map((c) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    <Stack spacing={0}>
+                      <span style={{ fontWeight: 700 }}>{c.patientName}</span>
+                      <span style={{ fontSize: "0.75rem", color: "#888" }}>
+                        {c.mrn} · {c.organism} · Bed {c.bed}
+                      </span>
+                    </Stack>
+                  </MenuItem>
+                ))}
+              </TextField>
                   <TextField
                     select
                     label="Assign Isolation Room *"
@@ -375,10 +411,9 @@ const IsolateDialog: React.FC<IsolateDialogProps> = ({
                     rows={3}
                     sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
                   />
-                </Stack>
-              );
-            })()
-          : null
+            </Stack>
+          );
+        })()
       }
       actions={
         <Stack

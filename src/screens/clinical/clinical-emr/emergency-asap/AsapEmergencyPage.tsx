@@ -336,15 +336,14 @@ const AsapEmergencyPage = () => {
       title="ASAP Emergency"
       subtitle={subtitle}
       currentPageTitle="Emergency"
-      fullHeight={activePage === "chart"}
+      fullHeight
     >
       <Stack
         spacing={1.25}
         sx={{
-          flex: activePage === "chart" ? 1 : "auto",
-          minHeight: 0,
-          height: activePage === "chart" ? "100%" : "auto",
+          flex:1,
           overflow: "hidden",
+          minHeight: 0, display: "flex", flexDirection: "column"
         }}
       >
         <CustomCardTabs
@@ -357,7 +356,6 @@ const AsapEmergencyPage = () => {
           )}
           onChange={(index) => setActivePage(EMERGENCY_PAGES[index].id)}
           showBackground
-          tabsSx={{ borderRadius: 2, p: 1 }}
           header={
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               <Button

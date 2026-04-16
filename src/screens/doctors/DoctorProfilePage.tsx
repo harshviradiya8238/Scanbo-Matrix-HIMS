@@ -9,6 +9,7 @@ import {
   Button,
   Chip,
   Divider,
+  IconButton,
   Stack,
   Table,
   TableBody,
@@ -42,6 +43,9 @@ import {
   Star as StarIcon,
   VerifiedUser as VerifiedUserIcon,
   Videocam as VideocamIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+  VpnKey as VpnKeyIcon,
   WorkHistory as WorkHistoryIcon,
 } from "@mui/icons-material";
 import { getSoftSurface } from "@/src/core/theme/surfaces";
@@ -296,6 +300,7 @@ export default function DoctorProfilePage() {
   const searchParams = useSearchParams();
   const doctorIdParam = searchParams.get("doctorId") ?? "";
   const doctor = getDoctorById(doctorIdParam);
+  const [showPassword, setShowPassword] = React.useState(false);
 
   const cardShadow = "0 12px 24px rgba(15,23,42,0.06)";
   const lightBorder = `1px solid ${alpha(theme.palette.text.primary, 0.05)}`;
@@ -367,8 +372,15 @@ export default function DoctorProfilePage() {
 
   /* ── full profile ── */
   return (
-    <PageTemplate title="Doctor Profile" currentPageTitle="Profile">
-      <Stack spacing={1.25}>
+    <PageTemplate title="Doctor Profile" currentPageTitle="Profile" fullHeight>
+      <Stack
+        spacing={1.25}
+        sx={{
+          height: "100%",
+          minHeight: 0,
+          overflow: "hidden",
+        }}
+      >
         {/* ── Hero Header Card ── */}
         <Card
           elevation={0}
@@ -561,11 +573,74 @@ export default function DoctorProfilePage() {
             display: "grid",
             gridTemplateColumns: { xs: "1fr", xl: "360px 1fr" },
             gap: 2,
-            alignItems: "start",
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
           }}
         >
           {/* ── LEFT SIDEBAR ── */}
-          <Stack spacing={2}>
+          <Stack
+            spacing={2}
+            sx={{
+              minHeight: 0,
+              height: "100%",
+              overflowY: "auto",
+              overflowX: "hidden",
+              pr: 0.5,
+              "&::-webkit-scrollbar": { width: 4 },
+              "&::-webkit-scrollbar-track": { background: "transparent" },
+              "&::-webkit-scrollbar-thumb": {
+                background: alpha(theme.palette.text.primary, 0.15),
+                borderRadius: 4,
+              },
+            }}
+          >
+            {/* Doctor Credentials card */}
+            <Card
+              elevation={0}
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                boxShadow: cardShadow,
+                backgroundColor: "background.paper",
+              }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                <VpnKeyIcon fontSize="small" color="primary" />
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Doctor Credentials
+                </Typography>
+              </Stack>
+              <Divider sx={dividerSx} />
+              <Stack spacing={0}>
+                <InfoRow
+                  label="Email ID"
+                  value={doctor.email}
+                />
+                <InfoRow
+                  label="Password"
+                  value={
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {showPassword ? "docPass@123" : "••••••••"}
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() => setShowPassword(!showPassword)}
+                        sx={{ p: 0.5 }}
+                      >
+                        {showPassword ? (
+                          <VisibilityOffIcon sx={{ fontSize: 16 }} />
+                        ) : (
+                          <VisibilityIcon sx={{ fontSize: 16 }} />
+                        )}
+                      </IconButton>
+                    </Stack>
+                  }
+                />
+              </Stack>
+            </Card>
+
             {/* License & Credentials */}
             <Card
               elevation={0}
@@ -764,7 +839,7 @@ export default function DoctorProfilePage() {
           </Stack>
 
           {/* ── RIGHT TABS ── */}
-          <Stack spacing={0}>
+          <Stack spacing={0} sx={{ flex: 1, minHeight: 0, height: "100%" }}>
             <Card
               elevation={0}
               sx={{
@@ -772,9 +847,14 @@ export default function DoctorProfilePage() {
                 borderRadius: 2,
                 boxShadow: cardShadow,
                 backgroundColor: "background.paper",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+                minHeight: 0,
               }}
             >
-              <Box sx={{ px: 0.5, py: 0.5, borderBottom: lightBorder }}>
+              <Box sx={{ px: 0.5, py: 0.5, borderBottom: lightBorder, flexShrink: 0 }}>
                 <CommonTabs
                   tabs={tabs}
                   value={activeTab}
@@ -783,7 +863,7 @@ export default function DoctorProfilePage() {
                 />
               </Box>
 
-              <Box sx={{ p: 2.5 }}>
+              <Box sx={{ p: 2.5, flex: 1, overflowY: "auto", minHeight: 0 }}>
                 {/* ── OVERVIEW TAB ── */}
                 <TabPanel value={activeTab} tab="overview">
                   <SectionTitle

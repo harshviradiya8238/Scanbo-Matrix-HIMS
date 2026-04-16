@@ -37,6 +37,7 @@ import { AddEventDialog } from "./components/dialogs/AddEventDialog";
 import { SignCloseDialog } from "./components/dialogs/SignCloseDialog";
 import { VentSettingsDialog } from "./components/dialogs/VentSettingsDialog";
 import { FinalSignoffDialog } from "./components/dialogs/FinalSignoffDialog";
+import { alpha } from "@mui/material";
 
 export default function AnesthesiaPage() {
   const [mode, setMode] = React.useState<ViewMode>("select");
@@ -317,9 +318,9 @@ export default function AnesthesiaPage() {
 
   return (
     <PageTemplate title="Anesthesia Module" fullHeight>
-      <Box
+      <Stack
         sx={{
-          height: "100%",
+          flex: 1,
           minHeight: 0,
           display: "flex",
           flexDirection: "column",
@@ -331,7 +332,6 @@ export default function AnesthesiaPage() {
             borderBottomColor: UI_THEME.border,
           },
           "& .MuiTableHead-root .MuiTableCell-root": {
-            backgroundColor: UI_THEME.tableHead,
             color: UI_THEME.textSecondary,
             fontSize: "0.68rem",
             textTransform: "uppercase",
@@ -374,7 +374,7 @@ export default function AnesthesiaPage() {
             onOpenFinalSignOff={() => setFinalSignoffOpen(true)}
           />
         )}
-      </Box>
+      </Stack>
 
       <OrBoardDialog
         open={orBoardOpen}

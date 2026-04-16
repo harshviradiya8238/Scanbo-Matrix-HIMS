@@ -580,8 +580,9 @@ export default function InventoryGrnPage() {
       title="Goods Receipt Note"
       subtitle="Operational console for stock receipt against purchase orders."
       currentPageTitle="GRN"
+      fullHeight
     >
-      {/* <Box sx={{ px: 3, py: 3 }}> */}
+      
       <WorkspaceHeaderCard sx={{ mb: 3 }}>
         <Stack
           direction="row"
@@ -619,7 +620,7 @@ export default function InventoryGrnPage() {
         </Stack>
       </WorkspaceHeaderCard>
 
-      <Stack spacing={3}>
+     <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         {/* Permission alerts */}
         {!canRead && (
           <Alert severity="error" sx={{ borderRadius: 2 }}>
@@ -661,7 +662,7 @@ export default function InventoryGrnPage() {
             </Box>
 
             {/* Full-width Receipt History DataGrid */}
-            <Box>
+            {/* <Box> */}
               {/* <PanelCard
                 title="Receipt History"
                 icon={<Inventory2Icon sx={{ fontSize: 20 }} />}
@@ -715,7 +716,7 @@ export default function InventoryGrnPage() {
                 emptyDescription="New GRN recordings will appear here after posting."
               />
               {/* </PanelCard> */}
-            </Box>
+            {/* </Box> */}
 
             {/* ── GRN Recording Dialog ────────────────────────────────────────── */}
             <Dialog

@@ -19,8 +19,8 @@ export default function QCSamplesPage() {
   const handleShowVisual = React.useCallback(() => setActiveView("visual"), []);
 
   return (
-    <PageTemplate title="Quality Control Console" currentPageTitle="QC Samples">
-      <Stack spacing={1.25}>
+    <PageTemplate title="Quality Control Console" currentPageTitle="QC Samples" fullHeight>
+      <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         <QCSamplesHeader
           activeView={activeView}
           onShowList={handleShowList}

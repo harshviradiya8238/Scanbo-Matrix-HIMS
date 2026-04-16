@@ -31,7 +31,7 @@ export function getLabStatCardSx(theme: Theme, tone: 'primary' | 'success' | 'wa
 
 export function getLabChipSx(theme: Theme, color: string) {
   return {
-    bgcolor: alpha(color, 0.12),
+    // bgcolor: alpha(color, 0.12),
     color,
     border: 'none',
     fontWeight: 600,

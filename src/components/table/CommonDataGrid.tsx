@@ -13,11 +13,16 @@ import {
   TableHead,
   TablePagination,
   TableRow,
+  TableSortLabel,
   TextField,
   Typography,
   Paper,
+  Tooltip,
+  IconButton,
 } from "@/src/ui/components/atoms";
-import { Search as SearchIcon } from "@mui/icons-material";
+import { Search as SearchIcon, ViewColumn as ViewColumnIcon } from "@mui/icons-material";
+import { alpha } from "@mui/material/styles";
+import ColumnManagementDialog from "./ColumnManagementDialog";
 import { DataGridProps } from "@mui/x-data-grid";
 import {
   AppLoaderOverlay,
@@ -36,6 +41,7 @@ export type CommonColumn<R> = {
   renderCell?: (row: R) => React.ReactNode;
   renderHeader?: () => React.ReactNode;
   valueGetter?: (row: R) => string | number | null | undefined;
+  sortable?: boolean;
 };
 
 /* ─── Filter Dropdown ────────────────────────────────────────────────────── */
@@ -135,22 +141,87 @@ export default function CommonDataGrid<R extends object>({
 
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(defaultRowsPerPage);
+  const [orderBy, setOrderBy] = React.useState<string | null>(null);
+  const [order, setOrder] = React.useState<"asc" | "desc">("asc");
 
-  /* ── client-side search ── */
-  const filtered = React.useMemo(() => {
+  /* ── Column Management ── */
+  const [columnVisibility, setColumnVisibility] = React.useState<Record<string, boolean>>(() =>
+    columns.reduce((acc, col) => ({ ...acc, [col.field]: true }), {})
+  );
+  const [columnOrder, setColumnOrder] = React.useState<string[]>(() =>
+    columns.map((col) => col.field)
+  );
+  const [isColumnPickerOpen, setIsColumnPickerOpen] = React.useState(false);
+
+  // Sync state if columns prop changes significantly
+  React.useEffect(() => {
+    setColumnOrder(columns.map((col) => col.field));
+    setColumnVisibility(columns.reduce((acc, col) => ({ ...acc, [col.field]: true }), {}));
+  }, [columns]);
+
+  const visibleColumns = React.useMemo(() => {
+    return columnOrder
+      .map((field) => columns.find((col) => col.field === field))
+      .filter((col): col is CommonColumn<R> => !!col && columnVisibility[col.field] !== false);
+  }, [columns, columnOrder, columnVisibility]);
+
+  const handleSort = (property: string) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+
+  /* ── processed rows (search + sort) ── */
+  const processedRows = React.useMemo(() => {
+    let result = [...rows];
+
+    // Search
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((row) => {
-      const fields = searchFields ?? Object.keys(row);
-      return fields.some((field) => {
-        const val = (row as Record<string, unknown>)[field];
-        if (val == null) return false;
-        return String(val).toLowerCase().includes(q);
+    if (q) {
+      result = result.filter((row) => {
+        const fields = searchFields ?? Object.keys(row);
+        return fields.some((field) => {
+          const val = (row as Record<string, unknown>)[field];
+          if (val == null) return false;
+          return String(val).toLowerCase().includes(q);
+        });
       });
-    });
-  }, [rows, search, searchFields]);
+    }
 
-  const paginated = filtered.slice(
+    // Sort
+    if (orderBy) {
+      const col = visibleColumns.find((c) => c.field === orderBy);
+      result.sort((a, b) => {
+        let valA: any;
+        let valB: any;
+
+        if (col?.valueGetter) {
+          valA = col.valueGetter(a);
+          valB = col.valueGetter(b);
+        } else {
+          valA = (a as Record<string, any>)[orderBy];
+          valB = (b as Record<string, any>)[orderBy];
+        }
+
+        if (valA === valB) return 0;
+        if (valA == null) return 1;
+        if (valB == null) return -1;
+
+        // Custom string comparison for better sorting (case-insensitive)
+        if (typeof valA === "string" && typeof valB === "string") {
+          const compare = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+          return order === "asc" ? compare : -compare;
+        }
+
+        const compare = valA < valB ? -1 : 1;
+        return order === "asc" ? compare : -compare;
+      });
+    }
+
+    return result;
+  }, [rows, search, searchFields, orderBy, order, columns]);
+
+  const paginated = processedRows.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage,
   );
@@ -167,6 +238,17 @@ export default function CommonDataGrid<R extends object>({
     }
     const v = (row as Record<string, unknown>)[col.field];
     return v != null ? String(v) : "—";
+  };
+
+  const handleApplyColumns = (visibility: Record<string, boolean>, order: string[]) => {
+    setColumnVisibility(visibility);
+    setColumnOrder(order);
+    setIsColumnPickerOpen(false);
+  };
+
+  const handleResetColumns = () => {
+    setColumnVisibility(columns.reduce((acc, col) => ({ ...acc, [col.field]: true }), {}));
+    setColumnOrder(columns.map((col) => col.field));
   };
 
   const rowKey = (row: R, index: number) => (getRowId ? getRowId(row) : index);
@@ -260,6 +342,21 @@ export default function CommonDataGrid<R extends object>({
           ))}
 
           {toolbarRight}
+
+          <Tooltip title="Column Chooser">
+            <IconButton
+              size="small"
+              onClick={() => setIsColumnPickerOpen(true)}
+              sx={{
+                bgcolor: alpha("#007FFF", 0.05),
+                color: "primary.main",
+                borderRadius: 2,
+                "&:hover": { bgcolor: alpha("#007FFF", 0.1) },
+              }}
+            >
+              <ViewColumnIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Stack>
       )}
 
@@ -295,19 +392,38 @@ export default function CommonDataGrid<R extends object>({
               }}
             >
               {showSerialNo && <TableCell width={60}>Sr. No.</TableCell>}
-              {columns.map((col) => (
+              {visibleColumns.map((col) => (
                 <TableCell
                   key={col.field}
                   align={col.align ?? "left"}
-                  sx={
-                    col.flex
+                  sortDirection={orderBy === col.field ? order : false}
+                  sx={{
+                    ...(col.flex
                       ? { width: "auto" }
                       : col.width
                         ? { width: col.width, minWidth: col.width }
-                        : {}
-                  }
+                        : {}),
+                    // Add pointer cursor if sortable
+                    cursor: col.sortable !== false && col.field !== 'actions' ? "pointer" : "default",
+                  }}
                 >
-                  {col.renderHeader ? col.renderHeader() : col.headerName}
+                  {col.sortable !== false && col.field !== 'actions' ? (
+                    <TableSortLabel
+                      active={orderBy === col.field}
+                      direction={orderBy === col.field ? order : "asc"}
+                      onClick={() => handleSort(col.field)}
+                      sx={{
+                        "& .MuiTableSortLabel-icon": {
+                          fontSize: "12px !important",
+                          opacity: "1 !important",
+                        },
+                      }}
+                    >
+                      {col.renderHeader ? col.renderHeader() : col.headerName}
+                    </TableSortLabel>
+                  ) : (
+                    col.renderHeader ? col.renderHeader() : col.headerName
+                  )}
                 </TableCell>
               ))}
             </TableRow>
@@ -318,13 +434,13 @@ export default function CommonDataGrid<R extends object>({
             {isLoadingSkeleton ? (
               <TableSkeletonRows
                 rowCount={rowsPerPage}
-                columnCount={columns.length}
+                columnCount={visibleColumns.length}
                 showSerialNo={showSerialNo}
               />
             ) : paginated.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length + (showSerialNo ? 1 : 0)}
+                  colSpan={visibleColumns.length + (showSerialNo ? 1 : 0)}
                   align="center"
                   sx={{ py: 6, border: 0 }}
                 >
@@ -370,7 +486,7 @@ export default function CommonDataGrid<R extends object>({
                       {page * rowsPerPage + index + 1}
                     </TableCell>
                   )}
-                  {columns.map((col) => (
+                  {visibleColumns.map((col) => (
                     <TableCell
                       key={col.field}
                       align={col.align ?? "left"}
@@ -395,7 +511,7 @@ export default function CommonDataGrid<R extends object>({
       {/* ── Pagination — always at bottom ── */}
       <TablePagination
         component="div"
-        count={filtered.length}
+        count={processedRows.length}
         page={page}
         onPageChange={(_, newPage) => setPage(newPage)}
         rowsPerPage={rowsPerPage}
@@ -412,6 +528,15 @@ export default function CommonDataGrid<R extends object>({
           "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
             { fontSize: "0.8rem" },
         }}
+      />
+      <ColumnManagementDialog
+        open={isColumnPickerOpen}
+        onClose={() => setIsColumnPickerOpen(false)}
+        columns={columns}
+        columnVisibility={columnVisibility}
+        columnOrder={columnOrder}
+        onApply={handleApplyColumns}
+        onReset={handleResetColumns}
       />
     </Paper>
   );

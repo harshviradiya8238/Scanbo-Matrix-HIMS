@@ -57,7 +57,7 @@ interface RadiologyWorklistProps {
   defaultTab?: string;
 }
 
-export default function RadiologyWorklist({}: RadiologyWorklistProps) {
+export default function RadiologyWorklist({ }: RadiologyWorklistProps) {
   const theme = useTheme();
   const router = useRouter();
 
@@ -96,127 +96,130 @@ export default function RadiologyWorklist({}: RadiologyWorklistProps) {
   const worklistColumns: CommonColumn<
     ModalityCase & { displayState: WorklistState }
   >[] = [
-   
-    {
-      field: "patientName",
-      headerName: "Patient Name",
-      width: 220,
-      renderCell: (row) => (
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Avatar
-            sx={{
-              width: 36,
-              height: 36,
-              fontSize: 14,
-              fontWeight: 700,
 
-              bgcolor: alpha(theme.palette.primary.main, 0.1),
-              color: "primary.main",
-              borderRadius: "50%",
-            }}
-          >
-            {row.patientName
-              .split(" ")
-              .map((n) => n[0])
-              .join("")}
-          </Avatar>
-          <Box>
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 700, lineHeight: 1.2 }}
+      {
+        field: "patientName",
+        headerName: "Patient Name",
+        width: 220,
+        renderCell: (row) => (
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Avatar
+              sx={{
+                width: 36,
+                height: 36,
+                fontSize: 14,
+                fontWeight: 700,
+
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                color: "primary.main",
+                borderRadius: "50%",
+              }}
             >
-              {row.patientName}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {row.mrn}
-            </Typography>
-          </Box>
-        </Stack>
-      ),
-    },
-     {
-      field: "study",
-      headerName: "Study",
-    },
-    {
-      field: "room",
-      headerName: "Room",
-    },
-    {
-      field: "prepStatus",
-      headerName: "Prep",
-    },
-    {
-      field: "priority",
-      headerName: "Priority",
-      renderCell: (row) => (
-        <Chip
-          size="small"
-          label={row.priority}
-          color={workflowPriorityColor(row.priority)}
-        />
-      ),
-    },
-    {
-      field: "displayState",
-      headerName: "State",
-      renderCell: (row) => (
-        <Chip
-          size="small"
-          label={row.displayState}
-          color={worklistStatusColor(row.displayState)}
-        />
-      ),
-    },
-    {
-      field: "actions",
-      headerName: "Actions",
-      align: "center",
-      renderCell: (row) => (
-        <Stack direction="row" spacing={0.75}>
-          <Button
+              {row.patientName
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
+            </Avatar>
+            <Box>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 700, lineHeight: 1.2 }}
+              >
+                {row.patientName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {row.mrn}
+              </Typography>
+            </Box>
+          </Stack>
+        ),
+      },
+      {
+        field: "study",
+        headerName: "Study",
+      },
+      {
+        field: "room",
+        headerName: "Room",
+      },
+      {
+        field: "prepStatus",
+        headerName: "Prep",
+      },
+      {
+        field: "priority",
+        headerName: "Priority",
+        renderCell: (row) => (
+          <Chip
             size="small"
-            variant="text"
-            startIcon={<TaskAltIcon />}
-            disabled={
-              row.displayState === "In Progress" ||
-              row.displayState === "Sent to PACS"
-            }
-            onClick={(event) => {
-              event.stopPropagation();
-              setWorklistStatusOverrides((prev) => ({
-                ...prev,
-                [row.id]: "In Progress",
-              }));
-              showSnack(`Started study: ${row.study}`, "success");
-            }}
-          >
-            Start Scan
-          </Button>
-          <Button
+            label={row.priority}
+            color={workflowPriorityColor(row.priority)}
+          />
+        ),
+      },
+      {
+        field: "displayState",
+        headerName: "State",
+        renderCell: (row) => (
+          <Chip
             size="small"
-            variant="text"
-            startIcon={<CheckCircleIcon />}
-            disabled={row.displayState === "Sent to PACS"}
-            onClick={(event) => {
-              event.stopPropagation();
-              setWorklistStatusOverrides((prev) => ({
-                ...prev,
-                [row.id]: "Sent to PACS",
-              }));
-              showSnack(`Completed and sent: ${row.study}`, "success");
-            }}
-          >
-            Complete
-          </Button>
-        </Stack>
-      ),
-    },
-  ];
+            label={row.displayState}
+            color={worklistStatusColor(row.displayState)}
+          />
+        ),
+      },
+      {
+        field: "actions",
+        headerName: "Actions",
+        align: "center",
+        renderCell: (row) => (
+          <Stack direction="row" spacing={0.75}>
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<TaskAltIcon />}
+              disabled={
+                row.displayState === "In Progress" ||
+                row.displayState === "Sent to PACS"
+              }
+              onClick={(event) => {
+                event.stopPropagation();
+                setWorklistStatusOverrides((prev) => ({
+                  ...prev,
+                  [row.id]: "In Progress",
+                }));
+                showSnack(`Started study: ${row.study}`, "success");
+              }}
+            >
+              Start Scan
+            </Button>
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<CheckCircleIcon />}
+              disabled={row.displayState === "Sent to PACS"}
+              onClick={(event) => {
+                event.stopPropagation();
+                setWorklistStatusOverrides((prev) => ({
+                  ...prev,
+                  [row.id]: "Sent to PACS",
+                }));
+                showSnack(`Completed and sent: ${row.study}`, "success");
+              }}
+            >
+              Complete
+            </Button>
+          </Stack>
+        ),
+      },
+    ];
 
   return (
-    <PageTemplate title="Technician Worklist">
-      <Stack spacing={1.25}>
+    <PageTemplate title="Technician Worklist" fullHeight>
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         <WorkspaceHeaderCard sx={{ p: 2, borderRadius: '22px' }}>
           <Stack
             direction="row"
@@ -237,20 +240,17 @@ export default function RadiologyWorklist({}: RadiologyWorklistProps) {
           </Stack>
         </WorkspaceHeaderCard>
 
-        <Grid container spacing={2} alignItems="stretch">
-          <Grid item xs={12} sx={{ display: "flex" }}>
-            <CommonDataGrid
-              showSerialNo
-              columns={worklistColumns}
-              rows={worklistRowsWithStatus}
-              tableHeight={430}
-              searchPlaceholder="Search worklist..."
-              onRowClick={(row) => {
-                router.push(`/ipd/rounds?tab=procedures&mrn=${row.mrn}`);
-              }}
-            />
-          </Grid>
-        </Grid>
+        <CommonDataGrid
+          showSerialNo
+          columns={worklistColumns}
+          rows={worklistRowsWithStatus}
+          tableHeight={430}
+          searchPlaceholder="Search worklist..."
+          onRowClick={(row) => {
+            router.push(`/ipd/rounds?tab=procedures&mrn=${row.mrn}`);
+          }}
+        />
+
       </Stack>
 
       <Snackbar

@@ -6,7 +6,7 @@ import PageTemplate from "@/src/ui/components/PageTemplate";
 import { DUMMY_PROFILES } from "./data";
 import { ProfileStats } from "./components/ProfileStats";
 import { ProfileToolbar } from "./components/ProfileToolbar";
-import { ProfilesGrid } from "./components/ProfilesGrid";
+import { AnalysisProfilesTable } from "./components/AnalysisProfilesTable";
 import { RegisterSampleDialog } from "./components/RegisterSampleDialog";
 import type { AnalysisProfile } from "./types";
 
@@ -42,13 +42,17 @@ export default function AnalysisProfilesPage() {
     <PageTemplate
       title="Analysis Profiles"
       subtitle="Define reusable test bundles to speed up sample registration"
+      fullHeight
     >
-      <Stack spacing={1.25}>
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         <ProfileStats />
 
         <ProfileToolbar activeDept={activeDept} onDeptChange={setActiveDept} />
 
-        <ProfilesGrid
+        <AnalysisProfilesTable
           profiles={filteredProfiles}
           onUseProfile={handleUseProfile}
         />

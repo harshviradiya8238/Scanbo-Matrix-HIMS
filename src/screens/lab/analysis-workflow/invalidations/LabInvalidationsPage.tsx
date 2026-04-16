@@ -165,8 +165,12 @@ export default function LabInvalidationsPage() {
     <PageTemplate
       title="Invalidations"
       subtitle="Track and manage invalidated laboratory samples"
+      fullHeight
     >
-      <Stack spacing={1.25}>
+       <Stack
+              spacing={1.25}
+              sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+            >
         <Alert
           severity="warning"
           icon={<UndoIcon />}
@@ -218,13 +222,11 @@ export default function LabInvalidationsPage() {
           </Stack>
         </WorkspaceHeaderCard>
 
-        <Box sx={{ mt: 1 }}>
           <CommonDataGrid
             rows={DUMMY_DATA}
             columns={columns}
             getRowId={(row) => row.id}
           />
-        </Box>
       </Stack>
     </PageTemplate>
   );

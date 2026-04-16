@@ -515,7 +515,10 @@ export default function VerificationTab() {
   ];
 
   return (
-    <Stack spacing={2} sx={{}}>
+    <Stack
+      spacing={1.25}
+      sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+    >
       {/* ── Top bar ── */}
       <Box
         sx={{
@@ -661,12 +664,25 @@ export default function VerificationTab() {
 
       {/* ── Data grid ── */}
 
-      <CommonDataGrid
-        rows={displayRows}
-        columns={columns}
-        getRowId={(row) => row.id}
-        hideToolbar
-      />
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          bgcolor: T.white,
+          border: `1px solid ${T.border}`,
+          borderRadius: "12px",
+          overflow: "hidden",
+        }}
+      >
+        <CommonDataGrid
+          rows={displayRows}
+          columns={columns}
+          getRowId={(row) => row.id}
+          hideToolbar
+        />
+      </Box>
     </Stack>
   );
 }

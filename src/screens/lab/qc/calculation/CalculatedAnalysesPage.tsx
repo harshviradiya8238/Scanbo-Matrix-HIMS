@@ -61,8 +61,9 @@ export default function CalculatedAnalysesPage() {
     <PageTemplate
       title="Calculated Analyses"
       subtitle="Define and manage auto-calculated laboratory tests"
+      fullHeight
     >
-      <Stack spacing={1.25}>
+     <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         <Alert
           severity="info"
           sx={{

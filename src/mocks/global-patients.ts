@@ -15,6 +15,8 @@ export interface GlobalPatient {
   lastVisit: string;
   nextAppointment?: string | null;
   tags: string[];
+  email?: string;
+  password?: string;
 }
 
 const buildPatient = (patient: Omit<GlobalPatient, 'ageGender'>): GlobalPatient => ({
@@ -36,6 +38,8 @@ export const GLOBAL_PATIENTS: GlobalPatient[] = [
     lastVisit: '2026-02-04',
     nextAppointment: '2026-02-10',
     tags: ['Diabetic', 'High Risk'],
+    email: 'aarav.nair@example.com',
+    password: '12345',
   }),
   buildPatient({
     mrn: 'MRN-245799',
@@ -50,6 +54,8 @@ export const GLOBAL_PATIENTS: GlobalPatient[] = [
     lastVisit: '2026-02-04',
     nextAppointment: '2026-02-12',
     tags: ['VIP'],
+    email: 'meera.joshi@example.com',
+    password: '12345',
   }),
   buildPatient({
     mrn: 'MRN-245802',

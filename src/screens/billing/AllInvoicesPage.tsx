@@ -7,22 +7,18 @@ import {
   Avatar,
   Box,
   Button,
+  Chip,
   IconButton,
   Stack,
   Typography,
 } from "@/src/ui/components/atoms";
-import { StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
+import { Card, StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
 import {
-  Search as SearchIcon,
-  FilterList as FilterIcon,
   FileDownload as ExportIcon,
   Print as PrintIcon,
   Visibility as ViewIcon,
   AccountBalanceWallet as PayIcon,
-  CalendarToday as DateIcon,
-  NavigateBefore as PrevIcon,
-  NavigateNext as NextIcon,
   ReceiptLong as TotalIcon,
   Update as MonthlyIcon,
   CheckCircle as PaidIcon,
@@ -34,21 +30,6 @@ import CommonDataGrid, {
   type CommonColumn,
 } from "@/src/components/table/CommonDataGrid";
 import { useUser } from "@/src/core/auth/UserContext";
-
-// --- Theme Styles ---
-
-const HEADER_SX = {
-  fontWeight: 700,
-  textTransform: "uppercase" as const,
-  fontSize: "0.7rem",
-  letterSpacing: "0.06em",
-  color: "text.secondary",
-  py: 1.25,
-  borderBottom: "1px solid",
-  borderColor: "rgba(17, 114, 186, 0.12)",
-  bgcolor: "rgba(17, 114, 186, 0.03)",
-  whiteSpace: "nowrap" as const,
-};
 
 // --- Mock Data ---
 
@@ -681,37 +662,42 @@ export default function AllInvoicesPage() {
       title="All Invoices"
       subtitle="Comprehensive view of all hospital invoices and billing history"
       currentPageTitle="All Invoices"
+      fullHeight
     >
-      <Stack spacing={1.25}>
-        {/* Header Card */}
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         <WorkspaceHeaderCard>
           <Stack
-            direction="row"
-            alignItems="center"
+            direction={{ xs: "column", md: "row" }}
+            alignItems={{ xs: "flex-start", md: "center" }}
             justifyContent="space-between"
-            flexWrap="wrap"
-            gap={2}
+            spacing={1.25}
           >
             <Box>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 900,
-                  color: "primary.main",
-                  letterSpacing: "-0.02em",
-                }}
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                sx={{ mb: 0.5 }}
               >
-                All Invoices
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: "text.secondary", mt: 0.5, fontWeight: 500 }}
-              >
-                Manage all patient invoices, track payments, and review billing
-                history.
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
+                >
+                  All Invoices
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip size="small" color="primary" label="Billing Ledger" />
+                  <Chip size="small" color="info" variant="outlined" label="OPD + IPD History" />
+                </Stack>
+              </Stack>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Manage all patient invoices, track payments, and review billing history in one table.
               </Typography>
             </Box>
-            <Stack direction="row" spacing={1.5}>
+            <Stack direction="row" spacing={1.5} flexWrap="wrap">
               <Button
                 variant="outlined"
                 startIcon={<ExportIcon />}
@@ -740,15 +726,16 @@ export default function AllInvoicesPage() {
             </Stack>
           </Stack>
         </WorkspaceHeaderCard>
-        {/* Metric Cards Row */}
+
         <Box
           sx={{
             display: "grid",
-            gap: 1.5,
+            gap: 1.25,
             gridTemplateColumns: {
-              xs: "repeat(2, 1fr)",
-              sm: "repeat(3, 1fr)",
-              lg: "repeat(6, 1fr)",
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+              lg: "repeat(3, minmax(0, 1fr))",
+              xl: "repeat(6, minmax(0, 1fr))",
             },
           }}
         >
@@ -763,14 +750,14 @@ export default function AllInvoicesPage() {
           ))}
         </Box>
 
-        {/* Patient Table Paper */}
-        <Box sx={{ mt: 2 }}>
+        {/* <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}> */}
           <CommonDataGrid<any>
             rows={filteredInvoices}
             columns={invoiceColumns}
             getRowId={(row) => row.id}
             searchPlaceholder="Search patient, invoice #..."
             searchFields={["patient", "id", "uhid"]}
+            showSerialNo
             filterDropdowns={[
               {
                 id: "statusFilter",
@@ -831,10 +818,20 @@ export default function AllInvoicesPage() {
                 >
                   Print
                 </Button>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => {
+                    setStatusFilter("All Status");
+                    setTypeFilter("All Types");
+                  }}
+                >
+                  Clear
+                </Button>
               </Stack>
             }
           />
-        </Box>
+        {/* </Card> */}
       </Stack>
     </PageTemplate>
   );

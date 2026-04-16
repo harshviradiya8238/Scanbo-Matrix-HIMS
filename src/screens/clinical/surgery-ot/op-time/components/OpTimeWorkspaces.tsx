@@ -65,7 +65,7 @@ export const PreOpWorkspacePanel: React.FC<WorkspaceProps> = ({
   preOpVitals,
   togglePreOpChecklistItem,
 }) => (
-  <Stack spacing={1.1}>
+  <Stack spacing={1.1} sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: 0.5 }}>
     <Grid container spacing={1.1}>
       <Grid item xs={12} md={4}>
         <Stack spacing={1.1} sx={{ height: "100%" }}>
@@ -235,7 +235,8 @@ export const IntraOpWorkspacePanel: React.FC<WorkspaceProps> = ({
   onAddIntraOpMedClick,
   intraOpEvents,
 }) => (
-  <Grid container spacing={1.1}>
+  <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: 0.5 }}>
+    <Grid container spacing={1.1}>
     <Grid item xs={12} md={7}>
       <Card elevation={0} sx={workspaceCardSx}>
         <Stack
@@ -358,6 +359,7 @@ export const IntraOpWorkspacePanel: React.FC<WorkspaceProps> = ({
       </Card>
     </Grid>
   </Grid>
+</Box>
 );
 
 export const PostOpWorkspacePanel: React.FC<WorkspaceProps> = ({
@@ -368,7 +370,7 @@ export const PostOpWorkspacePanel: React.FC<WorkspaceProps> = ({
   dischargeMedicationColumns,
   onAddDischargeClick,
 }) => (
-  <Stack spacing={1.1}>
+  <Stack spacing={1.1} sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: 0.5 }}>
     <Grid container spacing={1.1}>
       <Grid item xs={12} md={7}>
         <Card elevation={0} sx={{ ...workspaceCardSx, height: "auto" }}>

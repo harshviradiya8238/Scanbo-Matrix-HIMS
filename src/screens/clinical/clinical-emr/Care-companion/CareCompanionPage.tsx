@@ -103,8 +103,12 @@ export default function CareCompanionPage() {
       title="Care Companion"
       subtitle="Post-Discharge Patient Management"
       currentPageTitle="Care Companion"
+      fullHeight
     >
-      <Stack spacing={2}>
+       <Stack
+              spacing={1.25}
+              sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+            >
         <Header
           onAddNewCarePlan={handleAddNewCarePlan}
           onEnrollPatient={handleEnrollPatient}
@@ -112,7 +116,6 @@ export default function CareCompanionPage() {
 
         <StatsSection patients={patients} />
 
-        <Box>
           <PatientTable
             patients={filteredPatients}
             onEditPatient={handleEditPatient}
@@ -134,7 +137,6 @@ export default function CareCompanionPage() {
               </Stack>
             }
           />
-        </Box>
 
         <FilterDrawer
           open={filterDrawerOpen}

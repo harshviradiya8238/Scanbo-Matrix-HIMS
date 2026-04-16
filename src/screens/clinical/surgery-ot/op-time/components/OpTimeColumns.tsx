@@ -7,10 +7,7 @@ import {
   Stack,
   Typography,
 } from "@/src/ui/components/atoms";
-import {
-  CommonTableColumn,
-  CommonTableFilter,
-} from "@/src/ui/components/molecules/CommonTable";
+import { CommonColumn } from "@/src/components/table/CommonDataGrid";
 import { EnterpriseStatusChip } from "../../../components/EnterpriseUi";
 import {
   OtCase,
@@ -29,11 +26,11 @@ export const getCaseBoardColumns = (
   roomLabelById: Map<string, string>,
   selectedCaseId: string,
   openWorkspace: (row: OtCase) => void,
-): CommonTableColumn<OtCase>[] => [
+): CommonColumn<OtCase>[] => [
   {
-    id: "time",
-    label: "Time",
-    minWidth: 96,
+    field: "time",
+    headerName: "Time",
+    width: 96,
     renderCell: (row) => (
       <Typography
         sx={{
@@ -47,9 +44,10 @@ export const getCaseBoardColumns = (
     ),
   },
   {
-    id: "case",
-    label: "Case",
-    minWidth: 220,
+    field: "case",
+    headerName: "Case",
+    width: 220,
+    flex: 1,
     renderCell: (row) => (
       <Stack spacing={0.2}>
         <Typography
@@ -68,9 +66,10 @@ export const getCaseBoardColumns = (
     ),
   },
   {
-    id: "procedure",
-    label: "Procedure",
-    minWidth: 230,
+    field: "procedure",
+    headerName: "Procedure",
+    width: 230,
+    flex: 1,
     renderCell: (row) => (
       <Stack spacing={0.2}>
         <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -83,9 +82,10 @@ export const getCaseBoardColumns = (
     ),
   },
   {
-    id: "team",
-    label: "Surgical Team",
-    minWidth: 190,
+    field: "team",
+    headerName: "Surgical Team",
+    width: 190,
+    flex: 1,
     renderCell: (row) => (
       <Stack spacing={0.2}>
         <Typography variant="caption">{row.surgeon}</Typography>
@@ -96,9 +96,9 @@ export const getCaseBoardColumns = (
     ),
   },
   {
-    id: "room",
-    label: "Room",
-    minWidth: 96,
+    field: "room",
+    headerName: "Room",
+    width: 100,
     renderCell: (row) => (
       <Chip
         size="small"
@@ -114,9 +114,9 @@ export const getCaseBoardColumns = (
     ),
   },
   {
-    id: "priority",
-    label: "Priority",
-    minWidth: 95,
+    field: "priority",
+    headerName: "Priority",
+    width: 95,
     renderCell: (row) => (
       <Chip
         size="small"
@@ -126,17 +126,17 @@ export const getCaseBoardColumns = (
     ),
   },
   {
-    id: "status",
-    label: "Status",
-    minWidth: 110,
+    field: "status",
+    headerName: "Status",
+    width: 110,
     renderCell: (row) => (
       <Chip size="small" label={row.status} color={STATUS_COLOR[row.status]} />
     ),
   },
   {
-    id: "prep",
-    label: "Prep",
-    minWidth: 130,
+    field: "prep",
+    headerName: "Prep",
+    width: 130,
     renderCell: (row) => (
       <Stack spacing={0.45} sx={{ minWidth: 95 }}>
         <Typography
@@ -157,14 +157,15 @@ export const getCaseBoardColumns = (
     ),
   },
   {
-    id: "action",
-    label: "Action",
-    minWidth: 132,
+    field: "action",
+    headerName: "Action",
+    width: 140,
     renderCell: (row) => (
       <Button
         size="small"
         variant={selectedCaseId === row.id ? "contained" : "outlined"}
         onClick={() => openWorkspace(row)}
+        sx={{ textTransform: "none" }}
       >
         Open Workspace
       </Button>
@@ -172,74 +173,32 @@ export const getCaseBoardColumns = (
   },
 ];
 
-export const getBoardFilters = (): CommonTableFilter<OtCase>[] => [
+export const getCountColumns = (): CommonColumn<InstrumentCountRow>[] => [
   {
-    id: "status",
-    label: "Status",
-    allValue: "all",
-    defaultValue: "all",
-    options: [
-      { label: "All Statuses", value: "all" },
-      { label: "Scheduled", value: "Scheduled" },
-      { label: "Pre-Op", value: "Pre-Op" },
-      { label: "In OR", value: "In OR" },
-      { label: "Closing", value: "Closing" },
-      { label: "PACU", value: "PACU" },
-      { label: "Completed", value: "Completed" },
-      { label: "Cancelled", value: "Cancelled" },
-    ],
-    getValue: (row) => row.status,
-  },
-  {
-    id: "room",
-    label: "Room",
-    allValue: "all",
-    defaultValue: "all",
-    options: [{ label: "All Rooms", value: "all" } as any].concat(
-      ROOM_OPTIONS.map((room) => ({ label: room.label, value: room.id })),
-    ),
-    getValue: (row) => row.roomId,
-  },
-  {
-    id: "priority",
-    label: "Priority",
-    allValue: "all",
-    defaultValue: "all",
-    options: [
-      { label: "All Priorities", value: "all" },
-      { label: "STAT", value: "STAT" },
-      { label: "Urgent", value: "Urgent" },
-      { label: "Elective", value: "Elective" },
-    ],
-    getValue: (row) => row.priority,
-  },
-];
-
-export const getCountColumns = (): CommonTableColumn<InstrumentCountRow>[] => [
-  {
-    id: "item",
-    label: "Item",
-    minWidth: 120,
+    field: "item",
+    headerName: "Item",
+    width: 120,
+    flex: 1,
     renderCell: (row) => <Typography variant="body2">{row.item}</Typography>,
   },
   {
-    id: "initial",
-    label: "Initial",
-    minWidth: 80,
+    field: "initial",
+    headerName: "Initial",
+    width: 80,
     renderCell: (row) => (
       <Typography variant="caption">{row.initial}</Typography>
     ),
   },
   {
-    id: "final",
-    label: "Final",
-    minWidth: 80,
+    field: "final",
+    headerName: "Final",
+    width: 80,
     renderCell: (row) => <Typography variant="caption">{row.final}</Typography>,
   },
   {
-    id: "status",
-    label: "Status",
-    minWidth: 100,
+    field: "status",
+    headerName: "Status",
+    width: 100,
     renderCell: (row) => (
       <EnterpriseStatusChip
         label={row.status}
@@ -249,29 +208,30 @@ export const getCountColumns = (): CommonTableColumn<InstrumentCountRow>[] => [
   },
 ];
 
-export const getMedicationColumns = (): CommonTableColumn<MedicationRow>[] => [
+export const getMedicationColumns = (): CommonColumn<MedicationRow>[] => [
   {
-    id: "drug",
-    label: "Drug",
-    minWidth: 130,
+    field: "drug",
+    headerName: "Drug",
+    width: 130,
+    flex: 1,
     renderCell: (row) => <Typography variant="body2">{row.drug}</Typography>,
   },
   {
-    id: "dose",
-    label: "Dose",
-    minWidth: 80,
+    field: "dose",
+    headerName: "Dose",
+    width: 80,
     renderCell: (row) => <Typography variant="caption">{row.dose}</Typography>,
   },
   {
-    id: "route",
-    label: "Route",
-    minWidth: 90,
+    field: "route",
+    headerName: "Route",
+    width: 90,
     renderCell: (row) => <Typography variant="caption">{row.route}</Typography>,
   },
   {
-    id: "time",
-    label: "Time",
-    minWidth: 85,
+    field: "time",
+    headerName: "Time",
+    width: 85,
     renderCell: (row) => (
       <Typography
         variant="caption"
@@ -286,11 +246,12 @@ export const getMedicationColumns = (): CommonTableColumn<MedicationRow>[] => [
 ];
 
 export const getDischargeMedicationColumns =
-  (): CommonTableColumn<DischargeMedicationRow>[] => [
+  (): CommonColumn<DischargeMedicationRow>[] => [
     {
-      id: "drug",
-      label: "Drug",
-      minWidth: 130,
+      field: "drug",
+      headerName: "Drug",
+      width: 130,
+      flex: 1,
       renderCell: (row) => (
         <Typography variant="body2" sx={{ fontWeight: 600 }}>
           {row.drug}
@@ -298,33 +259,34 @@ export const getDischargeMedicationColumns =
       ),
     },
     {
-      id: "dose",
-      label: "Dose",
-      minWidth: 80,
+      field: "dose",
+      headerName: "Dose",
+      width: 80,
       renderCell: (row) => (
         <Typography variant="caption">{row.dose}</Typography>
       ),
     },
     {
-      id: "frequency",
-      label: "Freq",
-      minWidth: 70,
+      field: "frequency",
+      headerName: "Freq",
+      width: 70,
       renderCell: (row) => (
         <Typography variant="caption">{row.frequency}</Typography>
       ),
     },
     {
-      id: "duration",
-      label: "Duration",
-      minWidth: 95,
+      field: "duration",
+      headerName: "Duration",
+      width: 95,
       renderCell: (row) => (
         <Typography variant="caption">{row.duration}</Typography>
       ),
     },
     {
-      id: "instructions",
-      label: "Instructions",
-      minWidth: 130,
+      field: "instructions",
+      headerName: "Instructions",
+      width: 130,
+      flex: 1,
       renderCell: (row) => (
         <Typography variant="caption" color="text.secondary">
           {row.instructions}

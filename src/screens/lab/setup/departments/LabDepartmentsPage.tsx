@@ -4,7 +4,7 @@ import * as React from "react";
 import { Stack } from "@/src/ui/components/atoms";
 import PageTemplate from "@/src/ui/components/PageTemplate";
 import { DepartmentDialog } from "./components/DepartmentDialog";
-import { DepartmentsGrid } from "./components/DepartmentsGrid";
+import { LabDepartmentsTable } from "./components/LabDepartmentsTable";
 import { LabDepartmentsHeader } from "./components/LabDepartmentsHeader";
 import { DUMMY_DATA } from "./data";
 import type { Department } from "./types";
@@ -54,11 +54,15 @@ export default function LabDepartmentsPage() {
     <PageTemplate
       title="Laboratory Departments"
       subtitle="Configure and manage diagnostic departments"
+      fullHeight
     >
-      <Stack spacing={1.25}>
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         <LabDepartmentsHeader onAdd={handleOpenModal} />
 
-        <DepartmentsGrid departments={departments} onEdit={handleOpenModal} />
+        <LabDepartmentsTable departments={departments} onEdit={handleOpenModal} />
 
         <DepartmentDialog
           open={modalOpen}

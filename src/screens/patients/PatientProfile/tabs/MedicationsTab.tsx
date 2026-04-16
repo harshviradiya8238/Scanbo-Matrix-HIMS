@@ -99,12 +99,80 @@ import {
 } from "../utils/utils";
 import { PatientProfileData } from "../hooks/usePatientProfileData";
 
+import CommonDataGrid, {
+  CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
+
 interface MedicationsTabProps {
   data: PatientProfileData;
 }
 
 export function MedicationsTab({ data }: MedicationsTabProps) {
-  const { activeTab, tabHeaderSx, medicationTableRows, theme, patient } = data;
+  const { activeTab, tabHeaderSx, medicationTableRows, theme } = data;
+
+  const columns: CommonColumn<any>[] = [
+    {
+      field: "name",
+      headerName: "Medication",
+      width: 250,
+      renderCell: (row) => (
+        <Stack spacing={0.25}>
+          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+            {row.name}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {row.subtitle}
+          </Typography>
+        </Stack>
+      ),
+    },
+    {
+      field: "dosage",
+      headerName: "Dosage & Frequency",
+      width: 200,
+    },
+    {
+      field: "prescriber",
+      headerName: "Prescriber",
+      width: 180,
+    },
+    {
+      field: "startDate",
+      headerName: "Start Date",
+      width: 150,
+      renderCell: (row) => (
+        <Typography variant="body2">{formatLongDate(row.startDate)}</Typography>
+      ),
+    },
+    {
+      field: "status",
+      headerName: "Status",
+      width: 120,
+      renderCell: (row) => (
+        <Chip
+          label={row.status}
+          size="small"
+          sx={{
+            fontWeight: 600,
+            backgroundColor:
+              row.status === "Active"
+                ? alpha(theme.palette.success.main, 0.12)
+                : alpha(theme.palette.text.primary, 0.08),
+            color:
+              row.status === "Active"
+                ? theme.palette.success.main
+                : theme.palette.text.secondary,
+          }}
+        />
+      ),
+    },
+    {
+      field: "refills",
+      headerName: "Refills",
+      width: 130,
+    },
+  ];
+
   return (
     <TabPanel value={activeTab} tab="medications">
       <Stack direction="row" spacing={1} alignItems="center" sx={tabHeaderSx}>
@@ -113,120 +181,15 @@ export function MedicationsTab({ data }: MedicationsTabProps) {
           Medications
         </Typography>
       </Stack>
-      {medicationTableRows.length ? (
-        <TableContainer
-          sx={{
-            borderRadius: 2,
-            overflow: "hidden",
-            backgroundColor: "transparent",
-          }}
-        >
-          <Table
-            size="small"
-            sx={{
-              borderCollapse: "collapse",
-              "& .MuiTableCell-root": {
-                borderBottom: `1px solid ${alpha(theme.palette.text.primary, 0.06)}`,
-              },
-              "& .MuiTableRow-root:last-of-type .MuiTableCell-root": {
-                borderBottom: "none",
-              },
-            }}
-          >
-            <TableHead
-              sx={{
-                "& .MuiTableRow-root": {
-                  boxShadow: `inset 0 -1px 0 ${alpha(theme.palette.text.primary, 0.12)}`,
-                },
-                "& .MuiTableCell-root": {
-                  color: "text.secondary",
-                  fontWeight: 700,
-                  borderBottom: `1px solid ${alpha(theme.palette.text.primary, 0.12)}`,
-                  backgroundColor: alpha(theme.palette.text.primary, 0.05),
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                  fontSize: "0.8rem",
-                },
-                "& .MuiTableCell-root:first-of-type": {
-                  borderTopLeftRadius: 0,
-                },
-                "& .MuiTableCell-root:last-of-type": {
-                  borderTopRightRadius: 0,
-                },
-              }}
-            >
-              <TableRow>
-                <TableCell>Medication</TableCell>
-                <TableCell>Dosage & Frequency</TableCell>
-                <TableCell>Prescriber</TableCell>
-                <TableCell>Start Date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Refills</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {medicationTableRows.map((med: any) => (
-                <TableRow
-                  key={med.name}
-                  sx={{
-                    "&:hover": {
-                      backgroundColor: alpha(theme.palette.text.primary, 0.03),
-                    },
-                  }}
-                >
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      {med.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {med.subtitle}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {med.dosage}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{med.prescriber}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {formatLongDate(med.startDate)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={med.status}
-                      size="small"
-                      sx={{
-                        fontWeight: 600,
-                        backgroundColor:
-                          med.status === "Active"
-                            ? alpha(theme.palette.success.main, 0.12)
-                            : alpha(theme.palette.text.primary, 0.08),
-                        color:
-                          med.status === "Active"
-                            ? theme.palette.success.main
-                            : theme.palette.text.secondary,
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {med.refills}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      ) : (
-        <Typography variant="body2" color="text.secondary">
-          No medications listed for this patient yet.
-        </Typography>
-      )}
+      <Box sx={{ flex: 1, minHeight: 400 }}>
+        <CommonDataGrid
+          rows={medicationTableRows}
+          columns={columns}
+          getRowId={(row) => row.name}
+          showSerialNo
+        />
+      </Box>
     </TabPanel>
   );
 }
+

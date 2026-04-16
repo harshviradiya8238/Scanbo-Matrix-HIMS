@@ -245,8 +245,12 @@ export default function LabReceivePage() {
     <PageTemplate
       title="Sample Reception"
       subtitle="Accept or reject samples arriving at the laboratory"
+      fullHeight
     >
-      <Stack spacing={1.25}>
+       <Stack
+              spacing={1.25}
+              sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+            >
         <Alert
           severity="warning"
           icon={<AccessTimeIcon />}
@@ -312,13 +316,11 @@ export default function LabReceivePage() {
           </Stack>
         </WorkspaceHeaderCard>
 
-        <Box sx={{ mt: 1 }}>
           <CommonDataGrid
             rows={displaySamples}
             columns={columns}
             getRowId={(row) => row.id}
           />
-        </Box>
       </Stack>
     </PageTemplate>
   );

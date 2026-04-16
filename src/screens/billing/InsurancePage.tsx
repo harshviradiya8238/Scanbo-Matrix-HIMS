@@ -379,8 +379,12 @@ export default function InsurancePage() {
       title="Insurance Claims"
       subtitle="Management and tracking of insurance settlements"
       currentPageTitle="Insurance"
+      fullHeight
     >
-      <Stack spacing={1.25}>
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         {/* Header Card */}
         <WorkspaceHeaderCard>
           <Stack
@@ -476,8 +480,6 @@ export default function InsurancePage() {
           />
         </Box>
 
-        {/* Table Section */}
-        <Box sx={{ mt: 2 }}>
           <CommonDataGrid<InsuranceClaim>
             rows={filteredData}
             columns={columns}
@@ -524,7 +526,6 @@ export default function InsurancePage() {
               </Stack>
             }
           />
-        </Box>
       </Stack>
     </PageTemplate>
   );

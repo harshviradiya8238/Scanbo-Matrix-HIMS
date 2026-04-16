@@ -15,10 +15,10 @@ export const formatDate = (value?: string | null) =>
 export const formatLongDate = (value?: string | null) =>
   value
     ? new Date(value).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })
     : "—";
 
 export const buildDateTime = (date: string, time: string) =>

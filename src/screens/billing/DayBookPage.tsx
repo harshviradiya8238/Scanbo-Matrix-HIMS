@@ -6,24 +6,13 @@ import {
   Avatar,
   Box,
   Button,
-  Paper,
+  Chip,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
   Typography,
-  InputAdornment,
-  MenuItem,
-  Select,
 } from "@/src/ui/components/atoms";
-import { StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
+import { Card, StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
 import {
-  Search as SearchIcon,
   FilterList as FilterIcon,
   ReceiptLong as ReceiptIcon,
   AccountBalanceWallet as WalletIcon,
@@ -92,19 +81,6 @@ const MOCK_DATA: Transaction[] = [
     status: "Processed",
   },
 ];
-
-const HEADER_SX = {
-  fontWeight: 700,
-  textTransform: "uppercase" as const,
-  fontSize: "0.65rem",
-  letterSpacing: "0.05em",
-  color: "text.secondary",
-  py: 1.5,
-  borderBottom: "1px solid",
-  borderColor: "rgba(17, 114, 186, 0.12)",
-  bgcolor: "rgba(17, 114, 186, 0.03)",
-  whiteSpace: "nowrap" as const,
-};
 
 export default function DayBookPage() {
   const theme = useTheme();
@@ -324,28 +300,39 @@ export default function DayBookPage() {
       title="Day Book"
       subtitle="Daily transaction reconciliation and settlement"
       currentPageTitle="Day Book"
+      fullHeight
     >
-      <Stack spacing={1.25}>
-        {/* Header Section */}
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         <WorkspaceHeaderCard>
           <Stack
-            direction="row"
-            alignItems="center"
+            direction={{ xs: "column", md: "row" }}
+            spacing={1.25}
             justifyContent="space-between"
+            alignItems={{ xs: "flex-start", md: "center" }}
           >
             <Box>
-              <Typography
-                variant="h5"
-                sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                sx={{ mb: 0.5 }}
               >
-                Day Book Control Tower
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: 0.5 }}
-              >
-                Real-time transaction tracking for 13 December 2024.
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.1 }}
+                >
+                  Day Book
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip size="small" color="primary" label="Daily Ledger" />
+                  <Chip size="small" color="info" variant="outlined" label="Settlement Tracking" />
+                </Stack>
+              </Stack>
+              <Typography variant="body2" color="text.secondary">
+                Review daily receipts, claims, refunds, and reconciled collections together.
               </Typography>
             </Box>
             <Button
@@ -358,15 +345,14 @@ export default function DayBookPage() {
           </Stack>
         </WorkspaceHeaderCard>
 
-        {/* KPI Strip */}
         <Box
           sx={{
             display: "grid",
-            gap: 2,
+            gap: 1.25,
             gridTemplateColumns: {
               xs: "1fr",
-              sm: "repeat(2, 1fr)",
-              lg: "repeat(4, 1fr)",
+              sm: "repeat(2, minmax(0, 1fr))",
+              lg: "repeat(4, minmax(0, 1fr))",
             },
           }}
         >
@@ -396,8 +382,7 @@ export default function DayBookPage() {
           />
         </Box>
 
-        {/* Transactions Table Section */}
-        <Box sx={{ mt: 2 }}>
+        {/* <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}> */}
           <CommonDataGrid<Transaction>
             rows={MOCK_DATA}
             showSerialNo
@@ -405,8 +390,13 @@ export default function DayBookPage() {
             getRowId={(row) => row.id}
             searchPlaceholder="Search transaction..."
             searchFields={["patientName", "invoiceNo"]}
+            toolbarRight={
+              <Button variant="text" size="small">
+                Clear
+              </Button>
+            }
           />
-        </Box>
+        {/* </Card> */}
       </Stack>
     </PageTemplate>
   );

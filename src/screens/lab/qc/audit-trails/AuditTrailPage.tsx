@@ -184,8 +184,9 @@ export default function AuditTrailPage() {
     <PageTemplate
       title="Audit Trail"
       subtitle="View immutable history of all laboratory actions"
+      fullHeight
     >
-      <Stack spacing={1.25}>
+     <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         <WorkspaceHeaderCard>
           <Stack
             direction="row"
@@ -246,13 +247,11 @@ export default function AuditTrailPage() {
           </Stack>
         </WorkspaceHeaderCard>
 
-        <Box sx={{ mt: 1 }}>
-          <CommonDataGrid
-            rows={DUMMY_DATA}
-            columns={columns}
-            getRowId={(row) => row.id}
-          />
-        </Box>
+        <CommonDataGrid
+          rows={DUMMY_DATA}
+          columns={columns}
+          getRowId={(row) => row.id}
+        />
       </Stack>
     </PageTemplate>
   );
