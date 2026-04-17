@@ -21,8 +21,9 @@ import {
   InputAdornment,
   MenuItem,
   Select,
+  Grid,
 } from "@/src/ui/components/atoms";
-import { Card, StatTile, WorkspaceHeaderCard } from "@/src/ui/components/molecules";
+import { Card, StatTile, WorkspaceHeaderCard, CommonDialog } from "@/src/ui/components/molecules";
 import { alpha, useTheme } from "@/src/ui/theme";
 import { palette } from "@/src/core/theme/tokens";
 import { maskMobileNumber } from "@/src/core/utils/phone";
@@ -122,6 +123,14 @@ const HEADER_SX = {
 
 export default function TPAManagementPage() {
   const theme = useTheme();
+  const [addDialogOpen, setAddDialogOpen] = React.useState(false);
+  const [manageDialogOpen, setManageDialogOpen] = React.useState(false);
+  const [selectedPartner, setSelectedPartner] = React.useState<TPARecord | null>(null);
+
+  const onManage = React.useCallback((partner: TPARecord) => {
+    setSelectedPartner(partner);
+    setManageDialogOpen(true);
+  }, []);
 
   const columns = React.useMemo<CommonColumn<TPARecord>[]>(
     () => [
@@ -268,6 +277,7 @@ export default function TPAManagementPage() {
             size="small"
             onClick={(e) => {
               e.stopPropagation();
+              onManage(row);
             }}
             sx={{
               textTransform: "none",
@@ -289,7 +299,7 @@ export default function TPAManagementPage() {
         ),
       },
     ],
-    [theme],
+    [theme, onManage],
   );
 
   return (
@@ -299,10 +309,10 @@ export default function TPAManagementPage() {
       currentPageTitle="TPAs"
       fullHeight
     >
-       <Stack
-              spacing={1.25}
-              sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
-            >
+      <Stack
+        spacing={1.25}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         {/* Header Card */}
         <WorkspaceHeaderCard>
           <Stack
@@ -347,6 +357,7 @@ export default function TPAManagementPage() {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
+                onClick={() => setAddDialogOpen(true)}
                 sx={{
                   borderRadius: 2,
                   textTransform: "none",
@@ -399,40 +410,175 @@ export default function TPAManagementPage() {
         </Box>
 
         {/* Table Section */}
-        {/* <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}> */}
-          <CommonDataGrid<TPARecord>
-            rows={MOCK_DATA}
-            columns={columns}
-            getRowId={(row) => row.id}
-            searchPlaceholder="Search by TPA name, code, or contact..."
-            searchFields={["name", "code", "contactPerson"]}
-            toolbarRight={
-              <Stack direction="row" spacing={1}>
-                <IconButton
-                  size="small"
-                  sx={{
-                    borderRadius: 2,
-                    border: "1px solid",
-                    borderColor: "divider",
-                  }}
-                >
-                  <FilterIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  sx={{
-                    borderRadius: 2,
-                    border: "1px solid",
-                    borderColor: "divider",
-                  }}
-                >
-                  <PrintIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                </IconButton>
-              </Stack>
-            }
-          />
-       {/* </Card> */}
+        <CommonDataGrid<TPARecord>
+          rows={MOCK_DATA}
+          columns={columns}
+          getRowId={(row) => row.id}
+          searchPlaceholder="Search by TPA name, code, or contact..."
+          searchFields={["name", "code", "contactPerson"]}
+          toolbarRight={
+            <Stack direction="row" spacing={1}>
+              <IconButton
+                size="small"
+                sx={{
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <FilterIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                sx={{
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <PrintIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+              </IconButton>
+            </Stack>
+          }
+        />
       </Stack>
+
+      {/* Add Partner Dialog */}
+      <CommonDialog
+        open={addDialogOpen}
+        onClose={() => setAddDialogOpen(false)}
+        title="Add New TPA Partner"
+        subtitle="Configure a new insurance or TPA partnership profile."
+        maxWidth="sm"
+        fullWidth
+        content={
+          <Stack spacing={2.5} sx={{ mt: 1.5 }}>
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 700, mb: 1, display: 'block', color: 'text.secondary', textTransform: 'uppercase' }}>
+                Basic Information
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField label="Partner Name" fullWidth placeholder="e.g. Star Health Insurance" />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField label="Partner Code" fullWidth placeholder="e.g. STAR-001" />
+                </Grid>
+                <Grid item xs={6}>
+                  <Select label="Partner Status" fullWidth defaultValue="Active">
+                    <MenuItem value="Active">Active</MenuItem>
+                    <MenuItem value="Inactive">Inactive</MenuItem>
+                  </Select>
+                </Grid>
+              </Grid>
+            </Box>
+
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 700, mb: 1, display: 'block', color: 'text.secondary', textTransform: 'uppercase' }}>
+                Contact Details
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField label="Primary Contact Person" fullWidth placeholder="Enter full name" />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField label="Mobile Number" fullWidth placeholder="+91 XXXXX XXXXX" />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField label="Email Address" fullWidth placeholder="contact@partner.com" />
+                </Grid>
+              </Grid>
+            </Box>
+          </Stack>
+        }
+        actions={
+          <Stack direction="row" spacing={1.5} sx={{ width: '100%' }}>
+            <Button variant="outlined" fullWidth onClick={() => setAddDialogOpen(false)} sx={{ fontWeight: 700 }}>
+              Cancel
+            </Button>
+            <Button variant="contained" fullWidth onClick={() => setAddDialogOpen(false)} sx={{ fontWeight: 700 }}>
+              Create Partner
+            </Button>
+          </Stack>
+        }
+      />
+
+      {/* Manage Partner Dialog */}
+      <CommonDialog
+        open={manageDialogOpen}
+        onClose={() => setManageDialogOpen(false)}
+        title={selectedPartner ? `Manage ${selectedPartner.name}` : "Manage Partner"}
+        subtitle="Update partner configuration and view performance metrics."
+        maxWidth="md"
+        fullWidth
+        content={
+          selectedPartner && (
+            <Stack spacing={3} sx={{ mt: 1.5 }}>
+              <Grid container spacing={2.5}>
+                <Grid item xs={12} md={8}>
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>Edit Profile Details</Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12}>
+                        <TextField label="Partner Name" fullWidth defaultValue={selectedPartner.name} />
+                      </Grid>
+                      <Grid item xs={6}>
+                        <TextField label="Partner Code" fullWidth defaultValue={selectedPartner.code} />
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Select label="Status" fullWidth defaultValue={selectedPartner.status}>
+                          <MenuItem value="Active">Active</MenuItem>
+                          <MenuItem value="Inactive">Inactive</MenuItem>
+                        </Select>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField label="Contact Person" fullWidth defaultValue={selectedPartner.contactPerson} />
+                      </Grid>
+                      <Grid item xs={6}>
+                        <TextField label="Mobile Number" fullWidth defaultValue={selectedPartner.phone} />
+                      </Grid>
+                      <Grid item xs={6}>
+                        <TextField label="Update Performance" fullWidth placeholder="e.g. 15% growth" />
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Stack spacing={2}>
+                    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mb: 1.5 }}>SNAPSHOT</Typography>
+                      <Stack spacing={2}>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">Active Claims</Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 800 }}>{selectedPartner.activeClaims}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">Settled Amount</Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 800, color: 'success.main' }}>{selectedPartner.settledAmount}</Typography>
+                        </Box>
+                      </Stack>
+                    </Paper>
+                    <Button variant="outlined" color="error" fullWidth sx={{ fontWeight: 700, border: '1.5px solid' }}>
+                      Deactivate Partner
+                    </Button>
+                  </Stack>
+                </Grid>
+              </Grid>
+            </Stack>
+          )
+        }
+        actions={
+          <Stack direction="row" spacing={1.5} sx={{ width: '100%' }}>
+            <Button variant="outlined" onClick={() => setManageDialogOpen(false)} sx={{ fontWeight: 700, px: 4 }}>
+              Discard
+            </Button>
+            <Box flex={1} />
+            <Button variant="contained" onClick={() => setManageDialogOpen(false)} sx={{ fontWeight: 700, px: 6 }}>
+              Save Changes
+            </Button>
+          </Stack>
+        }
+      />
     </PageTemplate>
   );
 }
