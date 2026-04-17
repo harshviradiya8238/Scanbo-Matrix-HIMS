@@ -114,7 +114,7 @@ export default function IpdLabOrdersPage() {
     {
       headerName: "ORDER ID",
       field: "id",
-      width: 160,
+      // width: 160,
       renderCell: (row) => (
         <Typography
           variant="body2"
@@ -176,8 +176,8 @@ export default function IpdLabOrdersPage() {
     },
     {
       headerName: "DIAGNOSIS",
-      field: "type",
-      width: 230,
+      field: "dx",
+      // width: 230,
       renderCell: (row) => {
         const { dx } = parseIpdNote(row.notes);
         return (
@@ -201,7 +201,7 @@ export default function IpdLabOrdersPage() {
     {
       headerName: "TESTS ORDERED",
       field: "tests",
-      width: 200,
+      // width: 200,
       renderCell: (row) => (
         <Stack direction="row" spacing={0.5} flexWrap="wrap">
           {row.tests.map((t) => (
@@ -223,7 +223,7 @@ export default function IpdLabOrdersPage() {
     {
       headerName: "SAMPLE TYPE",
       field: "type",
-      width: 110,
+      // width: 110,
       renderCell: (row) => (
         <Stack direction="row" alignItems="center" spacing={0.5}>
           <Box
@@ -248,7 +248,7 @@ export default function IpdLabOrdersPage() {
     {
       headerName: "TIME",
       field: "received",
-      width: 130,
+      // width: 130,
       renderCell: (row) => (
         <Typography variant="body2" color="text.secondary">
           {row.received?.slice(11) ?? row.date}
@@ -258,7 +258,7 @@ export default function IpdLabOrdersPage() {
     {
       headerName: "STATUS",
       field: "status",
-      width: 130,
+      // width: 130,
       renderCell: (row) => {
         const cfg = sampleStatus[row.status];
         return (
@@ -268,8 +268,8 @@ export default function IpdLabOrdersPage() {
     },
     {
       headerName: "ACTION",
-      field: "id",
-      width: 110,
+      field: "actions",
+      // width: 110,
       renderCell: (row) => (
         <Button
           size="small"

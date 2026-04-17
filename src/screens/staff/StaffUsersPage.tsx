@@ -38,6 +38,9 @@ import {
   AccessTime as AccessTimeIcon,
   Close as CloseIcon,
   CheckCircleOutlined,
+  VpnKey as VpnKeyIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
 import {
   Dialog,
@@ -216,6 +219,7 @@ export default function StaffUsersPage() {
     message: "",
     severity: "success" as "success" | "error" | "info",
   });
+  const [showPassword, setShowPassword] = React.useState(false);
 
   React.useEffect(() => {
     if (!selectedUserId && users.length > 0) setSelectedUserId(users[0].id);
@@ -694,14 +698,27 @@ export default function StaffUsersPage() {
           </Card>
 
           {/* Right: Profile + Access */}
-          <Stack spacing={1.25} sx={{ minHeight: 0, overflow: "hidden" }}>
+          <Stack
+            spacing={1.25}
+            sx={{
+              minHeight: 0,
+              overflowY: "auto",
+              pr: 0.5,
+              "&::-webkit-scrollbar": { width: 4 },
+              "&::-webkit-scrollbar-track": { background: "transparent" },
+              "&::-webkit-scrollbar-thumb": {
+                background: alpha(theme.palette.text.primary, 0.1),
+                borderRadius: 4,
+              },
+            }}
+          >
             {/* User Profile Card */}
             <Card>
               {/* Profile header bar */}
               <Box
                 sx={{
                   px: 2.5,
-                  py: 2,
+                  py: 1,
                   // background: selectedUser
                   //   ? `linear-gradient(135deg, ${alpha(getAvatarColor(selectedUser.name), 0.12)}, ${alpha(getAvatarColor(selectedUser.name), 0.04)})`
                   //   : "background.default",
@@ -714,7 +731,10 @@ export default function StaffUsersPage() {
                   justifyContent="space-between"
                   alignItems="center"
                 >
-                  <SectionTag>User Profile</SectionTag>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <PersonIcon sx={{ color: "primary.main", fontSize: 18, mb: 0.5 }} />
+                    <SectionTag sx={{ mb: 0 }}>User Profile</SectionTag>
+                  </Stack>
                   <Stack direction="row" spacing={0.75}>
                     <Tooltip title="Edit user">
                       <span>
@@ -836,26 +856,191 @@ export default function StaffUsersPage() {
                       size="small"
                       onClick={handleToggleStatus}
                       disabled={!canManageUsers}
-                      startIcon={selectedUser.status === "suspended" ? <CheckCircleOutlined /> : <PauseCircleIcon />}
+                      startIcon={
+                        selectedUser.status === "suspended" ? (
+                          <CheckCircleOutlined />
+                        ) : (
+                          <PauseCircleIcon />
+                        )
+                      }
                       sx={{
                         fontWeight: 700,
                         borderRadius: 2.5,
                         py: 0.75,
-                        borderColor: selectedUser.status === "suspended" ? "#22C55E" : "#EF4444",
-                        color: selectedUser.status === "suspended" ? "#16A34A" : "#DC2626",
+                        borderColor:
+                          selectedUser.status === "suspended"
+                            ? "#22C55E"
+                            : "#EF4444",
+                        color:
+                          selectedUser.status === "suspended"
+                            ? "#16A34A"
+                            : "#DC2626",
                         "&:hover": {
-                          bgcolor: selectedUser.status === "suspended" ? alpha("#22C55E", 0.08) : alpha("#EF4444", 0.08),
+                          bgcolor:
+                            selectedUser.status === "suspended"
+                              ? alpha("#22C55E", 0.08)
+                              : alpha("#EF4444", 0.08),
                         },
                       }}
                     >
-                      {selectedUser.status === "suspended" ? "Re-activate User" : selectedUser.status === "invited" ? "Activate User" : "Suspend User"}
+                      {selectedUser.status === "suspended"
+                        ? "Re-activate User"
+                        : selectedUser.status === "invited"
+                          ? "Activate User"
+                          : "Suspend User"}
                     </Button>
                   </Stack>
                 ) : (
                   <Box sx={{ py: 3, textAlign: "center" }}>
-                    <PersonIcon sx={{ fontSize: 40, color: "text.secondary", opacity: 0.3, mb: 1 }} />
+                    <PersonIcon
+                      sx={{
+                        fontSize: 40,
+                        color: "text.secondary",
+                        opacity: 0.3,
+                        mb: 1,
+                      }}
+                    />
                     <Typography variant="body2" color="text.secondary">
                       Select a user to see profile details.
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </Card>
+
+          
+<Card>
+              <Box
+                sx={{
+                  px: 2,
+                  py: 1.25,
+                  borderBottom: "1px solid",
+                  borderColor: "divider",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                <VpnKeyIcon sx={{ color: "primary.main", fontSize: 18 }} />
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 700, fontSize: 13 }}
+                  >
+                    User Credentials
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ px: 2, py: 1.25 }}>
+                {selectedUser ? (
+                  <Stack spacing={1.5}>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 1.25,
+                      }}
+                    >
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <MailOutlineIcon
+                          sx={{
+                            fontSize: 14,
+                            mt: 0.3,
+                            color: "text.secondary",
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              fontSize: 9,
+                              color: "text.secondary",
+                            }}
+                          >
+                            Email ID
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: "block",
+                              fontWeight: 500,
+                              wordBreak: "break-all",
+                              fontSize: 11,
+                              color: "text.primary",
+                            }}
+                          >
+                            {selectedUser.email}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <LockIcon
+                          sx={{
+                            fontSize: 14,
+                            mt: 0.4,
+                            color: "text.secondary",
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              fontSize: 9,
+                              color: "text.secondary",
+                            }}
+                          >
+                            Password
+                          </Typography>
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={0.5}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontWeight: 500,
+                                fontSize: 11,
+                                color: "text.primary",
+                                letterSpacing: showPassword ? "0.02em" : "0.2em",
+                              }}
+                            >
+                              {showPassword ? "Staff@123" : "••••••••"}
+                            </Typography>
+                            <IconButton
+                              size="small"
+                              onClick={() => setShowPassword(!showPassword)}
+                              sx={{ p: 0.25, mt: -0.5 }}
+                            >
+                              {showPassword ? (
+                                <VisibilityOffIcon
+                                  sx={{ fontSize: 14, color: "text.secondary" }}
+                                />
+                              ) : (
+                                <VisibilityIcon
+                                  sx={{ fontSize: 14, color: "text.secondary" }}
+                                />
+                              )}
+                            </IconButton>
+                          </Stack>
+                        </Box>
+                      </Stack>
+                    </Box>
+                    <Divider sx={{ opacity: 0.6 }} />
+
+                  </Stack>
+                ) : (
+                  <Box sx={{ py: 2, textAlign: "center" }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Select a user to view credentials.
                     </Typography>
                   </Box>
                 )}
@@ -879,9 +1064,6 @@ export default function StaffUsersPage() {
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: 13 }}>
                     Access Snapshot
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Role-based permission highlights
                   </Typography>
                 </Box>
               </Box>
@@ -917,28 +1099,6 @@ export default function StaffUsersPage() {
                         </Typography>
                       )}
                     </Stack>
-                    <Box
-                      sx={{
-                        px: 1.5,
-                        py: 1,
-                        borderRadius: 2,
-                        bgcolor: alpha(theme.palette.warning.main, 0.06),
-                        border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
-                      }}
-                    >
-                      <Typography variant="caption" color="text.secondary">
-                        <VerifiedUserIcon
-                          sx={{
-                            fontSize: 12,
-                            verticalAlign: "middle",
-                            mr: 0.5,
-                            color: "warning.dark",
-                          }}
-                        />
-                        Role permissions update automatically when role profiles
-                        change.
-                      </Typography>
-                    </Box>
                   </Stack>
                 ) : (
                   <Box sx={{ py: 2, textAlign: "center" }}>
@@ -949,7 +1109,10 @@ export default function StaffUsersPage() {
                 )}
               </Box>
             </Card>
+
+            
           </Stack>
+
         </Box>
       </Stack>
 
@@ -1028,6 +1191,40 @@ export default function StaffUsersPage() {
               />
               <TextField
                 fullWidth
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                value="Staff@123"
+                disabled
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Stack>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.75}>
+              <TextField
+                fullWidth
+                select
+                label="Role"
+                value={userDraft.roleId}
+                onChange={draft("roleId")}
+              >
+                {roles.map((r) => (
+                  <MenuItem key={r.id} value={r.id}>
+                    {r.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                fullWidth
                 select
                 label="Status"
                 value={userDraft.status}
@@ -1038,19 +1235,6 @@ export default function StaffUsersPage() {
                 <MenuItem value="suspended">Suspended</MenuItem>
               </TextField>
             </Stack>
-            <TextField
-              fullWidth
-              select
-              label="Role"
-              value={userDraft.roleId}
-              onChange={draft("roleId")}
-            >
-              {roles.map((r) => (
-                <MenuItem key={r.id} value={r.id}>
-                  {r.label}
-                </MenuItem>
-              ))}
-            </TextField>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>

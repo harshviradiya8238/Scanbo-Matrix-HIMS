@@ -98,46 +98,46 @@ export default function LabWorksheetsPage() {
   if (selectedWs) {
     return (
       <PageTemplate title="Worksheets" currentPageTitle="Worksheet Detail" fullHeight>
-         <Stack
-                spacing={1.25}
-                sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
-              >
-        <LabWorkspaceCard current="worksheets">
-          <WorksheetDetailView
-            worksheet={selectedWs}
-            samples={samplesForDetail}
-            progress={worksheetProgress(selectedWs, results)}
-            onBack={() => router.push("/lab/worksheets")}
-            worksheetSampleColumns={worksheetSampleColumns}
-            onAddSample={(sampleId) => {
-              dispatch(
-                addSampleToWorksheet({
-                  worksheetId: selectedWs.id,
-                  sampleId,
-                }),
-              );
-              success("Sample added to worksheet.");
-            }}
-            onSubmitForVerification={() => {
-              dispatch(
-                updateWorksheetStatus({
-                  worksheetId: selectedWs.id,
-                  status: "to_be_verified",
-                }),
-              );
-              success("Submitted for verification.");
-            }}
-            onVerify={() => {
-              dispatch(
-                updateWorksheetStatus({
-                  worksheetId: selectedWs.id,
-                  status: "verified",
-                }),
-              );
-              success("Worksheet verified.");
-            }}
-          />
-        </LabWorkspaceCard>
+        <Stack
+          spacing={1.25}
+          sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+        >
+          <LabWorkspaceCard current="worksheets">
+            <WorksheetDetailView
+              worksheet={selectedWs}
+              samples={samplesForDetail}
+              progress={worksheetProgress(selectedWs, results)}
+              onBack={() => router.push("/lab/worksheets")}
+              worksheetSampleColumns={worksheetSampleColumns}
+              onAddSample={(sampleId) => {
+                dispatch(
+                  addSampleToWorksheet({
+                    worksheetId: selectedWs.id,
+                    sampleId,
+                  }),
+                );
+                success("Sample added to worksheet.");
+              }}
+              onSubmitForVerification={() => {
+                dispatch(
+                  updateWorksheetStatus({
+                    worksheetId: selectedWs.id,
+                    status: "to_be_verified",
+                  }),
+                );
+                success("Submitted for verification.");
+              }}
+              onVerify={() => {
+                dispatch(
+                  updateWorksheetStatus({
+                    worksheetId: selectedWs.id,
+                    status: "verified",
+                  }),
+                );
+                success("Worksheet verified.");
+              }}
+            />
+          </LabWorkspaceCard>
         </Stack>
       </PageTemplate>
     );
@@ -148,6 +148,7 @@ export default function LabWorksheetsPage() {
       title="Worksheets"
       subtitle={`${worksheets.length} worksheets`}
       currentPageTitle="Worksheets"
+      fullHeight
     >
       <LabWorkspaceCard
         current="worksheets"
@@ -162,7 +163,7 @@ export default function LabWorksheetsPage() {
           </Button>
         }
       >
-        <Stack spacing={2}>
+        <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: "auto", p: 0.5 }}>
           <Box
             sx={{
               display: "grid",

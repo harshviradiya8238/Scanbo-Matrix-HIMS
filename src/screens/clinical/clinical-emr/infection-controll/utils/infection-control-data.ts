@@ -40,6 +40,66 @@ export const INITIAL_ISOLATIONS: IsolationRoom[] = [
     mrn: "MRN-245990",
   },
   {
+    id: "iso-1",
+    room: "B-12",
+    unit: "Ward 3A",
+    type: "Contact",
+    status: "Active",
+    startedAt: "09:30 AM",
+    patientName: "Rahul Menon",
+    mrn: "MRN-245990",
+  },
+  {
+    id: "iso-1",
+    room: "B-12",
+    unit: "Ward 3A",
+    type: "Contact",
+    status: "Active",
+    startedAt: "09:30 AM",
+    patientName: "Rahul Menon",
+    mrn: "MRN-245990",
+  },
+  {
+    id: "iso-1",
+    room: "B-12",
+    unit: "Ward 3A",
+    type: "Contact",
+    status: "Active",
+    startedAt: "09:30 AM",
+    patientName: "Rahul Menon",
+    mrn: "MRN-245990",
+  },
+  {
+    id: "iso-1",
+    room: "B-12",
+    unit: "Ward 3A",
+    type: "Contact",
+    status: "Active",
+    startedAt: "09:30 AM",
+    patientName: "Rahul Menon",
+    mrn: "MRN-245990",
+  },
+  {
+    id: "iso-1",
+    room: "B-12",
+    unit: "Ward 3A",
+    type: "Contact",
+    status: "Active",
+    startedAt: "09:30 AM",
+    patientName: "Rahul Menon",
+    mrn: "MRN-245990",
+  },
+  {
+    id: "iso-1",
+    room: "B-12",
+    unit: "Ward 3A",
+    type: "Contact",
+    status: "Active",
+    startedAt: "09:30 AM",
+    patientName: "Rahul Menon",
+    mrn: "MRN-245990",
+  },
+  {
     id: "iso-2",
     room: "ICU-03",
     unit: "ICU",
@@ -363,6 +423,14 @@ export const AVAILABLE_ISOLATION_ROOMS: AvailableIsolationRoom[] = [
     type: "Standard",
     status: "Available",
   },
+  {
+    id: "air-6",
+    room: "C-01",
+    unit: "Ward 1B",
+    type: "Standard",
+    status: "Available",
+  },
+
 ];
 
 export const INITIAL_AUDITS: AuditRecord[] = [
@@ -494,6 +562,52 @@ export const AUDIT_RECORDS: AuditRecordRow[] = [
     score: 94,
     status: "completed",
   },
+  {
+    id: "ar-3",
+    auditId: "AUD-029",
+    casePatient: "Sneha Patil",
+    caseDetail: "A-04",
+    type: "Env. Cleaning",
+    score: 94,
+    status: "completed",
+  },
+  {
+    id: "ar-3",
+    auditId: "AUD-029",
+    casePatient: "Sneha Patil",
+    caseDetail: "A-04",
+    type: "Env. Cleaning",
+    score: 94,
+    status: "completed",
+  },
+  {
+    id: "ar-3",
+    auditId: "AUD-029",
+    casePatient: "Sneha Patil",
+    caseDetail: "A-04",
+    type: "Env. Cleaning",
+    score: 94,
+    status: "completed",
+  },
+
+  {
+    id: "ar-3",
+    auditId: "AUD-029",
+    casePatient: "Sneha Patil",
+    caseDetail: "A-04",
+    type: "Env. Cleaning",
+    score: 94,
+    status: "completed",
+  },
+  {
+    id: "ar-3",
+    auditId: "AUD-029",
+    casePatient: "Sneha Patil",
+    caseDetail: "A-04",
+    type: "Env. Cleaning",
+    score: 94,
+    status: "completed",
+  },
 ];
 
 export const AUDIT_CHECKLIST: AuditChecklistItem[] = [
@@ -502,6 +616,7 @@ export const AUDIT_CHECKLIST: AuditChecklistItem[] = [
     label: "WHO 5 Moments for Hand Hygiene observed",
     checked: true,
   },
+
   {
     id: "ac-2",
     label: "Alcohol hand rub at point-of-care",
@@ -550,6 +665,7 @@ export const READY_TO_CLOSE: ReadyToClosePatient[] = [
     auditScore: 94,
     criteria: "resolved",
   },
+
 ];
 
 export const CLOSURE_CRITERIA: ClosureCriterion[] = [

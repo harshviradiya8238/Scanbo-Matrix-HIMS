@@ -64,7 +64,14 @@ export default function WorksheetDetailView({
   );
 
   return (
-    <Box>
+    <Box
+      sx={{
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
         <Button
           startIcon={<ArrowBackIcon />}
@@ -139,11 +146,25 @@ export default function WorksheetDetailView({
           Verify Worksheet
         </Button>
       </Stack>
-      <CommonDataGrid
-        rows={worksheetSamples}
-        columns={worksheetSampleColumns}
-        getRowId={(row) => row.id}
-      />
+
+      {/* Table card — fills remaining height */}
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          p: 0,
+        }}
+      >
+        <CommonDataGrid
+          rows={worksheetSamples}
+          columns={worksheetSampleColumns}
+          getRowId={(row) => row.id}
+          searchPlaceholder="Search samples..."
+          searchFields={["id", "patient", "status"]}
+        />
+      </Box>
     </Box>
   );
 }

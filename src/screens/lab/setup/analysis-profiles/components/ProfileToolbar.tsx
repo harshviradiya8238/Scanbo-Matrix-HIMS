@@ -10,9 +10,10 @@ import { T } from "../tokens";
 interface ProfileToolbarProps {
   activeDept: string;
   onDeptChange: (dept: string) => void;
+  onCreate: () => void;
 }
 
-function ProfileToolbarBase({ activeDept, onDeptChange }: ProfileToolbarProps) {
+function ProfileToolbarBase({ activeDept, onDeptChange, onCreate }: ProfileToolbarProps) {
   return (
     <Stack
       direction="row"
@@ -27,6 +28,7 @@ function ProfileToolbarBase({ activeDept, onDeptChange }: ProfileToolbarProps) {
       <Button
         variant="contained"
         startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+        onClick={onCreate}
         sx={{
           bgcolor: T.primary,
           fontWeight: 700,

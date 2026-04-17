@@ -92,6 +92,10 @@ export type CommonDataGridProps<R extends object> = {
   toolbarRight?: React.ReactNode;
   /** Whether to show a serial number column */
   showSerialNo?: boolean;
+  /** Whether to show checkboxes for row selection */
+  showCheckbox?: boolean;
+  /** Callback fired when row selection changes */
+  onSelectionChange?: (selectedIds: (string | number)[]) => void;
   /** Whether to hide the toolbar (search and filters) */
   hideToolbar?: boolean;
   /** External search value */
@@ -105,6 +109,8 @@ export type CommonDataGridProps<R extends object> = {
   /** Override styles on the root Paper wrapper */
   paperSx?: Record<string, unknown>;
 };
+
+import { Checkbox } from "@mui/material";
 
 /* ─── Component ──────────────────────────────────────────────────────────── */
 
@@ -127,6 +133,8 @@ export default function CommonDataGrid<R extends object>({
   toolbarLeft,
   toolbarRight,
   showSerialNo = false,
+  showCheckbox = false,
+  onSelectionChange,
   hideToolbar = false,
   externalSearchValue,
   onSearchChange,
@@ -143,6 +151,31 @@ export default function CommonDataGrid<R extends object>({
   const [rowsPerPage, setRowsPerPage] = React.useState(defaultRowsPerPage);
   const [orderBy, setOrderBy] = React.useState<string | null>(null);
   const [order, setOrder] = React.useState<"asc" | "desc">("asc");
+
+  const [selected, setSelected] = React.useState<Set<string | number>>(new Set());
+
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      const newSelected = new Set(processedRows.map((n, i) => getRowId ? getRowId(n) : i));
+      setSelected(newSelected);
+      onSelectionChange?.(Array.from(newSelected));
+      return;
+    }
+    setSelected(new Set());
+    onSelectionChange?.([]);
+  };
+
+  const handleSelectRow = (event: React.MouseEvent<unknown>, id: string | number) => {
+    event.stopPropagation();
+    const newSelected = new Set(selected);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelected(newSelected);
+    onSelectionChange?.(Array.from(newSelected));
+  };
 
   /* ── Column Management ── */
   const [columnVisibility, setColumnVisibility] = React.useState<Record<string, boolean>>(() =>
@@ -391,6 +424,17 @@ export default function CommonDataGrid<R extends object>({
                 },
               }}
             >
+              {showCheckbox && (
+                <TableCell padding="checkbox" sx={{ width: 48 }}>
+                  <Checkbox
+                    size="small"
+                    indeterminate={selected.size > 0 && selected.size < processedRows.length}
+                    checked={processedRows.length > 0 && selected.size === processedRows.length}
+                    onChange={handleSelectAll}
+                    sx={{ color: "divider", "&.Mui-checked": { color: "primary.main" } }}
+                  />
+                </TableCell>
+              )}
               {showSerialNo && <TableCell width={60}>Sr. No.</TableCell>}
               {visibleColumns.map((col) => (
                 <TableCell
@@ -440,7 +484,7 @@ export default function CommonDataGrid<R extends object>({
             ) : paginated.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={visibleColumns.length + (showSerialNo ? 1 : 0)}
+                  colSpan={visibleColumns.length + (showSerialNo ? 1 : 0) + (showCheckbox ? 1 : 0)}
                   align="center"
                   sx={{ py: 6, border: 0 }}
                 >
@@ -456,26 +500,44 @@ export default function CommonDataGrid<R extends object>({
                 </TableCell>
               </TableRow>
             ) : (
-              paginated.map((row, index) => (
-                <TableRow
-                  key={rowKey(row, index)}
-                  hover
-                  onClick={() => onRowClick?.(row)}
-                  sx={{
-                    cursor:
-                      onRowClick && !disableRowPointer ? "pointer" : "default",
-                    "& .MuiTableCell-body": {
-                      py: 1.5,
-                      px: 2,
-                      borderBottom: "1px solid",
-                      borderColor: "rgba(17, 114, 186, 0.07)",
-                      verticalAlign: "middle",
-                    },
-                    "&:last-child .MuiTableCell-body": { borderBottom: 0 },
-                    "&:hover": { backgroundColor: "#f8fafc" },
-                  }}
-                >
-                  {showSerialNo && (
+              paginated.map((row, index) => {
+                const id = getRowId ? getRowId(row) : index;
+                const isItemSelected = selected.has(id);
+                return (
+                  <TableRow
+                    key={id}
+                    hover
+                    onClick={() => onRowClick?.(row)}
+                    selected={isItemSelected}
+                    sx={{
+                      cursor:
+                        onRowClick && !disableRowPointer ? "pointer" : "default",
+                      "& .MuiTableCell-body": {
+                        py: 1.5,
+                        px: 2,
+                        borderBottom: "1px solid",
+                        borderColor: "rgba(17, 114, 186, 0.07)",
+                        verticalAlign: "middle",
+                      },
+                      "&:last-child .MuiTableCell-body": { borderBottom: 0 },
+                      "&:hover": { backgroundColor: "#f8fafc" },
+                      "&.Mui-selected": {
+                        bgcolor: alpha("#007FFF", 0.04),
+                        "&:hover": { bgcolor: alpha("#007FFF", 0.06) }
+                      }
+                    }}
+                  >
+                    {showCheckbox && (
+                      <TableCell padding="checkbox" sx={{ width: 48 }}>
+                        <Checkbox
+                          size="small"
+                          checked={isItemSelected}
+                          onClick={(event) => handleSelectRow(event, id)}
+                          sx={{ color: "divider", "&.Mui-checked": { color: "primary.main" } }}
+                        />
+                      </TableCell>
+                    )}
+                    {showSerialNo && (
                     <TableCell
                       sx={{
                         fontWeight: 500,
@@ -501,8 +563,9 @@ export default function CommonDataGrid<R extends object>({
                       {getCellValue(row, col)}
                     </TableCell>
                   ))}
-                </TableRow>
-              ))
+                    </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

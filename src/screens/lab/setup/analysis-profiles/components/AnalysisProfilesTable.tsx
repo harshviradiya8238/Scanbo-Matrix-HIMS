@@ -8,6 +8,7 @@ import {
   Stack,
   Typography,
   Chip,
+  Paper,
 } from "@/src/ui/components/atoms";
 import {
   Edit as EditIcon,
@@ -21,15 +22,19 @@ import CommonDataGrid, {
 import type { AnalysisProfile } from "../types";
 import { T } from "../tokens";
 import { DeptBadge } from "./DeptBadge";
+import { alpha } from "@mui/material";
+
 
 interface AnalysisProfilesTableProps {
   profiles: AnalysisProfile[];
   onUseProfile: (profile: AnalysisProfile) => void;
+  onViewProfile: (profile: AnalysisProfile) => void;
 }
 
 export function AnalysisProfilesTable({
   profiles,
   onUseProfile,
+  onViewProfile,
 }: AnalysisProfilesTableProps) {
   const columns: CommonColumn<AnalysisProfile>[] = [
     {
@@ -90,7 +95,7 @@ export function AnalysisProfilesTable({
       renderCell: (row) => (
         <Stack direction="row" alignItems="center" spacing={1} sx={{ width: "100%" }}>
           <Box sx={{ flex: 1, height: 4, bgcolor: T.usageBg, borderRadius: 99, overflow: "hidden" }}>
-             <Box
+            <Box
               sx={{
                 width: `${Math.min(((row.monthlyUsage) / (row.maxUsage ?? 130)) * 100, 100)}%`,
                 height: "100%", bgcolor: T.primary, borderRadius: 99,
@@ -113,7 +118,11 @@ export function AnalysisProfilesTable({
           <IconButton size="small" title="Edit">
             <EditIcon sx={{ fontSize: 16 }} />
           </IconButton>
-          <IconButton size="small" title="View">
+          <IconButton
+            size="small"
+            title="View"
+            onClick={() => onViewProfile(row)}
+          >
             <ViewIcon sx={{ fontSize: 16 }} />
           </IconButton>
           <IconButton
@@ -132,12 +141,74 @@ export function AnalysisProfilesTable({
     },
   ];
 
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+
   return (
-    <CommonDataGrid
-      rows={profiles}
-      columns={columns}
-      getRowId={(row) => row.id}
-      showSerialNo
-    />
+    <Box sx={{ flex: 1, minHeight: 0, position: "relative", display: "flex", flexDirection: "column" }}>
+      {selectedIds.length > 0 && (
+        <Paper
+          elevation={4}
+          sx={{
+            position: "absolute",
+            bottom: 20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 100,
+            bgcolor: "primary.main",
+            color: "white",
+            px: 3,
+            py: 1.5,
+            borderRadius: 3,
+            display: "flex",
+            alignItems: "center",
+            gap: 3,
+            boxShadow: "0 8px 32px rgba(10, 77, 104, 0.25)"
+          }}
+        >
+          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+            {selectedIds.length} Profiles Selected
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            <Button
+              size="small"
+              variant="contained"
+              sx={{
+                bgcolor: "white",
+                color: "primary.main",
+                fontWeight: 700,
+                textTransform: "none",
+                "&:hover": { bgcolor: alpha("#fff", 0.9) }
+              }}
+              startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+            >
+              Bulk Delete
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setSelectedIds([])}
+              sx={{
+                borderColor: "white",
+                color: "white",
+                fontWeight: 700,
+                textTransform: "none",
+                "&:hover": { borderColor: alpha("#fff", 0.8), bgcolor: alpha("#fff", 0.1) }
+              }}
+            >
+              Clear
+            </Button>
+          </Stack>
+        </Paper>
+      )}
+
+      <CommonDataGrid
+        rows={profiles}
+        columns={columns}
+        getRowId={(row) => row.id}
+        showSerialNo
+        showCheckbox
+        onSelectionChange={(ids) => setSelectedIds(ids as string[])}
+      />
+    </Box>
   );
 }

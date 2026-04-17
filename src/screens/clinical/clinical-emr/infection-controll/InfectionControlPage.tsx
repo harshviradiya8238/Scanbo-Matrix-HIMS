@@ -383,7 +383,7 @@ export default function InfectionControlPage() {
       {
         field: "patientName",
         headerName: "PATIENT",
-        width: 250,
+        width: 180,
         renderCell: (row) => {
           const initials = row.patientName
             .split(" ")
@@ -395,23 +395,19 @@ export default function InfectionControlPage() {
             <Stack direction="row" spacing={1.5} alignItems="center">
               <Avatar
                 sx={{
-                  width: 36,
-                  height: 36,
-                  bgcolor: alpha(theme.palette.primary.main, 0.12),
+                  width: 34,
+                  height: 34,
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
                   color: "primary.main",
                   fontWeight: 800,
-                  fontSize: 14,
+                  fontSize: 12,
+                  border: "1px solid",
+                  borderColor: alpha(theme.palette.primary.main, 0.2),
                 }}
               >
                 {initials}
               </Avatar>
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                }}
-              >
+              <Box sx={{ minWidth: 0 }}>
                 <Typography
                   component="button"
                   variant="body2"
@@ -423,7 +419,11 @@ export default function InfectionControlPage() {
                     cursor: "pointer",
                     p: 0,
                     textAlign: "left",
+                    display: "block",
                     "&:hover": { color: "primary.main" },
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -432,20 +432,25 @@ export default function InfectionControlPage() {
                 >
                   {row.patientName}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {row.mrn} - {row.unit}
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.65rem" }}
+                >
+                  {row.mrn} • {row.unit}
                 </Typography>
               </Box>
             </Stack>
           );
         },
       },
-      { field: "bed", headerName: "BED" },
+      { field: "bed", headerName: "BED", width: 80 },
       {
         field: "organism",
         headerName: "PATHOGEN",
+        width: 120,
         renderCell: (row) => (
-          <Stack direction="row" alignItems="center" spacing={0.75}>
+          <Stack direction="row" alignItems="center" spacing={1}>
             <Box
               sx={{
                 width: 8,
@@ -459,15 +464,29 @@ export default function InfectionControlPage() {
                     : row.organism === "C. diff"
                       ? "warning.main"
                       : "info.main",
+                boxShadow: (t) =>
+                  `0 0 8px ${alpha(
+                    row.organism === "MRSA" ||
+                      row.organism === "VRE" ||
+                      row.organism.includes("COVID")
+                      ? t.palette.error.main
+                      : row.organism === "C. diff"
+                        ? t.palette.warning.main
+                        : t.palette.info.main,
+                    0.5,
+                  )}`,
               }}
             />
-            <Typography variant="body2">{row.organism}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {row.organism}
+            </Typography>
           </Stack>
         ),
       },
       {
         field: "isolationType",
         headerName: "ISOLATION",
+        width: 110,
         renderCell: (row) => {
           const type = row.isolationType.toUpperCase();
           const color =
@@ -481,14 +500,15 @@ export default function InfectionControlPage() {
               size="small"
               label={type}
               sx={{
-                fontWeight: 700,
-                fontSize: "0.65rem",
-                borderRadius: "10px",
-                bgcolor: alpha(color.main, 0.1),
+                fontWeight: 800,
+                fontSize: "0.6rem",
+                borderRadius: "6px",
+                bgcolor: alpha(color.main, 0.08),
                 color: color.dark,
                 border: "1px solid",
-                borderColor: alpha(color.main, 0.4),
+                borderColor: alpha(color.main, 0.2),
                 minWidth: 80,
+                height: 22,
               }}
             />
           );
@@ -497,40 +517,47 @@ export default function InfectionControlPage() {
       {
         field: "ipdStatus",
         headerName: "IPD STATUS",
-        renderCell: (row) => (
-          <Chip
-            size="small"
-            icon={
-              <Box
-                sx={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  bgcolor:
-                    row.ipdStatus === "Critical"
-                      ? "error.main"
-                      : row.ipdStatus === "Watch"
-                        ? "warning.main"
-                        : "success.main",
-                }}
-              />
-            }
-            label={row.ipdStatus}
-            sx={{
-              fontWeight: 700,
-              fontSize: "0.75rem",
-              borderRadius: "10px",
-              bgcolor: alpha(theme.palette.warning.main, 0.05),
-              border: "1px solid",
-              borderColor: alpha(theme.palette.warning.main, 0.2),
-              "& .MuiChip-icon": { ml: 0.5 },
-            }}
-          />
-        ),
+        width: 110,
+        renderCell: (row) => {
+          const color =
+            row.ipdStatus === "Critical"
+              ? theme.palette.error
+              : row.ipdStatus === "Watch"
+                ? theme.palette.warning
+                : theme.palette.success;
+          return (
+            <Chip
+              size="small"
+              icon={
+                <Box
+                  sx={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    bgcolor: color.main,
+                  }}
+                />
+              }
+              label={row.ipdStatus}
+              sx={{
+                fontWeight: 700,
+                fontSize: "0.7rem",
+                borderRadius: "10px",
+                bgcolor: alpha(color.main, 0.05),
+                color: color.dark,
+                border: "1px solid",
+                borderColor: alpha(color.main, 0.15),
+                "& .MuiChip-icon": { ml: 0.5 },
+                height: 22,
+              }}
+            />
+          );
+        },
       },
       {
         field: "icStatus",
         headerName: "IC STATUS",
+        width: 110,
         renderCell: (row) => {
           const color =
             row.icStatus === "Isolating"
@@ -557,13 +584,14 @@ export default function InfectionControlPage() {
               label={row.icStatus}
               sx={{
                 fontWeight: 700,
-                fontSize: "0.75rem",
+                fontSize: "0.7rem",
                 borderRadius: "10px",
                 bgcolor: alpha(color.main, 0.05),
                 color: color.dark,
                 border: "1px solid",
-                borderColor: alpha(color.main, 0.25),
+                borderColor: alpha(color.main, 0.2),
                 "& .MuiChip-icon": { ml: 0.5 },
+                height: 22,
               }}
             />
           );
@@ -571,10 +599,11 @@ export default function InfectionControlPage() {
       },
       {
         field: "clinicalLinks",
-        headerName: "CLINICAL LINKS",
+        headerName: "LINKS",
+        width: 60,
         align: "center",
         renderCell: (row) => (
-          <Tooltip title="Related Clinical Links">
+          <Tooltip title="Related Clinical Records">
             <IconButton
               size="small"
               onClick={(e) => {
@@ -588,19 +617,19 @@ export default function InfectionControlPage() {
                   bgcolor: alpha(theme.palette.primary.main, 0.12),
                 },
                 border: "1px solid",
-                borderColor: alpha(theme.palette.primary.main, 0.2),
+                borderColor: alpha(theme.palette.primary.main, 0.15),
               }}
             >
-              <OpenInNewIcon sx={{ fontSize: 18 }} />
+              <OpenInNewIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Tooltip>
         ),
       },
       {
         field: "actions",
-        headerName: "ACTION",
+        headerName: "ACTIONS",
         align: "right",
-        width: 180,
+        width: 160,
         renderCell: (row) => (
           <Stack direction="row" spacing={1} justifyContent="flex-end">
             <Button
@@ -615,7 +644,9 @@ export default function InfectionControlPage() {
                 px: 2,
                 borderRadius: "6px",
                 textTransform: "none",
-                fontWeight: 600,
+                fontWeight: 700,
+                fontSize: "0.75rem",
+                height: 28,
               }}
             >
               View
@@ -633,7 +664,9 @@ export default function InfectionControlPage() {
                   px: 2,
                   borderRadius: "6px",
                   textTransform: "none",
-                  fontWeight: 600,
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  height: 28,
                 }}
               >
                 Isolate
@@ -652,7 +685,9 @@ export default function InfectionControlPage() {
                   px: 2,
                   borderRadius: "6px",
                   textTransform: "none",
-                  fontWeight: 600,
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  height: 28,
                 }}
               >
                 Notify
@@ -681,7 +716,9 @@ export default function InfectionControlPage() {
                   borderRadius: "6px",
                   px: 2,
                   textTransform: "none",
-                  fontWeight: 600,
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  height: 28,
                 }}
               >
                 Audit
@@ -701,7 +738,9 @@ export default function InfectionControlPage() {
                   px: 2,
                   borderRadius: "6px",
                   textTransform: "none",
-                  fontWeight: 600,
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  height: 28,
                 }}
               >
                 Close?
@@ -717,35 +756,39 @@ export default function InfectionControlPage() {
 
   // Highlight columns with selection
   const memoColumns = React.useMemo(() => {
-    return columns.map(col => {
+    return columns.map((col) => {
       if (col.field === "patientName") {
         return {
           ...col,
           renderCell: (row: InfectionCase) => {
             const isSelected = row.id === selectedCaseId;
             return (
-              <Box sx={{
-                position: 'relative',
-                '&::before': isSelected ? {
-                  content: '""',
-                  position: 'absolute',
-                  left: -16,
-                  top: -8,
-                  bottom: -8,
-                  width: 4,
-                  bgcolor: 'primary.main',
-                  borderRadius: '0 4px 4px 0'
-                } : {}
-              }}>
+              <Box
+                sx={{
+                  position: "relative",
+                  "&::before": isSelected
+                    ? {
+                      content: '""',
+                      position: "absolute",
+                      left: -16,
+                      top: -12,
+                      bottom: -12,
+                      width: 4,
+                      bgcolor: "primary.main",
+                      borderRadius: "0 4px 4px 0",
+                    }
+                    : {},
+                }}
+              >
                 {col.renderCell ? col.renderCell(row) : (row as any)[col.field]}
               </Box>
             );
-          }
+          },
         };
       }
       return col;
     });
-  }, [columns, selectedCaseId, theme]);
+  }, [columns, selectedCaseId]);
 
   const tabCounts = React.useMemo(() => {
     const counts: Record<(typeof FLOW_TAB_IDS)[number], number> = {
@@ -765,13 +808,13 @@ export default function InfectionControlPage() {
           id: "detect",
           label: (
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>
                 Detect
               </Typography>
               <Box
                 sx={{
                   px: 0.8,
-                  py: 0.15,
+                  py: 0.2,
                   borderRadius: "6px",
                   bgcolor:
                     activeTab === "detect"
@@ -781,7 +824,7 @@ export default function InfectionControlPage() {
                     activeTab === "detect"
                       ? "inherit"
                       : theme.palette.primary.main,
-                  fontSize: "0.7rem",
+                  fontSize: "0.65rem",
                   fontWeight: 800,
                   minWidth: 20,
                   textAlign: "center",
@@ -797,13 +840,13 @@ export default function InfectionControlPage() {
           id: "isolate",
           label: (
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>
                 Isolate
               </Typography>
               <Box
                 sx={{
                   px: 0.8,
-                  py: 0.15,
+                  py: 0.2,
                   borderRadius: "6px",
                   bgcolor:
                     activeTab === "isolate"
@@ -813,7 +856,7 @@ export default function InfectionControlPage() {
                     activeTab === "isolate"
                       ? "inherit"
                       : theme.palette.primary.main,
-                  fontSize: "0.7rem",
+                  fontSize: "0.65rem",
                   fontWeight: 800,
                   minWidth: 20,
                   textAlign: "center",
@@ -829,13 +872,13 @@ export default function InfectionControlPage() {
           id: "notify",
           label: (
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>
                 Notify
               </Typography>
               <Box
                 sx={{
                   px: 0.8,
-                  py: 0.15,
+                  py: 0.2,
                   borderRadius: "6px",
                   bgcolor:
                     activeTab === "notify"
@@ -845,7 +888,7 @@ export default function InfectionControlPage() {
                     activeTab === "notify"
                       ? "inherit"
                       : theme.palette.primary.main,
-                  fontSize: "0.7rem",
+                  fontSize: "0.65rem",
                   fontWeight: 800,
                   minWidth: 20,
                   textAlign: "center",
@@ -861,13 +904,13 @@ export default function InfectionControlPage() {
           id: "audit",
           label: (
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>
                 Audit
               </Typography>
               <Box
                 sx={{
                   px: 0.8,
-                  py: 0.15,
+                  py: 0.2,
                   borderRadius: "6px",
                   bgcolor:
                     activeTab === "audit"
@@ -877,7 +920,7 @@ export default function InfectionControlPage() {
                     activeTab === "audit"
                       ? "inherit"
                       : theme.palette.primary.main,
-                  fontSize: "0.7rem",
+                  fontSize: "0.65rem",
                   fontWeight: 800,
                   minWidth: 20,
                   textAlign: "center",
@@ -893,13 +936,13 @@ export default function InfectionControlPage() {
           id: "close",
           label: (
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>
                 Close
               </Typography>
               <Box
                 sx={{
                   px: 0.8,
-                  py: 0.15,
+                  py: 0.2,
                   borderRadius: "6px",
                   bgcolor:
                     activeTab === "close"
@@ -909,7 +952,7 @@ export default function InfectionControlPage() {
                     activeTab === "close"
                       ? "inherit"
                       : theme.palette.primary.main,
-                  fontSize: "0.7rem",
+                  fontSize: "0.65rem",
                   fontWeight: 800,
                   minWidth: 20,
                   textAlign: "center",
@@ -935,8 +978,11 @@ export default function InfectionControlPage() {
 
     const commonSx = {
       textTransform: "none",
-      fontWeight: 600,
-      px: 2,
+      fontWeight: 700,
+      px: 2.5,
+      borderRadius: "8px",
+      boxShadow: "none",
+      "&:hover": { boxShadow: "0 4px 12px rgba(0,0,0,0.15)" },
     };
 
     if (activeTab === "detect") {
@@ -1030,47 +1076,39 @@ export default function InfectionControlPage() {
     );
   }, [activeTab, activeTabCases, canWrite]);
 
-  const casesTableBlock = (
-    <CommonDataGrid<InfectionCase>
-      rows={activeTabCases}
-      columns={memoColumns}
-      getRowId={(row) => row.id}
-      showSerialNo={true}
-      searchPlaceholder="Search patient, MRN, organism..."
-      searchFields={["patientName", "mrn", "organism"]}
-      toolbarRight={tableToolbarAction}
-      onRowClick={(row) => {
-        setSelectedCaseId(row.id);
-        const isoMatch = isolations.find(iso => iso.mrn === row.mrn);
-        if (isoMatch) {
-          setSelectedIsolationRoomId(isoMatch.id);
-        } else {
-          setSelectedIsolationRoomId(null);
-        }
-      }}
-      paperSx={{
-        "& .MuiTableRow-root": {
-          transition: "background-color 0.2s",
-        },
-        "& .MuiTableRow-root.Mui-selected": {
-          backgroundColor: alpha(theme.palette.primary.main, 0.08),
-        }
-      }}
-    />
+  const handleRowClick = React.useCallback(
+    (row: InfectionCase) => {
+      setSelectedCaseId(row.id);
+      const isoMatch = isolations.find((iso) => iso.mrn === row.mrn);
+      if (isoMatch) {
+        setSelectedIsolationRoomId(isoMatch.id);
+      } else {
+        setSelectedIsolationRoomId(null);
+      }
+    },
+    [isolations],
   );
 
   const tabItems = [
     {
       label: flowTabs[0].label,
       icon: flowTabs[0].icon,
-      child: <DetectTabContent casesTableBlock={casesTableBlock} />,
+      child: (
+        <DetectTabContent
+          rows={cases.filter((c) => c.icStatus === "Detected")}
+          columns={memoColumns}
+          onRowClick={handleRowClick}
+        />
+      ),
     },
     {
       label: flowTabs[1].label,
       icon: flowTabs[1].icon,
       child: (
         <IsolateTabContent
-          casesTableBlock={casesTableBlock}
+          rows={cases.filter((c) => c.icStatus === "Isolating")}
+          columns={memoColumns}
+          onRowClick={handleRowClick}
           selectedCase={selectedCase}
           selectedIsolationRoomId={selectedIsolationRoomId}
           setSelectedIsolationRoomId={setSelectedIsolationRoomId}
@@ -1088,7 +1126,9 @@ export default function InfectionControlPage() {
       icon: flowTabs[2].icon,
       child: (
         <NotifyTabContent
-          casesTableBlock={casesTableBlock}
+          rows={cases.filter((c) => c.icStatus === "Notified")}
+          columns={memoColumns}
+          onRowClick={handleRowClick}
           canWrite={canWrite}
           notifications={notifications}
           onAddNotification={handleAddNotification}
@@ -1098,12 +1138,24 @@ export default function InfectionControlPage() {
     {
       label: flowTabs[3].label,
       icon: flowTabs[3].icon,
-      child: <AuditTabContent casesTableBlock={casesTableBlock} />,
+      child: (
+        <AuditTabContent
+          rows={cases.filter((c) => c.icStatus === "In Audit")}
+          columns={memoColumns}
+          onRowClick={handleRowClick}
+        />
+      ),
     },
     {
       label: flowTabs[4].label,
       icon: flowTabs[4].icon,
-      child: <CloseTabContent casesTableBlock={casesTableBlock} />,
+      child: (
+        <CloseTabContent
+          rows={cases.filter((c) => c.icStatus === "Closed")}
+          columns={memoColumns}
+          onRowClick={handleRowClick}
+        />
+      ),
     },
   ];
 
@@ -1112,63 +1164,65 @@ export default function InfectionControlPage() {
       title="Infection Control"
       subtitle={pageSubtitle}
       currentPageTitle="Infection Control"
+      fullHeight
     >
-      <Stack spacing={2}>
+      <Stack
+        spacing={2}
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         {/* Top Stat Tiles */}
-        <Box
-          sx={{
-            display: "grid",
-            gap: 2,
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "repeat(2, 1fr)",
-              lg: "repeat(4, 1fr)",
-            },
-          }}
-        >
-          <StatTile
-            label="Active Cases"
-            value={activeCaseCount}
-            subtitle="Under investigation"
-            icon={<BugReportIcon sx={{ fontSize: 24 }} />}
-            tone="primary"
-          />
-          <StatTile
-            label="Isolation Rooms"
-            value={isolationOccupancy}
-            subtitle="Currently active"
-            icon={<HealthAndSafetyIcon sx={{ fontSize: 24 }} />}
-            tone="primary"
-          />
-          <StatTile
-            label="Alerts"
-            value={tabCounts.notify}
-            subtitle="Need attention"
-            icon={<WarningAmberIcon sx={{ fontSize: 24 }} />}
-            tone="primary"
-          />
-          <StatTile
-            label="Compliance"
-            value={`${averageAuditCompliance}%`}
-            subtitle={`${tabCounts.audit} open audits`}
-            icon={<CheckCircleIcon sx={{ fontSize: 24 }} />}
-            tone="primary"
-          />
-        </Box>
+        <Grid container spacing={2} sx={{ flexShrink: 0 }}>
+          <Grid item xs={12} sm={6} lg={3}>
+            <StatTile
+              label="Active Cases"
+              value={activeCaseCount}
+              subtitle="Under investigation"
+              icon={<BugReportIcon sx={{ fontSize: 28 }} />}
+              tone="primary"
+              sx={{ boxShadow: "0 8px 16px rgba(10, 77, 104, 0.05)" }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} lg={3}>
+            <StatTile
+              label="Isolation Rooms"
+              value={isolationOccupancy}
+              subtitle="Currently active"
+              icon={<HealthAndSafetyIcon sx={{ fontSize: 28 }} />}
+              tone="info"
+              sx={{ boxShadow: "0 8px 16px rgba(10, 77, 104, 0.05)" }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} lg={3}>
+            <StatTile
+              label="Alerts"
+              value={tabCounts.notify}
+              subtitle="Need attention"
+              icon={<WarningAmberIcon sx={{ fontSize: 28 }} />}
+              tone="warning"
+              sx={{ boxShadow: "0 8px 16px rgba(10, 77, 104, 0.05)" }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} lg={3}>
+            <StatTile
+              label="Compliance"
+              value={`${averageAuditCompliance}%`}
+              subtitle={`${tabCounts.audit} open audits`}
+              icon={<AssignmentTurnedInIcon sx={{ fontSize: 28 }} />}
+              tone="success"
+              sx={{ boxShadow: "0 8px 16px rgba(10, 77, 104, 0.05)" }}
+            />
+          </Grid>
+        </Grid>
 
         {/* Tabs and Flow content */}
         <CustomCardTabs
           items={tabItems}
-          // showBackground={true}
           defaultValue={FLOW_TAB_IDS.indexOf(activeTab)}
-          sticky={true}
+          sticky={false}
+          header={tableToolbarAction}
           onChange={(index) => {
             setActiveTab(FLOW_TAB_IDS[index]);
           }}
-        // tabsSx={{
-        //   mb: 1,
-        //   "& .MuiTabs-indicator": { height: 3, borderRadius: "3px 3px 0 0" },
-        // }}
         />
       </Stack>
 

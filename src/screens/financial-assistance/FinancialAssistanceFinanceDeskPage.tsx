@@ -83,10 +83,21 @@ export default function FinancialAssistanceFinanceDeskPage() {
   const [reviewOpen, setReviewOpen] = React.useState(false);
   const [newRequestOpen, setNewRequestOpen] = React.useState(false);
   const [selectedRequest, setSelectedRequest] = React.useState<any>(null);
+  const [authorizedIds, setAuthorizedIds] = React.useState<Set<string>>(new Set());
 
   const handleReview = (req: any) => {
     setSelectedRequest(req);
     setReviewOpen(true);
+  };
+
+  const handleAuthorize = () => {
+    if (selectedRequest) {
+      setAuthorizedIds((prev) => new Set(prev).add(selectedRequest.id));
+      // Close dialog after a short delay to see success state
+      setTimeout(() => {
+        setReviewOpen(false);
+      }, 1500);
+    }
   };
 
 
@@ -175,14 +186,14 @@ export default function FinancialAssistanceFinanceDeskPage() {
       width: 150,
       renderCell: (row) => (
         <Chip
-          label={row.status}
+          label={authorizedIds.has(row.id) ? "Approved" : row.status}
           size="small"
           sx={{
             height: 20,
             fontSize: 10,
             fontWeight: 700,
-            bgcolor: row.status === "Doctor Approved" ? "#FFF7ED" : "#F0FDF4",
-            color: row.status === "Doctor Approved" ? "#C2410C" : "#166534",
+            bgcolor: authorizedIds.has(row.id) ? "#ECFDF5" : row.status === "Doctor Approved" ? "#FFF7ED" : "#F0FDF4",
+            color: authorizedIds.has(row.id) ? "#065F46" : row.status === "Doctor Approved" ? "#C2410C" : "#166534",
             borderRadius: "4px",
           }}
         />
@@ -193,22 +204,48 @@ export default function FinancialAssistanceFinanceDeskPage() {
       headerName: "ACTION",
       width: 120,
       renderCell: (row) => (
-        <Button
-          size="small"
-          variant="contained"
-          onClick={() => handleReview(row)}
-          sx={{
-            bgcolor: "success.main",
-            textTransform: "none",
-            fontSize: 11,
-            py: 0.5,
-            px: 2,
-            borderRadius: "6px",
-            "&:hover": { bgcolor: "#065F46" },
-          }}
-        >
-          Approve
-        </Button>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => handleReview(row)}
+            sx={{
+              textTransform: "none",
+              fontSize: 11,
+              py: 0.5,
+              borderRadius: "6px",
+              borderColor: "#E2E8F0",
+              color: "text.secondary",
+            }}
+          >
+            Details
+          </Button>
+          {authorizedIds.has(row.id) ? (
+            <Chip 
+              icon={<CheckCircleIcon sx={{ fontSize: "14px !important", color: "#059669 !important" }} />}
+              label="Approved" 
+              size="small"
+              sx={{ bgcolor: "#ECFDF5", color: "#065F46", fontWeight: 800, fontSize: 10, height: 24 }}
+            />
+          ) : (
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => handleReview(row)}
+              sx={{
+                bgcolor: "success.main",
+                textTransform: "none",
+                fontSize: 11,
+                py: 0.5,
+                px: 2,
+                borderRadius: "6px",
+                "&:hover": { bgcolor: "#065F46" },
+              }}
+            >
+              Approve
+            </Button>
+          )}
+        </Stack>
       ),
     },
   ];
@@ -249,310 +286,329 @@ export default function FinancialAssistanceFinanceDeskPage() {
     >
       <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
         <WorkspaceHeaderCard>
-        <Stack
-          direction="row"
-          spacing={2}
-          justifyContent="space-between"
-          alignItems="center"
-        >
-          <Box>
-            <Typography
-              variant="h5"
-              sx={{ fontWeight: 900, color: "primary.main", mb: 0.5 }}
-            >
-              Finance Desk
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Reviewing 5 pending recommendation cases for final disbursement
-              approval.
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<AddIcon />}
-            onClick={() => setNewRequestOpen(true)}
-            sx={{
-              textTransform: "none",
-              borderRadius: "8px",
-              fontSize: 12,
-              px: 3,
-              fontWeight: 700,
-              bgcolor: "primary.main",
-              "&:hover": { bgcolor: "primary.dark" },
-              boxShadow: (t: any) => `0 4px 12px ${alpha(t.palette.primary.main, 0.2)}`,
-            }}
+          <Stack
+            direction="row"
+            spacing={2}
+            justifyContent="space-between"
+            alignItems="center"
           >
-            New Request
-          </Button>
-        </Stack>
-      </WorkspaceHeaderCard>
+            <Box>
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 900, color: "primary.main", mb: 0.5 }}
+              >
+                Finance Desk
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Reviewing 5 pending recommendation cases for final disbursement
+                approval.
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => setNewRequestOpen(true)}
+              sx={{
+                textTransform: "none",
+                borderRadius: "8px",
+                fontSize: 12,
+                px: 3,
+                fontWeight: 700,
+                bgcolor: "primary.main",
+                "&:hover": { bgcolor: "primary.dark" },
+                boxShadow: (t: any) => `0 4px 12px ${alpha(t.palette.primary.main, 0.2)}`,
+              }}
+            >
+              New Request
+            </Button>
+          </Stack>
+        </WorkspaceHeaderCard>
 
-     
-      <Grid container spacing={1} >
-        <Grid item xs={12} sm={6} md={3}>
-          <StatTile
-            label="APPROVED THIS MONTH"
-            value="₹4.2L"
-            subtitle="38 cases approved"
-            tone="success"
-            icon={<CheckCircleIcon />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatTile
-            label="PENDING FINAL APPROVAL"
-            value="5"
-            subtitle="Recommended by Doctors"
-            tone="warning"
-            icon={<HourglassIcon />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatTile
-            label="REJECTED"
-            value="5"
-            subtitle="This month"
-            tone="error"
-            icon={<CancelIcon />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatTile
-            label="GOVT. SCHEME CASES"
-            value="21"
-            subtitle="Ayushman + others"
-            tone="info"
-            icon={<AccountBalanceIcon />}
-          />
-        </Grid>
-      </Grid>
 
-    
-      <CustomCardTabs
-        sx={{ flex: 1, minHeight: 0 }}
-        items={[
-          {
-            label: "Pending Approval",
-            icon: <HourglassIcon />,
-            child: (
-              <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-                <Box
-                  sx={{
-                    p: 1.5,
-                    bgcolor: COLORS.accentSoft,
-                    border: `1px solid ${alpha(COLORS.accentBright, 0.2)}`,
-                    borderRadius: "8px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1.5,
-                  }}
-                >
-                  <InfoIcon sx={{ color: COLORS.accentBright, fontSize: 18 }} />
-                  <Typography
-                    sx={{ fontSize: 13, color: COLORS.accentBright, fontWeight: 500 }}
+        <Grid container spacing={1} >
+          <Grid item xs={12} sm={6} md={3}>
+            <StatTile
+              label="APPROVED THIS MONTH"
+              value="₹4.2L"
+              subtitle="38 cases approved"
+              tone="success"
+              icon={<CheckCircleIcon />}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatTile
+              label="PENDING FINAL APPROVAL"
+              value="5"
+              subtitle="Recommended by Doctors"
+              tone="warning"
+              icon={<HourglassIcon />}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatTile
+              label="REJECTED"
+              value="5"
+              subtitle="This month"
+              tone="error"
+              icon={<CancelIcon />}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatTile
+              label="GOVT. SCHEME CASES"
+              value="21"
+              subtitle="Ayushman + others"
+              tone="info"
+              icon={<AccountBalanceIcon />}
+            />
+          </Grid>
+        </Grid>
+
+
+        <CustomCardTabs
+          sx={{ flex: 1, minHeight: 0 }}
+          items={[
+            {
+              label: "Pending Approval",
+              icon: <HourglassIcon />,
+              child: (
+                <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      bgcolor: COLORS.accentSoft,
+                      border: `1px solid ${alpha(COLORS.accentBright, 0.2)}`,
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                    }}
                   >
-                    Those requests have been{" "}
-                    <strong style={{ fontWeight: 700 }}>
-                      recommended by the treating Doctor/HOD
-                    </strong>{" "}
-                    and are awaiting your final approval.
-                  </Typography>
-                </Box>
-                <Grid container spacing={2} sx={{mt:0.5}}>
-                  {REQUESTS.map((req) => (
-                    <Grid item xs={12} md={6} key={req.id}>
-                      <Box
-                        sx={{
-                          bgcolor: COLORS.surface,
-                          borderRadius: "12px",
-                          border: `1px solid ${COLORS.border}`,
-                          p: 3,
-                          height: "100%",
-                          position: "relative",
-                          boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
-                          display: "flex",
-                          flexDirection: "column",
-                        }}
-                      >
-                        <Chip
-                          label={req.status}
-                          size="small"
+                    <InfoIcon sx={{ color: COLORS.accentBright, fontSize: 18 }} />
+                    <Typography
+                      sx={{ fontSize: 13, color: COLORS.accentBright, fontWeight: 500 }}
+                    >
+                      Those requests have been{" "}
+                      <strong style={{ fontWeight: 700 }}>
+                        recommended by the treating Doctor/HOD
+                      </strong>{" "}
+                      and are awaiting your final approval.
+                    </Typography>
+                  </Box>
+                  <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                    {REQUESTS.map((req) => (
+                      <Grid item xs={12} md={6} key={req.id}>
+                        <Box
                           sx={{
-                            position: "absolute",
-                            top: 16,
-                            right: 16,
-                            bgcolor: "#FFF7ED",
-                            color: "#C2410C",
-                            fontSize: 10,
-                            fontWeight: 700,
-                            borderRadius: "4px",
+                            bgcolor: COLORS.surface,
+                            borderRadius: "12px",
+                            border: `1px solid ${COLORS.border}`,
+                            p: 3,
+                            height: "100%",
+                            position: "relative",
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+                            display: "flex",
+                            flexDirection: "column",
                           }}
-                        />
-
-                        <Box sx={{ mb: 2 }}>
-                          <Typography
-                            sx={{
-                              fontSize: 16,
-                              fontWeight: 800,
-                              color: COLORS.textPrimary,
-                            }}
-                          >
-                            {req.patientName}{" "}
-                            <span
-                              style={{
-                                color: COLORS.textMuted,
-                                fontWeight: 500,
-                                fontSize: 12,
-                              }}
-                            >
-                              {req.patientId}
-                            </span>
-                          </Typography>
-                          <Typography
-                            sx={{ fontSize: 12, color: COLORS.textSecondary }}
-                          >
-                            {req.id} • {req.department} •{" "}
-                            <span style={{ color: COLORS.accentBright }}>
-                              By {req.doctor}
-                            </span>
-                          </Typography>
-                        </Box>
-
-                        <Grid
-                          container
-                          spacing={2}
-                          sx={{ mb: Number(req.doctorNote ? 2 : 3) }}
                         >
-                          <Grid item xs={6}>
-                            <Typography
-                              sx={{
-                                fontSize: 10,
-                                color: COLORS.textMuted,
-                                fontWeight: 700,
-                                mb: 0.5,
-                              }}
-                            >
-                              BILL AMOUNT
-                            </Typography>
-                            <Typography sx={{ fontSize: 14, fontWeight: 700 }}>
-                              ₹{req.billAmount.toLocaleString()}
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Typography
-                              sx={{
-                                fontSize: 10,
-                                color: COLORS.textMuted,
-                                fontWeight: 700,
-                                mb: 0.5,
-                              }}
-                            >
-                              REQUESTED
-                            </Typography>
-                            <Typography
-                              sx={{ fontSize: 14, fontWeight: 700, color: "#BE123C" }}
-                            >
-                              ₹{req.requestedAmount.toLocaleString()}
-                            </Typography>
-                          </Grid>
-                        </Grid>
-
-                        {req.doctorNote && (
-                          <Box
+                          <Chip
+                            label={authorizedIds.has(req.id) ? "Approved" : req.status}
+                            size="small"
                             sx={{
-                              p: 1.5,
-                              bgcolor: "#F0FDF4",
-                              border: "1px solid #BBF7D0",
-                              borderRadius: "8px",
-                              mb: 3,
-                              flexGrow: 1,
+                              position: "absolute",
+                              top: 16,
+                              right: 16,
+                              bgcolor: authorizedIds.has(req.id) ? "#ECFDF5" : "#FFF7ED",
+                              color: authorizedIds.has(req.id) ? "#065F46" : "#C2410C",
+                              fontSize: 10,
+                              fontWeight: 700,
+                              borderRadius: "4px",
                             }}
-                          >
+                          />
+
+                          <Box sx={{ mb: 2 }}>
                             <Typography
-                              sx={{ fontSize: 11, color: "#166534", lineHeight: 1.4 }}
+                              sx={{
+                                fontSize: 16,
+                                fontWeight: 800,
+                                color: COLORS.textPrimary,
+                              }}
                             >
-                              "{req.doctorNote}"
+                              {req.patientName}{" "}
+                              <span
+                                style={{
+                                  color: COLORS.textMuted,
+                                  fontWeight: 500,
+                                  fontSize: 12,
+                                }}
+                              >
+                                {req.patientId}
+                              </span>
+                            </Typography>
+                            <Typography
+                              sx={{ fontSize: 12, color: COLORS.textSecondary }}
+                            >
+                              {req.id} • {req.department} •{" "}
+                              <span style={{ color: COLORS.accentBright }}>
+                                By {req.doctor}
+                              </span>
                             </Typography>
                           </Box>
-                        )}
 
-                        <Stack direction="row" spacing={1} sx={{ mt: "auto" }} flexWrap="wrap" justifyContent="flex-end" useFlexGap>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                              border: `1px solid ${COLORS.border}`,
-                              color: COLORS.textPrimary,
-                              textTransform: "none",
-                              borderRadius: "8px",
-                              fontWeight: 700,
-                              fontSize: 11,
-                              minWidth: 0,
-                            }}
+                          <Grid
+                            container
+                            spacing={2}
+                            sx={{ mb: Number(req.doctorNote ? 2 : 3) }}
                           >
-                            Details
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            sx={{
-                              bgcolor: alpha("#F97316", 0.1),
-                              color: "#C2410C",
-                              textTransform: "none",
-                              borderRadius: "8px",
-                              fontWeight: 700,
-                              fontSize: 11,
-                              boxShadow: "none",
-                              "&:hover": { bgcolor: alpha("#F97316", 0.2) },
-                            }}
-                          >
-                            Partial
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            sx={{
-                              bgcolor: COLORS.rejected.bg,
-                              color: COLORS.rejected.text,
-                              textTransform: "none",
-                              borderRadius: "8px",
-                              fontWeight: 700,
-                              fontSize: 11,
-                              boxShadow: "none",
-                              "&:hover": { bgcolor: alpha(COLORS.rejected.bg, 0.8) },
-                            }}
-                          >
-                            Reject
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            onClick={() => handleReview(req)}
-                            sx={{
-                              bgcolor: "success.main",
-                              color: "#fff",
-                              textTransform: "none",
-                              borderRadius: "8px",
-                              fontWeight: 700,
-                              fontSize: 11,
-                              boxShadow: "none",
-                              "&:hover": { bgcolor: "success.main" },
-                            }}
-                          >
-                            Approve
-                          </Button>
-                        </Stack>
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            ),
-          },
-          {
-            label: "All Requests",
-            child: (
+                            <Grid item xs={6}>
+                              <Typography
+                                sx={{
+                                  fontSize: 10,
+                                  color: COLORS.textMuted,
+                                  fontWeight: 700,
+                                  mb: 0.5,
+                                }}
+                              >
+                                BILL AMOUNT
+                              </Typography>
+                              <Typography sx={{ fontSize: 14, fontWeight: 700 }}>
+                                ₹{req.billAmount.toLocaleString()}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography
+                                sx={{
+                                  fontSize: 10,
+                                  color: COLORS.textMuted,
+                                  fontWeight: 700,
+                                  mb: 0.5,
+                                }}
+                              >
+                                REQUESTED
+                              </Typography>
+                              <Typography
+                                sx={{ fontSize: 14, fontWeight: 700, color: "#BE123C" }}
+                              >
+                                ₹{req.requestedAmount.toLocaleString()}
+                              </Typography>
+                            </Grid>
+                          </Grid>
+
+                          {req.doctorNote && (
+                            <Box
+                              sx={{
+                                p: 1.5,
+                                bgcolor: "#F0FDF4",
+                                border: "1px solid #BBF7D0",
+                                borderRadius: "8px",
+                                mb: 3,
+                                flexGrow: 1,
+                              }}
+                            >
+                              <Typography
+                                sx={{ fontSize: 11, color: "#166534", lineHeight: 1.4 }}
+                              >
+                                "{req.doctorNote}"
+                              </Typography>
+                            </Box>
+                          )}
+
+                          <Stack direction="row" spacing={1} sx={{ mt: "auto" }} flexWrap="wrap" justifyContent="flex-end" alignItems="center" useFlexGap>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => handleReview(req)}
+                              sx={{
+                                border: `1px solid ${COLORS.border}`,
+                                color: COLORS.textPrimary,
+                                textTransform: "none",
+                                borderRadius: "8px",
+                                fontWeight: 700,
+                                fontSize: 11,
+                                minWidth: 0,
+                              }}
+                            >
+                              Details
+                            </Button>
+                            
+                            {authorizedIds.has(req.id) ? (
+                              <Chip 
+                                icon={<CheckCircleIcon sx={{ fontSize: "16px !important", color: "#059669 !important" }} />}
+                                label="Approved" 
+                                sx={{ 
+                                  bgcolor: "#ECFDF5", 
+                                  color: "#065F46", 
+                                  fontWeight: 800, 
+                                  fontSize: 11,
+                                  borderRadius: "8px",
+                                  border: "1px solid #10B981"
+                                }} 
+                              />
+                            ) : (
+                              <>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  sx={{
+                                    bgcolor: alpha("#F97316", 0.1),
+                                    color: "#C2410C",
+                                    textTransform: "none",
+                                    borderRadius: "8px",
+                                    fontWeight: 700,
+                                    fontSize: 11,
+                                    boxShadow: "none",
+                                    "&:hover": { bgcolor: alpha("#F97316", 0.2) },
+                                  }}
+                                >
+                                  Partial
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  sx={{
+                                    bgcolor: COLORS.rejected.bg,
+                                    color: COLORS.rejected.text,
+                                    textTransform: "none",
+                                    borderRadius: "8px",
+                                    fontWeight: 700,
+                                    fontSize: 11,
+                                    boxShadow: "none",
+                                    "&:hover": { bgcolor: alpha(COLORS.rejected.bg, 0.8) },
+                                  }}
+                                >
+                                  Reject
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  onClick={() => handleReview(req)}
+                                  sx={{
+                                    bgcolor: "success.main",
+                                    color: "#fff",
+                                    textTransform: "none",
+                                    borderRadius: "8px",
+                                    fontWeight: 700,
+                                    fontSize: 11,
+                                    boxShadow: "none",
+                                    "&:hover": { bgcolor: "success.main" },
+                                  }}
+                                >
+                                  Approve
+                                </Button>
+                              </>
+                            )}
+                          </Stack>
+                        </Box>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              ),
+            },
+            {
+              label: "All Requests",
+              child: (
                 <CommonDataGrid
                   showSerialNo
                   rows={Array(8)
@@ -582,158 +638,178 @@ export default function FinancialAssistanceFinanceDeskPage() {
                   searchPlaceholder="Search by patient, ID, bill..."
                   tableHeight="100%"
                 />
-            ),
-          },
-          {
-            label: "Audit Log",
-            child: (
-              <Box
-                sx={{
-                  bgcolor: COLORS.surface,
-                  borderRadius: "12px",
-                  border: `1px solid ${COLORS.border}`,
-                  overflow: "hidden",
-                }}
-              >
+              ),
+            },
+            {
+              label: "Audit Log",
+              child: (
                 <Box
                   sx={{
-                    p: 2,
-                    borderBottom: `1px solid ${COLORS.border}`,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
+                    bgcolor: COLORS.surface,
+                    borderRadius: "12px",
+                    border: `1px solid ${COLORS.border}`,
+                    overflow: "hidden",
                   }}
                 >
-                  <Typography sx={{ fontSize: 14, fontWeight: 800 }}>
-                    Audit Log
-                  </Typography>
-                </Box>
-                <Stack sx={{ p: 2 }}>
-                  {auditLogs.map((log) => (
-                    <Box
-                      key={log.id}
-                      sx={{
-                        py: 1.5,
-                        borderBottom:
-                          log.id !== 4 ? `1px solid ${COLORS.border}` : "none",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        {log.icon === "arrow" && (
-                          <PriorityHighIcon
-                            sx={{ color: "#F97316", fontSize: 18 }}
-                          />
-                        )}
-                        {log.icon === "check" && (
-                          <CheckCircleIcon
-                            sx={{ color: "#16A34A", fontSize: 18 }}
-                          />
-                        )}
-                        {log.icon === "recommend" && (
-                          <AssignmentIndIcon
-                            sx={{ color: "#EAB308", fontSize: 18 }}
-                          />
-                        )}
-                        {log.icon === "close" && (
-                          <CancelIcon sx={{ color: "#BE123C", fontSize: 18 }} />
-                        )}
-                        <Typography
-                          sx={{ fontSize: 13, color: COLORS.textPrimary }}
-                        >
-                          <strong style={{ fontWeight: 800 }}>
-                            {log.text.split(" ")[0]}
-                          </strong>{" "}
-                          {log.text.slice(log.text.indexOf(" "))}
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderBottom: `1px solid ${COLORS.border}`,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                    }}
+                  >
+                    <Typography sx={{ fontSize: 14, fontWeight: 800 }}>
+                      Audit Log
+                    </Typography>
+                  </Box>
+                  <Stack sx={{ p: 2 }}>
+                    {auditLogs.map((log) => (
+                      <Box
+                        key={log.id}
+                        sx={{
+                          py: 1.5,
+                          borderBottom:
+                            log.id !== 4 ? `1px solid ${COLORS.border}` : "none",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Stack direction="row" spacing={2} alignItems="center">
+                          {log.icon === "arrow" && (
+                            <PriorityHighIcon
+                              sx={{ color: "#F97316", fontSize: 18 }}
+                            />
+                          )}
+                          {log.icon === "check" && (
+                            <CheckCircleIcon
+                              sx={{ color: "#16A34A", fontSize: 18 }}
+                            />
+                          )}
+                          {log.icon === "recommend" && (
+                            <AssignmentIndIcon
+                              sx={{ color: "#EAB308", fontSize: 18 }}
+                            />
+                          )}
+                          {log.icon === "close" && (
+                            <CancelIcon sx={{ color: "#BE123C", fontSize: 18 }} />
+                          )}
+                          <Typography
+                            sx={{ fontSize: 13, color: COLORS.textPrimary }}
+                          >
+                            <strong style={{ fontWeight: 800 }}>
+                              {log.text.split(" ")[0]}
+                            </strong>{" "}
+                            {log.text.slice(log.text.indexOf(" "))}
+                          </Typography>
+                        </Stack>
+                        <Typography sx={{ fontSize: 11, color: COLORS.textMuted }}>
+                          {log.time}
                         </Typography>
-                      </Stack>
-                      <Typography sx={{ fontSize: 11, color: COLORS.textMuted }}>
-                        {log.time}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Stack>
-              </Box>
-            ),
-          },
-        ]}
-      />
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
+              ),
+            },
+          ]}
+        />
 
-      {/* Case Review / Approval Dialog */}
-      <CommonDialog
-        open={reviewOpen}
-        onClose={() => setReviewOpen(false)}
-        maxWidth="md"
-        title="Case Approval"
-        subtitle={
-          <Typography sx={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>
-            Reference No: <span style={{ color: "#38BDF8" }}>{selectedRequest?.id}</span>
-          </Typography>
-        }
-        icon={<LocalHospitalIcon sx={{ color: "#38BDF8", fontSize: 26 }} />}
-        titleSx={{
-          background: "linear-gradient(135deg, #1172BA 0%, #0A4472 100%)",
-          color: "#fff",
-          "& .MuiTypography-root": { color: "#fff" },
-          "& .MuiIconButton-root": { color: "rgba(255,255,255,0.6)" },
-        }}
-        PaperProps={{
-          sx: {
-            borderRadius: "24px",
-            overflow: "hidden",
-            boxShadow: "0 25px 70px rgba(15,23,42,0.18)",
-            bgcolor: "#F8FAFC",
-          },
-        }}
-        contentSx={{ p: 4 }}
-        actionsSx={{ p: 4, pt: 0, mt: 0 }}
-        actions={
-          <>
-            <Button
-              onClick={() => setReviewOpen(false)}
-              sx={{
-                color: "#64748B",
-                fontWeight: 700,
-                textTransform: "none",
-                fontSize: 14,
-              }}
-            >
-              Wait for more info
-            </Button>
-            <Button
-              variant="outlined"
-              sx={{
-                fontWeight: 700,
-                px: 3,
-                borderRadius: "14px",
-                textTransform: "none",
-              }}
-            >
-              Decline Case
-            </Button>
-            <Button
-              variant="contained"
-              sx={{
-                textTransform: "none",
-                fontWeight: 800,
-                fontSize: 15,
-                px: 4,
-                py: 1.25,
-                borderRadius: "14px",
-              }}
-            >
-              Authorize Clearance
-            </Button>
-          </>
-        }
-      >
-        <Box>
-          <Grid container spacing={4}>
+        {/* Case Review / Approval Dialog */}
+        <CommonDialog
+          open={reviewOpen}
+          onClose={() => setReviewOpen(false)}
+          maxWidth="md"
+          title="Case Approval"
+          subtitle={
+            <Typography sx={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>
+              Reference No: <span style={{ color: "#38BDF8" }}>{selectedRequest?.id}</span>
+            </Typography>
+          }
+          icon={<LocalHospitalIcon sx={{ color: "#38BDF8", fontSize: 26 }} />}
+          titleSx={{
+            background: "linear-gradient(135deg, #1172BA 0%, #0A4472 100%)",
+            color: "#fff",
+            "& .MuiTypography-root": { color: "#fff" },
+            "& .MuiIconButton-root": { color: "rgba(255,255,255,0.6)" },
+          }}
+          PaperProps={{
+            sx: {
+              borderRadius: "24px",
+              overflow: "hidden",
+              boxShadow: "0 25px 70px rgba(15,23,42,0.18)",
+              bgcolor: "#F8FAFC",
+            },
+          }}
+          // contentSx={{ p: 4 }}
+          // actionsSx={{ p: 4, pt: 0, mt: 0 }}
+          actions={
+            selectedRequest && authorizedIds.has(selectedRequest.id) ? (
+              <Box sx={{ flex: 1, display: "flex", justifyContent: "center", pb: 1 }}>
+                <Chip 
+                  icon={<CheckCircleIcon sx={{ color: "white !important", fontSize: 18 }} />}
+                  label="Authorize Approved Successfully" 
+                  sx={{ 
+                    bgcolor: "#059669", 
+                    color: "white", 
+                    fontWeight: 800, 
+                    px: 3, 
+                    height: 44,
+                    fontSize: 15,
+                    borderRadius: "14px",
+                    boxShadow: "0 10px 15px -3px rgba(5, 150, 105, 0.3)"
+                  }} 
+                />
+              </Box>
+            ) : (
+              <>
+                <Button
+                  onClick={() => setReviewOpen(false)}
+                  sx={{
+                    color: "#64748B",
+                    fontWeight: 700,
+                    textTransform: "none",
+                    fontSize: 14,
+                  }}
+                >
+                  Wait for more info
+                </Button>
+                <Button
+                  variant="outlined"
+                  sx={{
+                    fontWeight: 700,
+                    px: 3,
+                    borderRadius: "14px",
+                    textTransform: "none",
+                  }}
+                >
+                  Decline Case
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={handleAuthorize}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 800,
+                    fontSize: 15,
+                    px: 4,
+                    py: 1.25,
+                    borderRadius: "14px",
+                  }}
+                >
+                  Authorize Clearance
+                </Button>
+              </>
+            )
+          }
+        >
+          {/* <Box> */}
+          <Grid container spacing={0}>
             <Grid item xs={12} md={7}>
-              <Stack spacing={3}>
-                <Box>
+              <Stack >
+                <Box sx={{ p: 2 }}>
                   <Typography
                     sx={{
                       fontSize: 11,
@@ -828,7 +904,7 @@ export default function FinancialAssistanceFinanceDeskPage() {
                   </Box>
                 </Box>
 
-                <Box>
+                <Box sx={{ p: 2 }}>
                   <Typography
                     sx={{
                       fontSize: 11,
@@ -866,7 +942,7 @@ export default function FinancialAssistanceFinanceDeskPage() {
                   </Box>
                 </Box>
 
-                <Box>
+                <Box sx={{ p: 2 }}>
                   <Typography
                     sx={{
                       fontSize: 11,
@@ -909,8 +985,8 @@ export default function FinancialAssistanceFinanceDeskPage() {
                         },
                         {
                           label: "Finance Audit",
-                          time: "Processing...",
-                          status: "active",
+                          time: selectedRequest && authorizedIds.has(selectedRequest.id) ? "17 Mar, 02:30 PM" : "Processing...",
+                          status: selectedRequest && authorizedIds.has(selectedRequest.id) ? "complete" : "active",
                         },
                       ].map((step, idx) => (
                         <Stack
@@ -973,7 +1049,8 @@ export default function FinancialAssistanceFinanceDeskPage() {
             </Grid>
 
             <Grid item xs={12} md={5}>
-              <Stack spacing={3}>
+              <Stack spacing={2} sx={{ p: 2 }}>
+
                 <Box
                   sx={{
                     p: 3,
@@ -1095,7 +1172,7 @@ export default function FinancialAssistanceFinanceDeskPage() {
                   </Stack>
                 </Box>
 
-                <Box>
+                <Box >
                   <Typography
                     sx={{
                       fontSize: 11,
@@ -1111,6 +1188,7 @@ export default function FinancialAssistanceFinanceDeskPage() {
                     fullWidth
                     label="Approved Amount"
                     type="number"
+                    disabled={selectedRequest && authorizedIds.has(selectedRequest.id)}
                     defaultValue={selectedRequest?.requestedAmount}
                     InputProps={{
                       startAdornment: (
@@ -1124,7 +1202,7 @@ export default function FinancialAssistanceFinanceDeskPage() {
                     sx={{
                       "& .MuiOutlinedInput-root": {
                         borderRadius: "16px",
-                        bgcolor: "#fff",
+                        bgcolor: selectedRequest && authorizedIds.has(selectedRequest.id) ? "#F1F5F9" : "#fff",
                         fontWeight: 700,
                         fontSize: 15,
                         "& fieldset": { borderColor: "#E2E8F0" },
@@ -1149,11 +1227,12 @@ export default function FinancialAssistanceFinanceDeskPage() {
                     fullWidth
                     multiline
                     rows={4}
+                    disabled={selectedRequest && authorizedIds.has(selectedRequest.id)}
                     placeholder="Verification remarks..."
                     sx={{
                       "& .MuiOutlinedInput-root": {
                         borderRadius: "16px",
-                        bgcolor: "#fff",
+                        bgcolor: selectedRequest && authorizedIds.has(selectedRequest.id) ? "#F1F5F9" : "#fff",
                         fontSize: 13,
                         "& fieldset": { borderColor: "#E2E8F0" },
                       },
@@ -1163,140 +1242,140 @@ export default function FinancialAssistanceFinanceDeskPage() {
               </Stack>
             </Grid>
           </Grid>
-        </Box>
-      </CommonDialog>
-      {/* New Request Dialog */}
-      <CommonDialog
-        open={newRequestOpen}
-        onClose={() => setNewRequestOpen(false)}
-        maxWidth="sm"
-        title="Generate Assistance Request"
-        subtitle="Initiate a new medical support request for patient review."
-        confirmLabel="Submit Request to Doctor Review"
-        onConfirm={() => setNewRequestOpen(false)}
-        confirmButtonProps={{
-          sx: {
-            py: 1.2,
-            borderRadius: "10px",
-            fontWeight: 800,
-            textTransform: "none",
-            fontSize: 14,
-            boxShadow: "0 10px 15px -3px rgba(17, 114, 186, 0.25)",
-          }
-        }}
-        PaperProps={{
-          sx: {
-            borderRadius: "20px",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-          },
-        }}
-        contentSx={{ p: 1 }}
-      >
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-          <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
-              PATIENT SEARCH
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search by MRN or Name (e.g. MRN-24599)"
-              InputProps={{
-                startAdornment: (
-                  <AssignmentIndIcon sx={{ color: "text.disabled", mr: 1, fontSize: 18 }} />
-                ),
-              }}
-            />
-          </Box>
-
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
+          {/* </Box> */}
+        </CommonDialog>
+        {/* New Request Dialog */}
+        <CommonDialog
+          open={newRequestOpen}
+          onClose={() => setNewRequestOpen(false)}
+          maxWidth="sm"
+          title="Generate Assistance Request"
+          subtitle="Initiate a new medical support request for patient review."
+          confirmLabel="Submit Request to Doctor Review"
+          onConfirm={() => setNewRequestOpen(false)}
+          confirmButtonProps={{
+            sx: {
+              py: 1.2,
+              borderRadius: "10px",
+              fontWeight: 800,
+              textTransform: "none",
+              fontSize: 14,
+              boxShadow: "0 10px 15px -3px rgba(17, 114, 186, 0.25)",
+            }
+          }}
+          PaperProps={{
+            sx: {
+              borderRadius: "20px",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+            },
+          }}
+          contentSx={{ p: 1 }}
+        >
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+            <Box>
               <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
-                BILL AMOUNT
+                PATIENT SEARCH
               </Typography>
               <TextField
                 fullWidth
                 size="small"
-                type="number"
-                placeholder="₹ 0.00"
+                placeholder="Search by MRN or Name (e.g. MRN-24599)"
                 InputProps={{
                   startAdornment: (
-                    <Typography sx={{ mr: 1, fontSize: 13, fontWeight: 700, color: "text.secondary" }}>
-                      ₹
-                    </Typography>
+                    <AssignmentIndIcon sx={{ color: "text.disabled", mr: 1, fontSize: 18 }} />
                   ),
                 }}
               />
-            </Grid>
-            <Grid item xs={6}>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
-                REQUESTED ASSISTANCE
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                placeholder="₹ 0.00"
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    bgcolor: alpha("#BE123C", 0.02),
-                  }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <Typography sx={{ mr: 1, fontSize: 13, fontWeight: 700, color: "#BE123C" }}>
-                      ₹
-                    </Typography>
-                  ),
-                }}
-              />
-            </Grid>
-          </Grid>
+            </Box>
 
-          <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
-              ASSISTANCE SCHEME / TYPE
-            </Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {["Ayushman Bharat", "Charity", "Trust Relief", "Staff Discount"].map((s) => (
-                <Chip
-                  key={s}
-                  label={s}
-                  onClick={() => {}}
-                  sx={{
-                    borderRadius: "8px",
-                    fontWeight: 600,
-                    fontSize: 11,
-                    bgcolor: s === "Ayushman Bharat" ? alpha(COLORS.accentBright, 0.1) : "transparent",
-                    color: s === "Ayushman Bharat" ? COLORS.accentBright : COLORS.textSecondary,
-                    border: `1px solid ${s === "Ayushman Bharat" ? COLORS.accentBright : COLORS.border}`,
-                    "&:hover": { bgcolor: alpha(COLORS.accentBright, 0.05) }
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
+                  BILL AMOUNT
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="number"
+                  placeholder="₹ 0.00"
+                  InputProps={{
+                    startAdornment: (
+                      <Typography sx={{ mr: 1, fontSize: 13, fontWeight: 700, color: "text.secondary" }}>
+                        ₹
+                      </Typography>
+                    ),
                   }}
                 />
-              ))}
-            </Stack>
-          </Box>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
+                  REQUESTED ASSISTANCE
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="number"
+                  placeholder="₹ 0.00"
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      bgcolor: alpha("#BE123C", 0.02),
+                    }
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <Typography sx={{ mr: 1, fontSize: 13, fontWeight: 700, color: "#BE123C" }}>
+                        ₹
+                      </Typography>
+                    ),
+                  }}
+                />
+              </Grid>
+            </Grid>
 
-          <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
-              JUSTIFICATION / REMARKS
-            </Typography>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              placeholder="Provide a brief explanation for the assistance request..."
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  fontSize: 13,
-                  borderRadius: "12px",
-                }
-              }}
-            />
+            <Box>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
+                ASSISTANCE SCHEME / TYPE
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {["Ayushman Bharat", "Charity", "Trust Relief", "Staff Discount"].map((s) => (
+                  <Chip
+                    key={s}
+                    label={s}
+                    onClick={() => { }}
+                    sx={{
+                      borderRadius: "8px",
+                      fontWeight: 600,
+                      fontSize: 11,
+                      bgcolor: s === "Ayushman Bharat" ? alpha(COLORS.accentBright, 0.1) : "transparent",
+                      color: s === "Ayushman Bharat" ? COLORS.accentBright : COLORS.textSecondary,
+                      border: `1px solid ${s === "Ayushman Bharat" ? COLORS.accentBright : COLORS.border}`,
+                      "&:hover": { bgcolor: alpha(COLORS.accentBright, 0.05) }
+                    }}
+                  />
+                ))}
+              </Stack>
+            </Box>
+
+            <Box>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: COLORS.textSecondary, mb: 1 }}>
+                JUSTIFICATION / REMARKS
+              </Typography>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                placeholder="Provide a brief explanation for the assistance request..."
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    fontSize: 13,
+                    borderRadius: "12px",
+                  }
+                }}
+              />
+            </Box>
           </Box>
-        </Box>
-      </CommonDialog>
-    </Stack>
-  </PageTemplate>
+        </CommonDialog>
+      </Stack>
+    </PageTemplate>
   );
 }

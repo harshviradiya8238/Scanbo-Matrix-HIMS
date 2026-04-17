@@ -20,72 +20,125 @@ import {
   PushPin as PushPinIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
+import CommonDataGrid, {
+  CommonColumn,
+} from "@/src/components/table/CommonDataGrid";
 import { CLOSURE_CRITERIA, CASE_TIMELINE_EVENTS } from "../utils/infection-control-data";
+import { InfectionCase } from "@/src/mocks/infection-control";
 
 interface CloseTabContentProps {
-  casesTableBlock: React.ReactNode;
+  rows: InfectionCase[];
+  columns: CommonColumn<InfectionCase>[];
+  onRowClick: (row: InfectionCase) => void;
 }
 
-export default function CloseTabContent({ casesTableBlock }: CloseTabContentProps) {
+export default function CloseTabContent({
+  rows,
+  columns,
+  onRowClick,
+}: CloseTabContentProps) {
   const theme = useTheme();
 
   return (
-    <Grid container spacing={2}>
-      <Grid item xs={12} lg={9.5}>
-        <Stack spacing={1.5} sx={{ flex: 1 }}>
-          {casesTableBlock}
-          <Paper
+    <Grid container spacing={2} sx={{ flex: 1, minHeight: 0, height: "100%" }}>
+      <Grid
+        item
+        xs={12}
+        lg={8.5}
+        sx={{ display: "flex", flexDirection: "column", minHeight: 0 }}
+      >
+        <CommonDataGrid<InfectionCase>
+          rows={rows}
+          columns={columns}
+          getRowId={(row) => row.id}
+          showSerialNo={true}
+          searchPlaceholder="Search resolved cases..."
+          searchFields={["patientName", "mrn", "organism"]}
+          onRowClick={onRowClick}
+          disableRowPointer={true}
+        />
+      </Grid>
+      <Grid
+        item
+        xs={12}
+        lg={3.5}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          height: "100%",
+        }}
+      >
+        <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
+          <Card
             elevation={0}
             sx={{
-              borderRadius: 2,
+              p: 2,
+              borderRadius: 3,
               border: "1px solid",
-              borderColor: alpha(theme.palette.primary.main, 0.14),
-              overflow: "hidden",
-              boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
+              borderColor: alpha(theme.palette.primary.main, 0.12),
+              boxShadow: "0 10px 30px rgba(10, 77, 104, 0.06)",
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+              flex: 1,
             }}
           >
-            <Stack spacing={1.25} sx={{ p: 1.75 }}>
+            <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Box
+                  sx={{
+                    p: 0.75,
+                    borderRadius: 1,
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    color: "primary.main",
+                    display: "flex",
+                  }}
+                >
+                  <CheckCircleIcon sx={{ fontSize: 18 }} />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                    Closure Criteria
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Verification for case resolution
+                  </Typography>
+                </Box>
+              </Stack>
+
               <Box
                 sx={{
-                  mt: 1.5,
-                  pt: 1.5,
-                  borderTop: "1px solid",
-                  borderColor: "divider",
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: "auto",
+                  pr: 0.5,
                 }}
               >
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 700, mb: 1 }}
-                >
-                  CLOSURE CRITERIA — SNEHA PATIL
-                </Typography>
-                <Stack spacing={0.75}>
+                <Stack spacing={1.25}>
                   {CLOSURE_CRITERIA.map((item) =>
                     item.met ? (
                       <Stack
                         key={item.id}
                         direction="row"
-                        alignItems="center"
-                        spacing={1}
+                        alignItems="flex-start"
+                        spacing={1.5}
                         sx={{
-                          py: 0.75,
-                          px: 1.25,
-                          borderRadius: 1.5,
-                          bgcolor: alpha(
-                            theme.palette.success.main,
-                            0.08,
-                          ),
+                          py: 1.5,
+                          px: 2,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.success.main, 0.05),
                           border: "1px solid",
-                          borderColor: alpha(
-                            theme.palette.success.main,
-                            0.25,
-                          ),
+                          borderColor: alpha(theme.palette.success.main, 0.2),
                         }}
                       >
                         <CheckCircleIcon
-                          sx={{ fontSize: 18, color: "success.main" }}
+                          sx={{ fontSize: 18, color: "success.main", mt: 0.25 }}
                         />
-                        <Typography variant="body2">
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 700, fontSize: "0.85rem" }}
+                        >
                           {item.label}
                         </Typography>
                       </Stack>
@@ -93,22 +146,33 @@ export default function CloseTabContent({ casesTableBlock }: CloseTabContentProp
                       <Stack
                         key={item.id}
                         direction="row"
-                        alignItems="center"
-                        spacing={1}
-                        sx={{ py: 0.75, px: 1 }}
+                        alignItems="flex-start"
+                        spacing={1.5}
+                        sx={{
+                          py: 1.5,
+                          px: 2,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.grey[500], 0.04),
+                          border: "1px solid",
+                          borderColor: alpha(theme.palette.divider, 0.1),
+                        }}
                       >
                         <Checkbox
                           checked={false}
-                          onChange={(_, checked) => {}}
-                          icon={<CheckBoxOutlineBlankIcon />}
-                          checkedIcon={
-                            <CheckBoxIcon
-                              sx={{ color: "success.main" }}
-                            />
+                          readOnly
+                          icon={
+                            <CheckBoxOutlineBlankIcon sx={{ fontSize: 18 }} />
                           }
-                          sx={{ p: 0.25 }}
+                          sx={{ p: 0, mt: 0.25 }}
                         />
-                        <Typography variant="body2">
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: "0.85rem",
+                            color: "text.secondary",
+                          }}
+                        >
                           {item.label}
                         </Typography>
                       </Stack>
@@ -117,88 +181,8 @@ export default function CloseTabContent({ casesTableBlock }: CloseTabContentProp
                 </Stack>
               </Box>
             </Stack>
-          </Paper>
+          </Card>
         </Stack>
-      </Grid>
-      <Grid item xs={12} lg={2.5}>
-        <Card
-          elevation={0}
-          sx={{
-            p: 1.5,
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: alpha(theme.palette.primary.main, 0.14),
-            boxShadow: "0 10px 28px rgba(10, 77, 104, 0.08)",
-          }}
-        >
-          <Stack spacing={1.25}>
-            <Stack direction="row" alignItems="center" spacing={0.75}>
-              <PushPinIcon sx={{ fontSize: 18, color: "error.main" }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                Case Timeline — Sneha Patil
-              </Typography>
-            </Stack>
-            {CASE_TIMELINE_EVENTS.map((evt) => (
-              <Stack
-                key={evt.id}
-                direction="row"
-                spacing={1}
-                alignItems="flex-start"
-                sx={{
-                  py: 1,
-                  px: 1,
-                  borderRadius: 1.5,
-                  bgcolor: alpha(theme.palette.primary.main, 0.04),
-                  border: "1px solid",
-                  borderColor: alpha(theme.palette.primary.main, 0.1),
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    bgcolor: alpha(theme.palette.primary.main, 0.08),
-                    flexShrink: 0,
-                  }}
-                >
-                  {evt.iconColor === "success.main" ? (
-                    <CheckCircleIcon
-                      sx={{ fontSize: 18, color: "success.main" }}
-                    />
-                  ) : evt.iconColor === "error.main" ? (
-                    <HealthAndSafetyIcon
-                      sx={{ fontSize: 18, color: "error.main" }}
-                    />
-                  ) : evt.iconColor === "warning.main" ? (
-                    <NotificationsIcon
-                      sx={{ fontSize: 18, color: "warning.main" }}
-                    />
-                  ) : (
-                    <SearchIcon
-                      sx={{ fontSize: 18, color: "info.main" }}
-                    />
-                  )}
-                </Box>
-                <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {evt.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {evt.date}
-                    {evt.source ? ` · ${evt.source}` : ""}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {evt.description}
-                  </Typography>
-                </Stack>
-              </Stack>
-            ))}
-          </Stack>
-        </Card>
       </Grid>
     </Grid>
   );

@@ -122,224 +122,237 @@ export default function NotifyTabContent({
   );
 
   return (
-    <Grid container spacing={2}>
+    <Box sx={{ display: "flex", gap: 2, flex: 1, minHeight: 0, height: "100%", overflow: "hidden" }}>
       {/* ── Main Column ──────────────────────────────────── */}
-      <Grid item xs={12} lg={8.5}>
-        <Stack spacing={2}>
-          {/* {casesTableBlock} */}
-
-          {/* Notification Feed Card */}
-          <Box
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          flex: { lg: 8.5, xs: 1 },
+          minHeight: 0
+        }}
+      >
+        {/* Notification Feed Card */}
+        <Box
+          sx={{
+            borderRadius: "16px",
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
+          {/* Header */}
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
             sx={{
-              borderRadius: "16px",
-              border: "1px solid",
+              px: 2.5,
+              py: 1.75,
+              borderBottom: "1px solid",
               borderColor: "divider",
-              bgcolor: "background.paper",
-              overflow: "hidden",
+              bgcolor: alpha(theme.palette.primary.main, 0.02),
+              flexShrink: 0,
+              // flex: 1, minHeight: 0,overflowY: "auto",
             }}
           >
-            {/* Header */}
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-              sx={{
-                px: 2.5,
-                py: 1.75,
-                borderBottom: "1px solid",
-                borderColor: "divider",
-                bgcolor: alpha(theme.palette.primary.main, 0.02),
-              }}
-            >
-              <Stack direction="row" spacing={1.5} alignItems="center">
-                <NotificationsActiveIcon
-                  sx={{ color: "primary.main", fontSize: 20 }}
-                />
-                <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                    Notification Feed
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {notifications.length} notification
-                    {notifications.length !== 1 ? "s" : ""} · Updates in
-                    real-time
-                  </Typography>
-                </Box>
-              </Stack>
-              <Stack direction="row" spacing={1} alignItems="center">
-                {/* Type badges */}
-                {Object.entries(TYPE_CONFIG).map(([type, cfg]) => {
-                  const count = typeCounts[type] ?? 0;
-                  if (!count) return null;
-                  return (
-                    <Chip
-                      key={type}
-                      size="small"
-                      label={count}
-                      icon={
-                        <Box sx={{ color: cfg.color, display: "flex" }}>
-                          {cfg.icon}
-                        </Box>
-                      }
-                      sx={{
-                        fontWeight: 700,
-                        fontSize: "0.7rem",
-                        bgcolor: alpha(cfg.color, 0.1),
-                        color: cfg.color,
-                        border: `1px solid ${alpha(cfg.color, 0.25)}`,
-                        height: 24,
-                        "& .MuiChip-icon": { ml: 0.5 },
-                      }}
-                    />
-                  );
-                })}
-              </Stack>
-            </Stack>
-
-            {/* Feed Items */}
-            {notifications.length === 0 ? (
-              <Box sx={{ py: 6, textAlign: "center" }}>
-                <NotificationsActiveIcon
-                  sx={{ fontSize: 40, color: "text.disabled", mb: 1 }}
-                />
-                <Typography variant="body2" color="text.secondary">
-                  No notifications yet. Move a case to "Notify" to generate
-                  alerts.
+            <Stack direction="row" spacing={1.5} alignItems="center" >
+              <NotificationsActiveIcon
+                sx={{ color: "primary.main", fontSize: 20 }}
+              />
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                  Notification Feed
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {notifications.length} notification
+                  {notifications.length !== 1 ? "s" : ""} · Updates in
+                  real-time
                 </Typography>
               </Box>
-            ) : (
-              <Stack divider={<Divider />} spacing={0}>
-                {notifications.map((item, idx) => {
-                  const cfg = TYPE_CONFIG[item.type];
-                  const isNew = item.id.startsWith("nf-live-") || item.id.startsWith("nf-manual-");
-                  return (
-                    <Stack
-                      key={item.id}
-                      direction="row"
-                      spacing={2}
-                      alignItems="flex-start"
-                      sx={{
-                        px: 2.5,
-                        py: 1.75,
-                        transition: "background 0.2s",
-                        bgcolor: isNew && idx === 0
-                          ? alpha(cfg.color, 0.04)
-                          : "transparent",
-                        "&:hover": {
-                          bgcolor: alpha(theme.palette.primary.main, 0.03),
-                        },
-                      }}
-                    >
-                      {/* Icon */}
-                      <Box
-                        sx={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: "10px",
-                          display: "grid",
-                          placeItems: "center",
-                          bgcolor: alpha(cfg.color, 0.1),
-                          color: cfg.color,
-                          flexShrink: 0,
-                          mt: 0.25,
-                        }}
-                      >
+            </Stack>
+            <Stack direction="row" spacing={1} alignItems="center"  >
+
+              {Object.entries(TYPE_CONFIG).map(([type, cfg]) => {
+                const count = typeCounts[type] ?? 0;
+                if (!count) return null;
+                return (
+                  <Chip
+                    key={type}
+                    size="small"
+                    label={count}
+                    icon={
+                      <Box sx={{ color: cfg.color, display: "flex" }}>
                         {cfg.icon}
                       </Box>
+                    }
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: "0.7rem",
+                      bgcolor: alpha(cfg.color, 0.1),
+                      color: cfg.color,
+                      border: `1px solid ${alpha(cfg.color, 0.25)}`,
+                      height: 24,
+                      "& .MuiChip-icon": { ml: 0.5 },
+                    }}
+                  />
+                );
+              })}
+            </Stack>
+          </Stack>
 
-                      {/* Content */}
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          alignItems="center"
-                          sx={{ mb: 0.25 }}
-                        >
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 700 }}
-                          >
-                            {item.title}
-                          </Typography>
-                          {isNew && idx === 0 && (
-                            <Chip
-                              label="NEW"
-                              size="small"
-                              icon={
-                                <FlashOnIcon sx={{ fontSize: 12 }} />
-                              }
-                              sx={{
-                                height: 18,
-                                fontSize: "0.6rem",
-                                fontWeight: 800,
-                                bgcolor: alpha(cfg.color, 0.15),
-                                color: cfg.color,
-                                "& .MuiChip-icon": { color: cfg.color, ml: 0.5 },
-                              }}
-                            />
-                          )}
-                        </Stack>
+          {/* Feed Items */}
+          {notifications.length === 0 ? (
+            <Box sx={{ py: 6, textAlign: "center", flex: 1 }}>
+              <NotificationsActiveIcon
+                sx={{ fontSize: 40, color: "text.disabled", mb: 1 }}
+              />
+              <Typography variant="body2" color="text.secondary">
+                No notifications yet. Move a case to "Notify" to generate
+                alerts.
+              </Typography>
+            </Box>
+          ) : (
+            <Stack
+              divider={<Divider />}
+              spacing={0}
+              sx={{ flex: 1, minHeight: 0, overflowY: "auto", }}
+            >
+              {notifications.map((item, idx) => {
+                const cfg = TYPE_CONFIG[item.type];
+                const isNew = item.id.startsWith("nf-live-") || item.id.startsWith("nf-manual-");
+                return (
+                  <Stack
+                    key={item.id}
+                    direction="row"
+                    spacing={2}
+                    alignItems="flex-start"
+                    sx={{
+                      px: 2.5,
+
+                      py: 1.75,
+                      transition: "background 0.2s",
+                      bgcolor: isNew && idx === 0
+                        ? alpha(cfg.color, 0.04)
+                        : "transparent",
+                      "&:hover": {
+                        bgcolor: alpha(theme.palette.primary.main, 0.03),
+                      },
+                    }}
+                  >
+                    {/* Icon */}
+                    <Box
+                      sx={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: "10px",
+                        display: "grid",
+                        placeItems: "center",
+                        bgcolor: alpha(cfg.color, 0.1),
+                        color: cfg.color,
+                        flexShrink: 0,
+                        mt: 0.25,
+                      }}
+                    >
+                      {cfg.icon}
+                    </Box>
+
+                    {/* Content */}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        alignItems="center"
+                        sx={{ mb: 0.25 }}
+                      >
                         <Typography
                           variant="body2"
-                          color="text.secondary"
-                          sx={{ lineHeight: 1.5 }}
+                          sx={{ fontWeight: 700 }}
                         >
-                          {item.body}
+                          {item.title}
                         </Typography>
-                        {item.actionLabel && (
-                          <Typography
-                            component="button"
-                            variant="caption"
+                        {isNew && idx === 0 && (
+                          <Chip
+                            label="NEW"
+                            size="small"
+                            icon={
+                              <FlashOnIcon sx={{ fontSize: 12 }} />
+                            }
                             sx={{
-                              mt: 0.5,
-                              color: "primary.main",
-                              fontWeight: 700,
-                              textDecoration: "underline",
-                              border: "none",
-                              background: "none",
-                              cursor: "pointer",
-                              p: 0,
-                              display: "block",
+                              height: 18,
+                              fontSize: "0.6rem",
+                              fontWeight: 800,
+                              bgcolor: alpha(cfg.color, 0.15),
+                              color: cfg.color,
+                              "& .MuiChip-icon": { color: cfg.color, ml: 0.5 },
                             }}
-                            onClick={() => setSelectedNotif(item)}
-                          >
-                            {item.actionLabel} →
-                          </Typography>
+                          />
                         )}
-                      </Box>
-
-                      {/* Timestamp + type badge */}
-                      <Stack
-                        spacing={0.5}
-                        alignItems="flex-end"
-                        sx={{ flexShrink: 0 }}
-                      >
-                        <Typography variant="caption" color="text.secondary">
-                          {item.timestamp}
-                        </Typography>
-                        <Chip
-                          size="small"
-                          label={cfg.label}
-                          sx={{
-                            height: 18,
-                            fontSize: "0.6rem",
-                            fontWeight: 700,
-                            bgcolor: alpha(cfg.color, 0.1),
-                            color: cfg.color,
-                          }}
-                        />
                       </Stack>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ lineHeight: 1.5 }}
+                      >
+                        {item.body}
+                      </Typography>
+                      {item.actionLabel && (
+                        <Typography
+                          component="button"
+                          variant="caption"
+                          sx={{
+                            mt: 0.5,
+                            color: "primary.main",
+                            fontWeight: 700,
+                            textDecoration: "underline",
+                            border: "none",
+                            background: "none",
+                            cursor: "pointer",
+                            p: 0,
+                            display: "block",
+                          }}
+                          onClick={() => setSelectedNotif(item)}
+                        >
+                          {item.actionLabel} →
+                        </Typography>
+                      )}
+                    </Box>
+
+                    {/* Timestamp + type badge */}
+                    <Stack
+                      spacing={0.5}
+                      alignItems="flex-end"
+                      sx={{ flexShrink: 0 }}
+                    >
+                      <Typography variant="caption" color="text.secondary">
+                        {item.timestamp}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={cfg.label}
+                        sx={{
+                          height: 18,
+                          fontSize: "0.6rem",
+                          fontWeight: 700,
+                          bgcolor: alpha(cfg.color, 0.1),
+                          color: cfg.color,
+                        }}
+                      />
                     </Stack>
-                  );
-                })}
-              </Stack>
-            )}
-          </Box>
-        </Stack>
-      </Grid>
+                  </Stack>
+                );
+              })}
+            </Stack>
+          )}
+        </Box>
+      </Box>
 
       {/* ── Send To Panel ─────────────────────────────────── */}
-      <Grid item xs={12} lg={3.5}>
+      <Box sx={{ display: "flex", flexDirection: "column", flex: { lg: 3.5, xs: 1 }, minHeight: 0 }}>
         <Card
           elevation={0}
           sx={{
@@ -347,8 +360,6 @@ export default function NotifyTabContent({
             borderRadius: "16px",
             border: "1px solid",
             borderColor: "divider",
-            position: "sticky",
-            top: 16,
           }}
         >
           <Stack spacing={2}>
@@ -470,7 +481,7 @@ export default function NotifyTabContent({
             </Typography>
           </Stack>
         </Card>
-      </Grid>
+      </Box>
       {/* ── Notification Detail Dialog ──────────────────── */}
       {selectedNotif && (() => {
         const cfg = TYPE_CONFIG[selectedNotif.type];
@@ -665,6 +676,6 @@ export default function NotifyTabContent({
           />
         );
       })()}
-    </Grid>
+    </Box>
   );
 }

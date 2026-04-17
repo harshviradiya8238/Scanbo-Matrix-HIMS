@@ -202,7 +202,7 @@ export default function PatientListPage() {
         </Box>
 
         {/* ── Table card — fills remaining height ── */}
-        <Card sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}>
+        <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", p: 0 }}>
           <CommonDataGrid<PatientRow>
             columns={columns}
             rows={filteredRows}
@@ -236,67 +236,58 @@ export default function PatientListPage() {
             }
           />
           <ColumnVisibilityDialog data={data} columns={columns} />
-        </Card>
+        </Box>
 
-      <Drawer
-        anchor="right"
-        open={filterDrawerOpen}
-        onClose={() => setFilterDrawerOpen(false)}
-      >
-        <FilterDrawer data={data} />
-      </Drawer>
+        <Drawer
+          anchor="right"
+          open={filterDrawerOpen}
+          onClose={() => setFilterDrawerOpen(false)}
+        >
+          <FilterDrawer data={data} />
+        </Drawer>
 
-      {/* <Drawer
-        anchor="right"
-        open={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
-      >
-        <PatientDetailsDrawer data={data} />
-      </Drawer> */}
+        <CommonDialog
+          open={Boolean(confirmAction)}
+          onClose={() => setConfirmAction(null)}
+          title={confirmAction?.title}
+          description={confirmAction?.description}
+          confirmLabel="Confirm"
+          confirmColor="error"
+          onConfirm={() => {
+            confirmAction?.onConfirm();
+            setConfirmAction(null);
+          }}
+        />
 
-
-      <CommonDialog
-        open={Boolean(confirmAction)}
-        onClose={() => setConfirmAction(null)}
-        title={confirmAction?.title}
-        description={confirmAction?.description}
-        confirmLabel="Confirm"
-        confirmColor="error"
-        onConfirm={() => {
-          confirmAction?.onConfirm();
-          setConfirmAction(null);
-        }}
-      />
-
-      <Menu
-        anchorEl={actionMenu?.anchor}
-        open={Boolean(actionMenu)}
-        onClose={handleMenuClose}
-        transformOrigin={{ horizontal: "right", vertical: "top" }}
-        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-        PaperProps={{
-          sx: {
-            width: 220,
-            mt: 0.5,
-            boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-            borderRadius: 2.5,
-            "& .MuiMenuItem-root": {
-              py: 1.2,
-              px: 2,
-              gap: 1.5,
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              "&:hover": {
-                bgcolor: alpha(theme.palette.primary.main, 0.04),
-                color: "primary.main",
-                "& .MuiListItemIcon-root": { color: "primary.main" },
+        <Menu
+          anchorEl={actionMenu?.anchor}
+          open={Boolean(actionMenu)}
+          onClose={handleMenuClose}
+          transformOrigin={{ horizontal: "right", vertical: "top" }}
+          anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+          PaperProps={{
+            sx: {
+              width: 220,
+              mt: 0.5,
+              boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+              borderRadius: 2.5,
+              "& .MuiMenuItem-root": {
+                py: 1.2,
+                px: 2,
+                gap: 1.5,
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                "&:hover": {
+                  bgcolor: alpha(theme.palette.primary.main, 0.04),
+                  color: "primary.main",
+                  "& .MuiListItemIcon-root": { color: "primary.main" },
+                },
               },
             },
-          },
-        }}
-      >
-        <ActionMenuItems data={data} handleMenuNavigate={handleMenuNavigate} />
-      </Menu>
+          }}
+        >
+          <ActionMenuItems data={data} handleMenuNavigate={handleMenuNavigate} />
+        </Menu>
       </Stack>
     </PageTemplate>
   );

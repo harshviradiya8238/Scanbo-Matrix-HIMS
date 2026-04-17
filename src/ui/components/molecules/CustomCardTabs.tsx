@@ -154,8 +154,7 @@ const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
           minHeight: 0,
           display: "flex",
           flexDirection: "column",
-          overflowY: scrollable ? "auto" : "hidden",
-          overflowX: "hidden",
+          // overflow: "hidden",
           pt: orientation === "horizontal" ? 2 : 0,
         }}
       >

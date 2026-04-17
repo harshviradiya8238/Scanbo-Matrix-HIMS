@@ -23,7 +23,10 @@ export default function LabWorkspaceCard({
   const router = useRouter();
 
   return (
-    <Stack spacing={0}>
+    <Stack
+      spacing={0}
+      sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+    >
       {/* Header card – same pattern as Clinical Care Workspace */}
       <WorkspaceHeaderCard>
         <Stack
@@ -61,7 +64,17 @@ export default function LabWorkspaceCard({
       </WorkspaceHeaderCard>
 
       {/* Page content below the card */}
-      <Box sx={{ pt: 1.5 }}>{children}</Box>
+      <Box
+        sx={{
+          pt: 1.5,
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {children}
+      </Box>
     </Stack>
   );
 }
