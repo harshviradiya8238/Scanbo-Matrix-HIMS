@@ -1126,9 +1126,6 @@ export default function InfectionControlPage() {
       icon: flowTabs[2].icon,
       child: (
         <NotifyTabContent
-          rows={cases.filter((c) => c.icStatus === "Notified")}
-          columns={memoColumns}
-          onRowClick={handleRowClick}
           canWrite={canWrite}
           notifications={notifications}
           onAddNotification={handleAddNotification}

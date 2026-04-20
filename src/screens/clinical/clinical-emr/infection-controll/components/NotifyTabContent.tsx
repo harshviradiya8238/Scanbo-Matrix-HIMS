@@ -30,7 +30,6 @@ import { SEND_TO_OPTIONS } from "../utils/infection-control-data";
 import { type NotificationFeedItem } from "../utils/infection-control-types";
 
 interface NotifyTabContentProps {
-  casesTableBlock: React.ReactNode;
   canWrite: boolean;
   notifications: NotificationFeedItem[];
   onAddNotification: (notif: NotificationFeedItem) => void;
@@ -64,7 +63,6 @@ const TYPE_CONFIG: Record<
 };
 
 export default function NotifyTabContent({
-  casesTableBlock,
   canWrite,
   notifications,
   onAddNotification,
@@ -128,7 +126,7 @@ export default function NotifyTabContent({
         sx={{
           display: "flex",
           flexDirection: "column",
-          flex: { lg: 8.5, xs: 1 },
+          flex: { lg: 9.5, xs: 1 },
           minHeight: 0
         }}
       >
@@ -352,7 +350,7 @@ export default function NotifyTabContent({
       </Box>
 
       {/* ── Send To Panel ─────────────────────────────────── */}
-      <Box sx={{ display: "flex", flexDirection: "column", flex: { lg: 3.5, xs: 1 }, minHeight: 0 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", flex: { lg: 2.5, xs: 1 }, minHeight: 0 }}>
         <Card
           elevation={0}
           sx={{

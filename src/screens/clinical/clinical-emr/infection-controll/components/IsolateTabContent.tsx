@@ -6,10 +6,8 @@ import {
   Button,
   Card,
   Checkbox,
-  Paper,
   Stack,
   Typography,
-  Grid,
   Chip,
   Divider,
 } from "@/src/ui/components/atoms";
@@ -95,23 +93,30 @@ export default function IsolateTabContent({
   const checklistState = ppeChecklist[checklistKey] ?? {};
 
   return (
-    <Grid container spacing={2} sx={{ flex: 1, minHeight: 0, height: "100%" }}>
-      <Grid item xs={12} lg={9.5} sx={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <CommonDataGrid<InfectionCase>
-          rows={rows}
-          columns={columns}
-          getRowId={(row) => row.id}
-          showSerialNo={true}
-          searchPlaceholder="Search patients in isolation..."
-          searchFields={["patientName", "mrn", "organism"]}
-          onRowClick={onRowClick}
-          disableRowPointer={true}
-        />
-      </Grid>
-      <Grid
-        item
-        xs={12}
-        lg={2.5}
+    <Box
+      sx={{
+        flex: 1,
+        minHeight: 0,
+        height: "100%",
+        display: "grid",
+        gap: 2,
+        gridTemplateColumns: {
+          xs: "minmax(0, 1fr)",
+          lg: "minmax(0, 3.8fr) minmax(0, 1fr)",
+        },
+      }}
+    >
+      <CommonDataGrid<InfectionCase>
+        rows={rows}
+        columns={columns}
+        getRowId={(row) => row.id}
+        showSerialNo={true}
+        searchPlaceholder="Search patients in isolation..."
+        searchFields={["patientName", "mrn", "organism"]}
+        onRowClick={onRowClick}
+        disableRowPointer={true}
+      />
+      <Box
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -306,8 +311,7 @@ export default function IsolateTabContent({
             </Stack>
           </Stack>
         </Card>
-      </Grid>
-      {/* </Grid>     </Grid> */}
-    </Grid>
+      </Box>
+    </Box>
   );
 }

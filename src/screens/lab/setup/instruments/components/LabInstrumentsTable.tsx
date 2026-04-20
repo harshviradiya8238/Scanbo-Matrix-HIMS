@@ -171,7 +171,7 @@ export function LabInstrumentsTable({
         <Stack direction="row" spacing={1} justifyContent="flex-end">
           <Button
             size="small"
-            variant="soft"
+            variant="outlined"
             color="primary"
             startIcon={<UploadIcon sx={{ fontSize: 14 }} />}
             onClick={() => onSimulateLink(row.id)}

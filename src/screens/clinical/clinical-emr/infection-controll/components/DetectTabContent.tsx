@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Box, Card, Stack, Typography, LinearProgress, Grid } from "@/src/ui/components/atoms";
+import { Box, Card, Stack, Typography } from "@/src/ui/components/atoms";
 import { alpha, useTheme } from "@/src/ui/theme";
 import {
   Notifications as NotificationsIcon,
@@ -27,25 +27,32 @@ export default function DetectTabContent({
   const theme = useTheme();
 
   return (
-    <Grid container spacing={2} sx={{ flex: 1, minHeight: 0, height: "100%" }}>
+    <Box
+      sx={{
+        flex: 1,
+        minHeight: 0,
+        height: "100%",
+        display: "grid",
+        gap: 2,
+        gridTemplateColumns: {
+          xs: "minmax(0, 1fr)",
+          lg: "minmax(0, 3.8fr) minmax(0, 1fr)",
+        },
+      }}
+    >
       {/* ── Main Column ──────────────────────────────────── */}
-      <Grid item xs={12} lg={8.5} sx={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <CommonDataGrid<InfectionCase>
-          rows={rows}
-          columns={columns}
-          getRowId={(row) => row.id}
-          showSerialNo={true}
-          searchPlaceholder="Search detected cases..."
-          searchFields={["patientName", "mrn", "organism"]}
-          onRowClick={onRowClick}
-          disableRowPointer={true}
-        />
-      </Grid>
+      <CommonDataGrid<InfectionCase>
+        rows={rows}
+        columns={columns}
+        getRowId={(row) => row.id}
+        showSerialNo={true}
+        searchPlaceholder="Search detected cases..."
+        searchFields={["patientName", "mrn", "organism"]}
+        onRowClick={onRowClick}
+        disableRowPointer={true}
+      />
       {/* ── Sidebar Column ───────────────────────────────── */}
-      <Grid
-        item
-        xs={12}
-        lg={3.5}
+      <Box
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -197,7 +204,7 @@ export default function DetectTabContent({
           {/* Detection Sources Card */}
 
         </Stack>
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
 }

@@ -5,10 +5,8 @@ import {
   Box,
   Card,
   Checkbox,
-  Paper,
   Stack,
   Typography,
-  Grid,
 } from "@/src/ui/components/atoms";
 import { alpha, useTheme } from "@/src/ui/theme";
 import {
@@ -40,28 +38,30 @@ export default function CloseTabContent({
   const theme = useTheme();
 
   return (
-    <Grid container spacing={2} sx={{ flex: 1, minHeight: 0, height: "100%" }}>
-      <Grid
-        item
-        xs={12}
-        lg={8.5}
-        sx={{ display: "flex", flexDirection: "column", minHeight: 0 }}
-      >
-        <CommonDataGrid<InfectionCase>
-          rows={rows}
-          columns={columns}
-          getRowId={(row) => row.id}
-          showSerialNo={true}
-          searchPlaceholder="Search resolved cases..."
-          searchFields={["patientName", "mrn", "organism"]}
-          onRowClick={onRowClick}
-          disableRowPointer={true}
-        />
-      </Grid>
-      <Grid
-        item
-        xs={12}
-        lg={3.5}
+    <Box
+      sx={{
+        flex: 1,
+        minHeight: 0,
+        height: "100%",
+        display: "grid",
+        gap: 2,
+       gridTemplateColumns: {
+          xs: "minmax(0, 1fr)",
+          lg: "minmax(0, 3.8fr) minmax(0, 1fr)",
+        },
+      }}
+    >
+      <CommonDataGrid<InfectionCase>
+        rows={rows}
+        columns={columns}
+        getRowId={(row) => row.id}
+        showSerialNo={true}
+        searchPlaceholder="Search resolved cases..."
+        searchFields={["patientName", "mrn", "organism"]}
+        onRowClick={onRowClick}
+        disableRowPointer={true}
+      />
+      <Box
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -183,7 +183,7 @@ export default function CloseTabContent({
             </Stack>
           </Card>
         </Stack>
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
 }
