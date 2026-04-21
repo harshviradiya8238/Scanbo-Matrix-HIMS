@@ -191,11 +191,6 @@ export default function ActivitySection({
         <Card
           sx={{
             p: 2.5,
-            borderRadius: 3,
-            bgcolor: alpha(theme.palette.error.main, 0.01),
-            border: "1px solid",
-            borderColor: alpha(theme.palette.error.main, 0.1),
-            height: "100%",
           }}
         >
           <SectionHeader

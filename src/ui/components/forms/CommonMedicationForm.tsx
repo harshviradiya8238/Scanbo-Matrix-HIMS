@@ -113,7 +113,7 @@ const CommonMedicationForm = React.forwardRef<CommonMedicationFormHandle, Common
   }));
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} sx={{mt:2}}>
       <Grid container spacing={2}>
         {/* Drug Name */}
         <Grid item xs={12}>

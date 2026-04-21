@@ -239,58 +239,72 @@ export default function AuditLogsPage() {
             </Box>
 
             {/* Log entries */}
-            <Stack spacing={1}>
-              {filtered.length === 0 && (
-                <Box sx={{ p: 4, textAlign: 'center', bgcolor: alpha(theme.palette.background.default, 0.3), borderRadius: 3, border: '1px dashed', borderColor: 'divider' }}>
-                  <HistoryIcon sx={{ fontSize: 40, color: 'text.disabled', opacity: 0.6, mb: 1 }} />
-                  <Typography variant="body2" color="text.disabled">No Logs Found for current filters.</Typography>
-                </Box>
-              )}
-              {filtered.map((entry) => {
-                const meta = ACTION_META[entry.action];
-                const chipColor = TONE_COLOR[meta.tone];
-                const isCritical = entry.action === 'DELETE' || entry.action === 'ROLE_CHANGE';
-                return (
-                  <Box
-                    key={entry.id}
-                    sx={{
-                      display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '220px 1fr 200px' }, gap: 1.5, alignItems: 'center',
-                      borderRadius: 3, border: '1px solid', borderColor: isCritical ? alpha(theme.palette.error.main, 0.4) : 'divider',
-                      backgroundColor: isCritical ? alpha(theme.palette.error.main, 0.02) : 'transparent',
-                      p: 1.5, transition: 'all 0.2s ease',
-                      '&:hover': {
-                        bgcolor: isCritical ? alpha(theme.palette.error.main, 0.04) : alpha(theme.palette.primary.main, 0.04),
-                        borderColor: isCritical ? theme.palette.error.main : theme.palette.primary.main,
-                        transform: 'translateX(2px)',
-                      }
-                    }}
-                  >
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <Box sx={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: isCritical ? alpha(theme.palette.error.main, 0.1) : alpha(theme.palette.primary.main, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center', color: isCritical ? 'error.main' : 'primary.main', flexShrink: 0 }}>
-                        {entry.action === 'LOGIN' || entry.action === 'LOGOUT' ? <LoginIcon fontSize="small" /> : entry.action === 'ROLE_CHANGE' || entry.action === 'PASSWORD_CHANGE' ? <LockIcon fontSize="small" /> : <HistoryIcon fontSize="small" />}
-                      </Box>
-                      <Stack>
-                        <Typography variant="body2" sx={{ fontWeight: 800 }}>{entry.user}</Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>{entry.role}</Typography>
+            <Box
+              sx={{
+                maxHeight: { xs: 360, md: 520 },
+                overflowY: 'auto',
+                pr: 0.5,
+                '&::-webkit-scrollbar': { width: 6 },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: alpha(theme.palette.text.primary, 0.2),
+                  borderRadius: 8,
+                },
+                '&::-webkit-scrollbar-track': { backgroundColor: 'transparent' },
+              }}
+            >
+              <Stack spacing={1}>
+                {filtered.length === 0 && (
+                  <Box sx={{ p: 4, textAlign: 'center', bgcolor: alpha(theme.palette.background.default, 0.3), borderRadius: 3, border: '1px dashed', borderColor: 'divider' }}>
+                    <HistoryIcon sx={{ fontSize: 40, color: 'text.disabled', opacity: 0.6, mb: 1 }} />
+                    <Typography variant="body2" color="text.disabled">No Logs Found for current filters.</Typography>
+                  </Box>
+                )}
+                {filtered.map((entry) => {
+                  const meta = ACTION_META[entry.action];
+                  const chipColor = TONE_COLOR[meta.tone];
+                  const isCritical = entry.action === 'DELETE' || entry.action === 'ROLE_CHANGE';
+                  return (
+                    <Box
+                      key={entry.id}
+                      sx={{
+                        display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '220px 1fr 200px' }, gap: 1.5, alignItems: 'center',
+                        borderRadius: 3, border: '1px solid', borderColor: isCritical ? alpha(theme.palette.error.main, 0.4) : 'divider',
+                        backgroundColor: isCritical ? alpha(theme.palette.error.main, 0.02) : 'transparent',
+                        p: 1.5, transition: 'all 0.2s ease',
+                        '&:hover': {
+                          bgcolor: isCritical ? alpha(theme.palette.error.main, 0.04) : alpha(theme.palette.primary.main, 0.04),
+                          borderColor: isCritical ? theme.palette.error.main : theme.palette.primary.main,
+                          transform: 'translateX(2px)',
+                        }
+                      }}
+                    >
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Box sx={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: isCritical ? alpha(theme.palette.error.main, 0.1) : alpha(theme.palette.primary.main, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center', color: isCritical ? 'error.main' : 'primary.main', flexShrink: 0 }}>
+                          {entry.action === 'LOGIN' || entry.action === 'LOGOUT' ? <LoginIcon fontSize="small" /> : entry.action === 'ROLE_CHANGE' || entry.action === 'PASSWORD_CHANGE' ? <LockIcon fontSize="small" /> : <HistoryIcon fontSize="small" />}
+                        </Box>
+                        <Stack>
+                          <Typography variant="body2" sx={{ fontWeight: 800 }}>{entry.user}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>{entry.role}</Typography>
+                        </Stack>
                       </Stack>
-                    </Stack>
 
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', mb: 0.25 }}>{entry.description}</Typography>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                         <Chip size="small" label={entry.action.replace('_', ' ')} color={chipColor} sx={{ fontWeight: 600, height: 18, fontSize: '0.65rem' }} />
-                         <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 500 }}><DesktopMacIcon sx={{ fontSize: 12 }} /> {entry.ip}</Typography>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', mb: 0.25 }}>{entry.description}</Typography>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                           <Chip size="small" label={entry.action.replace('_', ' ')} color={chipColor} sx={{ fontWeight: 600, height: 18, fontSize: '0.65rem' }} />
+                           <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 500 }}><DesktopMacIcon sx={{ fontSize: 12 }} /> {entry.ip}</Typography>
+                        </Stack>
+                      </Box>
+
+                      <Stack alignItems="flex-end" spacing={0.5}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>{fmtTimestamp(entry.timestamp)}</Typography>
+                        <Chip size="small" label={entry.module} variant="outlined" sx={{ fontWeight: 600, color: 'text.secondary', borderColor: 'divider', height: 20, fontSize: '0.65rem' }} />
                       </Stack>
                     </Box>
-
-                    <Stack alignItems="flex-end" spacing={0.5}>
-                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>{fmtTimestamp(entry.timestamp)}</Typography>
-                      <Chip size="small" label={entry.module} variant="outlined" sx={{ fontWeight: 600, color: 'text.secondary', borderColor: 'divider', height: 20, fontSize: '0.65rem' }} />
-                    </Stack>
-                  </Box>
-                );
-              })}
-            </Stack>
+                  );
+                })}
+              </Stack>
+            </Box>
           </Box>
         </Card>
 

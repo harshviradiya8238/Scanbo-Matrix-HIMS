@@ -2724,19 +2724,7 @@ export default function IpdRoundsPage() {
           {label}
         </Typography>
       </Stack>
-      <IconButton
-        size="small"
-        onClick={onClose}
-        aria-label="Close dialog"
-        sx={{
-          border: "1px solid",
-          borderColor: "divider",
-          borderRadius: 1.5,
-          p: 0.45,
-        }}
-      >
-        <CloseRoundedIcon fontSize="small" />
-      </IconButton>
+    
     </Stack>
   );
 

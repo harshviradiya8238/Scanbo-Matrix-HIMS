@@ -24,13 +24,14 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  MenuItem,
+  TextField,
   Popover,
   Stack,
-  TextField,
   Typography,
+  MenuItem as MuiMenuItem,
 } from "@/src/ui/components/atoms";
-import { Card } from "@/src/ui/components/molecules";
+import { Card, CustomCardTabs } from "@/src/ui/components/molecules";
+import MuiTextField from "@mui/material/TextField";
 import PageTemplate from "@/src/ui/components/PageTemplate";
 import { useTheme } from "@/src/ui/theme";
 import { alpha } from "@mui/material";
@@ -1539,9 +1540,10 @@ export default function DoctorSchedulePage() {
         }}
         sx={{
           "& .MuiDrawer-paper": {
-            width: { xs: "100%", sm: 420 },
+            width: { xs: "100%", sm: 460 },
             maxWidth: "100%",
-            boxShadow: "-4px 0 24px rgba(0,0,0,0.12)",
+            boxShadow: "-12px 0 44px rgba(0,0,0,0.15)",
+            borderLeft: "none",
           },
         }}
       >
@@ -1551,480 +1553,433 @@ export default function DoctorSchedulePage() {
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
+            // bgcolor: "#F8FAFC",
           }}
         >
           {/* Header */}
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
+          <Box
             sx={{
-              px: 2,
-              py: 1.5,
+              px: 3,
+              py: 2.5,
+              bgcolor: "background.paper",
               borderBottom: "1px solid",
               borderColor: "divider",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            <Typography
-              variant="h6"
-              fontWeight={700}
-              sx={{ flex: 1, textAlign: "center" }}
-            >
-              {isEditMode ? "Edit Schedule" : "Add Schedule"}
-            </Typography>
+            <Box>
+              <Typography variant="h6" fontWeight={800} sx={{ color: "text.primary", lineHeight: 1.2 }}>
+                {isEditMode ? "Edit Schedule" : "Add New Schedule"}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                Configure working hours, breaks, and time off
+              </Typography>
+            </Box>
             <IconButton
               size="small"
               onClick={() => {
                 setAddScheduleOpen(false);
                 setEditingBlock(null);
               }}
-              aria-label="Close"
+              sx={{
+                bgcolor: alpha(theme.palette.text.primary, 0.04),
+                "&:hover": { bgcolor: alpha(theme.palette.text.primary, 0.08) },
+              }}
             >
               <CloseIcon />
             </IconButton>
-          </Stack>
+          </Box>
 
-          <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
-            {/* Schedule type: Availability | Break | Leave */}
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              fontWeight={700}
-              sx={{ mb: 0.75, display: "block", fontSize: "0.7rem" }}
-            >
-              Schedule type
-            </Typography>
-            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-              {(
-                [
-                  {
-                    value: "availability" as const,
-                    label: "Availability",
-                    Icon: CheckCircleIcon,
-                  },
-                  {
-                    value: "break" as const,
-                    label: "Break",
-                    Icon: LocalCafeIcon,
-                  },
-                  {
-                    value: "leave" as const,
-                    label: "Leave",
-                    Icon: BeachAccessIcon,
-                  },
-                ] as const
-              ).map(({ value, label, Icon }) => {
-                const isSelected = scheduleType === value;
-                const primary = theme.palette.primary.main;
-                return (
-                  <Box
-                    key={value}
-                    onClick={() => setScheduleType(value)}
-                    sx={{
-                      flex: 1,
-                      py: 1.25,
-                      px: 1,
-                      borderRadius: 1.5,
-                      border: "1.5px solid",
-                      borderColor: isSelected
-                        ? primary
-                        : theme.palette.divider,
-                      bgcolor: isSelected ? alpha(primary, 0.12) : "transparent",
-                      boxShadow: isSelected
-                        ? `0 0 0 1px ${alpha(primary, 0.15)}`
-                        : "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 0.5,
-                      transition: "border-color 0.2s, background-color 0.2s",
-                      "&:hover": {
-                        borderColor: isSelected
-                          ? primary
-                          : theme.palette.primary.main,
-                        bgcolor: isSelected ? alpha(primary, 0.18) : "transparent",
-                      },
-                    }}
-                  >
-                    <Icon
-                      sx={{
-                        fontSize: 22,
-                        color: primary,
-                      }}
-                    />
-                    <Typography
-                      variant="caption"
-                      fontWeight={600}
-                      sx={{
-                        fontSize: "0.7rem",
-                        color: isSelected
-                          ? primary
-                          : theme.palette.text.secondary,
-                      }}
-                    >
-                      {label}
-                    </Typography>
-                  </Box>
-                );
-              })}
-            </Stack>
-
-            {/* Doctor — hidden when logged in as doctor (they manage only their schedule) */}
-            {!isDoctorView && (
-              <TextField
-                select
-                fullWidth
-                label="Doctor"
-                value={addFormDoctor}
-                onChange={(e) => setAddFormDoctor(e.target.value)}
-                size="small"
-                sx={{ mb: 2 }}
-              >
-                <MenuItem value="">Select doctor</MenuItem>
-                {filteredDoctors.map((d) => (
-                  <MenuItem key={d.id} value={d.id}>
-                    {d.name} - {d.specialty}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-
-            {/* Break: Day (multiple), Start Time, End Time */}
-            {scheduleType === "break" && (
-              <Stack spacing={2} sx={{ mb: 2 }}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Day"
-                  size="small"
-                  value={addFormBreakDays}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setAddFormBreakDays(
-                      Array.isArray(v) ? v : v ? [v] : [],
-                    );
-                  }}
-                  SelectProps={{
-                    multiple: true,
-                    renderValue: (selected) =>
-                      (selected as string[]).join(", ") || "Select days",
-                  }}
-                >
-                  <MenuItem value="Mon">Mon</MenuItem>
-                  <MenuItem value="Tue">Tue</MenuItem>
-                  <MenuItem value="Wed">Wed</MenuItem>
-                  <MenuItem value="Thu">Thu</MenuItem>
-                  <MenuItem value="Fri">Fri</MenuItem>
-                  <MenuItem value="Sat">Sat</MenuItem>
-                  <MenuItem value="Sun">Sun</MenuItem>
-                </TextField>
-                <TextField
-                  fullWidth
-                  label="Start Time"
-                  type="time"
-                  size="small"
-                  value={addFormFrom}
-                  onChange={(e) => setAddFormFrom(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <TextField
-                  fullWidth
-                  label="End Time"
-                  type="time"
-                  size="small"
-                  value={addFormTo}
-                  onChange={(e) => setAddFormTo(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Stack>
-            )}
-
-            {/* Date (for Leave only; Availability uses Day) */}
-            {scheduleType === "leave" && (
-              <TextField
-                fullWidth
-                label="Date"
-                type="date"
-                size="small"
-                value={addFormDate}
-                onChange={(e) => setAddFormDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ mb: 2 }}
-              />
-            )}
-
-            {/* Availability only: Service type, Duration, Day, Timezone */}
-            {scheduleType === "availability" && (
-              <Stack spacing={2} sx={{ mb: 2 }}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Service type"
-                  size="small"
-                  value={addFormServiceType}
-                  onChange={(e) =>
-                    setAddFormServiceType(
-                      e.target.value as
-                        | "Home visit"
-                        | "Video call"
-                        | "In-clinic",
-                    )
-                  }
-                >
-                  <MenuItem value="Home visit">Home visit</MenuItem>
-                  <MenuItem value="Video call">Video call</MenuItem>
-                  <MenuItem value="In-clinic">In-clinic</MenuItem>
-                </TextField>
-                <TextField
-                  select
-                  fullWidth
-                  label="Duration"
-                  size="small"
-                  value={addFormDuration}
-                  onChange={(e) => setAddFormDuration(e.target.value)}
-                >
-                  <MenuItem value="15">15 minutes</MenuItem>
-                  <MenuItem value="30">30 minutes</MenuItem>
-                  <MenuItem value="45">45 minutes</MenuItem>
-                  <MenuItem value="60">60 minutes</MenuItem>
-                  <MenuItem value="90">90 minutes</MenuItem>
-                </TextField>
-                {addFormRepeatType !== "custom" && (
-                  <TextField
-                    select
-                    fullWidth
-                    label="Day (multiple select)"
-                    size="small"
-                    value={addFormAvailDays}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setAddFormAvailDays(
-                        typeof v === "string" ? (v ? [v] : []) : v,
-                      );
-                    }}
-                    SelectProps={{
-                      multiple: true,
-                      renderValue: (selected) =>
-                        (selected as string[]).join(", "),
-                    }}
-                  >
-                    <MenuItem value="Mon">Mon</MenuItem>
-                    <MenuItem value="Tue">Tue</MenuItem>
-                    <MenuItem value="Wed">Wed</MenuItem>
-                    <MenuItem value="Thu">Thu</MenuItem>
-                    <MenuItem value="Fri">Fri</MenuItem>
-                    <MenuItem value="Sat">Sat</MenuItem>
-                    <MenuItem value="Sun">Sun</MenuItem>
-                  </TextField>
-                )}
-                <TextField
-                  select
-                  fullWidth
-                  label="Timezone"
-                  size="small"
-                  value={addFormTimezone}
-                  onChange={(e) => setAddFormTimezone(e.target.value)}
-                >
-                  {TIMEZONES.map((tz) => (
-                    <MenuItem key={tz} value={tz}>
-                      {tz}
-                    </MenuItem>
-                  ))}
-                  </TextField>
-              </Stack>
-            )}
-
-            {/* Start time / End time (Availability, Leave); Break has its own block above */}
-            {scheduleType !== "break" && (
-              <Stack direction="row" spacing={1.5} sx={{ mb: 2 }}>
-                <TextField
-                  fullWidth
-                  label={
-                    scheduleType === "availability" ? "Start time" : "From"
-                  }
-                  type="time"
-                  size="small"
-                  value={addFormFrom}
-                  onChange={(e) => setAddFormFrom(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <TextField
-                  fullWidth
-                  label={scheduleType === "availability" ? "End time" : "To"}
-                  type="time"
-                  size="small"
-                  value={addFormTo}
-                  onChange={(e) => setAddFormTo(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Stack>
-            )}
-
-            {/* Repeat: None / Weekly / Custom (Availability only) */}
-            {scheduleType === "availability" && (
-              <Stack spacing={1.5} sx={{ mb: 2 }}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Repeat"
-                  size="small"
-                  value={addFormRepeatType}
-                  onChange={(e) => {
-                    const v = e.target.value as "none" | "weekly" | "custom";
-                    setAddFormRepeatType(v);
-                    if (v === "custom") {
-                      setCustomRepeatDialogOpen(true);
-                    }
-                  }}
-                >
-                  <MenuItem value="none">None</MenuItem>
-                  <MenuItem value="weekly">Weekly</MenuItem>
-                  <MenuItem value="custom">Custom</MenuItem>
-                </TextField>
-                {addFormRepeatType === "weekly" && (
-                  <TextField
-                    select
-                    fullWidth
-                    label="Days"
-                    size="small"
-                    value={addFormRepeatDays}
-                    onChange={(e) => setAddFormRepeatDays(e.target.value)}
-                  >
-                    <MenuItem value="Mon-Fri">Mon-Fri</MenuItem>
-                    <MenuItem value="Mon-Sat">Mon-Sat</MenuItem>
-                    <MenuItem value="All days">All days</MenuItem>
-                  </TextField>
-                )}
-                {addFormRepeatType === "custom" && (
-                  <Stack spacing={1.5}>
-                    {addFormCustomRepeatConfig ? (
-                      <Box
-                        sx={{
-                          p: 1.5,
-                          borderRadius: 1.5,
-                          border: "1px solid",
-                          borderColor: (theme) => alpha(theme.palette.primary.main, 0.2),
-                          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
-                        }}
-                      >
-                        <Stack direction="row" flexWrap="wrap" alignItems="center" gap={0.75} sx={{ mb: 1.25 }}>
-                          <Typography variant="body2" fontWeight={600} color="text.primary">
-                            {addFormCustomRepeatConfig.interval === 1
-                              ? `Every ${addFormCustomRepeatConfig.frequency === "daily" ? "day" : addFormCustomRepeatConfig.frequency === "weekly" ? "week" : addFormCustomRepeatConfig.frequency === "monthly" ? "month" : "year"}`
-                              : `Every ${addFormCustomRepeatConfig.interval} ${addFormCustomRepeatConfig.frequency === "daily" ? "days" : addFormCustomRepeatConfig.frequency === "weekly" ? "weeks" : addFormCustomRepeatConfig.frequency === "monthly" ? "months" : "years"}`}
-                          </Typography>
-                          {addFormCustomRepeatConfig.frequency === "weekly" &&
-                            addFormCustomRepeatConfig.days.length > 0 && (
-                              <>
-                                <Typography variant="body2" color="text.secondary">
-                                  on
-                                </Typography>
-                                <Stack direction="row" flexWrap="wrap" gap={0.5}>
-                                  {addFormCustomRepeatConfig.days.map((d) => (
-                                    <Chip
-                                      key={d}
-                                      label={d}
-                                      size="small"
-                                      sx={{
-                                        height: 24,
-                                        fontWeight: 600,
-                                        fontSize: "0.75rem",
-                                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
-                                        color: "primary.main",
-                                        border: "1px solid",
-                                        borderColor: (theme) => alpha(theme.palette.primary.main, 0.3),
-                                        "& .MuiChip-label": { px: 1 },
-                                      }}
-                                    />
-                                  ))}
-                                </Stack>
-                              </>
-                            )}
-                          {addFormCustomRepeatConfig.endType === "end_date" &&
-                            addFormCustomRepeatConfig.endDate && (
-                              <Typography variant="body2" color="text.secondary">
-                                until {addFormCustomRepeatConfig.endDate}
-                              </Typography>
-                            )}
-                        </Stack>
-                        <Button
-                          variant="outlined"
+          <Box sx={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <CustomCardTabs
+              defaultValue={
+                scheduleType === "availability" ? 0 : scheduleType === "break" ? 1 : 2
+              }
+              onChange={(idx) => {
+                const types = ["availability", "break", "leave"] as const;
+                setScheduleType(types[idx]);
+              }}
+              scrollable
+              // sx={{ flex: 1, minHeight: 0 }}
+              // tabsSx={{
+              //   px: 2,
+              //   pt: 1,
+              //   bgcolor: "background.paper",
+              //   borderBottom: "1px solid",
+              //   borderColor: "divider",
+              //   boxShadow: "none",
+              //   borderRadius: 0,
+              // }}
+              items={[
+                {
+                  label: "Availability",
+                  icon: <CheckCircleIcon sx={{ fontSize: 18 }} />,
+                  child: (
+                    <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+                      {/* Doctor Select */}
+                      {!isDoctorView && (
+                        <MuiTextField
+                          select
+                          fullWidth
+                          label="Doctor"
+                          value={addFormDoctor}
+                          onChange={(e) => setAddFormDoctor(e.target.value)}
                           size="small"
-                          onClick={() => setCustomRepeatDialogOpen(true)}
-                          sx={{
-                            textTransform: "none",
-                            fontWeight: 600,
-                            fontSize: "0.8125rem",
-                            borderColor: "primary.main",
-                            color: "primary.main",
-                            py: 0.5,
-                            px: 1.5,
-                            "&:hover": {
-                              borderColor: "primary.dark",
-                              color: "primary.dark",
-                              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                            },
+                        >
+                          <MuiMenuItem value="">Select doctor</MuiMenuItem>
+                          {filteredDoctors.map((d) => (
+                            <MuiMenuItem key={d.id} value={d.id}>
+                              {d.name} - {d.specialty}
+                            </MuiMenuItem>
+                          ))}
+                        </MuiTextField>
+                      )}
+
+                      <Stack direction="row" spacing={2}>
+                        <MuiTextField
+                          select
+                          fullWidth
+                          label="Service type"
+                          size="small"
+                          value={addFormServiceType}
+                          onChange={(e) =>
+                            setAddFormServiceType(
+                              e.target.value as "Home visit" | "Video call" | "In-clinic"
+                            )
+                          }
+                        >
+                          <MuiMenuItem value="Home visit">Home visit</MuiMenuItem>
+                          <MuiMenuItem value="Video call">Video call</MuiMenuItem>
+                          <MuiMenuItem value="In-clinic">In-clinic</MuiMenuItem>
+                        </MuiTextField>
+                        <MuiTextField
+                          select
+                          fullWidth
+                          label="Duration"
+                          size="small"
+                          value={addFormDuration}
+                          onChange={(e) => setAddFormDuration(e.target.value)}
+                        >
+                          <MuiMenuItem value="15">15 min</MuiMenuItem>
+                          <MuiMenuItem value="30">30 min</MuiMenuItem>
+                          <MuiMenuItem value="45">45 min</MuiMenuItem>
+                          <MuiMenuItem value="60">60 min</MuiMenuItem>
+                        </MuiTextField>
+                      </Stack>
+
+                      <Stack direction="row" spacing={2}>
+                        <MuiTextField
+                          fullWidth
+                          label="Start Time"
+                          type="time"
+                          size="small"
+                          value={addFormFrom}
+                          onChange={(e) => setAddFormFrom(e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                        <MuiTextField
+                          fullWidth
+                          label="End Time"
+                          type="time"
+                          size="small"
+                          value={addFormTo}
+                          onChange={(e) => setAddFormTo(e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Stack>
+
+                      {addFormRepeatType !== "custom" && (
+                        <MuiTextField
+                          select
+                          fullWidth
+                          label="Recurrence Days"
+                          size="small"
+                          value={addFormAvailDays}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setAddFormAvailDays(typeof v === "string" ? (v ? [v] : []) : v);
+                          }}
+                          SelectProps={{
+                            multiple: true,
+                            renderValue: (selected) => (selected as string[]).join(", "),
                           }}
                         >
-                          Customize
-                        </Button>
-                      </Box>
-                    ) : (
-                      <Button
-                        variant="outlined"
+                          {DAY_NAMES.map((d) => (
+                            <MuiMenuItem key={d} value={d}>
+                              {d}
+                            </MuiMenuItem>
+                          ))}
+                        </MuiTextField>
+                      )}
+
+                      <MuiTextField
+                        select
+                        fullWidth
+                        label="Repeat Type"
                         size="small"
-                        onClick={() => setCustomRepeatDialogOpen(true)}
-                        sx={{
-                          textTransform: "none",
-                          alignSelf: "flex-start",
-                          fontWeight: 600,
-                          borderColor: "primary.main",
-                          color: "primary.main",
-                          "&:hover": {
-                            borderColor: "primary.dark",
-                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                          },
+                        value={addFormRepeatType}
+                        onChange={(e) => {
+                          const v = e.target.value as "none" | "weekly" | "custom";
+                          setAddFormRepeatType(v);
+                          if (v === "custom") setCustomRepeatDialogOpen(true);
                         }}
                       >
-                        Set custom repeat…
-                      </Button>
-                    )}
-                  </Stack>
-                )}
-              </Stack>
-            )}
+                        <MuiMenuItem value="none">Does not repeat</MuiMenuItem>
+                        <MuiMenuItem value="weekly">Weekly</MuiMenuItem>
+                        <MuiMenuItem value="custom">Custom...</MuiMenuItem>
+                      </MuiTextField>
 
-            {/* Note */}
-            <TextField
-              fullWidth
-              label="Note (optional)"
-              placeholder="e.g. Specialist consultation..."
-              multiline
-              rows={3}
-              value={addFormNote}
-              onChange={(e) => setAddFormNote(e.target.value)}
-              size="small"
-              sx={{ mb: 2 }}
+                      {addFormRepeatType === "weekly" && (
+                        <MuiTextField
+                          select
+                          fullWidth
+                          label="Days Range"
+                          size="small"
+                          value={addFormRepeatDays}
+                          onChange={(e) => setAddFormRepeatDays(e.target.value)}
+                        >
+                          <MuiMenuItem value="Mon-Fri">Monday to Friday</MuiMenuItem>
+                          <MuiMenuItem value="Mon-Sat">Monday to Saturday</MuiMenuItem>
+                          <MuiMenuItem value="All days">All days</MuiMenuItem>
+                        </MuiTextField>
+                      )}
+
+                      {addFormRepeatType === "custom" && addFormCustomRepeatConfig && (
+                        <Box
+                          sx={{
+                            p: 2,
+                            borderRadius: 2,
+                            border: "1.5px dashed",
+                            borderColor: alpha(theme.palette.primary.main, 0.3),
+                            bgcolor: alpha(theme.palette.primary.main, 0.02),
+                          }}
+                        >
+                          <Typography variant="body2" fontWeight={700} color="primary" sx={{ mb: 1 }}>
+                            Custom Repeat Configured
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                            {addFormCustomRepeatConfig.interval === 1
+                              ? `Every ${addFormCustomRepeatConfig.frequency}`
+                              : `Every ${addFormCustomRepeatConfig.interval} ${addFormCustomRepeatConfig.frequency}s`}
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => setCustomRepeatDialogOpen(true)}
+                            sx={{ borderRadius: 1.5, textTransform: "none" }}
+                          >
+                            Change Config
+                          </Button>
+                        </Box>
+                      )}
+
+                      <MuiTextField
+                        select
+                        fullWidth
+                        label="Timezone"
+                        size="small"
+                        value={addFormTimezone}
+                        onChange={(e) => setAddFormTimezone(e.target.value)}
+                      >
+                        {TIMEZONES.map((tz) => (
+                          <MuiMenuItem key={tz} value={tz}>
+                            {tz}
+                          </MuiMenuItem>
+                        ))}
+                      </MuiTextField>
+
+                      <MuiTextField
+                        fullWidth
+                        label="Internal Notes"
+                        placeholder="Add instructions for reception or staff..."
+                        multiline
+                        rows={3}
+                        value={addFormNote}
+                        onChange={(e) => setAddFormNote(e.target.value)}
+                        size="small"
+                      />
+                    </Box>
+                  ),
+                },
+                {
+                  label: "Break",
+                  icon: <LocalCafeIcon sx={{ fontSize: 18 }} />,
+                  child: (
+                    <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+                      {!isDoctorView && (
+                        <MuiTextField
+                          select
+                          fullWidth
+                          label="Doctor"
+                          value={addFormDoctor}
+                          onChange={(e) => setAddFormDoctor(e.target.value)}
+                          size="small"
+                        >
+                          <MuiMenuItem value="">Select doctor</MuiMenuItem>
+                          {filteredDoctors.map((d) => (
+                            <MuiMenuItem key={d.id} value={d.id}>
+                              {d.name} - {d.specialty}
+                            </MuiMenuItem>
+                          ))}
+                        </MuiTextField>
+                      )}
+
+                      <MuiTextField
+                        select
+                        fullWidth
+                        label="Break Days"
+                        size="small"
+                        value={addFormBreakDays}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setAddFormBreakDays(Array.isArray(v) ? v : v ? [v] : []);
+                        }}
+                        SelectProps={{
+                          multiple: true,
+                          renderValue: (selected) => (selected as string[]).join(", "),
+                        }}
+                      >
+                        {DAY_NAMES.map((d) => (
+                          <MuiMenuItem key={d} value={d}>
+                            {d}
+                          </MuiMenuItem>
+                        ))}
+                      </MuiTextField>
+
+                      <Stack direction="row" spacing={2}>
+                        <MuiTextField
+                          fullWidth
+                          label="From"
+                          type="time"
+                          size="small"
+                          value={addFormFrom}
+                          onChange={(e) => setAddFormFrom(e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                        <MuiTextField
+                          fullWidth
+                          label="To"
+                          type="time"
+                          size="small"
+                          value={addFormTo}
+                          onChange={(e) => setAddFormTo(e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Stack>
+
+                      <MuiTextField
+                        fullWidth
+                        label="Reason for Break"
+                        placeholder="e.g. Lunch, Hospital Rounds..."
+                        multiline
+                        rows={3}
+                        value={addFormNote}
+                        onChange={(e) => setAddFormNote(e.target.value)}
+                        size="small"
+                      />
+                    </Box>
+                  ),
+                },
+                {
+                  label: "Leave",
+                  icon: <BeachAccessIcon sx={{ fontSize: 18 }} />,
+                  child: (
+                    <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+                      {!isDoctorView && (
+                        <MuiTextField
+                          select
+                          fullWidth
+                          label="Doctor"
+                          value={addFormDoctor}
+                          onChange={(e) => setAddFormDoctor(e.target.value)}
+                          size="small"
+                        >
+                          <MuiMenuItem value="">Select doctor</MuiMenuItem>
+                          {filteredDoctors.map((d) => (
+                            <MuiMenuItem key={d.id} value={d.id}>
+                              {d.name} - {d.specialty}
+                            </MuiMenuItem>
+                          ))}
+                        </MuiTextField>
+                      )}
+
+                      <MuiTextField
+                        fullWidth
+                        label="Select Date"
+                        type="date"
+                        size="small"
+                        value={addFormDate}
+                        onChange={(e) => setAddFormDate(e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                      />
+
+                      <Stack direction="row" spacing={2}>
+                        <MuiTextField
+                          fullWidth
+                          label="From"
+                          type="time"
+                          size="small"
+                          value={addFormFrom}
+                          onChange={(e) => setAddFormFrom(e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                        <MuiTextField
+                          fullWidth
+                          label="To"
+                          type="time"
+                          size="small"
+                          value={addFormTo}
+                          onChange={(e) => setAddFormTo(e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Stack>
+
+                      <MuiTextField
+                        fullWidth
+                        label="Remarks"
+                        placeholder="e.g. Medical leave, Conference..."
+                        multiline
+                        rows={3}
+                        value={addFormNote}
+                        onChange={(e) => setAddFormNote(e.target.value)}
+                        size="small"
+                      />
+                    </Box>
+                  ),
+                },
+              ]}
             />
           </Box>
 
           {/* Footer actions */}
-          <Stack
-            direction="row"
-            spacing={1.5}
+          <Box
             sx={{
-              p: 2,
+              p: 3,
               borderTop: "1px solid",
               borderColor: "divider",
               bgcolor: "background.paper",
+              display: "flex",
+              gap: 2,
             }}
           >
             <Button
               fullWidth
               variant="outlined"
-              onClick={() => setAddScheduleOpen(false)}
-              sx={{ textTransform: "none", fontWeight: 600 }}
+              onClick={() => {
+                setAddScheduleOpen(false);
+                setEditingBlock(null);
+              }}
+              sx={{
+                borderRadius: 2.5,
+                textTransform: "none",
+                fontWeight: 700,
+                color: "text.secondary",
+                borderColor: "divider",
+                py: 1.25,
+                "&:hover": { bgcolor: alpha(theme.palette.text.primary, 0.04), borderColor: "text.secondary" },
+              }}
             >
               Cancel
             </Button>
@@ -2032,11 +1987,19 @@ export default function DoctorSchedulePage() {
               fullWidth
               variant="contained"
               onClick={handleSaveSchedule}
-              sx={{ textTransform: "none", fontWeight: 600 }}
+              sx={{
+                borderRadius: 2.5,
+                textTransform: "none",
+                fontWeight: 700,
+                bgcolor: "primary.main",
+                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.25)}`,
+                py: 1.25,
+                "&:hover": { bgcolor: "primary.dark", boxShadow: "none" },
+              }}
             >
-              {isEditMode ? "Update Schedule" : "Save Schedule"}
+              {isEditMode ? "Update Changes" : "Confirm Schedule"}
             </Button>
-          </Stack>
+          </Box>
         </Box>
       </Drawer>
 

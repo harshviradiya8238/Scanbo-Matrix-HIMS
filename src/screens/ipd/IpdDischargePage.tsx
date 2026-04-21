@@ -1871,15 +1871,7 @@ export default function IpdDischargePage() {
                   </Box>
 
                   <Box sx={{ p: 1.6 }}>
-                    <Box
-                      sx={{
-                        border: "1px solid",
-                        borderColor: alpha(theme.palette.primary.main, 0.16),
-                        borderRadius: 1.2,
-                        minHeight: 240,
-                        overflow: "hidden",
-                      }}
-                    >
+                    <Box>
                       <CommonDataGrid<DischargeMedicationRow>
                         rows={selectedDraft.dischargeMedicationRows ?? []}
                         columns={[

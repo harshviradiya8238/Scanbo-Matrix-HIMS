@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, alpha, useTheme } from "@mui/material";
 import CommonTabs, {
   CommonTabItem,
 } from "@/src/ui/components/molecules/CommonTabs";
@@ -79,6 +79,7 @@ const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
   title
 }) => {
   const [tabValue, setTabValue] = useState<number>(defaultValue);
+  const theme = useTheme();
 
   useEffect(() => {
     setTabValue(defaultValue ?? 0);
@@ -154,8 +155,14 @@ const CustomCardTabs: React.FC<CustomCardTabsProps> = ({
           minHeight: 0,
           display: "flex",
           flexDirection: "column",
-          // overflow: "hidden",
+          overflow: scrollable ? "auto" : "hidden",
           pt: orientation === "horizontal" ? 2 : 0,
+          "&::-webkit-scrollbar": { width: 4 },
+          "&::-webkit-scrollbar-track": { background: "transparent" },
+          "&::-webkit-scrollbar-thumb": {
+            background: alpha(theme.palette.text.primary, 0.15),
+            borderRadius: 4,
+          },
         }}
       >
         {items.map((t, i) => (

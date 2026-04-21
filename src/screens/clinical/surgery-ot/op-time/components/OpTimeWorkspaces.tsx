@@ -237,129 +237,129 @@ export const IntraOpWorkspacePanel: React.FC<WorkspaceProps> = ({
 }) => (
   <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: 0.5 }}>
     <Grid container spacing={1.1}>
-    <Grid item xs={12} md={7}>
-      <Card elevation={0} sx={workspaceCardSx}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ mb: 0.8 }}
-        >
-          <EnterpriseSectionTitle title="Intra-Op Events" />
-          <Button size="small" variant="outlined" onClick={onAddEventClick}>
-            + Add Event
-          </Button>
-        </Stack>
-        <EnterpriseTimeline items={intraOpEvents} />
-      </Card>
-    </Grid>
-    <Grid item xs={12} md={5}>
-      <Card elevation={0} sx={workspaceCardSx}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-        >
-          <EnterpriseSectionTitle title="Live Vitals" />
-          <Chip size="small" label="LIVE" color="success" />
-        </Stack>
-        <Grid container spacing={0.7}>
-          {intraOpVitals.map((vital) => (
-            <Grid item key={vital.label} xs={6}>
-              <Box
-                sx={{
-                  p: 0.9,
-                  borderRadius: 1.2,
-                  bgcolor: toneToBg(vital.tone),
-                  border: "1px solid",
-                  borderColor: alpha("#1172BA", 0.15),
-                }}
-              >
-                <Typography variant="caption" color="text.secondary">
-                  {vital.label}
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                  {vital.value}
-                </Typography>
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
-      </Card>
-    </Grid>
-    <Grid item xs={12} md={6}>
-      <Card elevation={0} sx={workspaceCardSx}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ mb: 0.8 }}
-        >
-          <EnterpriseSectionTitle title="Instrument & Swab Count" />
-          <Button size="small" variant="outlined" onClick={onVerifyCountClick}>
-            Verify
-          </Button>
-        </Stack>
-        <CommonTable
-          rows={instrumentRows}
-          columns={countColumns}
-          getRowId={(row: InstrumentCountRow) => row.id}
-          emptyMessage="No count records."
-          initialRowsPerPage={4}
-          rowsPerPageOptions={[4]}
-        />
-      </Card>
-    </Grid>
-    <Grid item xs={12} md={6}>
-      <Card elevation={0} sx={workspaceCardSx}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ mb: 0.8 }}
-        >
-          <EnterpriseSectionTitle title="Intra-Op Medications" />
-          <Button size="small" variant="outlined" onClick={onAddIntraOpMedClick}>
-            + Add
-          </Button>
-        </Stack>
-        <CommonTable
-          rows={intraOpMedicationRows}
-          columns={medicationColumns}
-          getRowId={(row: MedicationRow) => row.id}
-          emptyMessage="No medication entries."
-          initialRowsPerPage={4}
-          rowsPerPageOptions={[4]}
-        />
-      </Card>
-    </Grid>
-    <Grid item xs={12}>
-      <Card elevation={0} sx={workspaceCardSx}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ mb: 0.8 }}
-        >
-          <EnterpriseSectionTitle title="Surgeon's Operative Notes" />
-          <Button
-            size="small"
-            variant="contained"
-            startIcon={<SaveIcon fontSize="small" />}
+      <Grid item xs={12} md={7}>
+        <Card elevation={0} sx={workspaceCardSx}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mb: 0.8 }}
           >
-            Save Notes
-          </Button>
-        </Stack>
-        <TextField
-          fullWidth
-          multiline
-          minRows={4}
-          defaultValue="Procedure progressing as planned. Critical structures identified and preserved. Estimated blood loss ~150 ml."
-        />
-      </Card>
+            <EnterpriseSectionTitle title="Intra-Op Events" />
+            <Button size="small" variant="outlined" onClick={onAddEventClick}>
+              + Add Event
+            </Button>
+          </Stack>
+          <EnterpriseTimeline items={intraOpEvents} />
+        </Card>
+      </Grid>
+      <Grid item xs={12} md={5}>
+        <Card elevation={0} sx={workspaceCardSx}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <EnterpriseSectionTitle title="Live Vitals" />
+            <Chip size="small" label="LIVE" color="success" />
+          </Stack>
+          <Grid container spacing={0.7}>
+            {intraOpVitals.map((vital) => (
+              <Grid item key={vital.label} xs={6}>
+                <Box
+                  sx={{
+                    p: 0.9,
+                    borderRadius: 1.2,
+                    bgcolor: toneToBg(vital.tone),
+                    border: "1px solid",
+                    borderColor: alpha("#1172BA", 0.15),
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    {vital.label}
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {vital.value}
+                  </Typography>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        </Card>
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <Card elevation={0} sx={workspaceCardSx}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mb: 0.8 }}
+          >
+            <EnterpriseSectionTitle title="Instrument & Swab Count" />
+            <Button size="small" variant="outlined" onClick={onVerifyCountClick}>
+              Verify
+            </Button>
+          </Stack>
+          <CommonTable
+            rows={instrumentRows}
+            columns={countColumns}
+            getRowId={(row: InstrumentCountRow) => row.id}
+            emptyMessage="No count records."
+            initialRowsPerPage={4}
+            rowsPerPageOptions={[4]}
+          />
+        </Card>
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <Card elevation={0} sx={workspaceCardSx}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mb: 0.8 }}
+          >
+            <EnterpriseSectionTitle title="Intra-Op Medications" />
+            <Button size="small" variant="outlined" onClick={onAddIntraOpMedClick}>
+              + Add
+            </Button>
+          </Stack>
+          <CommonTable
+            rows={intraOpMedicationRows}
+            columns={medicationColumns}
+            getRowId={(row: MedicationRow) => row.id}
+            emptyMessage="No medication entries."
+            initialRowsPerPage={4}
+            rowsPerPageOptions={[4]}
+          />
+        </Card>
+      </Grid>
+      <Grid item xs={12}>
+        <Card elevation={0} sx={workspaceCardSx}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mb: 0.8 }}
+          >
+            <EnterpriseSectionTitle title="Surgeon's Operative Notes" />
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<SaveIcon fontSize="small" />}
+            >
+              Save Notes
+            </Button>
+          </Stack>
+          <TextField
+            fullWidth
+            multiline
+            minRows={4}
+            defaultValue="Procedure progressing as planned. Critical structures identified and preserved. Estimated blood loss ~150 ml."
+          />
+        </Card>
+      </Grid>
     </Grid>
-  </Grid>
-</Box>
+  </Box>
 );
 
 export const PostOpWorkspacePanel: React.FC<WorkspaceProps> = ({
